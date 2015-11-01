@@ -1,0 +1,2 @@
+#Ubuntu 15.10
+sudo apt-get install libxdo-dev
