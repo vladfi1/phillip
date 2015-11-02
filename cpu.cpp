@@ -6,9 +6,13 @@
 #include <iomanip>
 #include <iostream>
 
-extern "C" {
-#include <xdo.h>
-}
+#include <unistd.h>
+#include <sys/types.h>
+#include <pwd.h>
+
+#include "Controller.h"
+
+Controller *controller;
 
 struct GameState
 {
@@ -33,7 +37,7 @@ struct GameState
 
 //Returns whether we're done with the combo or not
 // end_in_shine - End inside the shine, so we can jump out of it for another combo
-bool Multishine(uint frame, xdo_t *xdo, bool end_in_shine)
+bool Multishine(uint frame, bool end_in_shine)
 {
     switch(frame % 15)
     {   case 0:
@@ -43,8 +47,8 @@ bool Multishine(uint frame, xdo_t *xdo, bool end_in_shine)
         case 1:
         {
             //Down-B
-            xdo_send_keysequence_window_down(xdo, CURRENTWINDOW, "2", 0);
-            xdo_send_keysequence_window_down(xdo, CURRENTWINDOW, "k", 0);
+			controller->pressButton(Controller::BUTTON_B);
+			controller->tiltAnalog(Controller::BUTTON_MAIN, 0, .5);
             if(end_in_shine)
             {
                 return true;
@@ -54,38 +58,38 @@ bool Multishine(uint frame, xdo_t *xdo, bool end_in_shine)
         case 4:
         {
             //Let go of Down-B
-            xdo_send_keysequence_window_up(xdo, CURRENTWINDOW, "2", 0);
-            xdo_send_keysequence_window_up(xdo, CURRENTWINDOW, "k", 0);
+			controller->releaseButton(Controller::BUTTON_B);
+			controller->tiltAnalog(Controller::BUTTON_MAIN, .5, .5);
 
             //Jump
-            xdo_send_keysequence_window_down(xdo, CURRENTWINDOW, "4", 0);
+			controller->pressButton(Controller::BUTTON_Y);
 
             break;
         }
         case 5:
         {
-            xdo_send_keysequence_window_up(xdo, CURRENTWINDOW, "4", 0);
+			controller->releaseButton(Controller::BUTTON_Y);
             break;
         }
         case 7:
         {
             //Down-B again
-            xdo_send_keysequence_window_down(xdo, CURRENTWINDOW, "2", 0);
-            xdo_send_keysequence_window_down(xdo, CURRENTWINDOW, "k", 0);
+			controller->pressButton(Controller::BUTTON_B);
+			controller->tiltAnalog(Controller::BUTTON_MAIN, 0, .5);
             break;
         }
         case 8:
         {
             //Let go of Down-B
-            xdo_send_keysequence_window_up(xdo, CURRENTWINDOW, "2", 0);
-            xdo_send_keysequence_window_up(xdo, CURRENTWINDOW, "k", 0);
+			controller->releaseButton(Controller::BUTTON_B);
+			controller->tiltAnalog(Controller::BUTTON_MAIN, .5, .5);
             break;
         }
     }
     return false;
 }
 
-bool SHDL(uint frame, xdo_t *xdo)
+bool SHDL(uint frame)
 {
     switch(frame % 27)
     {   case 0:
@@ -95,37 +99,37 @@ bool SHDL(uint frame, xdo_t *xdo)
         case 1:
         {
             //Jump
-            xdo_send_keysequence_window_down(xdo, CURRENTWINDOW, "4", 0);
+			controller->pressButton(Controller::BUTTON_Y);
             break;
         }
         case 2:
         {
             //let go of jump
-            xdo_send_keysequence_window_up(xdo, CURRENTWINDOW, "4", 0);
+			controller->releaseButton(Controller::BUTTON_Y);
             break;
         }
         case 4:
         {
             //Laser
-            xdo_send_keysequence_window_down(xdo, CURRENTWINDOW, "2", 0);
+			controller->pressButton(Controller::BUTTON_B);
             break;
         }
         case 5:
         {
             //let go of Laser
-            xdo_send_keysequence_window_up(xdo, CURRENTWINDOW, "2", 0);
+			controller->releaseButton(Controller::BUTTON_Y);
             break;
         }
         case 7:
         {
             //Laser
-            xdo_send_keysequence_window_down(xdo, CURRENTWINDOW, "2", 0);
+			controller->pressButton(Controller::BUTTON_B);
             break;
         }
         case 18:
         {
             //let go of Laser
-            xdo_send_keysequence_window_up(xdo, CURRENTWINDOW, "2", 0);
+			controller->releaseButton(Controller::BUTTON_Y);
             break;
         }
     }
@@ -133,12 +137,13 @@ bool SHDL(uint frame, xdo_t *xdo)
     return false;
 }
 
-main()
+int main()
 {
     int shmid;
     key_t key;
-    char *shm, *s;
+    char *shm;
     GameState *state;
+	controller = new Controller();
 
     key = 1337;
 
@@ -194,19 +199,8 @@ main()
 	std::cout << "p1 action: " << std::hex << state->player_one_action << std::endl;
 	std::cout << "p2 action: " << std::hex << state->player_two_action << std::endl;
 
-    /*
-    1 = A
-    2 = B
-    3 = X
-    4 = Y
-    5 = Z
-
-    WASD:
-    ijkl
-    */
 
     uint last_frame = state->frame;
-	xdo_t *xdo = xdo_new(NULL);
     int shinecount = 0;
     int lasercount = 0;
     for(;;)
@@ -220,13 +214,13 @@ main()
             }
             last_frame = state->frame;
 
-			Multishine(state->frame, xdo, false);
+			Multishine(state->frame, false);
 			continue;
 
             //double-shine 9 times
             if(shinecount < 9)
             {
-                if(Multishine(state->frame, xdo, false) == true)
+                if(Multishine(state->frame, false) == true)
                 {
                     shinecount++;
                 }
@@ -236,7 +230,7 @@ main()
             //End inside a shine
             if(shinecount < 10)
             {
-                if(Multishine(state->frame, xdo, true) == true)
+                if(Multishine(state->frame, true) == true)
                 {
                     shinecount++;
                 }
@@ -247,8 +241,8 @@ main()
             if(shinecount < 11)
             {
                 //Let go of Down-B
-                xdo_send_keysequence_window_up(xdo, CURRENTWINDOW, "2", 0);
-                xdo_send_keysequence_window_up(xdo, CURRENTWINDOW, "k", 0);
+				controller->releaseButton(Controller::BUTTON_B);
+				controller->tiltAnalog(Controller::BUTTON_MAIN, .5, .5);
                 shinecount++;
                 continue;
             }
@@ -258,7 +252,7 @@ main()
             //SHDL 3 times
             if(lasercount < 3)
             {
-                if(SHDL(state->frame, xdo) == true)
+                if(SHDL(state->frame) == true)
                 {
                     lasercount ++;
                 }
@@ -268,4 +262,6 @@ main()
             lasercount = 0;
         }
     }
+
+	return EXIT_SUCCESS;
 }
