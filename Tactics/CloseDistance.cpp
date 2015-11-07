@@ -1,8 +1,7 @@
 #include <cmath>
 
 #include "CloseDistance.h"
-#include "../Chains/SHDL.h"
-#include "../Chains/Multishine.h"
+#include "../Chains/Jog.h"
 
 CloseDistance::CloseDistance(GameState *state) : Tactic(state)
 {
@@ -16,17 +15,21 @@ CloseDistance::~CloseDistance()
 
 void CloseDistance::DetermineChain()
 {
-    //If we're far away, laser
-    if(std::abs(m_state->player_one_x - m_state->player_two_x) > 40)
+
+
+    //If opponent is to our right, jog right
+    if(m_state->player_one_x > m_state->player_two_x)
     {
         delete m_chain;
-        m_chain = new SHDL(m_state);
+        m_chain = new Jog(m_state, true);
     }
     //else, multishine
     else
     {
         delete m_chain;
-        m_chain = new Multishine(m_state);
+        m_chain = new Jog(m_state, false);
+
     }
     m_chain->PressButtons();
+
 }
