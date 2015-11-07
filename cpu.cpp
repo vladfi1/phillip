@@ -10,132 +10,8 @@
 #include <sys/types.h>
 #include <pwd.h>
 
-#include "Controller.h"
-
-Controller *controller;
-
-struct GameState
-{
-	uint player_one_percent;
-	uint player_one_stock;
-	//True is right, false is left
-	bool player_one_facing;
-	float player_one_x;
-	float player_one_y;
-	uint player_one_action;
-
-	uint player_two_percent;
-	uint player_two_stock;
-	//True is right, false is left
-	bool player_two_facing;
-	float player_two_x;
-	float player_two_y;
-	uint player_two_action;
-
-	uint frame;
-};
-
-//Returns whether we're done with the combo or not
-// end_in_shine - End inside the shine, so we can jump out of it for another combo
-bool Multishine(uint frame, bool end_in_shine)
-{
-    switch(frame % 15)
-    {   case 0:
-        {
-            return true;
-        }
-        case 1:
-        {
-            //Down-B
-			controller->pressButton(Controller::BUTTON_B);
-			controller->tiltAnalog(Controller::BUTTON_MAIN, 0, .5);
-            if(end_in_shine)
-            {
-                return true;
-            }
-            break;
-        }
-        case 4:
-        {
-            //Let go of Down-B
-			controller->releaseButton(Controller::BUTTON_B);
-			controller->tiltAnalog(Controller::BUTTON_MAIN, .5, .5);
-
-            //Jump
-			controller->pressButton(Controller::BUTTON_Y);
-
-            break;
-        }
-        case 5:
-        {
-			controller->releaseButton(Controller::BUTTON_Y);
-            break;
-        }
-        case 7:
-        {
-            //Down-B again
-			controller->pressButton(Controller::BUTTON_B);
-			controller->tiltAnalog(Controller::BUTTON_MAIN, 0, .5);
-            break;
-        }
-        case 8:
-        {
-            //Let go of Down-B
-			controller->releaseButton(Controller::BUTTON_B);
-			controller->tiltAnalog(Controller::BUTTON_MAIN, .5, .5);
-            break;
-        }
-    }
-    return false;
-}
-
-bool SHDL(uint frame)
-{
-    switch(frame % 27)
-    {   case 0:
-        {
-            return true;
-        }
-        case 1:
-        {
-            //Jump
-			controller->pressButton(Controller::BUTTON_Y);
-            break;
-        }
-        case 2:
-        {
-            //let go of jump
-			controller->releaseButton(Controller::BUTTON_Y);
-            break;
-        }
-        case 4:
-        {
-            //Laser
-			controller->pressButton(Controller::BUTTON_B);
-            break;
-        }
-        case 5:
-        {
-            //let go of Laser
-			controller->releaseButton(Controller::BUTTON_Y);
-            break;
-        }
-        case 7:
-        {
-            //Laser
-			controller->pressButton(Controller::BUTTON_B);
-            break;
-        }
-        case 18:
-        {
-            //let go of Laser
-			controller->releaseButton(Controller::BUTTON_Y);
-            break;
-        }
-    }
-
-    return false;
-}
+#include "Goals/KillOpponent.h"
+#include "Gamestate.h"
 
 int main()
 {
@@ -143,8 +19,8 @@ int main()
     key_t key;
     char *shm;
     GameState *state;
-	controller = new Controller();
 
+	//return 0;
     key = 1337;
 
     /*
@@ -201,8 +77,10 @@ int main()
 
 
     uint last_frame = state->frame;
-    int shinecount = 0;
-    int lasercount = 0;
+    //Get our goal
+	Goal *goal = new KillOpponent(state);
+
+    //Main frame loop
     for(;;)
     {
         //Spinloop until we get a new frame
@@ -214,52 +92,7 @@ int main()
             }
             last_frame = state->frame;
 
-			Multishine(state->frame, false);
-			continue;
-
-            //double-shine 9 times
-            if(shinecount < 9)
-            {
-                if(Multishine(state->frame, false) == true)
-                {
-                    shinecount++;
-                }
-                continue;
-            }
-
-            //End inside a shine
-            if(shinecount < 10)
-            {
-                if(Multishine(state->frame, true) == true)
-                {
-                    shinecount++;
-                }
-                continue;
-            }
-
-            //Let go of shine shine
-            if(shinecount < 11)
-            {
-                //Let go of Down-B
-				controller->releaseButton(Controller::BUTTON_B);
-				controller->tiltAnalog(Controller::BUTTON_MAIN, .5, .5);
-                shinecount++;
-                continue;
-            }
-
-            //Should be ready to jump now
-
-            //SHDL 3 times
-            if(lasercount < 3)
-            {
-                if(SHDL(state->frame) == true)
-                {
-                    lasercount ++;
-                }
-                continue;
-            }
-            shinecount = 0;
-            lasercount = 0;
+            goal->Strategize();
         }
     }
 

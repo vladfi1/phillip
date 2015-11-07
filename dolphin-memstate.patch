@@ -1,0 +1,334 @@
+diff --git a/Source/Core/Core/HW/Memmap.cpp b/Source/Core/Core/HW/Memmap.cpp
+index 9354fe9..3cb6374 100644
+--- a/Source/Core/Core/HW/Memmap.cpp
++++ b/Source/Core/Core/HW/Memmap.cpp
+@@ -316,6 +316,11 @@ u8* GetPointer(u32 address)
+ 	return nullptr;
+ }
+
++u8* GetRawMemory()
++{
++	return m_pRAM;
++}
++
+ u8 Read_U8(u32 address)
+ {
+ 	return *GetPointer(address);
+diff --git a/Source/Core/Core/HW/Memmap.h b/Source/Core/Core/HW/Memmap.h
+index 065903a..867ee2f 100644
+--- a/Source/Core/Core/HW/Memmap.h
++++ b/Source/Core/Core/HW/Memmap.h
+@@ -74,6 +74,9 @@ void DoState(PointerWrap &p);
+ void Clear();
+ bool AreMemoryBreakpointsActivated();
+
++//Added for debugging
++u8* GetRawMemory();
++
+ // Routines to access physically addressed memory, designed for use by
+ // emulated hardware outside the CPU. Use "Device_" prefix.
+ std::string GetString(u32 em_address, size_t size = 0);
+diff --git a/Source/Core/Core/State.cpp b/Source/Core/Core/State.cpp
+index a1895ed..2a17cec 100644
+--- a/Source/Core/Core/State.cpp
++++ b/Source/Core/Core/State.cpp
+@@ -31,6 +31,9 @@
+ #include "VideoCommon/AVIDump.h"
+ #include "VideoCommon/VideoBackendBase.h"
+
++#include <iostream>
++#include <fstream>
++
+ namespace State
+ {
+
+@@ -380,42 +383,26 @@ void SaveAs(const std::string& filename, bool wait)
+ 	// Pause the core while we save the state
+ 	bool wasUnpaused = Core::PauseAndLock(true);
+
+-	// Measure the size of the buffer.
+-	u8 *ptr = nullptr;
+-	PointerWrap p(&ptr, PointerWrap::MODE_MEASURE);
+-	DoState(p);
+-	const size_t buffer_size = reinterpret_cast<size_t>(ptr);
++	std::cout << "m_pRAM: " << (void *)Memory::GetRawMemory() << std::endl;
+
+-	// Then actually do the write.
+-	{
+-		std::lock_guard<std::mutex> lk(g_cs_current_buffer);
+-		g_current_buffer.resize(buffer_size);
+-		ptr = &g_current_buffer[0];
+-		p.SetMode(PointerWrap::MODE_WRITE);
+-		DoState(p);
+-	}
++	u16 *player1_percent = (u16*)(Memory::GetRawMemory() + 0x004A10D2);
++	//endianness correction
++	u16 percent_1 = *player1_percent >> 8;
+
+-	if (p.GetMode() == PointerWrap::MODE_WRITE)
+-	{
+-		Core::DisplayMessage("Saving State...", 1000);
++	u16 *player2_percent = (u16*)(Memory::GetRawMemory() + 0x00453F70);
++	//endianness correction
++	u16 percent_2 = *player2_percent >> 8;
+
+-		CompressAndDumpState_args save_args;
+-		save_args.buffer_vector = &g_current_buffer;
+-		save_args.buffer_mutex = &g_cs_current_buffer;
+-		save_args.filename = filename;
+-		save_args.wait = wait;
++	u8 player1_stock = *(u8*)(Memory::GetRawMemory() + 0x0045310E);
++	u8 player2_stock = *(u8*)(Memory::GetRawMemory() + 0x00453F9E);
+
+-		Flush();
+-		g_save_thread = std::thread(CompressAndDumpState, save_args);
+-		g_compressAndDumpStateSyncEvent.Wait();
++	std::cout << "player1_percent: " << percent_1 << std::endl;
++	std::cout << "player2_percent: " << percent_2 << std::endl;
++	std::cout << "player1_stock: " << (unsigned int)player1_stock << std::endl;
++	std::cout << "player2_stock: " << (unsigned int)player2_stock << std::endl;
+
+-		g_last_filename = filename;
+-	}
+-	else
+-	{
+-		// someone aborted the save by changing the mode?
+-		Core::DisplayMessage("Unable to save: Internal DoState Error", 4000);
+-	}
++	std::ofstream statefile(filename, std::ios::out | std::ios::binary);
++	statefile.write((const char*)Memory::GetRawMemory(), 0x01800000);
+
+ 	// Resume the core and disable stepping
+ 	Core::PauseAndLock(false, wasUnpaused);
+diff --git a/Source/Core/DolphinWX/Main.cpp b/Source/Core/DolphinWX/Main.cpp
+index 3c6250e..ba4ca36 100644
+--- a/Source/Core/DolphinWX/Main.cpp
++++ b/Source/Core/DolphinWX/Main.cpp
+@@ -33,6 +33,11 @@
+ #include "Core/Host.h"
+ #include "Core/Movie.h"
+ #include "Core/HW/Wiimote.h"
++#include "Core/HW/Memmap.h"
++#include <sys/types.h>
++#include <sys/ipc.h>
++#include <sys/shm.h>
++#include <stdio.h>
+
+ #include "DolphinWX/Frame.h"
+ #include "DolphinWX/Globals.h"
+@@ -159,8 +164,159 @@ bool DolphinApp::OnInit()
+ 	return true;
+ }
+
++struct GameState
++{
++	uint player_one_percent;
++	uint player_one_stock;
++	//True is right, false is left
++	bool player_one_facing;
++	float player_one_x;
++	float player_one_y;
++	uint player_one_action;
++
++	uint player_two_percent;
++	uint player_two_stock;
++	//True is right, false is left
++	bool player_two_facing;
++	float player_two_x;
++	float player_two_y;
++	uint player_two_action;
++
++	uint frame;
++};
++
++void AILoop()
++{
++	std::cout << "Thread started!" << std::endl;
++
++	std::cout << "m_pRAM: " << (void *)Memory::GetRawMemory() << std::endl;
++
++	char *buffer;
++	GameState *state;
++	int shmid;
++	key_t key = 1337;
++
++	if ((shmid = shmget(key, sizeof(GameState), IPC_CREAT | 0666)) < 0)
++	{
++		perror("shmget");
++		exit(1);
++	}
++
++	buffer = (char*)shmat(shmid, NULL, 0);
++	state = (GameState*)buffer;
++
++	//u8* basepointer = Memory::GetRawMemory();
++
++	for(;;)
++	{
++		//The game hasn't started otherwise
++		if(Memory::GetRawMemory() == 0)
++		{
++			continue;
++		}
++
++		u16 *player1_percent = (u16*)(Memory::GetRawMemory() + 0x004530E0);
++		//endianness correction
++		u16 percent_1 = *player1_percent >> 8;
++
++		u16 *player2_percent = (u16*)(Memory::GetRawMemory() + 0x00453F70);
++		//endianness correction
++		u16 percent_2 = *player2_percent >> 8;
++
++		u8 player1_stock = *(u8*)(Memory::GetRawMemory() + 0x0045310E);
++		u8 player2_stock = *(u8*)(Memory::GetRawMemory() + 0x00453F9E);
++
++		u32 frame = *(u32*)(Memory::GetRawMemory() + 0x00479D60);
++		//endianness correction
++		frame = __builtin_bswap32(frame);
++
++		u8 player1_facing = *(u8*)(Memory::GetRawMemory() + 0x004530C0);
++		u8 player2_facing = *(u8*)(Memory::GetRawMemory() + 0x00453F50);
++
++		u32 *player1_x_tmp = (u32*)(Memory::GetRawMemory() + 0x00453090);
++		float player1_x = *((float*)player1_x_tmp);
++		std::reverse((char*)&player1_x, (char*)&player1_x + 4);
++
++		u32 *player2_x_tmp = (u32*)(Memory::GetRawMemory() + 0x00453F20);
++		float player2_x = *((float*)player2_x_tmp);
++		std::reverse((char*)&player2_x, (char*)&player2_x + 4);
++
++		u32 *player1_y_tmp = (u32*)(Memory::GetRawMemory() + 0x00453094);
++		float player1_y = *((float*)player1_y_tmp);
++		std::reverse((char*)&player1_y, (char*)&player1_y + 4);
++
++		u32 *player2_y_tmp = (u32*)(Memory::GetRawMemory() + 0x00453F24);
++		float player2_y = *((float*)player2_y_tmp);
++		std::reverse((char*)&player2_y, (char*)&player2_y + 4);
++
++		//This is the pointer to the P1 data structure
++		u32 player1_data_pointer = *(u32*)(Memory::GetRawMemory() + 0x00453130);
++		player1_data_pointer = __builtin_bswap32(player1_data_pointer);
++		//Look up the action state
++		player1_data_pointer &= 0x00FFFFFF;
++		u32 player1_action = *(u32*)(Memory::GetRawMemory() + player1_data_pointer + 0x70);
++		player1_action = __builtin_bswap32(player1_action);
++
++		//This is the pointer to the P2 data structure
++		u32 player2_data_pointer = *(u32*)(Memory::GetRawMemory() + 0x00453FC0);
++		player2_data_pointer = __builtin_bswap32(player2_data_pointer);
++		//Look up the action state
++		player2_data_pointer &= 0x00FFFFFF;
++		u32 player2_action = *(u32*)(Memory::GetRawMemory() + player2_data_pointer + 0x70);
++		player2_action = __builtin_bswap32(player2_action);
++
++		//Player one attributes
++		state->player_one_percent = percent_1;
++		state->player_one_stock = player1_stock;
++		if(player1_facing == '?')
++		{
++			state->player_one_facing = true;
++		}
++		else
++		{
++			state->player_one_facing = false;
++		}
++		state->player_one_x = player1_x;
++		state->player_one_y = player1_y;
++		state->player_one_action = player1_action;
++
++		//Player two attributes
++		state->player_two_percent = percent_2;
++		state->player_two_stock = player2_stock;
++		if(player2_facing == '?')
++		{
++			state->player_two_facing = true;
++		}
++		else
++		{
++			state->player_two_facing = false;
++		}
++		state->player_two_x = player2_x;
++		state->player_two_y = player2_y;
++		state->player_two_action = player2_action;
++
++
++		//Global attributes
++		state->frame = frame;
++
++		//std::cout << "player1_percent: " << percent_1 << std::endl;
++		//std::cout << "player2_percent: " << percent_2 << std::endl;
++		//std::cout << "player1_stock: " << (unsigned int)player1_stock << std::endl;
++		//std::cout << "player2_stock: " << (unsigned int)player2_stock << std::endl;
++
++		//std::cout << "frame: " << frame << std::endl;
++
++		//sleep(1);
++	}
++}
++
+ void DolphinApp::OnInitCmdLine(wxCmdLineParser& parser)
+ {
++
++	std::cout << "Starting memory scraping thread..." << std::endl;
++	std::thread mem_thread(AILoop);
++	mem_thread.detach();
++
+ 	static const wxCmdLineEntryDesc desc[] =
+ 	{
+ 		{
+diff --git a/Source/Core/InputCommon/ControllerInterface/Pipes/Pipes.cpp b/Source/Core/InputCommon/ControllerInterface/Pipes/Pipes.cpp
+index f2923a5..30179c4 100644
+--- a/Source/Core/InputCommon/ControllerInterface/Pipes/Pipes.cpp
++++ b/Source/Core/InputCommon/ControllerInterface/Pipes/Pipes.cpp
+@@ -111,15 +111,13 @@ void PipeDevice::UpdateInput()
+ 		bytes_read = read(m_fd, buf, sizeof buf);
+ 	}
+ 	std::size_t newline = m_buf.find("\n");
+-	std::size_t erase_until = 0;
+ 	while (newline != std::string::npos)
+ 	{
+ 		std::string command = m_buf.substr(0, newline);
+ 		ParseCommand(command);
+-		erase_until = newline + 1;
+-		newline = m_buf.find("\n", erase_until);
++		m_buf.erase(0, newline + 1);
++		newline = m_buf.find("\n");
+ 	}
+-	m_buf.erase(0, erase_until);
+ }
+
+ void PipeDevice::AddAxis(const std::string& name, double value)
+@@ -149,6 +147,7 @@ void PipeDevice::SetAxis(const std::string& entry, double value)
+
+ void PipeDevice::ParseCommand(const std::string& command)
+ {
++//	std::cout << "DEBUG Parsing command: " << command << std::endl;
+ 	std::vector<std::string> tokens;
+ 	SplitString(command, ' ', tokens);
+ 	if (tokens.size() < 2 || tokens.size() > 4)
+@@ -157,17 +156,25 @@ void PipeDevice::ParseCommand(const std::string& command)
+ 	{
+ 		auto search = m_buttons.find(tokens[1]);
+ 		if (search != m_buttons.end())
++//			std::cout << "DEBUG tokens[0]: " << tokens[0] << std::endl;
+ 			search->second->SetState(tokens[0] == "PRESS" ? 1.0 : 0.0);
+ 	}
+ 	else if (tokens[0] == "SET")
+ 	{
+ 		if (tokens.size() == 3)
+ 		{
++//			std::cout << "DEBUG tokens[0]: " << tokens[0] << std::endl;
++//			std::cout << "DEBUG tokens[1]: " << tokens[1] << std::endl;
++//			std::cout << "DEBUG tokens[2]: " << tokens[2] << std::endl;
+ 			double value = strtod(tokens[2].c_str(), nullptr);
+ 			SetAxis(tokens[1], (value / 2.0) + 0.5);
+ 		}
+ 		else
+ 		{
++//			std::cout << "DEBUG tokens[0]: " << tokens[0] << std::endl;
++//			std::cout << "DEBUG tokens[1]: " << tokens[1] << std::endl;
++//			std::cout << "DEBUG tokens[2]: " << tokens[2] << std::endl;
++//			std::cout << "DEBUG tokens[3]: " << tokens[3] << std::endl;
+ 			double x = strtod(tokens[2].c_str(), nullptr);
+ 			double y = strtod(tokens[3].c_str(), nullptr);
+ 			SetAxis(tokens[1] + " X", x);

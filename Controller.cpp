@@ -12,6 +12,17 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+Controller* Controller::m_instance = NULL;
+
+Controller *Controller::Instance()
+{
+    if (!m_instance)
+    {
+        m_instance = new Controller();
+    }
+    return m_instance;
+}
+
 Controller::Controller()
 {
     //TODO: unhardcode the home folder
@@ -22,12 +33,7 @@ Controller::Controller()
        printf("%s\n", strerror(errno));
        return;
     }
-
-}
-
-Controller::~Controller()
-{
-
+    std::cout << "DEBUG: Off to the races!" << std::endl;
 }
 
 void Controller::pressButton(BUTTON b)
@@ -119,7 +125,7 @@ void Controller::pressButton(BUTTON b)
     {
         std::cout << "WARNING: Not all data written to pipe!" << std::endl;
     }
-    std::cout << "DEBUG: Command = " + command << std::endl;
+    //std::cout << "DEBUG: Command = " + command << std::endl;
 }
 
 void Controller::releaseButton(BUTTON b)
@@ -210,7 +216,7 @@ void Controller::releaseButton(BUTTON b)
     {
         std::cout << "WARNING: Not all data written to pipe!" << std::endl;
     }
-    std::cout << "DEBUG: Command = " + command << std::endl;
+    //std::cout << "DEBUG: Command = " + command << std::endl;
 
 }
 
@@ -242,7 +248,7 @@ void Controller::pressShoulder(BUTTON b, double amount)
     {
         std::cout << "WARNING: Not all data written to pipe!" << std::endl;
     }
-    std::cout << "DEBUG: Command = " + command << std::endl;
+    //std::cout << "DEBUG: Command = " + command << std::endl;
 }
 
 void Controller::tiltAnalog(BUTTON b, double x, double y)
@@ -274,5 +280,5 @@ void Controller::tiltAnalog(BUTTON b, double x, double y)
     {
         std::cout << "WARNING: Not all data written to pipe!" << std::endl;
     }
-    std::cout << "DEBUG: Command = " + command << std::endl;
+    //std::cout << "DEBUG: Command = " + command << std::endl;
 }

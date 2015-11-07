@@ -24,17 +24,18 @@ public:
         BUTTON_C
     };
 
-    Controller();
-    ~Controller();
+    static Controller *Instance();
 
-    // These return true on success, otherwise false.
     void pressButton(BUTTON b);
     void releaseButton(BUTTON b);
-    // Analog values are clamped to [0, 255].
+    // Analog values are clamped to [0, 1].
     void pressShoulder(BUTTON b, double amount);
     void tiltAnalog(BUTTON B, double x, double y);
 
 private:
+    Controller();
+
+    static Controller *m_instance;
     int m_fifo;
     //Hardcoded strings to send to dolphin
     std::string STRING_A = "A";
