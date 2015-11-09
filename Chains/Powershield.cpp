@@ -7,17 +7,17 @@ void Powershield::PressButtons()
     int shield_on_frame= 0;
     uint distance = std::abs(m_state->player_one_x - m_state->player_two_x);
     //If we're right in close
-    if(distance < 12)
+    if(distance < 18)
     {
         shield_on_frame = 7;
     }
     //Mid distance
-    else if(distance > 12 && distance < 27)
+    else if(distance >= 18 && distance < 27)
     {
         shield_on_frame = 8;
     }
     //Long distance
-    else if(distance > 27)
+    else if(distance >= 27)
     {
         shield_on_frame = 9;
     }

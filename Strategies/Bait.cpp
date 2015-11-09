@@ -27,11 +27,16 @@ void Bait::DetermineTactic()
     //38.50 is fmash tipper max range
     if(std::abs(m_state->player_one_x - m_state->player_two_x) < 38.50)
     {
-        if(m_state->player_one_action == ACTION::FSMASH_MID)
+        //Don't bother powershielding if the attack is in the wrong direction
+        bool player_one_is_to_the_left = (m_state->player_one_x - m_state->player_two_x > 0);
+        if(m_state->player_one_facing != player_one_is_to_the_left)
         {
-            CreateTactic(Parry);
-            m_tactic->DetermineChain();
-            return;
+            if(m_state->player_one_action == ACTION::FSMASH_MID)
+            {
+                CreateTactic(Parry);
+                m_tactic->DetermineChain();
+                return;
+            }
         }
     }
 
