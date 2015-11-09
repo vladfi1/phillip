@@ -4,11 +4,11 @@ void Jog::PressButtons()
 {
     if(m_isRight)
     {
-        m_controller->tiltAnalog(Controller::BUTTON_MAIN, .8, .5);
+        m_controller->tiltAnalog(Controller::BUTTON_MAIN, .75, .5);
     }
     else
     {
-        m_controller->tiltAnalog(Controller::BUTTON_MAIN, .2, .5);
+        m_controller->tiltAnalog(Controller::BUTTON_MAIN, .25, .5);
     }
 }
 

@@ -1,4 +1,5 @@
 #include <cmath>
+#include <typeinfo>
 
 #include "Wait.h"
 #include "../Chains/Nothing.h"
@@ -15,7 +16,6 @@ Wait::~Wait()
 
 void Wait::DetermineChain()
 {
-    delete m_chain;
-    m_chain = new Nothing(m_state);
+    CreateChain(Nothing);
     m_chain->PressButtons();
 }

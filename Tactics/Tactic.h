@@ -15,8 +15,12 @@ public:
     virtual void DetermineChain() = 0;
 
 protected:
+
+
     Chain *m_chain;
     GameState *m_state;
 };
+
+#define CreateChain(TYPE) if(m_chain==NULL){m_chain = new TYPE(m_state);}if(typeid(*m_chain) != typeid(TYPE)){delete m_chain;m_chain = new TYPE(m_state);}
 
 #endif

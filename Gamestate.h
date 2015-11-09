@@ -22,4 +22,11 @@ struct GameState
 	uint frame;
 };
 
+enum ACTION
+{
+	STANDING = 0x0e,
+	FSMASH_MID = 0x3c,
+	SHIELD = 0xb3,
+};
+
 #endif

@@ -1,5 +1,6 @@
 #ifndef STRATEGY_H
 #define STRATEGY_H
+#include <typeinfo>
 
 #include "../Tactics/Tactic.h"
 #include "../Gamestate.h"
@@ -20,5 +21,8 @@ protected:
     Tactic *m_tactic;
     GameState *m_state;
 };
+
+#define CreateTactic(TYPE) if(m_tactic==NULL){m_tactic = new TYPE(m_state);};if(typeid(*m_tactic) \
+!= typeid(TYPE)){delete m_tactic;m_tactic = new TYPE(m_state);}
 
 #endif

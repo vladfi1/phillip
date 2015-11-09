@@ -5,8 +5,8 @@ LDFLAGS=-g -Wall -std=gnu++11
 SOURCES=cpu.cpp Controller.cpp
 GOALS=Goals/KillOpponent.cpp
 STRATS=Strategies/Bait.cpp
-TACTICS=Tactics/CloseDistance.cpp Tactics/Wait.cpp
-CHAINS=Chains/SHDL.cpp Chains/Multishine.cpp Chains/Jog.cpp Chains/Nothing.cpp
+TACTICS=Tactics/CloseDistance.cpp Tactics/Wait.cpp Tactics/Parry.cpp
+CHAINS=Chains/SHDL.cpp Chains/Multishine.cpp Chains/Jog.cpp Chains/Nothing.cpp Chains/Powershield.cpp
 
 EXECUTABLE=cpu
 
