@@ -16,6 +16,8 @@ public:
     //Determine what buttons to press in order to execute our tactic
     virtual void PressButtons() = 0;
 
+    virtual bool IsInterruptible() = 0;
+
 protected:
 
     Controller *m_controller;

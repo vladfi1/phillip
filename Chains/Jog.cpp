@@ -12,6 +12,12 @@ void Jog::PressButtons()
     }
 }
 
+//We're always interruptible during a jog
+bool Jog::IsInterruptible()
+{
+    return true;
+}
+
 Jog::Jog(GameState *state, bool isRight) : Chain(state)
 {
     m_controller = Controller::Instance();

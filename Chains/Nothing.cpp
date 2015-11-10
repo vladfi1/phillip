@@ -16,6 +16,12 @@ void Nothing::PressButtons()
     }
 }
 
+//We're always interruptible during nothing
+bool Nothing::IsInterruptible()
+{
+    return true;
+}
+
 Nothing::Nothing(GameState *state) : Chain(state)
 {
     m_controller = Controller::Instance();

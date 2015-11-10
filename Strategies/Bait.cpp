@@ -5,6 +5,30 @@
 #include "../Tactics/CloseDistance.h"
 #include "../Tactics/Wait.h"
 #include "../Tactics/Parry.h"
+#include "../Tactics/ShineCombo.h"
+
+//Returns if the given state allows us to perform any action
+bool ReadyForAction(uint a)
+{
+	switch(a)
+	{
+		case STANDING:
+			return true;
+		case WALK_SLOW:
+			return true;
+		case WALK_MIDDLE:
+			return true;
+		case WALK_FAST:
+			return true;
+		case KNEE_BEND:
+			return true;
+		case CROUCHING:
+			return true;
+		default:
+			return false;
+	}
+	return false;
+}
 
 Bait::Bait(GameState *state) : Strategy(state)
 {
@@ -21,7 +45,29 @@ void Bait::DetermineTactic()
     //If we have a window to upsmash p2, that's preferable
     //std::cout << std::abs(m_state->player_one_x - m_state->player_two_x) << std::endl;
 
+	//If we're not in a state to interupt, just continue with what we've got going
+	if((m_tactic != NULL) && (!m_tactic->IsInterruptible()))
+	{
+		m_tactic->DetermineChain();
+		return;
+	}
+
     //If we're able to shine p2 right now, let's do that
+    //Are we in range?
+    if(std::abs(m_state->player_one_x - m_state->player_two_x) < 11.80)
+    {
+        //Are we in a state where we can shine?
+        if(ReadyForAction(m_state->player_two_action))
+        {
+            //Is the opponent in a state where they can get hit by shine?
+            if(m_state->player_one_action != SHIELD)
+            {
+                CreateTactic(ShineCombo);
+                m_tactic->DetermineChain();
+                return;
+            }
+        }
+    }
 
     //If we need to defend against an attack, that's next priority
     //38.50 is fmash tipper max range

@@ -13,6 +13,7 @@ public:
     virtual ~Tactic(){};
     //Determine what tactic to employ in order to further our strategy, based on game state
     virtual void DetermineChain() = 0;
+    virtual bool IsInterruptible(){return m_chain->IsInterruptible();};
 
 protected:
 

@@ -2,9 +2,8 @@
 
 void SHDL::PressButtons()
 {
-    m_startingFrame = 0;
-
-    switch(m_state->frame % 27)
+    uint frame = m_state->frame - m_startingFrame;
+    switch(frame)
     {
         case 0:
         {
@@ -45,8 +44,19 @@ void SHDL::PressButtons()
     }
 }
 
+bool SHDL::IsInterruptible()
+{
+    uint frame = m_state->frame - m_startingFrame;
+    if(frame >= 27)
+    {
+        return true;
+    }
+    return false;
+}
+
 SHDL::SHDL(GameState *state) : Chain(state)
 {
+    m_startingFrame = m_state->frame;
     m_controller = Controller::Instance();
 }
 

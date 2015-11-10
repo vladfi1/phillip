@@ -13,6 +13,10 @@ public:
     ~Powershield();
     //Determine what buttons to press in order to execute our tactic
     void PressButtons();
+    bool IsInterruptible();
+
+private:
+    uint m_frame_shielded;
 };
 
 #endif

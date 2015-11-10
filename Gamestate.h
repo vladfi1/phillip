@@ -25,6 +25,11 @@ struct GameState
 enum ACTION
 {
 	STANDING = 0x0e,
+	WALK_SLOW = 0x0f,
+	WALK_MIDDLE = 0x10,
+	WALK_FAST = 0x11,
+	KNEE_BEND = 0x18, //pre-jump animation.
+	CROUCHING = 0x28,
 	FSMASH_MID = 0x3c,
 	SHIELD = 0xb3,
 };
