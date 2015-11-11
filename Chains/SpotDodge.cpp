@@ -1,9 +1,8 @@
-#include "SHDL.h"
+#include "SpotDodge.h"
 
-void SHDL::PressButtons()
+void SpotDodge::PressButtons()
 {
-    //std::cout << m_state->player_two_action << std::endl;
-    //If we need to transition, wait until we're at a valid state
+    //If we need to transition, wait until we're at a valid state to be able to dodge
     if(m_startingFrame == 0 &&
         (m_state->player_two_action == STANDING ||
         m_state->player_two_action == WALK_SLOW ||
@@ -18,8 +17,7 @@ void SHDL::PressButtons()
     if(m_startingFrame == 0)
     {
         m_controller->tiltAnalog(Controller::BUTTON_MAIN, .5, .5);
-        m_controller->releaseButton(Controller::BUTTON_Y);
-        m_controller->releaseButton(Controller::BUTTON_B);
+        m_controller->releaseButton(Controller::BUTTON_L);
         return;
     }
 
@@ -28,57 +26,40 @@ void SHDL::PressButtons()
     {
         case 0:
         {
-            //Jump
-            m_controller->tiltAnalog(Controller::BUTTON_MAIN, .5, .5);
-            m_controller->pressButton(Controller::BUTTON_Y);
+            //Spot dodge
+            m_controller->pressButton(Controller::BUTTON_L);
             break;
         }
         case 1:
         {
-            //let go of jump
-            m_controller->releaseButton(Controller::BUTTON_Y);
+            //down
+            m_controller->tiltAnalog(Controller::BUTTON_MAIN, .5, 0);
             break;
         }
-        case 3:
+        case 2:
         {
-            //Laser
-            m_controller->pressButton(Controller::BUTTON_B);
-            break;
-        }
-        case 4:
-        {
-            //let go of Laser
-            m_controller->releaseButton(Controller::BUTTON_B);
-            break;
-        }
-        case 6:
-        {
-            //Laser
-            m_controller->pressButton(Controller::BUTTON_B);
-            break;
-        }
-        case 17:
-        {
-            //let go of Laser
-            m_controller->releaseButton(Controller::BUTTON_B);
+            //let go
+            m_controller->tiltAnalog(Controller::BUTTON_MAIN, .5, .5);
+            m_controller->releaseButton(Controller::BUTTON_L);
             break;
         }
     }
 }
 
-bool SHDL::IsInterruptible()
+//We're always interruptible during a jog
+bool SpotDodge::IsInterruptible()
 {
     uint frame = m_state->frame - m_startingFrame;
-    if(frame >= 27)
+    if(frame >= 23)
     {
         return true;
     }
     return false;
 }
 
-SHDL::SHDL(GameState *state) : Chain(state)
+SpotDodge::SpotDodge(GameState *state) : Chain(state)
 {
-    //Make sure we are capable of jumping this frame, or else we need to transition
+    //Make sure we are capable of dodging this frame, or else we need to transition
     if(m_state->player_two_action == STANDING ||
         m_state->player_two_action == WALK_SLOW ||
         m_state->player_two_action == WALK_MIDDLE ||
@@ -96,6 +77,6 @@ SHDL::SHDL(GameState *state) : Chain(state)
     m_controller = Controller::Instance();
 }
 
-SHDL::~SHDL()
+SpotDodge::~SpotDodge()
 {
 }

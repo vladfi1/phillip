@@ -1,9 +1,8 @@
-#include "SHDL.h"
+#include "FullJump.h"
 
-void SHDL::PressButtons()
+void FullJump::PressButtons()
 {
-    //std::cout << m_state->player_two_action << std::endl;
-    //If we need to transition, wait until we're at a valid state
+    //If we need to transition, wait until we're at a valid state to be able to jump
     if(m_startingFrame == 0 &&
         (m_state->player_two_action == STANDING ||
         m_state->player_two_action == WALK_SLOW ||
@@ -33,50 +32,39 @@ void SHDL::PressButtons()
             m_controller->pressButton(Controller::BUTTON_Y);
             break;
         }
-        case 1:
+        case 6:
         {
             //let go of jump
             m_controller->releaseButton(Controller::BUTTON_Y);
             break;
         }
-        case 3:
+        case 30:
         {
-            //Laser
-            m_controller->pressButton(Controller::BUTTON_B);
+            //Fastfall
+            m_controller->tiltAnalog(Controller::BUTTON_MAIN, .5, 0);
             break;
         }
-        case 4:
+        case 31:
         {
-            //let go of Laser
-            m_controller->releaseButton(Controller::BUTTON_B);
-            break;
-        }
-        case 6:
-        {
-            //Laser
-            m_controller->pressButton(Controller::BUTTON_B);
-            break;
-        }
-        case 17:
-        {
-            //let go of Laser
-            m_controller->releaseButton(Controller::BUTTON_B);
+            //Fastfall
+            m_controller->tiltAnalog(Controller::BUTTON_MAIN, .5, .5);
             break;
         }
     }
 }
 
-bool SHDL::IsInterruptible()
+//We're always interruptible during a jog
+bool FullJump::IsInterruptible()
 {
     uint frame = m_state->frame - m_startingFrame;
-    if(frame >= 27)
+    if(frame >= 5)
     {
         return true;
     }
     return false;
 }
 
-SHDL::SHDL(GameState *state) : Chain(state)
+FullJump::FullJump(GameState *state) : Chain(state)
 {
     //Make sure we are capable of jumping this frame, or else we need to transition
     if(m_state->player_two_action == STANDING ||
@@ -96,6 +84,6 @@ SHDL::SHDL(GameState *state) : Chain(state)
     m_controller = Controller::Instance();
 }
 
-SHDL::~SHDL()
+FullJump::~FullJump()
 {
 }

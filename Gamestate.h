@@ -33,6 +33,8 @@ enum ACTION
 	LANDING = 0x2a, //Can be canceled. Not stunned
 	FSMASH_MID = 0x3c,
 	SHIELD = 0xb3,
+	GRAB = 0xd4,
+	GRAB_RUNNING = 0xd6,
 };
 
 #endif

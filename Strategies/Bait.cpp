@@ -54,7 +54,6 @@ void Bait::DetermineTactic()
 	}
 
     //If we're able to shine p2 right now, let's do that
-    //Are we in range?
     if(std::abs(m_state->player_one_x - m_state->player_two_x) < 11.80)
     {
         //Are we in a state where we can shine?
@@ -74,11 +73,14 @@ void Bait::DetermineTactic()
     //38.50 is fmash tipper max range
     if(std::abs(m_state->player_one_x - m_state->player_two_x) < 38.50)
     {
-        //Don't bother powershielding if the attack is in the wrong direction
+        //Don't bother parrying if the attack is in the wrong direction
+		//TODO: Maybe sometime worry about reverse hits. But probably not? (this should only trigger at mid range)
         bool player_one_is_to_the_left = (m_state->player_one_x - m_state->player_two_x > 0);
         if(m_state->player_one_facing != player_one_is_to_the_left)
         {
-            if(m_state->player_one_action == ACTION::FSMASH_MID)
+            if(m_state->player_one_action == ACTION::FSMASH_MID ||
+				m_state->player_one_action == ACTION::GRAB ||
+				m_state->player_one_action == ACTION::GRAB_RUNNING)
             {
                 CreateTactic(Parry);
                 m_tactic->DetermineChain();
