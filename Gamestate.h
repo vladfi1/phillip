@@ -30,6 +30,7 @@ enum ACTION
 	WALK_FAST = 0x11,
 	KNEE_BEND = 0x18, //pre-jump animation.
 	CROUCHING = 0x28,
+	LANDING = 0x2a, //Can be canceled. Not stunned
 	FSMASH_MID = 0x3c,
 	SHIELD = 0xb3,
 };

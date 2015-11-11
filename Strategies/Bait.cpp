@@ -6,6 +6,7 @@
 #include "../Tactics/Wait.h"
 #include "../Tactics/Parry.h"
 #include "../Tactics/ShineCombo.h"
+#include "../Tactics/Laser.h"
 
 //Returns if the given state allows us to perform any action
 bool ReadyForAction(uint a)
@@ -86,8 +87,15 @@ void Bait::DetermineTactic()
         }
     }
 
+	//If we're far away, just laser
+	if(std::abs(m_state->player_one_x - m_state->player_two_x) > 90)
+	{
+        CreateTactic(Laser);
+        m_tactic->DetermineChain();
+        return;
+    }
+
     //If we're not in shine range, get in close
-    //TODO: 11.80 is shine range, but the movement algorithm messes up.
     if(std::abs(m_state->player_one_x - m_state->player_two_x) > 11.80)
     {
         CreateTactic(CloseDistance);
