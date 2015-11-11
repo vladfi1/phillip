@@ -2,7 +2,7 @@
 #include <typeinfo>
 
 #include "ShineCombo.h"
-#include "../Chains/ShineUpsmash.h"
+#include "../Chains/Waveshine.h"
 
 ShineCombo::ShineCombo(GameState *state) : Tactic(state)
 {
@@ -16,6 +16,6 @@ ShineCombo::~ShineCombo()
 
 void ShineCombo::DetermineChain()
 {
-    CreateChain(ShineUpsmash);
+    CreateChain(Waveshine);
     m_chain->PressButtons();
 }

@@ -88,7 +88,7 @@ void Bait::DetermineTactic()
 
     //If we're not in shine range, get in close
     //TODO: 11.80 is shine range, but the movement algorithm messes up.
-    if(std::abs(m_state->player_one_x - m_state->player_two_x) > 21.80)
+    if(std::abs(m_state->player_one_x - m_state->player_two_x) > 11.80)
     {
         CreateTactic(CloseDistance);
         m_tactic->DetermineChain();
