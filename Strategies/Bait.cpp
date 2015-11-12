@@ -1,4 +1,5 @@
 #include <cmath>
+#include <math.h>
 #include <iostream>
 
 #include "Bait.h"
@@ -53,8 +54,13 @@ void Bait::DetermineTactic()
 		return;
 	}
 
+	//distance formula
+	double distance = pow(std::abs(m_state->player_one_x - m_state->player_two_x), 2);
+	distance += pow(std::abs(m_state->player_one_y - m_state->player_two_y), 2);
+	distance = sqrt(distance);
+
     //If we're able to shine p2 right now, let's do that
-    if(std::abs(m_state->player_one_x - m_state->player_two_x) < 11.80)
+    if(std::abs(distance) < 11.80)
     {
         //Are we in a state where we can shine?
         if(ReadyForAction(m_state->player_two_action))
