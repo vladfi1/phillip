@@ -10,6 +10,7 @@ struct GameState
 	float player_one_x;
 	float player_one_y;
 	uint player_one_action;
+	uint player_one_character;
 
 	uint player_two_percent;
 	uint player_two_stock;
@@ -18,8 +19,14 @@ struct GameState
 	float player_two_x;
 	float player_two_y;
 	uint player_two_action;
+	uint player_two_character;
+
+	//Character select screen pointer for player 2
+	float player_two_pointer_x;
+	float player_two_pointer_y;
 
 	uint frame;
+	uint menu_state;
 };
 
 enum ACTION
@@ -35,6 +42,20 @@ enum ACTION
 	SHIELD = 0xb3,
 	GRAB = 0xd4,
 	GRAB_RUNNING = 0xd6,
+};
+
+enum MENU
+{
+	CHARACTER_SELECT = 33685760,
+	STAGE_SELECT = 33685761,
+	IN_GAME = 33685762,
+};
+
+enum CHARACTER
+{
+	FOX = 0x0a,
+	MEWTWO = 0x15,
+	MARTH = 0x17,
 };
 
 #endif

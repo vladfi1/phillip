@@ -11,6 +11,8 @@
 #include <pwd.h>
 
 #include "Goals/KillOpponent.h"
+#include "Goals/NavigateMenu.h"
+
 #include "Gamestate.h"
 
 int main()
@@ -78,7 +80,7 @@ int main()
 
     uint last_frame = state->frame;
     //Get our goal
-	Goal *goal = new KillOpponent(state);
+	Goal *goal = NULL;
 
     //Main frame loop
     for(;;)
@@ -92,7 +94,34 @@ int main()
             }
             last_frame = state->frame;
 
-            goal->Strategize();
+            //If we're in a match, play the match!
+            if(state->menu_state == IN_GAME)
+            {
+                if(goal == NULL )
+                {
+                    goal = new KillOpponent(state);
+                }
+                if(typeid(*goal) != typeid(KillOpponent))
+                {
+                    delete goal;
+                    goal = new KillOpponent(state);
+                }
+                goal->Strategize();
+            }
+            //If we're in a menu, then let's navigate the menu
+            else if(state->menu_state == CHARACTER_SELECT || state->menu_state == STAGE_SELECT)
+            {
+                if(goal == NULL )
+                {
+                    goal = new NavigateMenu(state);
+                }
+                if(typeid(*goal) != typeid(NavigateMenu))
+                {
+                    delete goal;
+                    goal = new NavigateMenu(state);
+                }
+                goal->Strategize();
+            }
         }
     }
 
