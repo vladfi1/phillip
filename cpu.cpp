@@ -81,6 +81,7 @@ int main()
     uint last_frame = state->frame;
     //Get our goal
 	Goal *goal = NULL;
+    MENU current_menu = (MENU)state->menu_state;
 
     //Main frame loop
     for(;;)
@@ -122,6 +123,12 @@ int main()
                 }
                 goal->Strategize();
             }
+        }
+        //If the menu changed
+        else if(current_menu != state->menu_state)
+        {
+            last_frame = 1;
+            current_menu = (MENU)state->menu_state;
         }
     }
 
