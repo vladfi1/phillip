@@ -18,6 +18,30 @@ public:
     virtual void DetermineTactic() = 0;
 
 protected:
+
+    //Returns if the given state allows us to perform any action
+    bool ReadyForAction(uint a)
+    {
+    	switch(a)
+    	{
+    		case STANDING:
+    			return true;
+    		case WALK_SLOW:
+    			return true;
+    		case WALK_MIDDLE:
+    			return true;
+    		case WALK_FAST:
+    			return true;
+    		case KNEE_BEND:
+    			return true;
+    		case CROUCHING:
+    			return true;
+    		default:
+    			return false;
+    	}
+    	return false;
+    }
+
     Tactic *m_tactic;
     GameState *m_state;
 };

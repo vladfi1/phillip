@@ -8,29 +8,7 @@
 #include "../Tactics/Parry.h"
 #include "../Tactics/ShineCombo.h"
 #include "../Tactics/Laser.h"
-
-//Returns if the given state allows us to perform any action
-bool ReadyForAction(uint a)
-{
-	switch(a)
-	{
-		case STANDING:
-			return true;
-		case WALK_SLOW:
-			return true;
-		case WALK_MIDDLE:
-			return true;
-		case WALK_FAST:
-			return true;
-		case KNEE_BEND:
-			return true;
-		case CROUCHING:
-			return true;
-		default:
-			return false;
-	}
-	return false;
-}
+#include "../Tactics/Edgeguard.h"
 
 Bait::Bait(GameState *state) : Strategy(state)
 {
@@ -99,6 +77,14 @@ void Bait::DetermineTactic()
 	if(std::abs(m_state->player_one_x - m_state->player_two_x) > 90)
 	{
         CreateTactic(Laser);
+        m_tactic->DetermineChain();
+        return;
+    }
+
+    //If the opponent is off the stage, let's edgeguard them
+    if(std::abs(m_state->player_one_x) > 88.4735 || m_state->player_one_y < 0)
+    {
+        CreateTactic(Edgeguard);
         m_tactic->DetermineChain();
         return;
     }

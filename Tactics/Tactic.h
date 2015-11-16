@@ -1,6 +1,8 @@
 #ifndef TACTIC_H
 #define TACTIC_H
 
+#include <typeinfo>
+
 #include "../Chains/Chain.h"
 #include "../Gamestate.h"
 
@@ -17,11 +19,36 @@ public:
 
 protected:
 
+    //Returns if the given state allows us to perform any action
+    bool ReadyForAction(uint a)
+    {
+    	switch(a)
+    	{
+    		case STANDING:
+    			return true;
+    		case WALK_SLOW:
+    			return true;
+    		case WALK_MIDDLE:
+    			return true;
+    		case WALK_FAST:
+    			return true;
+    		case KNEE_BEND:
+    			return true;
+    		case CROUCHING:
+    			return true;
+    		default:
+    			return false;
+    	}
+    	return false;
+    }
 
     Chain *m_chain;
     GameState *m_state;
 };
 
-#define CreateChain(TYPE) if(m_chain==NULL){m_chain = new TYPE(m_state);}if(typeid(*m_chain) != typeid(TYPE)){delete m_chain;m_chain = new TYPE(m_state);}
+#define CreateChain(TYPE) if(m_chain==NULL){m_chain = new TYPE(m_state);} \
+    if(typeid(*m_chain) != typeid(TYPE)){delete m_chain;m_chain = new TYPE(m_state);}
+#define CreateChain2(TYPE, BUTTON) if(m_chain==NULL){m_chain = new TYPE(m_state, BUTTON);} \
+    if(typeid(*m_chain) != typeid(TYPE)){delete m_chain;m_chain = new TYPE(m_state, BUTTON);}
 
 #endif

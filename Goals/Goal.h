@@ -18,7 +18,6 @@ public:
 
     //Determine what the best strategy is, based on the current matchup / config.
     //  Not a whole lot of decisions to be made at this point
-    //TODO: Again, we're just handling the Fox v Marth on FD matchup. So this will always be "bait" for now
     virtual void Strategize() = 0;
 
 protected:
@@ -26,6 +25,7 @@ protected:
     GameState *m_state;
 };
 
-
+#define CreateStrategy(TYPE) if(m_strategy==NULL){m_strategy = new TYPE(m_state);} \
+    if(typeid(*m_strategy) != typeid(TYPE)){delete m_strategy;m_strategy = new TYPE(m_state);}
 
 #endif
