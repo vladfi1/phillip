@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <pwd.h>
 
 Controller* Controller::m_instance = NULL;
 
@@ -25,11 +26,13 @@ Controller *Controller::Instance()
 
 Controller::Controller()
 {
-    //TODO: unhardcode the home folder
-    m_fifo = mkfifo("/home/altf4/.dolphin-emu/Pipes/cpu-level-11", S_IWUSR | S_IRUSR | S_IRGRP | S_IROTH);
+    struct passwd *pw = getpwuid(getuid());
+    std::string pipe_path = std::string(pw->pw_dir);
+    pipe_path += "/.dolphin-emu/Pipes/cpu-level-11";
+    m_fifo = mkfifo(pipe_path.c_str(), S_IWUSR | S_IRUSR | S_IRGRP | S_IROTH);
     std::cout << "DEBUG: Waiting for Dolphin..." << std::endl;
 
-    if ((m_fifo = open("/home/altf4/.dolphin-emu/Pipes/cpu-level-11", O_WRONLY)) < 0) {
+    if ((m_fifo = open(pipe_path.c_str(), O_WRONLY)) < 0) {
        printf("%s\n", strerror(errno));
        return;
     }
