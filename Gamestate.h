@@ -50,7 +50,9 @@ enum ACTION
 	EGDE_ROLL_SLOW = 0x102, // >= 100% damage
 	EDGE_ROLL_QUICK = 0x103, // < 100% damage
 	UP_B = 0x170,	//The upswing of the UP-B
-	MARTH_COUNTER= 0x171,
+	MARTH_COUNTER = 0x171,
+	MARTH_COUNTER_FALLING = 0x173,
+
 };
 
 enum MENU

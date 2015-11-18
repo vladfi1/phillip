@@ -44,7 +44,10 @@ void Bait::DetermineTactic()
         if(ReadyForAction(m_state->player_two_action))
         {
             //Is the opponent in a state where they can get hit by shine?
-            if(m_state->player_one_action != SHIELD)
+            if(m_state->player_one_action != SHIELD &&
+                m_state->player_one_action != MARTH_COUNTER &&
+                m_state->player_one_action != MARTH_COUNTER_FALLING &&
+                m_state->player_one_action != EDGE_CATCHING)
             {
                 CreateTactic(ShineCombo);
                 m_tactic->DetermineChain();
@@ -82,7 +85,8 @@ void Bait::DetermineTactic()
     }
 
     //If the opponent is off the stage, let's edgeguard them
-    if(std::abs(m_state->player_one_x) > 88.4735 || m_state->player_one_y < 0)
+    //NOTE: Sometimes players can get a little below 0 in Y coordinates without being off the stage
+    if(std::abs(m_state->player_one_x) > 88.4735 || m_state->player_one_y < -5.5)
     {
         CreateTactic(Edgeguard);
         m_tactic->DetermineChain();
