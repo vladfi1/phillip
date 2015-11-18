@@ -10,6 +10,7 @@ void SpotDodge::PressButtons()
         m_state->player_two_action == WALK_FAST ||
         m_state->player_two_action == KNEE_BEND ||
         m_state->player_two_action == LANDING ||
+        m_state->player_two_action == EDGE_TEETERING ||
         m_state->player_two_action == CROUCHING))
     {
         m_startingFrame = m_state->frame;
@@ -66,6 +67,7 @@ SpotDodge::SpotDodge(GameState *state) : Chain(state)
         m_state->player_two_action == WALK_FAST ||
         m_state->player_two_action == KNEE_BEND ||
         m_state->player_two_action == LANDING ||
+        m_state->player_two_action == EDGE_TEETERING ||
         m_state->player_two_action == CROUCHING)
     {
         m_startingFrame = m_state->frame;

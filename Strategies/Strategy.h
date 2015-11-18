@@ -36,6 +36,8 @@ protected:
     			return true;
     		case CROUCHING:
     			return true;
+            case EDGE_TEETERING:
+                return true;
     		default:
     			return false;
     	}

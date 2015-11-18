@@ -1,3 +1,5 @@
+#include <cmath>
+
 #include "SHDL.h"
 
 void SHDL::PressButtons()
@@ -8,8 +10,22 @@ void SHDL::PressButtons()
         m_state->player_two_action == WALK_SLOW ||
         m_state->player_two_action == WALK_MIDDLE ||
         m_state->player_two_action == WALK_FAST ||
+        m_state->player_two_action == KNEE_BEND ||
+        m_state->player_two_action == LANDING ||
+        m_state->player_two_action == EDGE_TEETERING ||
         m_state->player_two_action == CROUCHING))
     {
+        //If we're too close to the edge, it's not safe to jump. Move inwards for just a frame
+        if((m_state->player_two_x) > 85.5206985474)
+        {
+            m_controller->tiltAnalog(Controller::BUTTON_MAIN, .25, .5);
+            return;
+        }
+        if((m_state->player_two_x) < -85.5206985474)
+        {
+            m_controller->tiltAnalog(Controller::BUTTON_MAIN, .75, .5);
+            return;
+        }
         //If we're ready, but facing the wrong direction, then turn around.
         if(m_state->player_two_facing == (m_state->player_one_x < m_state->player_two_x))
         {
@@ -19,7 +35,6 @@ void SHDL::PressButtons()
         else
         {
             m_startingFrame = m_state->frame;
-            return;
         }
     }
     if(m_startingFrame == 0)
@@ -98,10 +113,17 @@ SHDL::SHDL(GameState *state) : Chain(state)
         m_state->player_two_action == WALK_FAST ||
         m_state->player_two_action == KNEE_BEND ||
         m_state->player_two_action == LANDING ||
+        m_state->player_two_action == EDGE_TEETERING ||
         m_state->player_two_action == CROUCHING)
     {
+        //If we're too close to the edge, it's not safe to jump. Move inwards for just a frame
+        if(std::abs(m_state->player_two_x) > 70)
+        {
+            m_startingFrame = 0;
+
+        }
         //If we're otherwise in a ready state, but facing the wrong direction, then turn around.
-        if(m_state->player_two_facing == (m_state->player_one_x < m_state->player_two_x))
+        else if(m_state->player_two_facing == (m_state->player_one_x < m_state->player_two_x))
         {
             m_startingFrame = 0;
         }

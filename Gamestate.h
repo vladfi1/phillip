@@ -44,11 +44,13 @@ enum ACTION
 	SHIELD = 0xb3,
 	GRAB = 0xd4,
 	GRAB_RUNNING = 0xd6,
+	EDGE_TEETERING = 0xF6,
 	EDGE_CATCHING = 0xFC, //Initial grabbing of edge, stuck in stun here
 	EDGE_HANGING = 0xFD,
 	EGDE_ROLL_SLOW = 0x102, // >= 100% damage
 	EDGE_ROLL_QUICK = 0x103, // < 100% damage
 	UP_B = 0x170,	//The upswing of the UP-B
+	MARTH_COUNTER= 0x171,
 };
 
 enum MENU
