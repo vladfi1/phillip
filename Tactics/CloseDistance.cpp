@@ -19,21 +19,12 @@ void CloseDistance::DetermineChain()
     //If opponent is to our right, jog right
     if(m_state->player_one_x > m_state->player_two_x)
     {
-
-        if(typeid(m_chain) != typeid(Jog*))
-        {
-            delete m_chain;
-            m_chain = new Jog(m_state, true);
-        }
+        CreateChain2(Jog, true);
     }
     //else, jog left
     else
     {
-        if(typeid(m_chain) != typeid(Jog*))
-        {
-            delete m_chain;
-            m_chain = new Jog(m_state, false);
-        }
+        CreateChain2(Jog, false);
     }
     m_chain->PressButtons();
 

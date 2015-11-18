@@ -2,18 +2,25 @@
 
 void SHDL::PressButtons()
 {
-    //std::cout << m_state->player_two_action << std::endl;
     //If we need to transition, wait until we're at a valid state
     if(m_startingFrame == 0 &&
         (m_state->player_two_action == STANDING ||
         m_state->player_two_action == WALK_SLOW ||
         m_state->player_two_action == WALK_MIDDLE ||
         m_state->player_two_action == WALK_FAST ||
-        m_state->player_two_action == KNEE_BEND ||
-        m_state->player_two_action == LANDING ||
         m_state->player_two_action == CROUCHING))
     {
-        m_startingFrame = m_state->frame;
+        //If we're ready, but facing the wrong direction, then turn around.
+        if(m_state->player_two_facing == (m_state->player_one_x < m_state->player_two_x))
+        {
+            m_controller->tiltAnalog(Controller::BUTTON_MAIN, m_state->player_two_facing ? .25 : .75, .5);
+            return;
+        }
+        else
+        {
+            m_startingFrame = m_state->frame;
+            return;
+        }
     }
     if(m_startingFrame == 0)
     {
@@ -68,6 +75,12 @@ void SHDL::PressButtons()
 
 bool SHDL::IsInterruptible()
 {
+    //We're interuptible if we haven't really started yet
+    if(m_startingFrame == 0)
+    {
+        return true;
+    }
+
     uint frame = m_state->frame - m_startingFrame;
     if(frame >= 27)
     {
@@ -87,7 +100,15 @@ SHDL::SHDL(GameState *state) : Chain(state)
         m_state->player_two_action == LANDING ||
         m_state->player_two_action == CROUCHING)
     {
-        m_startingFrame = m_state->frame;
+        //If we're otherwise in a ready state, but facing the wrong direction, then turn around.
+        if(m_state->player_two_facing == (m_state->player_one_x < m_state->player_two_x))
+        {
+            m_startingFrame = 0;
+        }
+        else
+        {
+            m_startingFrame = m_state->frame;
+        }
     }
     else
     {
