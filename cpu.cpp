@@ -15,6 +15,101 @@
 
 #include "Gamestate.h"
 
+void PrintState(GameState* state)
+{
+    std::cout << "p1 percent: " << state->player_one_percent << std::endl;
+    std::cout << "p2 percent: " << state->player_two_percent << std::endl;
+    std::cout << "p1 stock: " << state->player_one_stock << std::endl;
+    std::cout << "p2 stock: " << state->player_two_stock << std::endl;
+    if(state->player_one_facing)
+    {
+        std::cout << "p1 facing: right" << std::endl;
+
+    }
+    else
+    {
+        std::cout << "p1 facing: left" << std::endl;
+
+    }
+    if(state->player_two_facing)
+    {
+        std::cout << "p2 facing: right" << std::endl;
+
+    }
+    else
+    {
+        std::cout << "p2 facing: left" << std::endl;
+
+    }
+    std::cout << "frame: " << state->frame << std::endl;
+    std::cout << "p1 x: " << std::fixed << std::setprecision(10) << state->player_one_x << std::endl;
+    std::cout << "p1 y: " << std::fixed << std::setprecision(10) << state->player_one_y << std::endl;
+
+    std::cout << "p2 x: " << std::fixed << std::setprecision(10) << state->player_two_x << std::endl;
+    std::cout << "p2 y: " << std::fixed << std::setprecision(10) << state->player_two_y << std::endl;
+
+    std::cout << "p1 action: " << std::hex << state->player_one_action << std::endl;
+    std::cout << "p2 action: " << std::hex << state->player_two_action << std::endl;
+
+    if(state->player_one_invulnerable)
+    {
+        std::cout << "p1 invulnerable" << std::endl;
+    }
+    else
+    {
+        std::cout << "p1 not invulnerable" << std::endl;
+    }
+    if(state->player_two_invulnerable)
+    {
+        std::cout << "p2 invulnerable" << std::endl;
+    }
+    else
+    {
+        std::cout << "p2 not invulnerable" << std::endl;
+    }
+
+    std::cout << "p1 hitlag frames left: " << state->player_one_hitlag_frames_left << std::endl;
+    std::cout << "p2 hitlag frames left: " << state->player_two_hitlag_frames_left << std::endl;
+
+    std::cout << "p1 hitstun frames left: " << state->player_one_hitstun_frames_left << std::endl;
+    std::cout << "p2 hitstun frames left: " << state->player_two_hitstun_frames_left << std::endl;
+
+    std::cout << "p1 jumps left: " << state->player_one_jumps_left << std::endl;
+    std::cout << "p2 jumps left: " << state->player_two_jumps_left << std::endl;
+
+    if(state->player_one_on_ground)
+    {
+        std::cout << "p1 on ground" << std::endl;
+    }
+    else
+    {
+        std::cout << "p1 in air" << std::endl;
+    }
+    if(state->player_two_on_ground)
+    {
+        std::cout << "p2 on ground" << std::endl;
+    }
+    else
+    {
+        std::cout << "p2 in air" << std::endl;
+    }
+
+    std::cout << "p1 speed x air self: " << state->player_one_speed_air_x_self << std::endl;
+    std::cout << "p2 speed x air self: " << state->player_two_speed_air_x_self << std::endl;
+
+    std::cout << "p1 speed y self: " << state->player_one_speed_y_self << std::endl;
+    std::cout << "p2 speed y self: " << state->player_two_speed_y_self << std::endl;
+
+    std::cout << "p1 speed x attack: " << state->player_one_speed_x_attack << std::endl;
+    std::cout << "p2 speed x attack: " << state->player_two_speed_x_attack << std::endl;
+
+    std::cout << "p1 speed y attack: " << state->player_one_speed_y_attack << std::endl;
+    std::cout << "p2 speed y attack: " << state->player_two_speed_y_attack << std::endl;
+
+    std::cout << "p1 speed x ground self: " << state->player_one_speed_ground_x_self << std::endl;
+    std::cout << "p2 speed x ground self: " << state->player_two_speed_ground_x_self << std::endl;
+}
+
 int main()
 {
     int shmid;
@@ -43,40 +138,7 @@ int main()
 
     state = (GameState*)shm;
 
-    std::cout << "p1 percent: " << state->player_one_percent << std::endl;
-    std::cout << "p2 percent: " << state->player_two_percent << std::endl;
-    std::cout << "p1 stock: " << state->player_one_stock << std::endl;
-    std::cout << "p2 stock: " << state->player_two_stock << std::endl;
-	if(state->player_one_facing)
-	{
-		std::cout << "p1 facing: right" << std::endl;
-
-	}
-	else
-	{
-		std::cout << "p1 facing: left" << std::endl;
-
-	}
-	if(state->player_two_facing)
-	{
-		std::cout << "p2 facing: right" << std::endl;
-
-	}
-	else
-	{
-		std::cout << "p2 facing: left" << std::endl;
-
-	}
-    std::cout << "frame: " << state->frame << std::endl;
-	std::cout << "p1 x: " << std::fixed << std::setprecision(10) << state->player_one_x << std::endl;
-	std::cout << "p1 y: " << std::fixed << std::setprecision(10) << state->player_one_y << std::endl;
-
-	std::cout << "p2 x: " << std::fixed << std::setprecision(10) << state->player_two_x << std::endl;
-	std::cout << "p2 y: " << std::fixed << std::setprecision(10) << state->player_two_y << std::endl;
-
-	std::cout << "p1 action: " << std::hex << state->player_one_action << std::endl;
-	std::cout << "p2 action: " << std::hex << state->player_two_action << std::endl;
-
+    PrintState(state);
 
     uint last_frame = state->frame;
     //Get our goal

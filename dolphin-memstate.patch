@@ -101,7 +101,7 @@ index a1895ed..2a17cec 100644
  	// Resume the core and disable stepping
  	Core::PauseAndLock(false, wasUnpaused);
 diff --git a/Source/Core/DolphinWX/Main.cpp b/Source/Core/DolphinWX/Main.cpp
-index 3c6250e..049fc7f 100644
+index 3c6250e..5a99f78 100644
 --- a/Source/Core/DolphinWX/Main.cpp
 +++ b/Source/Core/DolphinWX/Main.cpp
 @@ -33,6 +33,11 @@
@@ -116,7 +116,7 @@ index 3c6250e..049fc7f 100644
  
  #include "DolphinWX/Frame.h"
  #include "DolphinWX/Globals.h"
-@@ -159,8 +164,175 @@ bool DolphinApp::OnInit()
+@@ -159,8 +164,369 @@ bool DolphinApp::OnInit()
  	return true;
  }
  
@@ -130,6 +130,17 @@ index 3c6250e..049fc7f 100644
 +	float player_one_y;
 +	uint player_one_action;
 +	uint player_one_character;
++	bool player_one_invulnerable;
++	uint player_one_hitlag_frames_left;
++	uint player_one_hitstun_frames_left;
++	uint player_one_jumps_left;
++	bool player_one_charging_smash;
++	bool player_one_on_ground;
++	float player_one_speed_air_x_self;
++	float player_one_speed_y_self;
++	float player_one_speed_x_attack;
++	float player_one_speed_y_attack;
++	float player_one_speed_ground_x_self;
 +
 +	uint player_two_percent;
 +	uint player_two_stock;
@@ -139,6 +150,17 @@ index 3c6250e..049fc7f 100644
 +	float player_two_y;
 +	uint player_two_action;
 +	uint player_two_character;
++	bool player_two_invulnerable;
++	uint player_two_hitlag_frames_left;
++	uint player_two_hitstun_frames_left;
++	uint player_two_jumps_left;
++	bool player_two_charging_smash;
++	bool player_two_on_ground;
++	float player_two_speed_air_x_self;
++	float player_two_speed_y_self;
++	float player_two_speed_x_attack;
++	float player_two_speed_y_attack;
++	float player_two_speed_ground_x_self;
 +
 +	//Character select screen pointer for player 2
 +	float player_two_pointer_x;
@@ -173,6 +195,10 @@ index 3c6250e..049fc7f 100644
 +		{
 +			continue;
 +		}
++
++		//*******************
++		//Player 1 lookups
++		//*******************
 +
 +		u16 *player1_percent = (u16*)(Memory::GetRawMemory() + 0x004530E0);
 +		//endianness correction
@@ -211,22 +237,92 @@ index 3c6250e..049fc7f 100644
 +		//This is the pointer to the P1 data structure
 +		u32 player1_data_pointer = *(u32*)(Memory::GetRawMemory() + 0x00453130);
 +		player1_data_pointer = __builtin_bswap32(player1_data_pointer);
++
 +		//Look up the action state
 +		player1_data_pointer &= 0x00FFFFFF;
 +		u32 player1_action = *(u32*)(Memory::GetRawMemory() + player1_data_pointer + 0x70);
 +		player1_action = __builtin_bswap32(player1_action);
 +
++		//Look up invulnernerability state
++		u32 player1_invulnerability = *(u32*)(Memory::GetRawMemory() + player1_data_pointer + 0x19EC);
++		player1_invulnerability = __builtin_bswap32(player1_invulnerability);
++
++		//Look up hitlag counter
++		u32 *player1_hitlag_tmp = (u32*)(Memory::GetRawMemory() + player1_data_pointer + 0x19BC);
++		float player1_hitlag = *((float*)player1_hitlag_tmp);
++		std::reverse((char*)&player1_hitlag, (char*)&player1_hitlag + 4);
++
++		//Look up hitstun counter
++		u32 *player1_hitstun_tmp = (u32*)(Memory::GetRawMemory() + player1_data_pointer + 0x23a0);
++		float player1_hitstun = *((float*)player1_hitstun_tmp);
++		std::reverse((char*)&player1_hitstun, (char*)&player1_hitstun + 4);
++
++		//Look up smash attack charging state
++		u32 player1_charging = *(u32*)(Memory::GetRawMemory() + player1_data_pointer + 0x2174);
++		player1_charging = __builtin_bswap32(player1_charging);
++
++		//Look up number of jumps left
++		u8 player1_jumps = *(u8*)(Memory::GetRawMemory() + player1_data_pointer + 0x19C8);
++
++		//Look up ground/airstate
++		u32 player1_ground = *(u32*)(Memory::GetRawMemory() + player1_data_pointer + 0x140);
++		player1_ground = __builtin_bswap32(player1_ground);
++
++		//Speed
++		u32 *player1_speed_tmp;
++		player1_speed_tmp = (u32*)(Memory::GetRawMemory() + player1_data_pointer + 0xE0);
++		float player1_speed_x_air_self = *((float*)player1_speed_tmp);
++		std::reverse((char*)&player1_speed_x_air_self, (char*)&player1_speed_x_air_self + 4);
++
++		player1_speed_tmp = (u32*)(Memory::GetRawMemory() + player1_data_pointer + 0xE4);
++		float player1_speed_y_self = *((float*)player1_speed_tmp);
++		std::reverse((char*)&player1_speed_y_self, (char*)&player1_speed_y_self + 4);
++
++		player1_speed_tmp = (u32*)(Memory::GetRawMemory() + player1_data_pointer + 0xEC);
++		float player1_speed_x_attack = *((float*)player1_speed_tmp);
++		std::reverse((char*)&player1_speed_x_attack, (char*)&player1_speed_x_attack + 4);
++
++		player1_speed_tmp = (u32*)(Memory::GetRawMemory() + player1_data_pointer + 0xF0);
++		float player1_speed_y_attack = *((float*)player1_speed_tmp);
++		std::reverse((char*)&player1_speed_y_attack, (char*)&player1_speed_y_attack + 4);
++
++		player1_speed_tmp = (u32*)(Memory::GetRawMemory() + player1_data_pointer + 0x14C);
++		float player1_speed_x_ground_self = *((float*)player1_speed_tmp);
++		std::reverse((char*)&player1_speed_x_ground_self, (char*)&player1_speed_x_ground_self + 4);
++
++		//*******************
++		//Player 2 lookups
++		//*******************
++
 +		//This is the pointer to the P2 data structure
 +		u32 player2_data_pointer = *(u32*)(Memory::GetRawMemory() + 0x00453FC0);
 +		player2_data_pointer = __builtin_bswap32(player2_data_pointer);
++
 +		//Look up the action state
 +		player2_data_pointer &= 0x00FFFFFF;
 +		u32 player2_action = *(u32*)(Memory::GetRawMemory() + player2_data_pointer + 0x70);
 +		player2_action = __builtin_bswap32(player2_action);
 +
-+		//Get current menu state
-+		u32 menu_state = *(u32*)(Memory::GetRawMemory() + 0x00479d30);
-+		menu_state = __builtin_bswap32(menu_state);
++		//Look up invulnernerability state
++		u32 player2_invulnerability = *(u32*)(Memory::GetRawMemory() + player2_data_pointer + 0x19EC);
++		player2_invulnerability = __builtin_bswap32(player2_invulnerability);
++
++		//Look up hitlag counter
++		u32 *player2_hitlag_tmp = (u32*)(Memory::GetRawMemory() + player2_data_pointer + 0x19BC);
++		float player2_hitlag = *((float*)player2_hitlag_tmp);
++		std::reverse((char*)&player2_hitlag, (char*)&player2_hitlag + 4);
++
++		//Look up hitstun counter
++		u32 *player2_hitstun_tmp = (u32*)(Memory::GetRawMemory() + player2_data_pointer + 0x23a0);
++		float player2_hitstun = *((float*)player2_hitstun_tmp);
++		std::reverse((char*)&player2_hitstun, (char*)&player2_hitstun + 4);
++
++		//Look up smash attack charging state
++		u32 player2_charging = *(u32*)(Memory::GetRawMemory() + player2_data_pointer + 0x2174);
++		player2_charging = __builtin_bswap32(player2_charging);
++
++		//Look up number of jumps left
++		u8 player2_jumps = *(u8*)(Memory::GetRawMemory() + player2_data_pointer + 0x19C8);
 +
 +		//Get player 2 cursor positions
 +		u32 *player2_x_cursor_tmp = (u32*)(Memory::GetRawMemory() + 0x0111826C);
@@ -238,11 +334,43 @@ index 3c6250e..049fc7f 100644
 +		float player2_y_cursor = *((float*)player2_y_cursor_tmp);
 +		std::reverse((char*)&player2_y_cursor, (char*)&player2_y_cursor + 4);
 +
++		//Look up ground/airstate
++		u32 player2_ground = *(u32*)(Memory::GetRawMemory() + player2_data_pointer + 0x140);
++		player2_ground = __builtin_bswap32(player2_ground);
 +
++		//Speed
++		u32 *player2_speed_tmp;
++		player2_speed_tmp = (u32*)(Memory::GetRawMemory() + player2_data_pointer + 0xE0);
++		float player2_speed_x_air_self = *((float*)player2_speed_tmp);
++		std::reverse((char*)&player2_speed_x_air_self, (char*)&player2_speed_x_air_self + 4);
++
++		player2_speed_tmp = (u32*)(Memory::GetRawMemory() + player2_data_pointer + 0xE4);
++		float player2_speed_y_self = *((float*)player2_speed_tmp);
++		std::reverse((char*)&player2_speed_y_self, (char*)&player2_speed_y_self + 4);
++
++		player2_speed_tmp = (u32*)(Memory::GetRawMemory() + player2_data_pointer + 0xEC);
++		float player2_speed_x_attack = *((float*)player2_speed_tmp);
++		std::reverse((char*)&player2_speed_x_attack, (char*)&player2_speed_x_attack + 4);
++
++		player2_speed_tmp = (u32*)(Memory::GetRawMemory() + player2_data_pointer + 0xF0);
++		float player2_speed_y_attack = *((float*)player2_speed_tmp);
++		std::reverse((char*)&player2_speed_y_attack, (char*)&player2_speed_y_attack + 4);
++
++		player2_speed_tmp = (u32*)(Memory::GetRawMemory() + player2_data_pointer + 0x14C);
++		float player2_speed_x_ground_self = *((float*)player2_speed_tmp);
++		std::reverse((char*)&player2_speed_x_ground_self, (char*)&player2_speed_x_ground_self + 4);
++
++
++		//Global lookups
 +		u8 player1_character = *(u8*)(Memory::GetRawMemory() + 0x003F0E0A);
 +		u8 player2_character = *(u8*)(Memory::GetRawMemory() + 0x003F0E2E);
++		//Get current menu state
++		u32 menu_state = *(u32*)(Memory::GetRawMemory() + 0x00479d30);
++		menu_state = __builtin_bswap32(menu_state);
 +
-+		//Player one attributes
++		//*******************
++		//Player 1 attributes
++		//*******************
 +		state->player_one_percent = percent_1;
 +		state->player_one_stock = player1_stock;
 +		if(player1_facing == '?')
@@ -256,8 +384,42 @@ index 3c6250e..049fc7f 100644
 +		state->player_one_x = player1_x;
 +		state->player_one_y = player1_y;
 +		state->player_one_action = player1_action;
++		if(player1_invulnerability == 0)
++		{
++			state->player_one_invulnerable = false;
++		}
++		else
++		{
++			state->player_one_invulnerable = true;
++		}
++		state->player_one_hitlag_frames_left = (uint)(player1_hitlag);
++		state->player_one_jumps_left = player1_jumps;
++		state->player_one_hitstun_frames_left = (uint)player1_hitstun;
++		if(player1_charging == 2)
++		{
++			state->player_one_charging_smash = true;
++		}
++		else
++		{
++			state->player_one_charging_smash = false;
++		}
++		if(player1_ground == 0)
++		{
++			state->player_one_on_ground = true;
++		}
++		else
++		{
++			state->player_one_on_ground = false;
++		}
++		state->player_one_speed_air_x_self = player1_speed_x_air_self;
++		state->player_one_speed_y_self = player1_speed_y_self;
++		state->player_one_speed_x_attack = player1_speed_x_attack;
++		state->player_one_speed_y_attack = player1_speed_y_attack;
++		state->player_one_speed_ground_x_self = player1_speed_x_ground_self;
 +
-+		//Player two attributes
++		//*******************
++		//Player 2 attributes
++		//*******************
 +		state->player_two_percent = percent_2;
 +		state->player_two_stock = player2_stock;
 +		if(player2_facing == '?')
@@ -271,6 +433,38 @@ index 3c6250e..049fc7f 100644
 +		state->player_two_x = player2_x;
 +		state->player_two_y = player2_y;
 +		state->player_two_action = player2_action;
++		if(player2_invulnerability == 0)
++		{
++			state->player_two_invulnerable = false;
++		}
++		else
++		{
++			state->player_two_invulnerable = true;
++		}
++		state->player_two_hitlag_frames_left = (uint)(player2_hitlag);
++		state->player_two_jumps_left = player2_jumps;
++		state->player_two_hitstun_frames_left = (uint)player2_hitstun;
++		if(player2_charging == 2)
++		{
++			state->player_two_charging_smash = true;
++		}
++		else
++		{
++			state->player_two_charging_smash = false;
++		}
++		if(player2_ground == 0)
++		{
++			state->player_two_on_ground = true;
++		}
++		else
++		{
++			state->player_two_on_ground = false;
++		}
++		state->player_two_speed_air_x_self = player2_speed_x_air_self;
++		state->player_two_speed_y_self = player2_speed_y_self;
++		state->player_two_speed_x_attack = player2_speed_x_attack;
++		state->player_two_speed_y_attack = player2_speed_y_attack;
++		state->player_two_speed_ground_x_self = player2_speed_x_ground_self;
 +
 +		state->player_two_pointer_x = player2_x_cursor;
 +		state->player_two_pointer_y = player2_y_cursor;

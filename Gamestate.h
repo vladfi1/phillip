@@ -11,6 +11,17 @@ struct GameState
 	float player_one_y;
 	uint player_one_action;
 	uint player_one_character;
+	bool player_one_invulnerable;
+	uint player_one_hitlag_frames_left;
+	uint player_one_hitstun_frames_left;
+	uint player_one_jumps_left;
+	bool player_one_charging_smash;
+	bool player_one_on_ground;
+	float player_one_speed_air_x_self;
+	float player_one_speed_y_self;
+	float player_one_speed_x_attack;
+	float player_one_speed_y_attack;
+	float player_one_speed_ground_x_self;
 
 	uint player_two_percent;
 	uint player_two_stock;
@@ -20,6 +31,17 @@ struct GameState
 	float player_two_y;
 	uint player_two_action;
 	uint player_two_character;
+	bool player_two_invulnerable;
+	uint player_two_hitlag_frames_left;
+	uint player_two_hitstun_frames_left;
+	uint player_two_jumps_left;
+	bool player_two_charging_smash;
+	bool player_two_on_ground;
+	float player_two_speed_air_x_self;
+	float player_two_speed_y_self;
+	float player_two_speed_x_attack;
+	float player_two_speed_y_attack;
+	float player_two_speed_ground_x_self;
 
 	//Character select screen pointer for player 2
 	float player_two_pointer_x;

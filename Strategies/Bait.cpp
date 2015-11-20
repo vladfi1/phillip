@@ -9,6 +9,7 @@
 #include "../Tactics/ShineCombo.h"
 #include "../Tactics/Laser.h"
 #include "../Tactics/Edgeguard.h"
+#include "../Tactics/Juggle.h"
 
 Bait::Bait(GameState *state) : Strategy(state)
 {
@@ -22,7 +23,6 @@ Bait::~Bait()
 
 void Bait::DetermineTactic()
 {
-    //If we have a window to upsmash p2, that's preferable
     //std::cout << std::abs(m_state->player_one_x - m_state->player_two_x) << std::endl;
 
 	//If we're not in a state to interupt, just continue with what we've got going
