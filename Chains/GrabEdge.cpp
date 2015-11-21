@@ -2,7 +2,7 @@
 
 #include "GrabEdge.h"
 #include "TransitionHelper.h"
-#include <iostream>
+
 void GrabEdge::PressButtons()
 {
     //If we're far away from the edge, then walk at the edge
@@ -65,9 +65,18 @@ void GrabEdge::PressButtons()
                 m_controller->tiltAnalog(Controller::BUTTON_MAIN, .5, .5);
                 break;
             }
-            //TODO: fastfall to the edge
         }
         return;
+    }
+    uint frame = m_state->frame - m_startingFrame;
+    if(frame > 6 && (m_state->player_two_action == FALLING) && !m_isInFastfall)
+    {
+        m_isInFastfall= true;
+        m_controller->tiltAnalog(Controller::BUTTON_MAIN, .5, 0);
+    }
+    else
+    {
+        m_controller->emptyInput();
     }
 }
 

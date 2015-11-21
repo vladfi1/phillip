@@ -20,6 +20,7 @@ public:
 private:
     bool m_isLeftEdge;
     bool m_isInWavedash;
+    bool m_isInFastfall;
 };
 
 #endif
