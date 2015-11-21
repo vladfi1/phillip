@@ -1,7 +1,8 @@
 #include <cmath>
 
 #include "GrabEdge.h"
-
+#include "TransitionHelper.h"
+#include <iostream>
 void GrabEdge::PressButtons()
 {
     //If we're far away from the edge, then walk at the edge
@@ -12,8 +13,15 @@ void GrabEdge::PressButtons()
         return;
     }
 
+    //If we're not in a state appropriate for crouching, then transition
+    if(!m_isInWavedash && !TransitionHelper::canDash((ACTION)m_state->player_two_action))
+    {
+        TransitionHelper::Transition((ACTION)m_state->player_two_action, DASHING);
+        return;
+    }
+
     //If we're within 13 units from the edge (on the stage) then crouch, wavedash back
-    if(std::abs(m_state->player_two_x) > 72.5656 && std::abs(m_state->player_two_x) < 85.5656)
+    if(std::abs(m_state->player_two_x) > 72.5656 && m_state->player_two_on_ground)
     {
         if(!m_isInWavedash)
         {
@@ -22,6 +30,7 @@ void GrabEdge::PressButtons()
         }
 
         uint frame = m_state->frame - m_startingFrame;
+        //std::cout << "m_isInWavedash: " << m_isInWavedash << std::endl;
         switch(frame)
         {
             case 0:

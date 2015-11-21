@@ -1,6 +1,8 @@
 #ifndef GAMESTATE_H
 #define GAMESTATE_H
 
+#include <sys/types.h>
+
 struct GameState
 {
 	uint player_one_percent;
@@ -60,12 +62,15 @@ enum ACTION
 	DASHING = 0x14,
 	RUNNING = 0x15,
 	KNEE_BEND = 0x18, //pre-jump animation.
+	FALLING = 0x1D,	//The "wait" state of the air.
 	CROUCHING = 0x28,
 	LANDING = 0x2a, //Can be canceled. Not stunned
+	LANDING_SPECIAL = 0x2a, //Landing special, like from wavedash. Stunned.
 	FSMASH_MID = 0x3c,
 	SHIELD = 0xb3,
 	GRAB = 0xd4,
 	GRAB_RUNNING = 0xd6,
+	EDGE_TEETERING_START = 0xF5, //Starting of edge teetering
 	EDGE_TEETERING = 0xF6,
 	EDGE_CATCHING = 0xFC, //Initial grabbing of edge, stuck in stun here
 	EDGE_HANGING = 0xFD,

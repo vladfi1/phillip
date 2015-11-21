@@ -24,6 +24,7 @@ Bait::~Bait()
 void Bait::DetermineTactic()
 {
     //std::cout << std::abs(m_state->player_one_x - m_state->player_two_x) << std::endl;
+    //std::cout << "state: " << m_state->player_one_action << std::endl;
 
 	//If we're not in a state to interupt, just continue with what we've got going
 	if((m_tactic != NULL) && (!m_tactic->IsInterruptible()))

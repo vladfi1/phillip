@@ -32,6 +32,9 @@ public:
     void pressShoulder(BUTTON b, double amount);
     void tiltAnalog(BUTTON B, double x, double y);
 
+    //Press no buttons, move sticks back to neutral
+    void emptyInput();
+
 private:
     Controller();
 

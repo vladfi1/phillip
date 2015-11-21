@@ -285,3 +285,15 @@ void Controller::tiltAnalog(BUTTON b, double x, double y)
     }
     //std::cout << "DEBUG: Command = " + command << std::endl;
 }
+
+void Controller::emptyInput()
+{
+    tiltAnalog(Controller::BUTTON_MAIN, .5, .5);
+    tiltAnalog(Controller::BUTTON_C, .5, .5);
+    releaseButton(Controller::BUTTON_X);
+    releaseButton(Controller::BUTTON_Y);
+    releaseButton(Controller::BUTTON_A);
+    releaseButton(Controller::BUTTON_B);
+    releaseButton(Controller::BUTTON_L);
+    releaseButton(Controller::BUTTON_R);
+}
