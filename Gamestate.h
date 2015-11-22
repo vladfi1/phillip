@@ -68,6 +68,8 @@ enum ACTION
 	LANDING_SPECIAL = 0x2a, //Landing special, like from wavedash. Stunned.
 	FSMASH_MID = 0x3c,
 	SHIELD = 0xb3,
+	SHIELD_STUN = 0xb5,
+	SHIELD_REFLECT = 0xb6,
 	GRAB = 0xd4,
 	GRAB_RUNNING = 0xd6,
 	EDGE_TEETERING_START = 0xF5, //Starting of edge teetering
@@ -79,7 +81,6 @@ enum ACTION
 	UP_B = 0x170,	//The upswing of the UP-B
 	MARTH_COUNTER = 0x171,
 	MARTH_COUNTER_FALLING = 0x173,
-
 };
 
 enum MENU

@@ -50,5 +50,7 @@ protected:
 
 #define CreateTactic(TYPE) if(m_tactic==NULL){m_tactic = new TYPE(m_state);};if(typeid(*m_tactic) \
 != typeid(TYPE)){delete m_tactic;m_tactic = new TYPE(m_state);}
+#define CreateTactic2(TYPE, PARAM) if(m_tactic==NULL){m_tactic = new TYPE(m_state, PARAM);} \
+    if(typeid(*m_tactic) != typeid(TYPE)){delete m_tactic;m_tactic = new TYPE(m_state, PARAM);}
 
 #endif

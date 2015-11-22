@@ -1,0 +1,106 @@
+// #include "EdgeStall.h"
+// #include "TransitionHelper.h"
+//
+// void GrabEdge::PressButtons()
+// {
+//     //If we're not in a state appropriate for crouching, then transition
+//     if(!m_isInWavedash && !TransitionHelper::canDash((ACTION)m_state->player_two_action))
+//     {
+//         TransitionHelper::Transition((ACTION)m_state->player_two_action, DASHING);
+//         return;
+//     }
+//
+//     //If we're within 13 units from the edge (on the stage) then crouch, wavedash back
+//     if(std::abs(m_state->player_two_x) > 72.5656 && m_state->player_two_on_ground)
+//     {
+//         if(!m_isInWavedash)
+//         {
+//             m_isInWavedash = true;
+//             m_startingFrame = m_state->frame;
+//         }
+//
+//         uint frame = m_state->frame - m_startingFrame;
+//         //std::cout << "m_isInWavedash: " << m_isInWavedash << std::endl;
+//         switch(frame)
+//         {
+//             case 0:
+//             {
+//                 //Turn around (technically, this dashes)
+//                 m_controller->tiltAnalog(Controller::BUTTON_MAIN, m_isLeftEdge ? 1 : 0, .5);
+//                 break;
+//             }
+//             //Wavedash back
+//             case 2:
+//             {
+//                 //Jump
+//                 m_controller->tiltAnalog(Controller::BUTTON_MAIN, .5, .5);
+//                 m_controller->pressButton(Controller::BUTTON_Y);
+//                 break;
+//             }
+//             case 3:
+//             {
+//                 m_controller->releaseButton(Controller::BUTTON_Y);
+//                 break;
+//             }
+//             case 5:
+//             {
+//                 //Airdodge backwards to the edge
+//                 m_controller->pressButton(Controller::BUTTON_L);
+//                 m_controller->tiltAnalog(Controller::BUTTON_MAIN, m_isLeftEdge ? .2 : .8, .2);
+//                 break;
+//             }
+//             case 6:
+//             {
+//                 m_controller->releaseButton(Controller::BUTTON_L);
+//                 m_controller->tiltAnalog(Controller::BUTTON_MAIN, .5, .5);
+//                 break;
+//             }
+//         }
+//         return;
+//     }
+//     uint frame = m_state->frame - m_startingFrame;
+//     if(frame > 6 && (m_state->player_two_action == FALLING) && !m_isInFastfall)
+//     {
+//         m_isInFastfall= true;
+//         m_controller->tiltAnalog(Controller::BUTTON_MAIN, .5, 0);
+//     }
+//     else
+//     {
+//         m_controller->emptyInput();
+//     }
+// }
+//
+// bool GrabEdge::IsInterruptible()
+// {
+//     if(!m_isInWavedash)
+//     {
+//         return true;
+//     }
+//
+//     uint frame = m_state->frame - m_startingFrame;
+//     if(frame >= 15)
+//     {
+//         return true;
+//     }
+//     return false;
+// }
+//
+// GrabEdge::GrabEdge(GameState *state) : Chain(state)
+// {
+//     //Quick variable to tell us which edge to grab
+//     if(m_state->player_one_x > 0)
+//     {
+//         m_isLeftEdge = false;
+//     }
+//     else
+//     {
+//         m_isLeftEdge = true;
+//     }
+//     m_startingFrame = 0;
+//     m_controller = Controller::Instance();
+//     m_isInWavedash = false;
+// }
+//
+// GrabEdge::~GrabEdge()
+// {
+// }

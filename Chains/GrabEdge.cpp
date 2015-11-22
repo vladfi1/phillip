@@ -86,9 +86,13 @@ bool GrabEdge::IsInterruptible()
     {
         return true;
     }
-
+    if(m_state->player_two_action == EDGE_HANGING)
+    {
+        return true;
+    }
+    //Don't permanently get stuck here
     uint frame = m_state->frame - m_startingFrame;
-    if(frame >= 15)
+    if(frame > 60)
     {
         return true;
     }

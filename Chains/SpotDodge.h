@@ -9,11 +9,14 @@ class SpotDodge : public Chain
 
 public:
 
-    SpotDodge(GameState *state);
+    SpotDodge(GameState *state, uint startFrame);
     ~SpotDodge();
     //Determine what buttons to press in order to execute our tactic
     void PressButtons();
     bool IsInterruptible();
+
+private:
+    uint m_startFrame;
 };
 
 #endif

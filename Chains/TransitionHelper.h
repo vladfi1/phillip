@@ -16,7 +16,6 @@ public:
     static bool canDash(ACTION a);
     static bool canSmash(ACTION a);
     static bool canCrouch(ACTION a);
-
 };
 
 #endif

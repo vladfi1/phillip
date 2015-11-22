@@ -58,7 +58,7 @@ bool SpotDodge::IsInterruptible()
     return false;
 }
 
-SpotDodge::SpotDodge(GameState *state) : Chain(state)
+SpotDodge::SpotDodge(GameState *state, uint startFrame) : Chain(state)
 {
     //Make sure we are capable of dodging this frame, or else we need to transition
     if(m_state->player_two_action == STANDING ||
@@ -76,6 +76,7 @@ SpotDodge::SpotDodge(GameState *state) : Chain(state)
     {
         m_startingFrame = 0;
     }
+    m_startFrame = startFrame;
     m_controller = Controller::Instance();
 }
 

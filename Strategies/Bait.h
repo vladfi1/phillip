@@ -14,6 +14,17 @@ public:
     //Determine what tactic to employ in order to further our strategy
     void DetermineTactic();
 
+    //Is the given action an attack?
+    bool isAttacking(ACTION a);
+
+private:
+    //Frame that the player's attack started
+    //0 means no attack
+    uint m_attackFrame;
+    //The action the opponent was in last frame
+    ACTION m_lastAction;
+    bool m_shieldedAttack;
+
 };
 
 #endif
