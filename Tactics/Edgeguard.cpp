@@ -2,7 +2,9 @@
 #include <math.h>
 
 #include "Edgeguard.h"
+#include "../Constants.h"
 #include "../Chains/Nothing.h"
+#include "../Chains/EdgeStall.h"
 #include "../Chains/JumpCanceledShine.h"
 #include "../Chains/GrabEdge.h"
 #include "../Chains/EdgeAction.h"
@@ -32,14 +34,14 @@ void Edgeguard::DetermineChain()
 	distance += pow(std::abs(m_state->player_one_y - m_state->player_two_y), 2);
 	distance = sqrt(distance);
 
-    //If we're able to shine p2 right now, let's do that
-    if(std::abs(distance) < 11.80)
+    //If we're able to shine p1 right now, let's do that
+    if(std::abs(distance) < FOX_SHINE_RADIUS)
     {
         //Are we in a state where we can shine?
-        if(ReadyForAction(m_state->player_two_action))
+        if(m_state->player_two_action == FALLING)
         {
             //Is the opponent in a state where they can get hit by shine?
-            if(m_state->player_one_action != SHIELD)
+            if(!m_state->player_one_invulnerable)
             {
                 CreateChain(JumpCanceledShine);
                 m_chain->PressButtons();
@@ -65,7 +67,16 @@ void Edgeguard::DetermineChain()
         return;
     }
 
-    //TODO: For now, just default to waiting if nothing else fits
+    //Edgestall to kill time
+    if(m_state->player_two_action == EDGE_CATCHING ||
+        m_state->player_two_action == EDGE_HANGING)
+    {
+        CreateChain(EdgeStall);
+        m_chain->PressButtons();
+        return;
+    }
+
+    //Just hang out and do nothing
     CreateChain(Nothing);
     m_chain->PressButtons();
     return;

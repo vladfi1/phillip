@@ -28,7 +28,6 @@ Bait::~Bait()
 void Bait::DetermineTactic()
 {
     //std::cout << std::abs(m_state->player_one_x - m_state->player_two_x) << std::endl;
-    //std::cout << "state: " << m_state->player_one_action << std::endl;
 
     //Update the attack frame if the enemy started a new action
     if(m_lastAction != (ACTION)m_state->player_one_action)
@@ -65,7 +64,7 @@ void Bait::DetermineTactic()
 	distance += pow(std::abs(m_state->player_one_y - m_state->player_two_y), 2);
 	distance = sqrt(distance);
 
-    //If we're able to shine p2 right now, let's do that
+    //If we're able to shine p1 right now, let's do that
     if(std::abs(distance) < FOX_SHINE_RADIUS)
     {
         //Are we in a state where we can shine?

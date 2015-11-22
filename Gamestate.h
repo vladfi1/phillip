@@ -62,6 +62,10 @@ enum ACTION
 	DASHING = 0x14,
 	RUNNING = 0x15,
 	KNEE_BEND = 0x18, //pre-jump animation.
+	JUMPING_FORWARD = 0x19,
+	JUMPING_BACKWARD = 0x1A,
+	JUMPING_ARIAL_FORWARD = 0x1b,
+	JUMPING_ARIAL_BACKWARD = 0x1c,
 	FALLING = 0x1D,	//The "wait" state of the air.
 	CROUCHING = 0x28,
 	LANDING = 0x2a, //Can be canceled. Not stunned
@@ -78,7 +82,14 @@ enum ACTION
 	EDGE_HANGING = 0xFD,
 	EGDE_ROLL_SLOW = 0x102, // >= 100% damage
 	EDGE_ROLL_QUICK = 0x103, // < 100% damage
-	UP_B = 0x170,	//The upswing of the UP-B
+	FIREFOX_WAIT_GROUND = 0x161, //Firefox wait on the ground
+	FIREFOX_WAIT_AIR = 0x162, //Firefox wait in the air
+	FIREFOX_GROUND = 0x163, //Firefox on the ground
+	FIREFOX_AIR = 0x164, //Firefox in the air
+	DOWN_B_GROUND = 0x169,
+	DOWN_B_STUN = 0x16d, //Fox is stunned in these frames
+	DOWN_B_AIR = 0x16e,
+	UP_B = 0x170,	//The upswing of the UP-B. (At least for marth)
 	MARTH_COUNTER = 0x171,
 	MARTH_COUNTER_FALLING = 0x173,
 };
