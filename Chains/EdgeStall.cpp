@@ -20,23 +20,6 @@ void EdgeStall::PressButtons()
     //If we're dropping, shine
     if(m_state->player_two_action == FALLING)
     {
-        m_controller->tiltAnalog(Controller::BUTTON_MAIN, .5, 0);
-        m_controller->pressButton(Controller::BUTTON_B);
-        return;
-    }
-
-    //If we're in shine, jump out
-    if(m_state->player_two_action == DOWN_B_AIR)
-    {
-        m_controller->tiltAnalog(Controller::BUTTON_MAIN, .5, .5);
-        m_controller->pressButton(Controller::BUTTON_Y);
-        m_controller->releaseButton(Controller::BUTTON_B);
-        return;
-    }
-
-    //If jumping upward, then up-b
-    if(m_state->player_two_action == JUMPING_ARIAL_FORWARD)
-    {
         m_controller->tiltAnalog(Controller::BUTTON_MAIN, .5, 1);
         m_controller->pressButton(Controller::BUTTON_B);
         return;
