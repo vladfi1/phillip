@@ -1,5 +1,3 @@
-#include <math.h>
-
 #include "NavigateMenu.h"
 
 NavigateMenu::NavigateMenu(GameState *state) : Goal(state)
@@ -7,6 +5,7 @@ NavigateMenu::NavigateMenu(GameState *state) : Goal(state)
     m_controller = Controller::Instance();
     //There is no lower strategy for menuing
     m_strategy = NULL;
+    m_emptiedInput = false;
 }
 
 NavigateMenu::~NavigateMenu()
@@ -15,6 +14,27 @@ NavigateMenu::~NavigateMenu()
 
 void NavigateMenu::Strategize()
 {
+    //Spend one frame at the start of the menu just to clear the input from anything left over
+    if(!m_emptiedInput)
+    {
+        m_controller->emptyInput();
+        m_emptiedInput = true;
+        return;
+    }
+
+    if(m_state->menu_state == POSTGAME_SCORES)
+    {
+        if(m_state->frame % 2)
+        {
+            m_controller->pressButton(Controller::BUTTON_START);
+        }
+        else
+        {
+            m_controller->releaseButton(Controller::BUTTON_START);
+        }
+        return;
+    }
+
     //If we're not fox, and the cursor isn't in Y position, move into position
     if((m_state->player_two_character != CHARACTER::FOX) &&
     ((m_state->player_two_pointer_y < 8) ||
@@ -59,14 +79,5 @@ void NavigateMenu::Strategize()
         m_controller->tiltAnalog(Controller::BUTTON_MAIN, .5, .5);
         m_controller->pressButton(Controller::BUTTON_A);
         return;
-    }
-
-    //If we are fox, spin the cursor
-    if(m_state->player_two_character != CHARACTER::FOX)
-    {
-        double x = (cos(m_state->frame) + 1) / 2;
-        double y = (sin(m_state->frame) + 1) / 2;
-        m_controller->releaseButton(Controller::BUTTON_A);
-        m_controller->tiltAnalog(Controller::BUTTON_MAIN, x, y);
     }
 }

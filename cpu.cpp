@@ -24,7 +24,6 @@ void PrintState(GameState* state)
     if(state->player_one_facing)
     {
         std::cout << "p1 facing: right" << std::endl;
-
     }
     else
     {
@@ -34,14 +33,16 @@ void PrintState(GameState* state)
     if(state->player_two_facing)
     {
         std::cout << "p2 facing: right" << std::endl;
-
     }
     else
     {
         std::cout << "p2 facing: left" << std::endl;
-
     }
     std::cout << "frame: " << state->frame << std::endl;
+    std::cout << "menu state: " << state->menu_state << std::endl;
+    std::cout << "p2 pointer x: " << state->player_two_pointer_x << std::endl;
+    std::cout << "p2 pointer y: " << state->player_two_pointer_y << std::endl;
+
     std::cout << "p1 x: " << std::fixed << std::setprecision(10) << state->player_one_x << std::endl;
     std::cout << "p1 y: " << std::fixed << std::setprecision(10) << state->player_one_y << std::endl;
 
@@ -149,7 +150,7 @@ int main()
     for(;;)
     {
         //Spinloop until we get a new frame
-        if(state->frame > last_frame)
+        if(state->frame != last_frame)
         {
             if(state->frame > last_frame+1)
             {
@@ -172,7 +173,9 @@ int main()
                 goal->Strategize();
             }
             //If we're in a menu, then let's navigate the menu
-            else if(state->menu_state == CHARACTER_SELECT || state->menu_state == STAGE_SELECT)
+            else if(state->menu_state == CHARACTER_SELECT ||
+                state->menu_state == STAGE_SELECT || 
+                state->menu_state == POSTGAME_SCORES)
             {
                 if(goal == NULL )
                 {

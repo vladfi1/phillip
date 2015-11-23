@@ -296,4 +296,5 @@ void Controller::emptyInput()
     releaseButton(Controller::BUTTON_B);
     releaseButton(Controller::BUTTON_L);
     releaseButton(Controller::BUTTON_R);
+    releaseButton(Controller::BUTTON_START);
 }
