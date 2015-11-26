@@ -18,6 +18,7 @@ Bait::Bait(GameState *state) : Strategy(state)
     m_attackFrame = 0;
     m_lastAction = (ACTION)m_state->player_one_action;
     m_shieldedAttack = false;
+    m_actionChanged = true;
 }
 
 Bait::~Bait()
@@ -33,6 +34,7 @@ void Bait::DetermineTactic()
     if(m_lastAction != (ACTION)m_state->player_one_action)
     {
         m_shieldedAttack = false;
+        m_actionChanged = true;
         m_lastAction = (ACTION)m_state->player_one_action;
         if(isAttacking((ACTION)m_state->player_one_action))
         {
@@ -42,6 +44,7 @@ void Bait::DetermineTactic()
     //Continuing same previous action
     else
     {
+        m_actionChanged = false;
         if(m_state->player_one_action == SHIELD_STUN)
         {
             m_shieldedAttack = true;
@@ -93,7 +96,12 @@ void Bait::DetermineTactic()
         {
             if(isAttacking((ACTION)m_state->player_one_action))
             {
-                std::cout << "New Parry from frame: " << m_attackFrame << std::endl;
+                //If the p1 action changed, scrap the old Parry and make a new one.
+                if(m_actionChanged)
+                {
+                    delete m_tactic;
+                    m_tactic = NULL;
+                }
 
                 CreateTactic2(Parry, m_attackFrame);
                 m_tactic->DetermineChain();

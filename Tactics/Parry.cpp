@@ -18,6 +18,7 @@ Parry::~Parry()
 
 void Parry::DetermineChain()
 {
+    //TODO: SWORD_DANCE_4_LOW is a multi-hit attack. Let's handle that differently. Maybe just light shield
     if(m_state->player_one_action == ACTION::GRAB ||
         m_state->player_one_action == ACTION::GRAB_RUNNING)
     {

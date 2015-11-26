@@ -150,7 +150,93 @@ void Powershield::PressButtons()
         }
         case SWORD_DANCE_2_MID:
         {
-            shield_on_frame = 2;
+            shield_on_frame = 11;
+            break;
+        }
+        case SWORD_DANCE_2_HIGH:
+        {
+            shield_on_frame = 9;
+            break;
+        }
+        case SWORD_DANCE_3_MID:
+        {
+            //If we're right in close
+            if(distance < 18)
+            {
+                shield_on_frame = 8;
+            }
+            //Mid distance
+            else if(distance >= 18 && distance < 27)
+            {
+                shield_on_frame = 8;
+            }
+            //Long distance
+            else if(distance >= 27)
+            {
+                shield_on_frame = 9;
+            }
+            break;
+        }
+        case SWORD_DANCE_3_LOW:
+        {
+            shield_on_frame = 12;
+            break;
+        }
+        case SWORD_DANCE_3_HIGH:
+        {
+            //If we're right in close
+            if(distance < 18)
+            {
+                shield_on_frame = 10;
+            }
+            //Mid distance
+            else if(distance >= 18 && distance < 27)
+            {
+                shield_on_frame = 11;
+            }
+            //Long distance
+            else if(distance >= 27)
+            {
+                shield_on_frame = 11;
+            }
+            break;
+        }
+        case SWORD_DANCE_4_MID:
+        {
+            //If we're right in close
+            if(distance < 18)
+            {
+                shield_on_frame = 20;
+            }
+            //Mid distance
+            else if(distance >= 18 && distance < 27)
+            {
+                shield_on_frame = 21;
+            }
+            //Long distance
+            else if(distance >= 27)
+            {
+                shield_on_frame = 21;
+            }
+            break;
+        }
+        case SWORD_DANCE_4_HIGH:
+        {
+            //If we're right in close
+            if(distance < 18)
+            {
+                shield_on_frame = 20;
+            }
+            //Mid distance
+            else if(distance >= 18 && distance < 27)
+            {
+                shield_on_frame = 21;
+            }
+            //Long distance
+            else if(distance >= 27)
+            {
+                shield_on_frame = 21;
+            }
             break;
         }
         default:
