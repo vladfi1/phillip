@@ -87,14 +87,14 @@ void Bait::DetermineTactic()
     if(!m_shieldedAttack && std::abs(m_state->player_one_x - m_state->player_two_x) < MARTH_FSMASH_RANGE)
     {
         //Don't bother parrying if the attack is in the wrong direction
-		//TODO: Maybe sometime worry about reverse hits. But probably not? (this should only trigger at mid range)
+		//TODO: Maybe sometime worry about reverse hits.
         bool player_one_is_to_the_left = (m_state->player_one_x - m_state->player_two_x > 0);
         if(m_state->player_one_facing != player_one_is_to_the_left)
         {
-            if(m_state->player_one_action == ACTION::FSMASH_MID ||
-				m_state->player_one_action == ACTION::GRAB ||
-				m_state->player_one_action == ACTION::GRAB_RUNNING)
+            if(isAttacking((ACTION)m_state->player_one_action))
             {
+                std::cout << "New Parry from frame: " << m_attackFrame << std::endl;
+
                 CreateTactic2(Parry, m_attackFrame);
                 m_tactic->DetermineChain();
                 return;
@@ -137,8 +137,6 @@ void Bait::DetermineTactic()
     CreateTactic(Wait);
     m_tactic->DetermineChain();
     return;
-
-
 }
 
 bool Bait::isAttacking(ACTION action)
@@ -146,14 +144,27 @@ bool Bait::isAttacking(ACTION action)
     switch(action)
     {
         case FSMASH_MID:
-        {
-            return true;
-        }
+        case DOWNSMASH:
+        case UPSMASH:
+        case DASH_ATTACK:
         case GRAB:
-        {
-            return true;
-        }
         case GRAB_RUNNING:
+        case FTILT_HIGH:
+        case FTILT_HIGH_MID:
+        case FTILT_MID:
+        case FTILT_LOW_MID:
+        case FTILT_LOW:
+        case UPTILT:
+        case DOWNTILT:
+        case SWORD_DANCE_1:
+        case SWORD_DANCE_2_HIGH:
+        case SWORD_DANCE_2_MID:
+        case SWORD_DANCE_3_HIGH:
+        case SWORD_DANCE_3_MID:
+        case SWORD_DANCE_3_LOW:
+        case SWORD_DANCE_4_HIGH:
+        case SWORD_DANCE_4_MID:
+        case SWORD_DANCE_4_LOW:
         {
             return true;
         }

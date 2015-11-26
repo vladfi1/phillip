@@ -4,29 +4,168 @@
 
 void Powershield::PressButtons()
 {
+    //What frame (relative to the start of the attack) we should be shielding on
     int shield_on_frame = 0;
     float distance = std::abs(m_state->player_one_x - m_state->player_two_x);
-    //If we're right in close
-    if(distance < 18)
+    //Determine when to shield depending on distance and what attack it is
+    switch(m_state->player_one_action)
     {
-        shield_on_frame = 6;
-    }
-    //Mid distance
-    else if(distance >= 18 && distance < 27)
-    {
-        shield_on_frame = 7;
-    }
-    //Long distance
-    else if(distance >= 27)
-    {
-        shield_on_frame = 8;
+        case FSMASH_MID:
+        {
+            //If we're right in close
+            if(distance < 18)
+            {
+                shield_on_frame = 6;
+            }
+            //Mid distance
+            else if(distance >= 18 && distance < 27)
+            {
+                shield_on_frame = 7;
+            }
+            //Long distance
+            else if(distance >= 27)
+            {
+                shield_on_frame = 8;
+            }
+            break;
+        }
+        case UPSMASH:
+        {
+            //If we're right in close
+            if(distance < 18)
+            {
+                shield_on_frame = 10;
+            }
+            //Mid distance
+            else if(distance >= 18 && distance < 27)
+            {
+                shield_on_frame = 10;
+            }
+            //There is no long distance upsmash hit, so just set this high
+            else if(distance >= 27)
+            {
+                shield_on_frame = 100;
+            }
+            break;
+        }
+        case DOWNSMASH:
+        {
+            //If we're right in close
+            if(distance < 18)
+            {
+                shield_on_frame = 3;
+            }
+            //Mid distance
+            else if(distance >= 18 && distance < 27)
+            {
+                shield_on_frame = 4;
+            }
+            //There is no long distance upsmash hit, so just set this high
+            else if(distance >= 27)
+            {
+                shield_on_frame = 4;
+            }
+            break;
+        }
+        case FTILT_MID:
+        {
+            //If we're right in close
+            if(distance < 18)
+            {
+                shield_on_frame = 4;
+            }
+            //Mid distance
+            else if(distance >= 18 && distance < 27)
+            {
+                shield_on_frame = 5;
+            }
+            //Long distance
+            else if(distance >= 27)
+            {
+                shield_on_frame = 6;
+            }
+            break;
+        }
+        case DOWNTILT:
+        {
+            shield_on_frame = 4;
+            break;
+        }
+        case UPTILT:
+        {
+            //If we're right in close
+            if(distance < 18)
+            {
+                shield_on_frame = 3;
+            }
+            //Mid distance
+            else if(distance >= 18 && distance < 27)
+            {
+                shield_on_frame = 4;
+            }
+            //Long distance
+            else if(distance >= 27)
+            {
+                shield_on_frame = 4;
+            }
+            break;
+        }
+        case DASH_ATTACK:
+        {
+            //If we're right in close
+            if(distance < 18)
+            {
+                shield_on_frame = 9;
+            }
+            //Mid distance
+            else if(distance >= 18 && distance < 27)
+            {
+                shield_on_frame = 10;
+            }
+            //Long distance
+            else if(distance >= 27)
+            {
+                shield_on_frame = 10;
+            }
+            break;
+        }
+        case SWORD_DANCE_1:
+        {
+            //If we're right in close
+            if(distance < 18)
+            {
+                shield_on_frame = 3;
+            }
+            //Mid distance
+            else if(distance >= 18 && distance < 27)
+            {
+                shield_on_frame = 4;
+            }
+            //Long distance
+            else if(distance >= 27)
+            {
+                shield_on_frame = 4;
+            }
+            break;
+        }
+        case SWORD_DANCE_2_MID:
+        {
+            shield_on_frame = 2;
+            break;
+        }
+        default:
+        {
+            m_controller->emptyInput();
+            return;
+        }
     }
 
-    //If we're 7 frames past the start of the fsmash, let's shield
+    //If we're the right number of frames past the start of the attack, let's shield
     if(m_state->frame == (m_startFrame + shield_on_frame))
     {
         m_controller->pressButton(Controller::BUTTON_L);
     }
+    //4 frames later, let go of shield
     else if(m_state->frame == (m_startFrame + shield_on_frame + 4))
     {
         m_frame_shielded = m_state->frame;

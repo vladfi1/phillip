@@ -18,14 +18,15 @@ Parry::~Parry()
 
 void Parry::DetermineChain()
 {
-    if(m_state->player_one_action == ACTION::FSMASH_MID)
-    {
-        CreateChain2(Powershield, m_startFrame);
-    }
-    else if(m_state->player_one_action == ACTION::GRAB ||
+    if(m_state->player_one_action == ACTION::GRAB ||
         m_state->player_one_action == ACTION::GRAB_RUNNING)
     {
         CreateChain2(SpotDodge, m_startFrame);
+    }
+    //We're assuming there's no other grab-type attacks. (Yoshi's neutral-b for instance)
+    else
+    {
+        CreateChain2(Powershield, m_startFrame);
     }
     m_chain->PressButtons();
 }
