@@ -70,6 +70,9 @@ enum ACTION
 	CROUCHING = 0x28,
 	LANDING = 0x2a, //Can be canceled. Not stunned
 	LANDING_SPECIAL = 0x2a, //Landing special, like from wavedash. Stunned.
+	NEUTRAL_ATTACK_1 = 0x2c,
+	NEUTRAL_ATTACK_2 = 0x2d,
+	NEUTRAL_ATTACK_3 = 0x2e,
 	DASH_ATTACK = 0x32,
 	FTILT_HIGH = 0x33,
 	FTILT_HIGH_MID = 0x34,
@@ -113,6 +116,7 @@ enum ACTION
 	DOWN_B_GROUND = 0x169,
 	DOWN_B_STUN = 0x16d, //Fox is stunned in these frames
 	DOWN_B_AIR = 0x16e,
+	UP_B_GROUND = 0x16f,
 	UP_B = 0x170,	//The upswing of the UP-B. (At least for marth)
 	MARTH_COUNTER = 0x171,
 	MARTH_COUNTER_FALLING = 0x173,

@@ -17,6 +17,7 @@ public:
 
 private:
     uint m_startFrame;
+    bool m_isReverseFacing;
 };
 
 #endif

@@ -1,3 +1,5 @@
+#include <cmath>
+
 #include "SpotDodge.h"
 
 void SpotDodge::PressButtons()
@@ -17,8 +19,15 @@ void SpotDodge::PressButtons()
     }
     if(m_startingFrame == 0)
     {
-        m_controller->tiltAnalog(Controller::BUTTON_MAIN, .5, .5);
-        m_controller->releaseButton(Controller::BUTTON_L);
+        m_controller->emptyInput();
+        return;
+    }
+
+    //If we're medium range or more, and reversefacing, don't bother doing anything.
+    float distance = std::abs(m_state->player_one_x - m_state->player_two_x);
+    if(m_isReverseFacing && (distance > 18))
+    {
+        m_controller->emptyInput();
         return;
     }
 
@@ -75,6 +84,15 @@ SpotDodge::SpotDodge(GameState *state, uint startFrame) : Chain(state)
     else
     {
         m_startingFrame = 0;
+    }
+    bool player_one_is_to_the_left = (m_state->player_one_x - m_state->player_two_x > 0);
+    if(m_state->player_one_facing != player_one_is_to_the_left)
+    {
+        m_isReverseFacing = false;
+    }
+    else
+    {
+        m_isReverseFacing = true;
     }
     m_startFrame = startFrame;
     m_controller = Controller::Instance();

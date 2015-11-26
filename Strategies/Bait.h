@@ -14,9 +14,6 @@ public:
     //Determine what tactic to employ in order to further our strategy
     void DetermineTactic();
 
-    //Is the given action an attack?
-    bool isAttacking(ACTION a);
-
 private:
     //Frame that the player's attack started
     //0 means no attack
@@ -27,6 +24,11 @@ private:
     bool m_actionChanged;
     bool m_shieldedAttack;
 
+    //Is the given action an attack?
+    bool isAttacking(ACTION a);
+    //Does the given attack have reverse hit frames? (Do we need to worry about parrying from attacks if the
+    //  enemy is facing the other way?)
+    bool isReverseHit(ACTION a);
 };
 
 #endif

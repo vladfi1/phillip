@@ -18,6 +18,7 @@ public:
 private:
     uint m_frame_shielded;
     uint m_startFrame;
+    bool m_isReverseFacing;
 };
 
 #endif

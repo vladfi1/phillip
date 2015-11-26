@@ -50,20 +50,27 @@ void Powershield::PressButtons()
         }
         case DOWNSMASH:
         {
-            //If we're right in close
-            if(distance < 18)
+            if(m_isReverseFacing)
             {
-                shield_on_frame = 3;
+                shield_on_frame = 18;
             }
-            //Mid distance
-            else if(distance >= 18 && distance < 27)
+            else
             {
-                shield_on_frame = 4;
-            }
-            //There is no long distance upsmash hit, so just set this high
-            else if(distance >= 27)
-            {
-                shield_on_frame = 4;
+                //If we're right in close
+                if(distance < 18)
+                {
+                    shield_on_frame = 3;
+                }
+                //Mid distance
+                else if(distance >= 18 && distance < 27)
+                {
+                    shield_on_frame = 4;
+                }
+                //There is no long distance upsmash hit, so just set this high
+                else if(distance >= 27)
+                {
+                    shield_on_frame = 4;
+                }
             }
             break;
         }
@@ -93,20 +100,27 @@ void Powershield::PressButtons()
         }
         case UPTILT:
         {
-            //If we're right in close
-            if(distance < 18)
+            if(m_isReverseFacing)
             {
-                shield_on_frame = 3;
+                shield_on_frame = 8;
             }
-            //Mid distance
-            else if(distance >= 18 && distance < 27)
+            else
             {
-                shield_on_frame = 4;
-            }
-            //Long distance
-            else if(distance >= 27)
-            {
-                shield_on_frame = 4;
+                //If we're right in close
+                if(distance < 18)
+                {
+                    shield_on_frame = 3;
+                }
+                //Mid distance
+                else if(distance >= 18 && distance < 27)
+                {
+                    shield_on_frame = 4;
+                }
+                //Long distance
+                else if(distance >= 27)
+                {
+                    shield_on_frame = 60;
+                }
             }
             break;
         }
@@ -239,6 +253,97 @@ void Powershield::PressButtons()
             }
             break;
         }
+        case UP_B:
+        case UP_B_GROUND:
+        {
+            if(distance >= 27)
+            {
+                shield_on_frame = 60;
+            }
+            shield_on_frame = 2;
+            break;
+        }
+        case FAIR:
+        {
+            //If we're right in close
+            if(distance < 18)
+            {
+                shield_on_frame = 1;
+            }
+            //Mid distance
+            else if(distance >= 18 && distance < 27)
+            {
+                shield_on_frame = 2;
+            }
+            //Long distance
+            else if(distance >= 27)
+            {
+                shield_on_frame = 2;
+            }
+            break;
+        }
+        case BAIR:
+        {
+            shield_on_frame = 4;
+            break;
+        }
+        case DAIR:
+        {
+            if(m_isReverseFacing)
+            {
+                shield_on_frame = 5;
+            }
+            else
+            {
+                shield_on_frame = 3;
+            }
+            break;
+        }
+        case UAIR:
+        {
+            if(distance > 27)
+            {
+                shield_on_frame = 60;
+                break;
+            }
+            if(m_isReverseFacing)
+            {
+                shield_on_frame = 5;
+            }
+            else
+            {
+                shield_on_frame = 2;
+            }
+            break;
+        }
+        case NEUTRAL_ATTACK_1:
+        {
+            //If we're right in close
+            if(distance < 18)
+            {
+                shield_on_frame = 1;
+            }
+            //Mid distance
+            else if(distance >= 18 && distance < 27)
+            {
+                shield_on_frame = 2;
+            }
+            //Long distance
+            else if(distance >= 27)
+            {
+                shield_on_frame = 60;
+            }
+            break;
+        }
+        case NEUTRAL_ATTACK_2:
+        {
+            if(distance >= 27)
+            {
+                shield_on_frame = 60;
+            }
+            shield_on_frame = 3;
+            break;
+        }
         default:
         {
             m_controller->emptyInput();
@@ -273,6 +378,15 @@ Powershield::Powershield(GameState *state, uint startFrame) : Chain(state)
     m_frame_shielded = 0;
     m_startFrame = startFrame;
     m_controller = Controller::Instance();
+    bool player_one_is_to_the_left = (m_state->player_one_x - m_state->player_two_x > 0);
+    if(m_state->player_one_facing != player_one_is_to_the_left)
+    {
+        m_isReverseFacing = false;
+    }
+    else
+    {
+        m_isReverseFacing = true;
+    }
 }
 
 Powershield::~Powershield()

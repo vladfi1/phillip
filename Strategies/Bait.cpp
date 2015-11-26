@@ -90,9 +90,8 @@ void Bait::DetermineTactic()
     if(!m_shieldedAttack && std::abs(m_state->player_one_x - m_state->player_two_x) < MARTH_FSMASH_RANGE)
     {
         //Don't bother parrying if the attack is in the wrong direction
-		//TODO: Maybe sometime worry about reverse hits.
         bool player_one_is_to_the_left = (m_state->player_one_x - m_state->player_two_x > 0);
-        if(m_state->player_one_facing != player_one_is_to_the_left)
+        if(m_state->player_one_facing != player_one_is_to_the_left || (isReverseHit((ACTION)m_state->player_one_action)))
         {
             if(isAttacking((ACTION)m_state->player_one_action))
             {
@@ -173,6 +172,38 @@ bool Bait::isAttacking(ACTION action)
         case SWORD_DANCE_4_HIGH:
         case SWORD_DANCE_4_MID:
         case SWORD_DANCE_4_LOW:
+        case UP_B:
+        case UP_B_GROUND:
+        case NAIR:
+        case UAIR:
+        case DAIR:
+        case BAIR:
+        case FAIR:
+        case NEUTRAL_ATTACK_1:
+        case NEUTRAL_ATTACK_2:
+        case NEUTRAL_ATTACK_3:
+        {
+            return true;
+        }
+        default:
+        {
+            return false;
+        }
+    }
+}
+
+bool Bait::isReverseHit(ACTION action)
+{
+    switch(action)
+    {
+        case DOWNSMASH:
+        case UPSMASH:
+        case GRAB_RUNNING:
+        case UPTILT:
+        case NAIR:
+        case UAIR:
+        case DAIR:
+        case BAIR:
         {
             return true;
         }
