@@ -50,6 +50,16 @@ void Edgeguard::DetermineChain()
         }
     }
 
+    //If enemy is sliding onto ledge or hanging from it, don't grab the ledge
+    if(m_state->player_one_action == SLIDING_OFF_EDGE ||
+        m_state->player_one_action == EDGE_CATCHING ||
+        m_state->player_one_action == EDGE_HANGING)
+    {
+        CreateChain(Nothing);
+        m_chain->PressButtons();
+        return;
+    }
+
     //Grab the ledge if we're still on the stage
     if(std::abs(m_state->player_two_x) < 88.4735 && std::abs(m_state->player_two_y) < 1)
     {

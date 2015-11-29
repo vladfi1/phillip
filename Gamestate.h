@@ -96,10 +96,17 @@ enum ACTION
 	GRAB_RUNNING = 0xd6,
 	EDGE_TEETERING_START = 0xF5, //Starting of edge teetering
 	EDGE_TEETERING = 0xF6,
+	SLIDING_OFF_EDGE = 0xfb, //When you get hit and slide off an edge
 	EDGE_CATCHING = 0xFC, //Initial grabbing of edge, stuck in stun here
 	EDGE_HANGING = 0xFD,
+	EDGE_GETUP_QUICK = 0xFF, // < 100% damage
+	EDGE_ATTACK_SLOW = 0x100, // < 100% damage
+	EDGE_ATTACK_QUICK = 0x101, // >= 100% damage
 	EGDE_ROLL_SLOW = 0x102, // >= 100% damage
 	EDGE_ROLL_QUICK = 0x103, // < 100% damage
+	EDGE_GETUP_SLOW = 0x104,  // >= 100% damage
+	NEUTRAL_B_CHARGING = 0x156,
+	NEUTRAL_B_ATTACKING = 0x157,
 	SWORD_DANCE_1 = 0x15d,
 	SWORD_DANCE_2_HIGH = 0x15e,
 	SWORD_DANCE_2_MID = 0x15f,
