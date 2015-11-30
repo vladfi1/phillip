@@ -59,6 +59,8 @@ enum ACTION
 	WALK_SLOW = 0x0f,
 	WALK_MIDDLE = 0x10,
 	WALK_FAST = 0x11,
+	TURNING = 0x12,
+	TURNING_RUN = 0x13,
 	DASHING = 0x14,
 	RUNNING = 0x15,
 	KNEE_BEND = 0x18, //pre-jump animation.
@@ -69,7 +71,7 @@ enum ACTION
 	FALLING = 0x1D,	//The "wait" state of the air.
 	CROUCHING = 0x28,
 	LANDING = 0x2a, //Can be canceled. Not stunned
-	LANDING_SPECIAL = 0x2a, //Landing special, like from wavedash. Stunned.
+	LANDING_SPECIAL = 0x2b, //Landing special, like from wavedash. Stunned.
 	NEUTRAL_ATTACK_1 = 0x2c,
 	NEUTRAL_ATTACK_2 = 0x2d,
 	NEUTRAL_ATTACK_3 = 0x2e,
@@ -94,6 +96,7 @@ enum ACTION
 	SHIELD_REFLECT = 0xb6,
 	GRAB = 0xd4,
 	GRAB_RUNNING = 0xd6,
+	AIRDODGE = 0xEC,
 	EDGE_TEETERING_START = 0xF5, //Starting of edge teetering
 	EDGE_TEETERING = 0xF6,
 	SLIDING_OFF_EDGE = 0xfb, //When you get hit and slide off an edge
