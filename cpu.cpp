@@ -52,6 +52,9 @@ void PrintState(GameState* state)
     std::cout << "p1 action: " << std::hex << state->player_one_action << std::endl;
     std::cout << "p2 action: " << std::hex << state->player_two_action << std::endl;
 
+    std::cout << "p1 action count: " << std::dec << state->player_one_action_counter << std::endl;
+    std::cout << "p2 action count: " << std::dec << state->player_two_action_counter << std::endl;
+
     if(state->player_one_invulnerable)
     {
         std::cout << "p1 invulnerable" << std::endl;
@@ -174,7 +177,7 @@ int main()
             }
             //If we're in a menu, then let's navigate the menu
             else if(state->menu_state == CHARACTER_SELECT ||
-                state->menu_state == STAGE_SELECT || 
+                state->menu_state == STAGE_SELECT ||
                 state->menu_state == POSTGAME_SCORES)
             {
                 if(goal == NULL )

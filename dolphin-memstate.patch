@@ -101,7 +101,7 @@ index a1895ed..2a17cec 100644
  	// Resume the core and disable stepping
  	Core::PauseAndLock(false, wasUnpaused);
 diff --git a/Source/Core/DolphinWX/Main.cpp b/Source/Core/DolphinWX/Main.cpp
-index 3c6250e..5a99f78 100644
+index 3c6250e..662d1b9 100644
 --- a/Source/Core/DolphinWX/Main.cpp
 +++ b/Source/Core/DolphinWX/Main.cpp
 @@ -33,6 +33,11 @@
@@ -116,7 +116,7 @@ index 3c6250e..5a99f78 100644
  
  #include "DolphinWX/Frame.h"
  #include "DolphinWX/Globals.h"
-@@ -159,8 +164,369 @@ bool DolphinApp::OnInit()
+@@ -159,8 +164,381 @@ bool DolphinApp::OnInit()
  	return true;
  }
  
@@ -129,6 +129,7 @@ index 3c6250e..5a99f78 100644
 +	float player_one_x;
 +	float player_one_y;
 +	uint player_one_action;
++	uint player_one_action_counter;
 +	uint player_one_character;
 +	bool player_one_invulnerable;
 +	uint player_one_hitlag_frames_left;
@@ -149,6 +150,7 @@ index 3c6250e..5a99f78 100644
 +	float player_two_x;
 +	float player_two_y;
 +	uint player_two_action;
++	uint player_two_action_counter;
 +	uint player_two_character;
 +	bool player_two_invulnerable;
 +	uint player_two_hitlag_frames_left;
@@ -243,6 +245,10 @@ index 3c6250e..5a99f78 100644
 +		u32 player1_action = *(u32*)(Memory::GetRawMemory() + player1_data_pointer + 0x70);
 +		player1_action = __builtin_bswap32(player1_action);
 +
++		//Look up the action state counter
++		u16 player1_action_counter = *(u16*)(Memory::GetRawMemory() + player1_data_pointer + 0x20CC);
++		player1_action_counter = __builtin_bswap16(player1_action_counter);
++
 +		//Look up invulnernerability state
 +		u32 player1_invulnerability = *(u32*)(Memory::GetRawMemory() + player1_data_pointer + 0x19EC);
 +		player1_invulnerability = __builtin_bswap32(player1_invulnerability);
@@ -302,6 +308,10 @@ index 3c6250e..5a99f78 100644
 +		player2_data_pointer &= 0x00FFFFFF;
 +		u32 player2_action = *(u32*)(Memory::GetRawMemory() + player2_data_pointer + 0x70);
 +		player2_action = __builtin_bswap32(player2_action);
++
++		//Look up the action state counter
++		u16 player2_action_counter = *(u16*)(Memory::GetRawMemory() + player2_data_pointer + 0x20CC);
++		player2_action_counter = __builtin_bswap16(player2_action_counter);
 +
 +		//Look up invulnernerability state
 +		u32 player2_invulnerability = *(u32*)(Memory::GetRawMemory() + player2_data_pointer + 0x19EC);
@@ -384,6 +394,7 @@ index 3c6250e..5a99f78 100644
 +		state->player_one_x = player1_x;
 +		state->player_one_y = player1_y;
 +		state->player_one_action = player1_action;
++		state->player_one_action_counter = player1_action_counter;
 +		if(player1_invulnerability == 0)
 +		{
 +			state->player_one_invulnerable = false;
@@ -433,6 +444,7 @@ index 3c6250e..5a99f78 100644
 +		state->player_two_x = player2_x;
 +		state->player_two_y = player2_y;
 +		state->player_two_action = player2_action;
++		state->player_two_action_counter = player2_action_counter;
 +		if(player2_invulnerability == 0)
 +		{
 +			state->player_two_invulnerable = false;

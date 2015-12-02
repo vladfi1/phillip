@@ -12,6 +12,7 @@ struct GameState
 	float player_one_x;
 	float player_one_y;
 	uint player_one_action;
+	uint player_one_action_counter;
 	uint player_one_character;
 	bool player_one_invulnerable;
 	uint player_one_hitlag_frames_left;
@@ -32,6 +33,7 @@ struct GameState
 	float player_two_x;
 	float player_two_y;
 	uint player_two_action;
+	uint player_two_action_counter;
 	uint player_two_character;
 	bool player_two_invulnerable;
 	uint player_two_hitlag_frames_left;

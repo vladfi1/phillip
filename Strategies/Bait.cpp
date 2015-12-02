@@ -19,6 +19,7 @@ Bait::Bait(GameState *state) : Strategy(state)
     m_lastAction = (ACTION)m_state->player_one_action;
     m_shieldedAttack = false;
     m_actionChanged = true;
+    m_lastActionCount = 0;
 }
 
 Bait::~Bait()
@@ -31,8 +32,10 @@ void Bait::DetermineTactic()
     //std::cout << std::abs(m_state->player_one_x - m_state->player_two_x) << std::endl;
 
     //Update the attack frame if the enemy started a new action
-    if(m_lastAction != (ACTION)m_state->player_one_action)
+    if((m_lastAction != (ACTION)m_state->player_one_action) ||
+        (m_state->player_one_action_counter > m_lastActionCount))
     {
+        m_lastActionCount = m_state->player_one_action_counter;
         m_shieldedAttack = false;
         m_actionChanged = true;
         m_lastAction = (ACTION)m_state->player_one_action;
