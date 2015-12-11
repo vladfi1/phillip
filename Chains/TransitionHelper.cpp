@@ -10,10 +10,12 @@ void TransitionHelper::Transition(ACTION from, ACTION to)
         case STANDING:
         {
             controller->emptyInput();
+            break;
         }
         case CROUCHING:
         {
             controller->emptyInput();
+            break;
         }
         case DASHING:
         {
@@ -25,10 +27,12 @@ void TransitionHelper::Transition(ACTION from, ACTION to)
             {
                 controller->emptyInput();
             }
+            break;
         }
         default:
         {
             controller->emptyInput();
+            break;
         }
     }
 }

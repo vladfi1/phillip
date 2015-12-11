@@ -14,6 +14,12 @@ public:
     //Determine what buttons to press in order to execute our tactic
     void PressButtons();
     bool IsInterruptible();
+
+private:
+    uint m_landedFrame;
+    uint m_jumpedFrame;
+    ACTION m_action;
+    bool m_holdingLaser;
 };
 
 #endif

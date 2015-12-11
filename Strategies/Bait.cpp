@@ -65,7 +65,17 @@ void Bait::DetermineTactic()
 		return;
 	}
 
-	//distance formula
+    //If we're still warping in at the start of the match, then just hang out and do nothing
+    if(m_state->player_two_action == ENTRY ||
+        m_state->player_two_action == ENTRY_START ||
+        m_state->player_two_action == ENTRY_END)
+    {
+        CreateTactic(Wait);
+        m_tactic->DetermineChain();
+        return;
+    }
+
+	//Calculate distance between players
 	double distance = pow(std::abs(m_state->player_one_x - m_state->player_two_x), 2);
 	distance += pow(std::abs(m_state->player_one_y - m_state->player_two_y), 2);
 	distance = sqrt(distance);

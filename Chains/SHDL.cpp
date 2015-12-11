@@ -1,19 +1,21 @@
 #include <cmath>
 
 #include "SHDL.h"
+#include "TransitionHelper.h"
 
 void SHDL::PressButtons()
 {
-    //If we need to transition, wait until we're at a valid state
-    if(m_startingFrame == 0 &&
-        (m_state->player_two_action == STANDING ||
-        m_state->player_two_action == WALK_SLOW ||
-        m_state->player_two_action == WALK_MIDDLE ||
-        m_state->player_two_action == WALK_FAST ||
-        m_state->player_two_action == KNEE_BEND ||
-        m_state->player_two_action == LANDING ||
-        m_state->player_two_action == EDGE_TEETERING ||
-        m_state->player_two_action == CROUCHING))
+    if(m_action != m_state->player_two_action)
+    {
+        m_action = (ACTION)m_state->player_two_action;
+        if(m_action == LANDING)
+        {
+            m_landedFrame = m_state->frame;
+        }
+    }
+
+    //Get setup for the SHDL
+    if(m_startingFrame == 0)
     {
         //If we're too close to the edge, it's not safe to jump. Move inwards for just a frame
         if((m_state->player_two_x) > 85.5206985474)
@@ -34,57 +36,61 @@ void SHDL::PressButtons()
         }
         else
         {
+            //Let's start lasering!
             m_startingFrame = m_state->frame;
         }
     }
-    if(m_startingFrame == 0)
-    {
-        m_controller->tiltAnalog(Controller::BUTTON_MAIN, .5, .5);
-        m_controller->releaseButton(Controller::BUTTON_Y);
-        m_controller->releaseButton(Controller::BUTTON_B);
-        return;
-    }
 
-    uint frame = m_state->frame - m_startingFrame;
-    switch(frame)
+    //If we've started the SHDL
+    if(m_startingFrame > 0)
     {
-        case 0:
+        //If we're waiting for landing lag to end, just wait. Else, let's jump
+        if(TransitionHelper::canJump((ACTION)m_state->player_two_action))
         {
-            //Jump
-            m_controller->tiltAnalog(Controller::BUTTON_MAIN, .5, .5);
-            m_controller->pressButton(Controller::BUTTON_Y);
-            break;
+            if(m_state->frame >= m_landedFrame + 3)
+            {
+                if(m_jumpedFrame > 0)
+                {
+                    //If we get here, then we tried to jump and failed. So let go of jump and try again
+                    m_jumpedFrame = 0;
+                    m_controller->emptyInput();
+                    return;
+                }
+                m_jumpedFrame = m_state->frame;
+                m_controller->pressButton(Controller::BUTTON_Y);
+                return;
+            }
+            else
+            {
+                m_controller->emptyInput();
+                return;
+            }
         }
-        case 1:
+
+        //Let go of jump once we started
+        if(m_state->player_two_action == KNEE_BEND)
         {
-            //let go of jump
             m_controller->releaseButton(Controller::BUTTON_Y);
-            break;
+            return;
         }
-        case 3:
+
+        //Alternate pressing and releasing B
+        if(m_holdingLaser)
         {
-            //Laser
-            m_controller->pressButton(Controller::BUTTON_B);
-            break;
-        }
-        case 4:
-        {
-            //let go of Laser
             m_controller->releaseButton(Controller::BUTTON_B);
-            break;
+            m_holdingLaser = !m_holdingLaser;
+            return;
+
         }
-        case 6:
+        else
         {
-            //Laser
             m_controller->pressButton(Controller::BUTTON_B);
-            break;
+            m_holdingLaser = !m_holdingLaser;
+            return;
         }
-        case 17:
-        {
-            //let go of Laser
-            m_controller->releaseButton(Controller::BUTTON_B);
-            break;
-        }
+
+        m_controller->emptyInput();
+        return;
     }
 }
 
@@ -96,9 +102,17 @@ bool SHDL::IsInterruptible()
         return true;
     }
 
-    uint frame = m_state->frame - m_startingFrame;
-    if(frame >= 27)
+    if(TransitionHelper::canJump((ACTION)m_state->player_two_action) &&
+        (m_landedFrame > 0) &&
+        (m_state->frame > m_landedFrame + 20))
     {
+        return true;
+    }
+
+    uint frame = m_state->frame - m_startingFrame;
+    if(frame >= 60)
+    {
+        //Emergency backup kill for the chain in case we get stuck here somehow
         return true;
     }
     return false;
@@ -106,35 +120,15 @@ bool SHDL::IsInterruptible()
 
 SHDL::SHDL(GameState *state) : Chain(state)
 {
-    //Make sure we are capable of jumping this frame, or else we need to transition
-    if(m_state->player_two_action == STANDING ||
-        m_state->player_two_action == WALK_SLOW ||
-        m_state->player_two_action == WALK_MIDDLE ||
-        m_state->player_two_action == WALK_FAST ||
-        m_state->player_two_action == KNEE_BEND ||
-        m_state->player_two_action == LANDING ||
-        m_state->player_two_action == EDGE_TEETERING ||
-        m_state->player_two_action == CROUCHING)
+    m_holdingLaser = false;
+    m_startingFrame = 0;
+    m_landedFrame = 0;
+    m_jumpedFrame = 0;
+    m_action = (ACTION)m_state->player_two_action;
+    //If we start landing, then assume we need to wait for the landing lag to finish
+    if(m_action == LANDING)
     {
-        //If we're too close to the edge, it's not safe to jump. Move inwards for just a frame
-        if(std::abs(m_state->player_two_x) > 70)
-        {
-            m_startingFrame = 0;
-
-        }
-        //If we're otherwise in a ready state, but facing the wrong direction, then turn around.
-        else if(m_state->player_two_facing == (m_state->player_one_x < m_state->player_two_x))
-        {
-            m_startingFrame = 0;
-        }
-        else
-        {
-            m_startingFrame = m_state->frame;
-        }
-    }
-    else
-    {
-        m_startingFrame = 0;
+        m_landedFrame = m_state->frame;
     }
     m_controller = Controller::Instance();
 }

@@ -110,6 +110,9 @@ enum ACTION
 	EGDE_ROLL_SLOW = 0x102, // >= 100% damage
 	EDGE_ROLL_QUICK = 0x103, // < 100% damage
 	EDGE_GETUP_SLOW = 0x104,  // >= 100% damage
+	ENTRY = 0x142,	//Start of match. Can't move
+	ENTRY_START = 0x143,	//Start of match. Can't move
+	ENTRY_END = 0x144,	//Start of match. Can't move
 	NEUTRAL_B_CHARGING = 0x156,
 	NEUTRAL_B_ATTACKING = 0x157,
 	SWORD_DANCE_1 = 0x15d,
