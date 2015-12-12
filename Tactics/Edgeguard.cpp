@@ -52,6 +52,12 @@ void Edgeguard::DetermineChain()
 
     //If enemy is sliding onto ledge or hanging from it, don't grab the ledge
     if(m_state->player_one_action == SLIDING_OFF_EDGE ||
+        m_state->player_one_action == EDGE_GETUP_QUICK ||
+        m_state->player_one_action == EDGE_ATTACK_SLOW ||
+        m_state->player_one_action == EDGE_ATTACK_QUICK ||
+        m_state->player_one_action == EGDE_ROLL_SLOW ||
+        m_state->player_one_action == EDGE_ROLL_QUICK ||
+        m_state->player_one_action == EDGE_GETUP_SLOW ||
         m_state->player_one_action == EDGE_CATCHING ||
         m_state->player_one_action == EDGE_HANGING)
     {
