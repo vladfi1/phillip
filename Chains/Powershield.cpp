@@ -366,7 +366,9 @@ void Powershield::PressButtons()
 
 bool Powershield::IsInterruptible()
 {
-    if((m_state->player_two_action != SHIELD_STUN) && (m_state->player_two_action != SHIELD))
+    if((m_state->player_two_action != SHIELD_STUN) &&
+        (m_state->player_two_action != SHIELD_REFLECT) &&
+        (m_state->player_two_action != SHIELD))
     {
         return true;
     }
