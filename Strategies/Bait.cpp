@@ -88,6 +88,7 @@ void Bait::DetermineTactic()
         {
             //Is the opponent in a state where they can get hit by shine?
             if(m_state->player_one_action != SHIELD &&
+                m_state->player_one_action != SHIELD_REFLECT &&
                 m_state->player_one_action != MARTH_COUNTER &&
                 m_state->player_one_action != MARTH_COUNTER_FALLING &&
                 m_state->player_one_action != EDGE_CATCHING)
