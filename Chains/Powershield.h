@@ -16,9 +16,12 @@ public:
     bool IsInterruptible();
 
 private:
-    uint m_frame_shielded;
+    uint m_letGo;
     uint m_startFrame;
+    uint m_frameShielded;
     bool m_isReverseFacing;
+    bool m_hasShielded;
+    bool m_endEarly;
 };
 
 #endif

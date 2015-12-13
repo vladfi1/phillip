@@ -33,7 +33,8 @@ void Bait::DetermineTactic()
 
     //Update the attack frame if the enemy started a new action
     if((m_lastAction != (ACTION)m_state->player_one_action) ||
-        (m_state->player_one_action_counter > m_lastActionCount))
+        (m_state->player_one_action_counter > m_lastActionCount) ||
+        (m_state->player_one_action_frame == 1))
     {
         m_lastActionCount = m_state->player_one_action_counter;
         m_shieldedAttack = false;
@@ -101,7 +102,7 @@ void Bait::DetermineTactic()
     }
 
     //If we need to defend against an attack, that's next priority. Unless we've already shielded this attack
-    if(!m_shieldedAttack && std::abs(m_state->player_one_x - m_state->player_two_x) < MARTH_FSMASH_RANGE)
+    if(!m_shieldedAttack && distance < MARTH_FSMASH_RANGE)
     {
         //Don't bother parrying if the attack is in the wrong direction
         bool player_one_is_to_the_left = (m_state->player_one_x - m_state->player_two_x > 0);
@@ -186,6 +187,15 @@ bool Bait::isAttacking(ACTION action)
         case SWORD_DANCE_4_HIGH:
         case SWORD_DANCE_4_MID:
         case SWORD_DANCE_4_LOW:
+        case SWORD_DANCE_1_AIR:
+        case SWORD_DANCE_2_HIGH_AIR:
+        case SWORD_DANCE_2_MID_AIR:
+        case SWORD_DANCE_3_HIGH_AIR:
+        case SWORD_DANCE_3_MID_AIR:
+        case SWORD_DANCE_3_LOW_AIR:
+        case SWORD_DANCE_4_HIGH_AIR:
+        case SWORD_DANCE_4_MID_AIR:
+        case SWORD_DANCE_4_LOW_AIR:
         case UP_B:
         case UP_B_GROUND:
         case NAIR:
@@ -196,6 +206,8 @@ bool Bait::isAttacking(ACTION action)
         case NEUTRAL_ATTACK_1:
         case NEUTRAL_ATTACK_2:
         case NEUTRAL_ATTACK_3:
+        case NEUTRAL_B_ATTACKING:
+        case NEUTRAL_B_ATTACKING_AIR:
         {
             return true;
         }

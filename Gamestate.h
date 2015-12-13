@@ -13,6 +13,7 @@ struct GameState
 	float player_one_y;
 	uint player_one_action;
 	uint player_one_action_counter;
+	uint player_one_action_frame;
 	uint player_one_character;
 	bool player_one_invulnerable;
 	uint player_one_hitlag_frames_left;
@@ -34,6 +35,7 @@ struct GameState
 	float player_two_y;
 	uint player_two_action;
 	uint player_two_action_counter;
+	uint player_two_action_frame;
 	uint player_two_character;
 	bool player_two_invulnerable;
 	uint player_two_hitlag_frames_left;
@@ -93,7 +95,9 @@ enum ACTION
 	BAIR = 0x43,
 	UAIR = 0x44,
 	DAIR = 0x45,
+	SHIELD_START = 0xb2,
 	SHIELD = 0xb3,
+	SHIELD_RELEASE = 0xb4,
 	SHIELD_STUN = 0xb5,
 	SHIELD_REFLECT = 0xb6,
 	GRAB = 0xd4,
@@ -115,6 +119,8 @@ enum ACTION
 	ENTRY_END = 0x144,	//Start of match. Can't move
 	NEUTRAL_B_CHARGING = 0x156,
 	NEUTRAL_B_ATTACKING = 0x157,
+	NEUTRAL_B_CHARGING_AIR = 0x15A,
+	NEUTRAL_B_ATTACKING_AIR = 0x15B,
 	SWORD_DANCE_1 = 0x15d,
 	SWORD_DANCE_2_HIGH = 0x15e,
 	SWORD_DANCE_2_MID = 0x15f,
@@ -124,6 +130,15 @@ enum ACTION
 	SWORD_DANCE_4_HIGH = 0x163,
 	SWORD_DANCE_4_MID = 0x164,
 	SWORD_DANCE_4_LOW = 0x165,
+	SWORD_DANCE_1_AIR = 0x166,
+	SWORD_DANCE_2_HIGH_AIR = 0x167,
+	SWORD_DANCE_2_MID_AIR = 0x168,
+	SWORD_DANCE_3_HIGH_AIR = 0x169,
+	SWORD_DANCE_3_MID_AIR = 0x16a,
+	SWORD_DANCE_3_LOW_AIR = 0x16b,
+	SWORD_DANCE_4_HIGH_AIR = 0x16c,
+	SWORD_DANCE_4_MID_AIR = 0x16d,
+	SWORD_DANCE_4_LOW_AIR = 0x16e,
 	FIREFOX_WAIT_GROUND = 0x161, //Firefox wait on the ground
 	FIREFOX_WAIT_AIR = 0x162, //Firefox wait in the air
 	FIREFOX_GROUND = 0x163, //Firefox on the ground

@@ -55,6 +55,9 @@ void PrintState(GameState* state)
     std::cout << "p1 action count: " << std::dec << state->player_one_action_counter << std::endl;
     std::cout << "p2 action count: " << std::dec << state->player_two_action_counter << std::endl;
 
+    std::cout << "p1 action frame: " << std::dec << state->player_one_action_frame << std::endl;
+    std::cout << "p2 action frame: " << std::dec << state->player_two_action_frame << std::endl;
+
     if(state->player_one_invulnerable)
     {
         std::cout << "p1 invulnerable" << std::endl;
