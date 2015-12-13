@@ -84,6 +84,7 @@ void SHDL::PressButtons()
         }
         else
         {
+            m_controller->tiltAnalog(Controller::BUTTON_MAIN, .5, .5);
             m_controller->pressButton(Controller::BUTTON_B);
             m_holdingLaser = !m_holdingLaser;
             return;
