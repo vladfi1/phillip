@@ -18,10 +18,7 @@ void EdgeAction::PressButtons()
         }
     }
     //Reset the controller afterward
-    m_controller->releaseButton(Controller::BUTTON_L);
-    m_controller->releaseButton(Controller::BUTTON_A);
-    m_controller->releaseButton(Controller::BUTTON_Y);
-    m_controller->tiltAnalog(Controller::BUTTON_MAIN, .5, .5);
+    m_controller->emptyInput();
 
     if(m_state->player_two_action == STANDING)
     {

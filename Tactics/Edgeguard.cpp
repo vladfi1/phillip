@@ -50,7 +50,7 @@ void Edgeguard::DetermineChain()
         }
     }
 
-    //If enemy is sliding onto ledge or hanging from it, don't grab the ledge
+    //If enemy is sliding onto edge or hanging from it, don't grab the edge
     if(m_state->player_one_action == SLIDING_OFF_EDGE ||
         m_state->player_one_action == EDGE_GETUP_QUICK ||
         m_state->player_one_action == EDGE_ATTACK_SLOW ||
@@ -66,16 +66,17 @@ void Edgeguard::DetermineChain()
         return;
     }
 
-    //Grab the ledge if we're still on the stage
-    if(std::abs(m_state->player_two_x) < 88.4735 && std::abs(m_state->player_two_y) < 1)
+    //If we're still on the stage, see if it's safe to grab the edge
+    if(m_state->player_two_on_ground)
     {
+        
         CreateChain(GrabEdge);
         m_chain->PressButtons();
         return;
     }
 
     //Edgehog our opponent if they're UP-B'ing sweetspotted.
-    //Grab the ledge if we're still on the stage
+    //Grab the edge if we're still on the stage
     if(m_state->player_one_y < 50 && m_state->player_one_action == UP_B)
     {
         CreateChain2(EdgeAction, Controller::BUTTON_L);
