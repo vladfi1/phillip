@@ -12,6 +12,7 @@ void EdgeAction::PressButtons()
         //Roll up
         if(m_button == Controller::BUTTON_L)
         {
+            m_controller->tiltAnalog(Controller::BUTTON_MAIN, .5, .5);
             m_controller->pressButton(Controller::BUTTON_L);
             return;
         }

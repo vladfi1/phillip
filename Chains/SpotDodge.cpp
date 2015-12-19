@@ -37,6 +37,7 @@ void SpotDodge::PressButtons()
         case 0:
         {
             //Spot dodge
+            m_controller->tiltAnalog(Controller::BUTTON_MAIN, .5, .5);
             m_controller->pressButton(Controller::BUTTON_L);
             break;
         }

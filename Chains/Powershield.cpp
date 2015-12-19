@@ -388,6 +388,7 @@ void Powershield::PressButtons()
     {
         m_hasShielded = true;
         m_frameShielded = m_state->frame;
+        m_controller->tiltAnalog(Controller::BUTTON_MAIN, .5, .5);
         m_controller->pressButton(Controller::BUTTON_L);
     }
     //4 frames later, let go of shield
