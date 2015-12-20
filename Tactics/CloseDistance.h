@@ -9,7 +9,7 @@ class CloseDistance : public Tactic
 
 public:
 
-    CloseDistance(GameState *state);
+    CloseDistance();
     ~CloseDistance();
     void DetermineChain();
 

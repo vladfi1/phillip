@@ -4,7 +4,7 @@
 #include "Wait.h"
 #include "../Chains/Nothing.h"
 
-Wait::Wait(GameState *state) : Tactic(state)
+Wait::Wait()
 {
     m_chain = NULL;
 }

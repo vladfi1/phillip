@@ -11,7 +11,7 @@ class GrabEdge : public Chain
 
 public:
 
-    GrabEdge(GameState *state);
+    GrabEdge();
     ~GrabEdge();
 
     void PressButtons();

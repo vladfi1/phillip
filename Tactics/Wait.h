@@ -9,7 +9,7 @@ class Wait : public Tactic
 
 public:
 
-    Wait(GameState *state);
+    Wait();
     ~Wait();
     void DetermineChain();
 

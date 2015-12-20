@@ -1,7 +1,7 @@
 #ifndef TRANSITION_H
 #define TRANSITION_H
 
-#include "../Gamestate.h"
+#include "../GameState.h"
 
 //Helper functions for transitioning from one action state to another
 class TransitionHelper

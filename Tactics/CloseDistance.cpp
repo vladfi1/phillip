@@ -4,7 +4,7 @@
 #include "CloseDistance.h"
 #include "../Chains/Jog.h"
 
-CloseDistance::CloseDistance(GameState *state) : Tactic(state)
+CloseDistance::CloseDistance()
 {
     m_chain = NULL;
 }
@@ -17,7 +17,7 @@ CloseDistance::~CloseDistance()
 void CloseDistance::DetermineChain()
 {
     //If opponent is to our right, jog right
-    if(m_state->player_one_x > m_state->player_two_x)
+    if(m_state->m_memory->player_one_x > m_state->m_memory->player_two_x)
     {
         CreateChain2(Jog, true);
     }
@@ -27,5 +27,4 @@ void CloseDistance::DetermineChain()
         CreateChain2(Jog, false);
     }
     m_chain->PressButtons();
-
 }

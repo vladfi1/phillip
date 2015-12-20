@@ -18,9 +18,8 @@ bool Jog::IsInterruptible()
     return true;
 }
 
-Jog::Jog(GameState *state, bool isRight) : Chain(state)
+Jog::Jog(bool isRight)
 {
-    m_controller = Controller::Instance();
     m_isRight = isRight;
 }
 

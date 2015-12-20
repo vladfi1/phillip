@@ -9,7 +9,7 @@ class Edgeguard : public Tactic
 
 public:
 
-    Edgeguard(GameState *state);
+    Edgeguard();
     ~Edgeguard();
 
     void DetermineChain();

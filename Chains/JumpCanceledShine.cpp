@@ -1,9 +1,8 @@
 #include "JumpCanceledShine.h"
 
-JumpCanceledShine::JumpCanceledShine(GameState *state) : Chain(state)
+JumpCanceledShine::JumpCanceledShine()
 {
-    m_startingFrame = m_state->frame;
-    m_controller = Controller::Instance();
+    m_startingFrame = m_state->m_memory->frame;
 }
 
 JumpCanceledShine::~JumpCanceledShine()
@@ -12,7 +11,7 @@ JumpCanceledShine::~JumpCanceledShine()
 
 bool JumpCanceledShine::IsInterruptible()
 {
-    uint frame = m_state->frame - m_startingFrame;
+    uint frame = m_state->m_memory->frame - m_startingFrame;
     if(frame >= 8)
     {
         return true;
@@ -22,7 +21,7 @@ bool JumpCanceledShine::IsInterruptible()
 
 void JumpCanceledShine::PressButtons()
 {
-    uint frame = m_state->frame - m_startingFrame;
+    uint frame = m_state->m_memory->frame - m_startingFrame;
     switch(frame)
     {
         case 0:

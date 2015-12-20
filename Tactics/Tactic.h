@@ -4,14 +4,14 @@
 #include <typeinfo>
 
 #include "../Chains/Chain.h"
-#include "../Gamestate.h"
+#include "../GameState.h"
 
 //The tactic is a short term actionable objective
 class Tactic
 {
 
 public:
-    Tactic(GameState *state){m_state = state;};
+    Tactic(){m_state = GameState::Instance();};
     virtual ~Tactic(){};
     //Determine what tactic to employ in order to further our strategy, based on game state
     virtual void DetermineChain() = 0;
@@ -48,9 +48,9 @@ protected:
     GameState *m_state;
 };
 
-#define CreateChain(TYPE) if(m_chain==NULL){m_chain = new TYPE(m_state);} \
-    if(typeid(*m_chain) != typeid(TYPE)){delete m_chain;m_chain = new TYPE(m_state);}
-#define CreateChain2(TYPE, BUTTON) if(m_chain==NULL){m_chain = new TYPE(m_state, BUTTON);} \
-    if(typeid(*m_chain) != typeid(TYPE)){delete m_chain;m_chain = new TYPE(m_state, BUTTON);}
+#define CreateChain(TYPE) if(m_chain==NULL){m_chain = new TYPE();} \
+    if(typeid(*m_chain) != typeid(TYPE)){delete m_chain;m_chain = new TYPE();}
+#define CreateChain2(TYPE, ARG) if(m_chain==NULL){m_chain = new TYPE(ARG);} \
+    if(typeid(*m_chain) != typeid(TYPE)){delete m_chain;m_chain = new TYPE(ARG);}
 
 #endif

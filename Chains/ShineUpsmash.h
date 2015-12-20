@@ -9,7 +9,7 @@ class ShineUpsmash : public Chain
 
 public:
 
-    ShineUpsmash(GameState *state);
+    ShineUpsmash();
     ~ShineUpsmash();
     //Determine what buttons to press in order to execute our tactic
     void PressButtons();

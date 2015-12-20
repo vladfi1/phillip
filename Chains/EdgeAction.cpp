@@ -3,11 +3,11 @@
 void EdgeAction::PressButtons()
 {
     //Wait until we're not edge catching anymore
-    if(m_state->player_two_action == EDGE_CATCHING)
+    if(m_state->m_memory->player_two_action == EDGE_CATCHING)
     {
         return;
     }
-    if(m_state->player_two_action == EDGE_HANGING)
+    if(m_state->m_memory->player_two_action == EDGE_HANGING)
     {
         //Roll up
         if(m_button == Controller::BUTTON_L)
@@ -20,7 +20,7 @@ void EdgeAction::PressButtons()
     //Reset the controller afterward
     m_controller->emptyInput();
 
-    if(m_state->player_two_action == STANDING)
+    if(m_state->m_memory->player_two_action == STANDING)
     {
         m_readyToInterrupt = true;
     }
@@ -31,10 +31,9 @@ bool EdgeAction::IsInterruptible()
     return m_readyToInterrupt;
 }
 
-EdgeAction::EdgeAction(GameState *state, Controller::BUTTON button) : Chain(state)
+EdgeAction::EdgeAction(Controller::BUTTON button)
 {
     m_button = button;
-    m_controller = Controller::Instance();
     m_readyToInterrupt = false;
 }
 

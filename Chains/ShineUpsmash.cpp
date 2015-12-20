@@ -2,7 +2,7 @@
 
 void ShineUpsmash::PressButtons()
 {
-    uint frame = m_state->frame - m_startingFrame;
+    uint frame = m_state->m_memory->frame - m_startingFrame;
     switch(frame)
     {
         case 0:
@@ -40,7 +40,7 @@ void ShineUpsmash::PressButtons()
 
 bool ShineUpsmash::IsInterruptible()
 {
-    uint frame = m_state->frame - m_startingFrame;
+    uint frame = m_state->m_memory->frame - m_startingFrame;
     //TODO upsmash is 39 frames, plus the 6 (5?) of the shine and jump
     if(frame >= 45)
     {
@@ -49,10 +49,9 @@ bool ShineUpsmash::IsInterruptible()
     return false;
 }
 
-ShineUpsmash::ShineUpsmash(GameState *state) : Chain(state)
+ShineUpsmash::ShineUpsmash()
 {
-    m_controller = Controller::Instance();
-    m_startingFrame = m_state->frame;
+    m_startingFrame = m_state->m_memory->frame;
 }
 
 ShineUpsmash::~ShineUpsmash()

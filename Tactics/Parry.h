@@ -10,7 +10,7 @@ class Parry : public Tactic
 public:
 
     //Second param is the frame the attack we're parrying started
-    Parry(GameState *state, uint frame);
+    Parry(uint frame);
     ~Parry();
     void DetermineChain();
 

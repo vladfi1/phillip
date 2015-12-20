@@ -4,16 +4,16 @@ void FullJump::PressButtons()
 {
     //If we need to transition, wait until we're at a valid state to be able to jump
     if(m_startingFrame == 0 &&
-        (m_state->player_two_action == STANDING ||
-        m_state->player_two_action == WALK_SLOW ||
-        m_state->player_two_action == WALK_MIDDLE ||
-        m_state->player_two_action == WALK_FAST ||
-        m_state->player_two_action == KNEE_BEND ||
-        m_state->player_two_action == LANDING ||
-        m_state->player_two_action == EDGE_TEETERING ||
-        m_state->player_two_action == CROUCHING))
+        (m_state->m_memory->player_two_action == STANDING ||
+        m_state->m_memory->player_two_action == WALK_SLOW ||
+        m_state->m_memory->player_two_action == WALK_MIDDLE ||
+        m_state->m_memory->player_two_action == WALK_FAST ||
+        m_state->m_memory->player_two_action == KNEE_BEND ||
+        m_state->m_memory->player_two_action == LANDING ||
+        m_state->m_memory->player_two_action == EDGE_TEETERING ||
+        m_state->m_memory->player_two_action == CROUCHING))
     {
-        m_startingFrame = m_state->frame;
+        m_startingFrame = m_state->m_memory->frame;
     }
     if(m_startingFrame == 0)
     {
@@ -23,7 +23,7 @@ void FullJump::PressButtons()
         return;
     }
 
-    uint frame = m_state->frame - m_startingFrame;
+    uint frame = m_state->m_memory->frame - m_startingFrame;
     switch(frame)
     {
         case 0:
@@ -57,7 +57,7 @@ void FullJump::PressButtons()
 //We're always interruptible during a jog
 bool FullJump::IsInterruptible()
 {
-    uint frame = m_state->frame - m_startingFrame;
+    uint frame = m_state->m_memory->frame - m_startingFrame;
     if(frame >= 5)
     {
         return true;
@@ -65,25 +65,24 @@ bool FullJump::IsInterruptible()
     return false;
 }
 
-FullJump::FullJump(GameState *state) : Chain(state)
+FullJump::FullJump()
 {
     //Make sure we are capable of jumping this frame, or else we need to transition
-    if(m_state->player_two_action == STANDING ||
-        m_state->player_two_action == WALK_SLOW ||
-        m_state->player_two_action == WALK_MIDDLE ||
-        m_state->player_two_action == WALK_FAST ||
-        m_state->player_two_action == KNEE_BEND ||
-        m_state->player_two_action == LANDING ||
-        m_state->player_two_action == EDGE_TEETERING ||
-        m_state->player_two_action == CROUCHING)
+    if(m_state->m_memory->player_two_action == STANDING ||
+        m_state->m_memory->player_two_action == WALK_SLOW ||
+        m_state->m_memory->player_two_action == WALK_MIDDLE ||
+        m_state->m_memory->player_two_action == WALK_FAST ||
+        m_state->m_memory->player_two_action == KNEE_BEND ||
+        m_state->m_memory->player_two_action == LANDING ||
+        m_state->m_memory->player_two_action == EDGE_TEETERING ||
+        m_state->m_memory->player_two_action == CROUCHING)
     {
-        m_startingFrame = m_state->frame;
+        m_startingFrame = m_state->m_memory->frame;
     }
     else
     {
         m_startingFrame = 0;
     }
-    m_controller = Controller::Instance();
 }
 
 FullJump::~FullJump()

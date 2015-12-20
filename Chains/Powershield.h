@@ -9,7 +9,7 @@ class Powershield : public Chain
 
 public:
 
-    Powershield(GameState *state, uint startFrame);
+    Powershield(uint startFrame);
     ~Powershield();
     //Determine what buttons to press in order to execute our tactic
     void PressButtons();

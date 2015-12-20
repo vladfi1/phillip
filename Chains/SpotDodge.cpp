@@ -6,16 +6,16 @@ void SpotDodge::PressButtons()
 {
     //If we need to transition, wait until we're at a valid state to be able to dodge
     if(m_startingFrame == 0 &&
-        (m_state->player_two_action == STANDING ||
-        m_state->player_two_action == WALK_SLOW ||
-        m_state->player_two_action == WALK_MIDDLE ||
-        m_state->player_two_action == WALK_FAST ||
-        m_state->player_two_action == KNEE_BEND ||
-        m_state->player_two_action == LANDING ||
-        m_state->player_two_action == EDGE_TEETERING ||
-        m_state->player_two_action == CROUCHING))
+        (m_state->m_memory->player_two_action == STANDING ||
+        m_state->m_memory->player_two_action == WALK_SLOW ||
+        m_state->m_memory->player_two_action == WALK_MIDDLE ||
+        m_state->m_memory->player_two_action == WALK_FAST ||
+        m_state->m_memory->player_two_action == KNEE_BEND ||
+        m_state->m_memory->player_two_action == LANDING ||
+        m_state->m_memory->player_two_action == EDGE_TEETERING ||
+        m_state->m_memory->player_two_action == CROUCHING))
     {
-        m_startingFrame = m_state->frame;
+        m_startingFrame = m_state->m_memory->frame;
     }
     if(m_startingFrame == 0)
     {
@@ -24,14 +24,14 @@ void SpotDodge::PressButtons()
     }
 
     //If we're medium range or more, and reversefacing, don't bother doing anything.
-    float distance = std::abs(m_state->player_one_x - m_state->player_two_x);
+    float distance = std::abs(m_state->m_memory->player_one_x - m_state->m_memory->player_two_x);
     if(m_isReverseFacing && (distance > 18))
     {
         m_controller->emptyInput();
         return;
     }
 
-    uint frame = m_state->frame - m_startingFrame;
+    uint frame = m_state->m_memory->frame - m_startingFrame;
     switch(frame)
     {
         case 0:
@@ -60,7 +60,7 @@ void SpotDodge::PressButtons()
 //We're always interruptible during a jog
 bool SpotDodge::IsInterruptible()
 {
-    uint frame = m_state->frame - m_startingFrame;
+    uint frame = m_state->m_memory->frame - m_startingFrame;
     if(frame >= 23)
     {
         return true;
@@ -68,26 +68,26 @@ bool SpotDodge::IsInterruptible()
     return false;
 }
 
-SpotDodge::SpotDodge(GameState *state, uint startFrame) : Chain(state)
+SpotDodge::SpotDodge(uint startFrame)
 {
     //Make sure we are capable of dodging this frame, or else we need to transition
-    if(m_state->player_two_action == STANDING ||
-        m_state->player_two_action == WALK_SLOW ||
-        m_state->player_two_action == WALK_MIDDLE ||
-        m_state->player_two_action == WALK_FAST ||
-        m_state->player_two_action == KNEE_BEND ||
-        m_state->player_two_action == LANDING ||
-        m_state->player_two_action == EDGE_TEETERING ||
-        m_state->player_two_action == CROUCHING)
+    if(m_state->m_memory->player_two_action == STANDING ||
+        m_state->m_memory->player_two_action == WALK_SLOW ||
+        m_state->m_memory->player_two_action == WALK_MIDDLE ||
+        m_state->m_memory->player_two_action == WALK_FAST ||
+        m_state->m_memory->player_two_action == KNEE_BEND ||
+        m_state->m_memory->player_two_action == LANDING ||
+        m_state->m_memory->player_two_action == EDGE_TEETERING ||
+        m_state->m_memory->player_two_action == CROUCHING)
     {
-        m_startingFrame = m_state->frame;
+        m_startingFrame = m_state->m_memory->frame;
     }
     else
     {
         m_startingFrame = 0;
     }
-    bool player_one_is_to_the_left = (m_state->player_one_x - m_state->player_two_x > 0);
-    if(m_state->player_one_facing != player_one_is_to_the_left)
+    bool player_one_is_to_the_left = (m_state->m_memory->player_one_x - m_state->m_memory->player_two_x > 0);
+    if(m_state->m_memory->player_one_facing != player_one_is_to_the_left)
     {
         m_isReverseFacing = false;
     }
@@ -96,7 +96,6 @@ SpotDodge::SpotDodge(GameState *state, uint startFrame) : Chain(state)
         m_isReverseFacing = true;
     }
     m_startFrame = startFrame;
-    m_controller = Controller::Instance();
 }
 
 SpotDodge::~SpotDodge()

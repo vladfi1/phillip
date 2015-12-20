@@ -2,7 +2,7 @@
 #define GOAL_H
 
 #include "../Strategies/Strategy.h"
-#include "../Gamestate.h"
+#include "../GameState.h"
 
 //The Goal of the AI represents the highest level objective. What is it trying to do? Win the match?
 //  Embarras your opponent? Maybe it's not even supposed to play at all, and just show off tech skill,
@@ -12,7 +12,7 @@ class Goal
 
 public:
     virtual ~Goal(){};
-    Goal(GameState *state){m_state = state;};
+    Goal(){m_state = GameState::Instance();};
     //TODO: Eventually, we're going to set other top level goals. Stuff like "sandbag" or "swag".
     //  For now, let's concentrate on winning the game
 
@@ -25,7 +25,7 @@ protected:
     GameState *m_state;
 };
 
-#define CreateStrategy(TYPE) if(m_strategy==NULL){m_strategy = new TYPE(m_state);} \
-    if(typeid(*m_strategy) != typeid(TYPE)){delete m_strategy;m_strategy = new TYPE(m_state);}
+#define CreateStrategy(TYPE) if(m_strategy==NULL){m_strategy = new TYPE();} \
+    if(typeid(*m_strategy) != typeid(TYPE)){delete m_strategy;m_strategy = new TYPE();}
 
 #endif

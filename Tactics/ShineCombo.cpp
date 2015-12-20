@@ -4,7 +4,7 @@
 #include "ShineCombo.h"
 #include "../Chains/Waveshine.h"
 
-ShineCombo::ShineCombo(GameState *state) : Tactic(state)
+ShineCombo::ShineCombo()
 {
     m_chain = NULL;
 }

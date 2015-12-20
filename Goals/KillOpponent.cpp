@@ -1,7 +1,7 @@
 #include "KillOpponent.h"
 #include "../Strategies/Bait.h"
 
-KillOpponent::KillOpponent(GameState *state) : Goal(state)
+KillOpponent::KillOpponent()
 {
     m_strategy = NULL;
 }

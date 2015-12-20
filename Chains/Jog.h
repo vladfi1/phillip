@@ -9,7 +9,7 @@ class Jog : public Chain
 
 public:
 
-    Jog(GameState *state, bool);
+    Jog(bool);
     ~Jog();
     //Determine what buttons to press in order to execute our tactic
     void PressButtons();

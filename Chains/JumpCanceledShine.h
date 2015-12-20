@@ -9,7 +9,7 @@ class JumpCanceledShine : public Chain
 
 public:
 
-    JumpCanceledShine(GameState *state);
+    JumpCanceledShine();
     ~JumpCanceledShine();
     //Determine what buttons to press in order to execute our tactic
     void PressButtons();

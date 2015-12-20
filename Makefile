@@ -2,7 +2,7 @@ CC=g++
 CFLAGS=-g -c -Wall -std=gnu++11
 LDFLAGS=-g -Wall -std=gnu++11
 
-SOURCES=cpu.cpp Controller.cpp
+SOURCES=cpu.cpp Controller.cpp GameState.cpp
 GOALS=Goals/*.cpp
 STRATS=Strategies/*.cpp
 TACTICS=Tactics/*.cpp

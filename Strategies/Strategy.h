@@ -3,7 +3,7 @@
 #include <typeinfo>
 
 #include "../Tactics/Tactic.h"
-#include "../Gamestate.h"
+#include "../GameState.h"
 
 //The strategy is a high level way of accomplishing the top level goal. You might call it a "playstyle"
 //  or "gameplan".
@@ -11,7 +11,7 @@ class Strategy
 {
 
 public:
-    Strategy(GameState *state){m_state = state;};
+    Strategy(){m_state = GameState::Instance();};
     virtual ~Strategy(){};
     //Determine what tactic to employ in order to further our strategy
     // This decision is made on the basis of the game state
@@ -48,9 +48,9 @@ protected:
     GameState *m_state;
 };
 
-#define CreateTactic(TYPE) if(m_tactic==NULL){m_tactic = new TYPE(m_state);};if(typeid(*m_tactic) \
-!= typeid(TYPE)){delete m_tactic;m_tactic = new TYPE(m_state);}
-#define CreateTactic2(TYPE, PARAM) if(m_tactic==NULL){m_tactic = new TYPE(m_state, PARAM);} \
-    if(typeid(*m_tactic) != typeid(TYPE)){delete m_tactic;m_tactic = new TYPE(m_state, PARAM);}
+#define CreateTactic(TYPE) if(m_tactic==NULL){m_tactic = new TYPE();};if(typeid(*m_tactic) \
+!= typeid(TYPE)){delete m_tactic;m_tactic = new TYPE();}
+#define CreateTactic2(TYPE, ARG) if(m_tactic==NULL){m_tactic = new TYPE(ARG);};if(typeid(*m_tactic) \
+!= typeid(TYPE)){delete m_tactic;m_tactic = new TYPE(ARG);}
 
 #endif

@@ -8,7 +8,7 @@ class Juggle : public Tactic
 {
 
 public:
-    Juggle(GameState *state);
+    Juggle();
     ~Juggle();
     void DetermineChain();
 };

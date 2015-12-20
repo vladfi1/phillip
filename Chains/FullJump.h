@@ -9,7 +9,7 @@ class FullJump : public Chain
 
 public:
 
-    FullJump(GameState *state);
+    FullJump();
     ~FullJump();
     //Determine what buttons to press in order to execute our tactic
     void PressButtons();

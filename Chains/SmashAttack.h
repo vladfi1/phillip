@@ -15,7 +15,7 @@ public:
         UP, DOWN, LEFT, RIGHT,
     };
 
-    SmashAttack(GameState *state, DIRECTION d);
+    SmashAttack(DIRECTION d);
     ~SmashAttack();
 
     void PressButtons();

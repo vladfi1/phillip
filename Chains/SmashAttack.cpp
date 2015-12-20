@@ -2,7 +2,7 @@
 
 void SmashAttack::PressButtons()
 {
-    uint frame = m_state->frame - m_startingFrame;
+    uint frame = m_state->m_memory->frame - m_startingFrame;
     switch(frame)
     {
         case 0:
@@ -42,19 +42,18 @@ void SmashAttack::PressButtons()
 
 bool SmashAttack::IsInterruptible()
 {
-    uint frame = m_state->frame - m_startingFrame;
+    uint frame = m_state->m_memory->frame - m_startingFrame;
     if(frame >= 41)
     {
         return true;
     }
     return false;}
 
-SmashAttack::SmashAttack(GameState *state, DIRECTION d) : Chain(state)
+SmashAttack::SmashAttack(DIRECTION d)
 {
     m_direction = d;
-    m_controller = Controller::Instance();
     //TODO: Work on transitions to this chain
-    m_startingFrame = m_state->frame;
+    m_startingFrame = m_state->m_memory->frame;
 }
 
 SmashAttack::~SmashAttack()

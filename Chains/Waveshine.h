@@ -9,7 +9,7 @@ class Waveshine : public Chain
 
 public:
 
-    Waveshine(GameState *state);
+    Waveshine();
     ~Waveshine();
     //Determine what buttons to press in order to execute our tactic
     void PressButtons();

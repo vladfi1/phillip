@@ -8,7 +8,7 @@ class Bait : public Strategy
 
 public:
 
-    Bait(GameState *state);
+    Bait();
     ~Bait();
 
     //Determine what tactic to employ in order to further our strategy

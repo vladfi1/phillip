@@ -5,7 +5,7 @@
 #include "../Chains/Powershield.h"
 #include "../Chains/SpotDodge.h"
 
-Parry::Parry(GameState *state, uint startFrame) : Tactic(state)
+Parry::Parry(uint startFrame)
 {
     m_chain = NULL;
     m_startFrame = startFrame;
@@ -19,8 +19,8 @@ Parry::~Parry()
 void Parry::DetermineChain()
 {
     //TODO: SWORD_DANCE_4_LOW is a multi-hit attack. Let's handle that differently. Maybe just light shield
-    if(m_state->player_one_action == ACTION::GRAB ||
-        m_state->player_one_action == ACTION::GRAB_RUNNING)
+    if(m_state->m_memory->player_one_action == ACTION::GRAB ||
+        m_state->m_memory->player_one_action == ACTION::GRAB_RUNNING)
     {
         CreateChain2(SpotDodge, m_startFrame);
     }

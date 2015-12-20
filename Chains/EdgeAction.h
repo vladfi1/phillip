@@ -10,7 +10,7 @@ class EdgeAction : public Chain
 
 public:
 
-    EdgeAction(GameState *state, Controller::BUTTON b);
+    EdgeAction(Controller::BUTTON b);
     ~EdgeAction();
 
     void PressButtons();

@@ -8,7 +8,7 @@ class Laser : public Tactic
 {
 
 public:
-    Laser(GameState *state);
+    Laser();
     ~Laser();
     void DetermineChain();
 };

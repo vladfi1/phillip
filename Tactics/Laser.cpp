@@ -3,7 +3,7 @@
 #include "Laser.h"
 #include "../Chains/SHDL.h"
 
-Laser::Laser(GameState *state) : Tactic(state)
+Laser::Laser()
 {
     m_chain = NULL;
 }
@@ -19,7 +19,7 @@ void Laser::DetermineChain()
     if(m_chain != NULL && m_chain->IsInterruptible())
     {
         delete m_chain;
-        m_chain = new SHDL(m_state);
+        m_chain = new SHDL();
     }
     CreateChain(SHDL);
     m_chain->PressButtons();

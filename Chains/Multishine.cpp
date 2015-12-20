@@ -1,9 +1,8 @@
 #include "Multishine.h"
 
-Multishine::Multishine(GameState *state) : Chain(state)
+Multishine::Multishine()
 {
-    m_startingFrame = m_state->frame;
-    m_controller = Controller::Instance();
+    m_startingFrame = m_state->m_memory->frame;
 }
 
 Multishine::~Multishine()
@@ -12,7 +11,7 @@ Multishine::~Multishine()
 
 bool Multishine::IsInterruptible()
 {
-    uint frame = m_state->frame - m_startingFrame;
+    uint frame = m_state->m_memory->frame - m_startingFrame;
     if(frame >= 15)
     {
         return true;
@@ -22,7 +21,7 @@ bool Multishine::IsInterruptible()
 
 void Multishine::PressButtons()
 {
-    uint frame = m_state->frame - m_startingFrame;
+    uint frame = m_state->m_memory->frame - m_startingFrame;
     switch(frame)
     {
         case 0:

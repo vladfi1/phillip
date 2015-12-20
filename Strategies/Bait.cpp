@@ -12,11 +12,11 @@
 #include "../Tactics/Edgeguard.h"
 #include "../Tactics/Juggle.h"
 
-Bait::Bait(GameState *state) : Strategy(state)
+Bait::Bait()
 {
     m_tactic = NULL;
     m_attackFrame = 0;
-    m_lastAction = (ACTION)m_state->player_one_action;
+    m_lastAction = (ACTION)m_state->m_memory->player_one_action;
     m_shieldedAttack = false;
     m_actionChanged = true;
     m_lastActionCount = 0;
@@ -29,32 +29,32 @@ Bait::~Bait()
 
 void Bait::DetermineTactic()
 {
-    //std::cout << std::abs(m_state->player_one_x - m_state->player_two_x) << std::endl;
+    //std::cout << std::abs(m_state->m_memory->player_one_x - m_state->m_memory->player_two_x) << std::endl;
 
     //Update the attack frame if the enemy started a new action
-    if((m_lastAction != (ACTION)m_state->player_one_action) ||
-        (m_state->player_one_action_counter > m_lastActionCount) ||
-        (m_state->player_one_action_frame == 1))
+    if((m_lastAction != (ACTION)m_state->m_memory->player_one_action) ||
+        (m_state->m_memory->player_one_action_counter > m_lastActionCount) ||
+        (m_state->m_memory->player_one_action_frame == 1))
     {
-        m_lastActionCount = m_state->player_one_action_counter;
+        m_lastActionCount = m_state->m_memory->player_one_action_counter;
         m_shieldedAttack = false;
         m_actionChanged = true;
-        m_lastAction = (ACTION)m_state->player_one_action;
-        if(isAttacking((ACTION)m_state->player_one_action))
+        m_lastAction = (ACTION)m_state->m_memory->player_one_action;
+        if(isAttacking((ACTION)m_state->m_memory->player_one_action))
         {
-            m_attackFrame = m_state->frame;
+            m_attackFrame = m_state->m_memory->frame;
         }
     }
     //Continuing same previous action
     else
     {
         m_actionChanged = false;
-        if(m_state->player_one_action == SHIELD_STUN)
+        if(m_state->m_memory->player_one_action == SHIELD_STUN)
         {
             m_shieldedAttack = true;
         }
     }
-    if(!isAttacking((ACTION)m_state->player_one_action))
+    if(!isAttacking((ACTION)m_state->m_memory->player_one_action))
     {
         m_attackFrame = 0;
     }
@@ -67,9 +67,9 @@ void Bait::DetermineTactic()
 	}
 
     //If we're still warping in at the start of the match, then just hang out and do nothing
-    if(m_state->player_two_action == ENTRY ||
-        m_state->player_two_action == ENTRY_START ||
-        m_state->player_two_action == ENTRY_END)
+    if(m_state->m_memory->player_two_action == ENTRY ||
+        m_state->m_memory->player_two_action == ENTRY_START ||
+        m_state->m_memory->player_two_action == ENTRY_END)
     {
         CreateTactic(Wait);
         m_tactic->DetermineChain();
@@ -77,22 +77,22 @@ void Bait::DetermineTactic()
     }
 
 	//Calculate distance between players
-	double distance = pow(std::abs(m_state->player_one_x - m_state->player_two_x), 2);
-	distance += pow(std::abs(m_state->player_one_y - m_state->player_two_y), 2);
+	double distance = pow(std::abs(m_state->m_memory->player_one_x - m_state->m_memory->player_two_x), 2);
+	distance += pow(std::abs(m_state->m_memory->player_one_y - m_state->m_memory->player_two_y), 2);
 	distance = sqrt(distance);
 
     //If we're able to shine p1 right now, let's do that
     if(std::abs(distance) < FOX_SHINE_RADIUS)
     {
         //Are we in a state where we can shine?
-        if(ReadyForAction(m_state->player_two_action))
+        if(ReadyForAction(m_state->m_memory->player_two_action))
         {
             //Is the opponent in a state where they can get hit by shine?
-            if(m_state->player_one_action != SHIELD &&
-                m_state->player_one_action != SHIELD_REFLECT &&
-                m_state->player_one_action != MARTH_COUNTER &&
-                m_state->player_one_action != MARTH_COUNTER_FALLING &&
-                m_state->player_one_action != EDGE_CATCHING)
+            if(m_state->m_memory->player_one_action != SHIELD &&
+                m_state->m_memory->player_one_action != SHIELD_REFLECT &&
+                m_state->m_memory->player_one_action != MARTH_COUNTER &&
+                m_state->m_memory->player_one_action != MARTH_COUNTER_FALLING &&
+                m_state->m_memory->player_one_action != EDGE_CATCHING)
             {
                 CreateTactic(ShineCombo);
                 m_tactic->DetermineChain();
@@ -105,10 +105,10 @@ void Bait::DetermineTactic()
     if(!m_shieldedAttack && distance < MARTH_FSMASH_RANGE)
     {
         //Don't bother parrying if the attack is in the wrong direction
-        bool player_one_is_to_the_left = (m_state->player_one_x - m_state->player_two_x > 0);
-        if(m_state->player_one_facing != player_one_is_to_the_left || (isReverseHit((ACTION)m_state->player_one_action)))
+        bool player_one_is_to_the_left = (m_state->m_memory->player_one_x - m_state->m_memory->player_two_x > 0);
+        if(m_state->m_memory->player_one_facing != player_one_is_to_the_left || (isReverseHit((ACTION)m_state->m_memory->player_one_action)))
         {
-            if(isAttacking((ACTION)m_state->player_one_action))
+            if(isAttacking((ACTION)m_state->m_memory->player_one_action))
             {
                 //If the p1 action changed, scrap the old Parry and make a new one.
                 if(m_actionChanged)
@@ -125,7 +125,7 @@ void Bait::DetermineTactic()
     }
 
 	//If we're far away, just laser
-	if(std::abs(m_state->player_one_x - m_state->player_two_x) > 90)
+	if(std::abs(m_state->m_memory->player_one_x - m_state->m_memory->player_two_x) > 90)
 	{
         CreateTactic(Laser);
         m_tactic->DetermineChain();
@@ -134,7 +134,7 @@ void Bait::DetermineTactic()
 
     //If the opponent is off the stage, let's edgeguard them
     //NOTE: Sometimes players can get a little below 0 in Y coordinates without being off the stage
-    if(std::abs(m_state->player_one_x) > 88.4735 || m_state->player_one_y < -5.5)
+    if(std::abs(m_state->m_memory->player_one_x) > 88.4735 || m_state->m_memory->player_one_y < -5.5)
     {
         CreateTactic(Edgeguard);
         m_tactic->DetermineChain();
@@ -142,14 +142,14 @@ void Bait::DetermineTactic()
     }
 
     //If we're not in shine range, get in close
-    if(std::abs(m_state->player_one_x - m_state->player_two_x) > FOX_SHINE_RADIUS)
+    if(std::abs(m_state->m_memory->player_one_x - m_state->m_memory->player_two_x) > FOX_SHINE_RADIUS)
     {
         CreateTactic(CloseDistance);
         m_tactic->DetermineChain();
         return;
     }
     //If we're in close and p2 is sheilding, just wait
-    if(m_state->player_one_action == ACTION::SHIELD)
+    if(m_state->m_memory->player_one_action == ACTION::SHIELD)
     {
         CreateTactic(Wait);
         m_tactic->DetermineChain();

@@ -8,7 +8,7 @@ class ShineCombo : public Tactic
 {
 
 public:
-    ShineCombo(GameState *state);
+    ShineCombo();
     ~ShineCombo();
     void DetermineChain();
 

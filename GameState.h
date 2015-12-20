@@ -3,7 +3,7 @@
 
 #include <sys/types.h>
 
-struct GameState
+struct GameMemory
 {
 	uint player_one_percent;
 	uint player_one_stock;
@@ -182,6 +182,18 @@ enum CHARACTER
 	FOX = 0x0a,
 	MEWTWO = 0x15,
 	MARTH = 0x17,
+};
+
+
+class GameState {
+public:
+	static GameState *Instance();
+
+	GameMemory *m_memory;
+
+private:
+	GameState();
+	static GameState *m_instance;
 };
 
 #endif

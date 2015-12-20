@@ -3,7 +3,7 @@
 
 #include <sys/types.h>
 #include "../Controller.h"
-#include "../Gamestate.h"
+#include "../GameState.h"
 
 //A chain is a series of button presses that creates a commonly reused set of actions. Examples include:
 //  SHFFL'ing arials, SHDL, waveshine, etc...
@@ -11,7 +11,7 @@ class Chain
 {
 
 public:
-    Chain(GameState *state){m_state = state;};
+    Chain(){m_controller = Controller::Instance(); m_state = GameState::Instance();};
     virtual ~Chain(){};
     //Determine what buttons to press in order to execute our tactic
     virtual void PressButtons() = 0;

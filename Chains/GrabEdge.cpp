@@ -13,23 +13,23 @@ void GrabEdge::PressButtons()
 
     //If we're far away from the edge, then walk at the edge
     //XXX: We're not dashing for now, because that got complicated
-    if(!m_isInWavedash && (std::abs(m_state->player_two_x) < 72.5656))
+    if(!m_isInWavedash && (std::abs(m_state->m_memory->player_two_x) < 72.5656))
     {
         m_controller->tiltAnalog(Controller::BUTTON_MAIN, m_isLeftEdge ? .25 : .75, .5);
         return;
     }
 
     //We need to be able to dash, so let's transition to crouching, where we can definitely dash
-    if(!m_isInWavedash && !TransitionHelper::canDash((ACTION)m_state->player_two_action))
+    if(!m_isInWavedash && !TransitionHelper::canDash((ACTION)m_state->m_memory->player_two_action))
     {
-        TransitionHelper::Transition((ACTION)m_state->player_two_action, CROUCHING);
+        TransitionHelper::Transition((ACTION)m_state->m_memory->player_two_action, CROUCHING);
         return;
     }
 
     m_isInWavedash = true;
 
     //Fastfall once in the air
-    if((m_state->player_two_action == FALLING) && !m_isInFastfall)
+    if((m_state->m_memory->player_two_action == FALLING) && !m_isInFastfall)
     {
         m_isInFastfall = true;
         m_controller->tiltAnalog(Controller::BUTTON_MAIN, .5, 0);
@@ -37,18 +37,18 @@ void GrabEdge::PressButtons()
     }
 
     //Dash Backwards
-    if(m_state->player_two_action == CROUCHING ||
-        m_state->player_two_action == STANDING ||
-        m_state->player_two_action == TURNING ||
-        m_state->player_two_action == EDGE_TEETERING_START ||
-        m_state->player_two_action == EDGE_TEETERING)
+    if(m_state->m_memory->player_two_action == CROUCHING ||
+        m_state->m_memory->player_two_action == STANDING ||
+        m_state->m_memory->player_two_action == TURNING ||
+        m_state->m_memory->player_two_action == EDGE_TEETERING_START ||
+        m_state->m_memory->player_two_action == EDGE_TEETERING)
     {
         m_controller->tiltAnalog(Controller::BUTTON_MAIN, m_isLeftEdge ? 1 : 0, .5);
         return;
     }
 
     //Once we're dashing, jump
-    if(m_state->player_two_action == DASHING)
+    if(m_state->m_memory->player_two_action == DASHING)
     {
         //Jump TODO: backwards jump
         m_controller->tiltAnalog(Controller::BUTTON_MAIN, .5, .5);
@@ -57,14 +57,14 @@ void GrabEdge::PressButtons()
     }
 
     //Just hang out and do nothing while knee bending
-    if(m_state->player_two_action == KNEE_BEND)
+    if(m_state->m_memory->player_two_action == KNEE_BEND)
     {
         m_controller->emptyInput();
         return;
     }
 
     //Once we're in the air, airdodge backwards to the edge
-    if(!m_state->player_two_on_ground && m_isInWavedash)
+    if(!m_state->m_memory->player_two_on_ground && m_isInWavedash)
     {
         m_controller->pressButton(Controller::BUTTON_L);
         m_controller->tiltAnalog(Controller::BUTTON_MAIN, m_isLeftEdge ? .2 : .8, .2);
@@ -72,7 +72,7 @@ void GrabEdge::PressButtons()
     }
 
     //Just hang out and do nothing while wave landing
-    if(m_state->player_two_action == LANDING_SPECIAL)
+    if(m_state->m_memory->player_two_action == LANDING_SPECIAL)
     {
         m_controller->emptyInput();
         return;
@@ -87,12 +87,12 @@ bool GrabEdge::IsInterruptible()
     {
         return true;
     }
-    if(m_state->player_two_action == EDGE_HANGING)
+    if(m_state->m_memory->player_two_action == EDGE_HANGING)
     {
         return true;
     }
     //Don't permanently get stuck here
-    uint frame = m_state->frame - m_startingFrame;
+    uint frame = m_state->m_memory->frame - m_startingFrame;
     if(frame > 60)
     {
         return true;
@@ -100,10 +100,10 @@ bool GrabEdge::IsInterruptible()
     return false;
 }
 
-GrabEdge::GrabEdge(GameState *state) : Chain(state)
+GrabEdge::GrabEdge()
 {
     //Quick variable to tell us which edge to grab
-    if(m_state->player_one_x > 0)
+    if(m_state->m_memory->player_one_x > 0)
     {
         m_isLeftEdge = false;
     }
@@ -111,8 +111,7 @@ GrabEdge::GrabEdge(GameState *state) : Chain(state)
     {
         m_isLeftEdge = true;
     }
-    m_startingFrame = m_state->frame;
-    m_controller = Controller::Instance();
+    m_startingFrame = m_state->m_memory->frame;
     m_isInWavedash = false;
     m_isInFastfall = false;
 }

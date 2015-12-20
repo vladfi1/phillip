@@ -5,12 +5,12 @@
 
 void SHDL::PressButtons()
 {
-    if(m_action != m_state->player_two_action)
+    if(m_action != m_state->m_memory->player_two_action)
     {
-        m_action = (ACTION)m_state->player_two_action;
+        m_action = (ACTION)m_state->m_memory->player_two_action;
         if(m_action == LANDING)
         {
-            m_landedFrame = m_state->frame;
+            m_landedFrame = m_state->m_memory->frame;
         }
     }
 
@@ -18,26 +18,26 @@ void SHDL::PressButtons()
     if(m_startingFrame == 0)
     {
         //If we're too close to the edge, it's not safe to jump. Move inwards for just a frame
-        if((m_state->player_two_x) > 85.5206985474)
+        if((m_state->m_memory->player_two_x) > 85.5206985474)
         {
             m_controller->tiltAnalog(Controller::BUTTON_MAIN, .25, .5);
             return;
         }
-        if((m_state->player_two_x) < -85.5206985474)
+        if((m_state->m_memory->player_two_x) < -85.5206985474)
         {
             m_controller->tiltAnalog(Controller::BUTTON_MAIN, .75, .5);
             return;
         }
         //If we're ready, but facing the wrong direction, then turn around.
-        if(m_state->player_two_facing == (m_state->player_one_x < m_state->player_two_x))
+        if(m_state->m_memory->player_two_facing == (m_state->m_memory->player_one_x < m_state->m_memory->player_two_x))
         {
-            m_controller->tiltAnalog(Controller::BUTTON_MAIN, m_state->player_two_facing ? .25 : .75, .5);
+            m_controller->tiltAnalog(Controller::BUTTON_MAIN, m_state->m_memory->player_two_facing ? .25 : .75, .5);
             return;
         }
         else
         {
             //Let's start lasering!
-            m_startingFrame = m_state->frame;
+            m_startingFrame = m_state->m_memory->frame;
         }
     }
 
@@ -45,9 +45,9 @@ void SHDL::PressButtons()
     if(m_startingFrame > 0)
     {
         //If we're waiting for landing lag to end, just wait. Else, let's jump
-        if(TransitionHelper::canJump((ACTION)m_state->player_two_action))
+        if(TransitionHelper::canJump((ACTION)m_state->m_memory->player_two_action))
         {
-            if(m_state->frame >= m_landedFrame + 3)
+            if(m_state->m_memory->frame >= m_landedFrame + 3)
             {
                 if(m_jumpedFrame > 0)
                 {
@@ -56,7 +56,7 @@ void SHDL::PressButtons()
                     m_controller->emptyInput();
                     return;
                 }
-                m_jumpedFrame = m_state->frame;
+                m_jumpedFrame = m_state->m_memory->frame;
                 m_controller->pressButton(Controller::BUTTON_Y);
                 return;
             }
@@ -68,7 +68,7 @@ void SHDL::PressButtons()
         }
 
         //Let go of jump once we started
-        if(m_state->player_two_action == KNEE_BEND)
+        if(m_state->m_memory->player_two_action == KNEE_BEND)
         {
             m_controller->releaseButton(Controller::BUTTON_Y);
             return;
@@ -103,14 +103,14 @@ bool SHDL::IsInterruptible()
         return true;
     }
 
-    if(TransitionHelper::canJump((ACTION)m_state->player_two_action) &&
+    if(TransitionHelper::canJump((ACTION)m_state->m_memory->player_two_action) &&
         (m_landedFrame > 0) &&
-        (m_state->frame > m_landedFrame + 20))
+        (m_state->m_memory->frame > m_landedFrame + 20))
     {
         return true;
     }
 
-    uint frame = m_state->frame - m_startingFrame;
+    uint frame = m_state->m_memory->frame - m_startingFrame;
     if(frame >= 60)
     {
         //Emergency backup kill for the chain in case we get stuck here somehow
@@ -119,19 +119,18 @@ bool SHDL::IsInterruptible()
     return false;
 }
 
-SHDL::SHDL(GameState *state) : Chain(state)
+SHDL::SHDL()
 {
     m_holdingLaser = false;
     m_startingFrame = 0;
     m_landedFrame = 0;
     m_jumpedFrame = 0;
-    m_action = (ACTION)m_state->player_two_action;
+    m_action = (ACTION)m_state->m_memory->player_two_action;
     //If we start landing, then assume we need to wait for the landing lag to finish
     if(m_action == LANDING)
     {
-        m_landedFrame = m_state->frame;
+        m_landedFrame = m_state->m_memory->frame;
     }
-    m_controller = Controller::Instance();
 }
 
 SHDL::~SHDL()

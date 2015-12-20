@@ -9,7 +9,7 @@ class EdgeStall : public Chain
 
 public:
 
-    EdgeStall(GameState *state);
+    EdgeStall();
     ~EdgeStall();
     //Determine what buttons to press in order to execute our tactic
     void PressButtons();

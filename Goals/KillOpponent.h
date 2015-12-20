@@ -2,12 +2,12 @@
 #define KILL_OPPONENT_H
 
 #include "Goal.h"
-#include "../Gamestate.h"
+#include "../GameState.h"
 
 class KillOpponent : public Goal
 {
 public:
-    KillOpponent(GameState *state);
+    KillOpponent();
     ~KillOpponent();
     //Determine what the best strategy is
     void Strategize();

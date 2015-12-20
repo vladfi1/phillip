@@ -9,7 +9,7 @@ class Nothing : public Chain
 
 public:
 
-    Nothing(GameState *state);
+    Nothing();
     ~Nothing();
     //Determine what buttons to press in order to execute our tactic
     void PressButtons();

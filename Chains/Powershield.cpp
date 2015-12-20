@@ -6,12 +6,12 @@ void Powershield::PressButtons()
 {
     //What frame (relative to the start of the attack) we should be shielding on?
     int shield_on_frame = 0;
-    double distance = pow(std::abs(m_state->player_one_x - m_state->player_two_x), 2);
-	distance += pow(std::abs(m_state->player_one_y - m_state->player_two_y), 2);
+    double distance = pow(std::abs(m_state->m_memory->player_one_x - m_state->m_memory->player_two_x), 2);
+	distance += pow(std::abs(m_state->m_memory->player_one_y - m_state->m_memory->player_two_y), 2);
 	distance = sqrt(distance);
 
     //Determine when to shield depending on distance and what attack it is
-    switch(m_state->player_one_action)
+    switch(m_state->m_memory->player_one_action)
     {
         case FSMASH_MID:
         {
@@ -384,15 +384,15 @@ void Powershield::PressButtons()
     }
 
     //If we're the right number of frames past the start of the attack, let's shield
-    if(!m_hasShielded && (m_state->frame >= (m_startFrame + shield_on_frame)))
+    if(!m_hasShielded && (m_state->m_memory->frame >= (m_startFrame + shield_on_frame)))
     {
         m_hasShielded = true;
-        m_frameShielded = m_state->frame;
+        m_frameShielded = m_state->m_memory->frame;
         m_controller->tiltAnalog(Controller::BUTTON_MAIN, .5, .5);
         m_controller->pressButton(Controller::BUTTON_L);
     }
     //4 frames later, let go of shield
-    else if(m_state->frame >= (m_frameShielded + 4))
+    else if(m_state->m_memory->frame >= (m_frameShielded + 4))
     {
         m_letGo = true;
         m_controller->releaseButton(Controller::BUTTON_L);
@@ -406,8 +406,8 @@ bool Powershield::IsInterruptible()
         return true;
     }
 
-    if(m_state->player_two_action == SHIELD ||
-        m_state->player_two_action == SHIELD_REFLECT)
+    if(m_state->m_memory->player_two_action == SHIELD ||
+        m_state->m_memory->player_two_action == SHIELD_REFLECT)
     {
         return false;
     }
@@ -420,16 +420,15 @@ bool Powershield::IsInterruptible()
     return true;
 }
 
-Powershield::Powershield(GameState *state, uint startFrame) : Chain(state)
+Powershield::Powershield(uint startFrame)
 {
     m_hasShielded = false;
     m_letGo = false;
     m_startFrame = startFrame;
     m_frameShielded = 0;
-    m_controller = Controller::Instance();
-    bool player_one_is_to_the_left = (m_state->player_one_x - m_state->player_two_x > 0);
+    bool player_one_is_to_the_left = (m_state->m_memory->player_one_x - m_state->m_memory->player_two_x > 0);
     m_endEarly = false;
-    if(m_state->player_one_facing != player_one_is_to_the_left)
+    if(m_state->m_memory->player_one_facing != player_one_is_to_the_left)
     {
         m_isReverseFacing = false;
     }

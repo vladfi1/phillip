@@ -9,7 +9,7 @@ class SHDL : public Chain
 
 public:
 
-    SHDL(GameState *state);
+    SHDL();
     ~SHDL();
     //Determine what buttons to press in order to execute our tactic
     void PressButtons();

@@ -2,7 +2,7 @@
 
 void Waveshine::PressButtons()
 {
-    uint frame = m_state->frame - m_startingFrame;
+    uint frame = m_state->m_memory->frame - m_startingFrame;
     switch(frame)
     {
         case 0:
@@ -30,7 +30,7 @@ void Waveshine::PressButtons()
         {
             m_controller->pressButton(Controller::BUTTON_L);
             //TODO: still assumes we're facing the opponent
-            if(m_state->player_one_x > m_state->player_two_x)
+            if(m_state->m_memory->player_one_x > m_state->m_memory->player_two_x)
             {
                 m_controller->tiltAnalog(Controller::BUTTON_MAIN, .8, .2);
             }
@@ -51,7 +51,7 @@ void Waveshine::PressButtons()
 
 bool Waveshine::IsInterruptible()
 {
-    uint frame = m_state->frame - m_startingFrame;
+    uint frame = m_state->m_memory->frame - m_startingFrame;
     if(frame >= 11)
     {
         return true;
@@ -59,10 +59,9 @@ bool Waveshine::IsInterruptible()
     return false;
 }
 
-Waveshine::Waveshine(GameState *state) : Chain(state)
+Waveshine::Waveshine()
 {
-    m_controller = Controller::Instance();
-    m_startingFrame = m_state->frame;
+    m_startingFrame = m_state->m_memory->frame;
 }
 
 Waveshine::~Waveshine()
