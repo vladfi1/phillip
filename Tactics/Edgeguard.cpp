@@ -8,6 +8,7 @@
 #include "../Chains/JumpCanceledShine.h"
 #include "../Chains/GrabEdge.h"
 #include "../Chains/EdgeAction.h"
+#include "../Chains/Walk.h"
 #include "../Controller.h"
 
 Edgeguard::Edgeguard()
@@ -50,28 +51,64 @@ void Edgeguard::DetermineChain()
         }
     }
 
-    //If enemy is sliding onto edge or hanging from it, don't grab the edge
-    if(m_state->m_memory->player_one_action == SLIDING_OFF_EDGE ||
-        m_state->m_memory->player_one_action == EDGE_GETUP_QUICK ||
+    //If the opponent is hanging on the edge, walk up the the edge
+    if((m_state->m_memory->player_one_action == SLIDING_OFF_EDGE ||
+        m_state->m_memory->player_one_action == EDGE_CATCHING ||
+        m_state->m_memory->player_one_action == EDGE_HANGING) &&
+        m_state->m_memory->player_two_on_ground &&
+        std::abs(m_state->m_memory->player_two_x) < m_state->getStageEdgePosition() - 10)
+    {
+        if(m_state->m_memory->player_two_x > 0)
+        {
+            CreateChain2(Walk, true);
+            m_chain->PressButtons();
+            return;
+        }
+        else
+        {
+            CreateChain2(Walk, false);
+            m_chain->PressButtons();
+            return;
+        }
+    }
+
+    //TODO: If enemy is getting onto edge, punish it!
+    if(m_state->m_memory->player_one_action == EDGE_GETUP_QUICK ||
         m_state->m_memory->player_one_action == EDGE_ATTACK_SLOW ||
         m_state->m_memory->player_one_action == EDGE_ATTACK_QUICK ||
         m_state->m_memory->player_one_action == EGDE_ROLL_SLOW ||
         m_state->m_memory->player_one_action == EDGE_ROLL_QUICK ||
-        m_state->m_memory->player_one_action == EDGE_GETUP_SLOW ||
-        m_state->m_memory->player_one_action == EDGE_CATCHING ||
-        m_state->m_memory->player_one_action == EDGE_HANGING)
+        m_state->m_memory->player_one_action == EDGE_GETUP_SLOW)
     {
         CreateChain(Nothing);
         m_chain->PressButtons();
         return;
     }
 
-    //If we're still on the stage, see if it's safe to
+    //If we're still on the stage, see if it's safe to grab the edge
     if(m_state->m_memory->player_two_on_ground)
     {
-        CreateChain(GrabEdge);
-        m_chain->PressButtons();
-        return;
+        //If the enemy is in a stunned damage state, go ahead and try.
+        //TODO: This is not really that great of a heuristic. But let's go with it for now
+        if(m_state->isDamageState((ACTION)m_state->m_memory->player_one_action))
+        {
+            CreateChain(GrabEdge);
+            m_chain->PressButtons();
+            return;
+        }
+
+        //Calculate distance between players
+    	double distance = pow(std::abs(m_state->m_memory->player_one_x) - m_state->getStageEdgePosition(), 2);
+    	distance += pow(m_state->m_memory->player_one_y, 2);
+    	distance = sqrt(distance);
+
+        //If marth is out of attack range, then go ahead and do it
+        if(distance > MARTH_FSMASH_RANGE)
+        {
+            CreateChain(GrabEdge);
+            m_chain->PressButtons();
+            return;
+        }
     }
 
     //Edgehog our opponent if they're UP-B'ing sweetspotted.

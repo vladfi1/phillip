@@ -42,6 +42,17 @@ double GameState::getStageEdgePosition()
     return edge_position;
 }
 
+bool GameState::isDamageState(ACTION action)
+{
+    //Luckily, all the damage states are contiguous
+    if(action >= DAMAGE_HIGH_1 && action <= DAMAGE_FLY_ROLL)
+    {
+        return true;
+    }
+    return false;
+}
+
+
 GameState::GameState()
 {
 

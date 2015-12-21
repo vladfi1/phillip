@@ -77,8 +77,8 @@ void Bait::DetermineTactic()
     }
 
 	//Calculate distance between players
-	double distance = pow(std::abs(m_state->m_memory->player_one_x - m_state->m_memory->player_two_x), 2);
-	distance += pow(std::abs(m_state->m_memory->player_one_y - m_state->m_memory->player_two_y), 2);
+	double distance = pow(m_state->m_memory->player_one_x - m_state->m_memory->player_two_x, 2);
+	distance += pow(m_state->m_memory->player_one_y - m_state->m_memory->player_two_y, 2);
 	distance = sqrt(distance);
 
     //If we're able to shine p1 right now, let's do that
@@ -92,7 +92,8 @@ void Bait::DetermineTactic()
                 m_state->m_memory->player_one_action != SHIELD_REFLECT &&
                 m_state->m_memory->player_one_action != MARTH_COUNTER &&
                 m_state->m_memory->player_one_action != MARTH_COUNTER_FALLING &&
-                m_state->m_memory->player_one_action != EDGE_CATCHING)
+                m_state->m_memory->player_one_action != EDGE_CATCHING &&
+                m_state->m_memory->player_one_action != SPOTDODGE)
             {
                 CreateTactic(ShineCombo);
                 m_tactic->DetermineChain();
@@ -134,7 +135,10 @@ void Bait::DetermineTactic()
 
     //If the opponent is off the stage, let's edgeguard them
     //NOTE: Sometimes players can get a little below 0 in Y coordinates without being off the stage
-    if(std::abs(m_state->m_memory->player_one_x) > m_state->getStageEdgePosition() || m_state->m_memory->player_one_y < -5.5)
+    if(std::abs(m_state->m_memory->player_one_x) > m_state->getStageEdgePosition() ||
+        m_state->m_memory->player_one_y < -5.5 ||
+        m_state->m_memory->player_one_action == EDGE_CATCHING ||
+        m_state->m_memory->player_one_action == EDGE_HANGING)
     {
         CreateTactic(Edgeguard);
         m_tactic->DetermineChain();

@@ -120,6 +120,7 @@ enum ACTION
 	SHIELD_REFLECT = 0xb6,
 	GRAB = 0xd4,
 	GRAB_RUNNING = 0xd6,
+	SPOTDODGE = 0xEB,
 	AIRDODGE = 0xEC,
 	EDGE_TEETERING_START = 0xF5, //Starting of edge teetering
 	EDGE_TEETERING = 0xF6,
@@ -198,6 +199,7 @@ public:
 	static GameState *Instance();
 
 	double getStageEdgePosition();
+	bool isDamageState(ACTION);
 
 	GameMemory *m_memory;
 
