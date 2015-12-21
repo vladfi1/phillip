@@ -81,6 +81,18 @@ void Bait::DetermineTactic()
 	distance += pow(m_state->m_memory->player_one_y - m_state->m_memory->player_two_y, 2);
 	distance = sqrt(distance);
 
+    //If we're able to upsmash our opponent, let's do that
+    //TODO: Also check if we're facing the right way
+    if((m_state->m_memory->player_one_action == SPOTDODGE ||
+        m_state->m_memory->player_one_action == MARTH_COUNTER ||
+        m_state->m_memory->player_one_action == MARTH_COUNTER_FALLING) &&
+        distance < 15)
+    {
+        CreateTactic(Juggle);
+        m_tactic->DetermineChain();
+        return;
+    }
+
     //If we're able to shine p1 right now, let's do that
     if(std::abs(distance) < FOX_SHINE_RADIUS)
     {

@@ -15,7 +15,7 @@ public:
         UP, DOWN, LEFT, RIGHT,
     };
 
-    SmashAttack(DIRECTION d);
+    SmashAttack(DIRECTION d, uint charge_frames);
     ~SmashAttack();
 
     void PressButtons();
@@ -23,6 +23,7 @@ public:
 
 private:
     DIRECTION m_direction;
+    uint m_charge_frames;
 };
 
 #endif

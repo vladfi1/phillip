@@ -52,5 +52,7 @@ protected:
     if(typeid(*m_chain) != typeid(TYPE)){delete m_chain;m_chain = new TYPE();}
 #define CreateChain2(TYPE, ARG) if(m_chain==NULL){m_chain = new TYPE(ARG);} \
     if(typeid(*m_chain) != typeid(TYPE)){delete m_chain;m_chain = new TYPE(ARG);}
+#define CreateChain3(TYPE, ARG1, ARG2) if(m_chain==NULL){m_chain = new TYPE(ARG1, ARG2);} \
+    if(typeid(*m_chain) != typeid(TYPE)){delete m_chain;m_chain = new TYPE(ARG1, ARG2);}
 
 #endif
