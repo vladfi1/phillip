@@ -38,8 +38,8 @@ void PrintState(GameState* state)
     {
         std::cout << "p2 facing: left" << std::endl;
     }
-    std::cout << "stage: " << state->m_memory->stage << std::endl;
-    std::cout << "frame: " << state->m_memory->frame << std::endl;
+    std::cout << "stage: " << std::hex << state->m_memory->stage << std::endl;
+    std::cout << "frame: " << std::dec << state->m_memory->frame << std::endl;
     std::cout << "menu state: " << state->m_memory->menu_state << std::endl;
     std::cout << "p2 pointer x: " << state->m_memory->player_two_pointer_x << std::endl;
     std::cout << "p2 pointer y: " << state->m_memory->player_two_pointer_y << std::endl;
