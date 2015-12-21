@@ -57,7 +57,7 @@ void SpotDodge::PressButtons()
     }
 }
 
-//We're always interruptible during a jog
+//We're always interruptible during a Walk
 bool SpotDodge::IsInterruptible()
 {
     uint frame = m_state->m_memory->frame - m_startingFrame;

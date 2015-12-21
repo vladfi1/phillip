@@ -2,7 +2,7 @@
 #include <typeinfo>
 
 #include "CloseDistance.h"
-#include "../Chains/Jog.h"
+#include "../Chains/Walk.h"
 
 CloseDistance::CloseDistance()
 {
@@ -16,15 +16,15 @@ CloseDistance::~CloseDistance()
 
 void CloseDistance::DetermineChain()
 {
-    //If opponent is to our right, jog right
+    //If opponent is to our right, Walk right
     if(m_state->m_memory->player_one_x > m_state->m_memory->player_two_x)
     {
-        CreateChain2(Jog, true);
+        CreateChain2(Walk, true);
     }
-    //else, jog left
+    //else, Walk left
     else
     {
-        CreateChain2(Jog, false);
+        CreateChain2(Walk, false);
     }
     m_chain->PressButtons();
 }

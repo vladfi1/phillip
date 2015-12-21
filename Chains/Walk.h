@@ -1,16 +1,16 @@
-#ifndef JOG_H
-#define JOG_H
+#ifndef Walk_H
+#define Walk_H
 
 #include "Chain.h"
 
 //Walk quickly, but not dash
-class Jog : public Chain
+class Walk : public Chain
 {
 
 public:
 
-    Jog(bool);
-    ~Jog();
+    Walk(bool);
+    ~Walk();
     //Determine what buttons to press in order to execute our tactic
     void PressButtons();
     bool IsInterruptible();
