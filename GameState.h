@@ -55,6 +55,7 @@ struct GameMemory
 
 	uint frame;
 	uint menu_state;
+	uint stage;
 };
 
 enum ACTION
@@ -184,10 +185,19 @@ enum CHARACTER
 	MARTH = 0x17,
 };
 
+enum STAGE
+{
+	BATTLEFIELD = 0x24,
+	FINAL_DESTINATION = 0x25,
+	DREAMLAND = 0x26,
+	FOUNTAIN_OF_DREAMS = 0x8,
+};
 
 class GameState {
 public:
 	static GameState *Instance();
+
+	double getStageEdgePosition();
 
 	GameMemory *m_memory;
 

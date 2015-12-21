@@ -18,12 +18,12 @@ void SHDL::PressButtons()
     if(m_startingFrame == 0)
     {
         //If we're too close to the edge, it's not safe to jump. Move inwards for just a frame
-        if((m_state->m_memory->player_two_x) > 85.5206985474)
+        if((m_state->m_memory->player_two_x) > m_state->getStageEdgePosition() - 3)
         {
             m_controller->tiltAnalog(Controller::BUTTON_MAIN, .25, .5);
             return;
         }
-        if((m_state->m_memory->player_two_x) < -85.5206985474)
+        if((m_state->m_memory->player_two_x ) < (((int)m_state->getStageEdgePosition()) * -1) + 3)
         {
             m_controller->tiltAnalog(Controller::BUTTON_MAIN, .75, .5);
             return;

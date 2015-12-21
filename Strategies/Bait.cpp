@@ -134,7 +134,7 @@ void Bait::DetermineTactic()
 
     //If the opponent is off the stage, let's edgeguard them
     //NOTE: Sometimes players can get a little below 0 in Y coordinates without being off the stage
-    if(std::abs(m_state->m_memory->player_one_x) > 88.4735 || m_state->m_memory->player_one_y < -5.5)
+    if(std::abs(m_state->m_memory->player_one_x) > m_state->getStageEdgePosition() || m_state->m_memory->player_one_y < -5.5)
     {
         CreateTactic(Edgeguard);
         m_tactic->DetermineChain();
