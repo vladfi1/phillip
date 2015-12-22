@@ -4,14 +4,8 @@ void SmashAttack::PressButtons()
 {
     uint frame = m_state->m_memory->frame - m_startingFrame;
 
-    if(frame == 0)
-    {
-        m_controller->emptyInput();
-        return;
-    }
-
-    //Charge the attack...
-    if(m_charge_frames > frame)
+    //TODO The charge point changes for different smashes
+    if(frame == 0 || frame == 1)
     {
         switch(m_direction)
         {
@@ -40,6 +34,15 @@ void SmashAttack::PressButtons()
                 break;
             }
         }
+        return;
+    }
+
+    //Charge the attack...
+    if(m_charge_frames > 0)
+    {
+        m_charge_frames--;
+        //Just keep previous input
+        return;
     }
     else
     {

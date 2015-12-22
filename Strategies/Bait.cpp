@@ -82,15 +82,32 @@ void Bait::DetermineTactic()
 	distance = sqrt(distance);
 
     //If we're able to upsmash our opponent, let's do that
-    //TODO: Also check if we're facing the right way
+    bool player_two_is_to_the_left = (m_state->m_memory->player_two_x - m_state->m_memory->player_one_x > 0);
     if((m_state->m_memory->player_one_action == SPOTDODGE ||
         m_state->m_memory->player_one_action == MARTH_COUNTER ||
         m_state->m_memory->player_one_action == MARTH_COUNTER_FALLING) &&
-        distance < 15)
+        distance < FOX_UPSMASH_RANGE-2 &&
+        m_state->m_memory->player_two_facing != player_two_is_to_the_left)
     {
         CreateTactic(Juggle);
         m_tactic->DetermineChain();
         return;
+    }
+
+    //If our opponent is stuck in the windup for an attack, let's hit them with something harder than shine
+    if(isAttacking((ACTION)m_state->m_memory->player_one_action) &&
+        distance < FOX_UPSMASH_RANGE-2 &&
+        m_state->m_memory->player_two_facing != player_two_is_to_the_left)
+    {
+        //How many frames do we have until the attack lands? If it's at least 3, then we can start a juggle
+        int frames_left = m_state->firstHitboxFrame((CHARACTER)m_state->m_memory->player_one_character,
+            (ACTION)m_state->m_memory->player_one_action) - m_state->m_memory->player_one_action_frame - 1;
+        if(frames_left > 3)
+        {
+            CreateTactic(Juggle);
+            m_tactic->DetermineChain();
+            return;
+        }
     }
 
     //If we're able to shine p1 right now, let's do that

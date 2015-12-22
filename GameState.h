@@ -201,6 +201,10 @@ public:
 	double getStageEdgePosition();
 	bool isDamageState(ACTION);
 
+	//Returns the frame of the first hitbox
+	//	return value of 0 means not an attack, or not supported yet
+	uint firstHitboxFrame(CHARACTER, ACTION);
+
 	GameMemory *m_memory;
 
 private:
