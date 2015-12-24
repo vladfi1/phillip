@@ -62,7 +62,7 @@ void SmashAttack::PressButtons()
 bool SmashAttack::IsInterruptible()
 {
     uint frame = m_state->m_memory->frame - m_startingFrame;
-    if(frame >= 41)
+    if(frame >= 90)
     {
         return true;
     }

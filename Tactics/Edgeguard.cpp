@@ -72,19 +72,6 @@ void Edgeguard::DetermineChain()
         }
     }
 
-    //TODO: If enemy is getting onto edge, punish it!
-    if(m_state->m_memory->player_one_action == EDGE_GETUP_QUICK ||
-        m_state->m_memory->player_one_action == EDGE_ATTACK_SLOW ||
-        m_state->m_memory->player_one_action == EDGE_ATTACK_QUICK ||
-        m_state->m_memory->player_one_action == EDGE_ROLL_SLOW ||
-        m_state->m_memory->player_one_action == EDGE_ROLL_QUICK ||
-        m_state->m_memory->player_one_action == EDGE_GETUP_SLOW)
-    {
-        CreateChain(Nothing);
-        m_chain->PressButtons();
-        return;
-    }
-
     //If we're still on the stage, see if it's safe to grab the edge
     if(m_state->m_memory->player_two_on_ground)
     {

@@ -91,11 +91,11 @@ void Juggle::DetermineChain()
         }
         else if(m_state->m_memory->player_one_action == EDGE_ROLL_SLOW)
         {
-            frames_left = MARTH_EDGE_ROLL_FRAMES - m_state->m_memory->player_one_action_frame;
+            frames_left = MARTH_EDGE_ROLL_SLOW_FRAMES - m_state->m_memory->player_one_action_frame;
         }
         else if(m_state->m_memory->player_one_action == EDGE_ROLL_QUICK)
         {
-            frames_left = MARTH_EDGE_ROLL_SLOW_FRAMES - m_state->m_memory->player_one_action_frame;
+            frames_left = MARTH_EDGE_ROLL_FRAMES - m_state->m_memory->player_one_action_frame;
         }
 
         if(frames_left <= 7)
@@ -111,7 +111,7 @@ void Juggle::DetermineChain()
         if(m_state->m_memory->player_two_action == DASHING ||
             m_state->m_memory->player_two_action == RUNNING)
         {
-            distance = std::abs(std::abs(m_roll_position - m_state->m_memory->player_two_x) - 8);
+            distance = std::abs(std::abs(m_roll_position - m_state->m_memory->player_two_x) - 25.5);
         }
         else
         {
