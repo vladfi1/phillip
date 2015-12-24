@@ -166,6 +166,7 @@ enum ACTION
 	FIREFOX_WAIT_AIR = 0x162, //Firefox wait in the air
 	FIREFOX_GROUND = 0x163, //Firefox on the ground
 	FIREFOX_AIR = 0x164, //Firefox in the air
+	DOWN_B_GROUND_START = 0x168,
 	DOWN_B_GROUND = 0x169,
 	DOWN_B_STUN = 0x16d, //Fox is stunned in these frames
 	DOWN_B_AIR = 0x16e,
