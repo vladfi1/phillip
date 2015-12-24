@@ -74,7 +74,9 @@ enum ACTION
 	JUMPING_ARIAL_FORWARD = 0x1b,
 	JUMPING_ARIAL_BACKWARD = 0x1c,
 	FALLING = 0x1D,	//The "wait" state of the air.
+	CROUCH_START = 0x27, //Going from stand to crouch
 	CROUCHING = 0x28,
+	CROUCH_END = 0x29, //Standing up from crouch
 	LANDING = 0x2a, //Can be canceled. Not stunned
 	LANDING_SPECIAL = 0x2b, //Landing special, like from wavedash. Stunned.
 	NEUTRAL_ATTACK_1 = 0x2c,
@@ -120,6 +122,8 @@ enum ACTION
 	SHIELD_REFLECT = 0xb6,
 	GRAB = 0xd4,
 	GRAB_RUNNING = 0xd6,
+	ROLL_FORWARD = 0xe9,
+	ROLL_BACKWARD = 0xea,
 	SPOTDODGE = 0xEB,
 	AIRDODGE = 0xEC,
 	EDGE_TEETERING_START = 0xF5, //Starting of edge teetering
@@ -130,7 +134,7 @@ enum ACTION
 	EDGE_GETUP_QUICK = 0xFF, // < 100% damage
 	EDGE_ATTACK_SLOW = 0x100, // < 100% damage
 	EDGE_ATTACK_QUICK = 0x101, // >= 100% damage
-	EGDE_ROLL_SLOW = 0x102, // >= 100% damage
+	EDGE_ROLL_SLOW = 0x102, // >= 100% damage
 	EDGE_ROLL_QUICK = 0x103, // < 100% damage
 	EDGE_GETUP_SLOW = 0x104,  // >= 100% damage
 	ENTRY = 0x142,	//Start of match. Can't move
@@ -198,7 +202,11 @@ class GameState {
 public:
 	static GameState *Instance();
 
+	//This is the x coordinate of the edge, as you would be hanging from the edge, off the stage
 	double getStageEdgePosition();
+	//This is the x coordinate of the edge, as you would be teetering while standing on the stage
+	double getStageEdgeGroundPosition();
+
 	bool isDamageState(ACTION);
 
 	//Returns the frame of the first hitbox

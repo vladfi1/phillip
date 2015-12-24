@@ -2,11 +2,19 @@
 
 void SmashAttack::PressButtons()
 {
-    uint frame = m_state->m_memory->frame - m_startingFrame;
-
-    //TODO The charge point changes for different smashes
-    if(frame == 0 || frame == 1)
+    //Jump-cancel the smash
+    if(m_state->m_memory->player_two_action == RUNNING ||
+        m_state->m_memory->player_two_action == DASHING)
     {
+        m_controller->pressButton(Controller::BUTTON_Y);
+        return;
+    }
+
+    uint frame = m_state->m_memory->frame - m_startingFrame;
+    //TODO The charge point changes for different smashes
+    if(frame == 1 || frame == 2)
+    {
+        m_controller->releaseButton(Controller::BUTTON_Y);
         switch(m_direction)
         {
             case LEFT:

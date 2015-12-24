@@ -110,6 +110,17 @@ void Bait::DetermineTactic()
         }
     }
 
+    //If our oponnent is rolling, punish it on the other end
+    if(m_state->m_memory->player_one_action == ROLL_FORWARD ||
+        m_state->m_memory->player_one_action == ROLL_BACKWARD ||
+        m_state->m_memory->player_one_action == EDGE_ROLL_SLOW ||
+        m_state->m_memory->player_one_action == EDGE_ROLL_QUICK)
+    {
+        CreateTactic(Juggle);
+        m_tactic->DetermineChain();
+        return;
+    }
+
     //If we're able to shine p1 right now, let's do that
     if(std::abs(distance) < FOX_SHINE_RADIUS)
     {

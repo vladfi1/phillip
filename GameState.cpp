@@ -42,6 +42,35 @@ double GameState::getStageEdgePosition()
     return edge_position;
 }
 
+double GameState::getStageEdgeGroundPosition()
+{
+    double edge_position = 100;
+    switch(m_memory->stage)
+    {
+        case BATTLEFIELD:
+        {
+            edge_position = 68.4000015259;
+            break;
+        }
+        case FINAL_DESTINATION:
+        {
+            edge_position = 85.5656967163;
+            break;
+        }
+        case DREAMLAND:
+        {
+            edge_position = 77.2713012695;
+            break;
+        }
+        case FOUNTAIN_OF_DREAMS:
+        {
+            edge_position = 63.3475494385;
+            break;
+        }
+    }
+    return edge_position;
+}
+
 bool GameState::isDamageState(ACTION action)
 {
     //Luckily, all the damage states are contiguous

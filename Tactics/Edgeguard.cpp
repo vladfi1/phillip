@@ -76,7 +76,7 @@ void Edgeguard::DetermineChain()
     if(m_state->m_memory->player_one_action == EDGE_GETUP_QUICK ||
         m_state->m_memory->player_one_action == EDGE_ATTACK_SLOW ||
         m_state->m_memory->player_one_action == EDGE_ATTACK_QUICK ||
-        m_state->m_memory->player_one_action == EGDE_ROLL_SLOW ||
+        m_state->m_memory->player_one_action == EDGE_ROLL_SLOW ||
         m_state->m_memory->player_one_action == EDGE_ROLL_QUICK ||
         m_state->m_memory->player_one_action == EDGE_GETUP_SLOW)
     {

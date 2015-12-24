@@ -11,6 +11,9 @@ public:
     Juggle();
     ~Juggle();
     void DetermineChain();
+
+private:
+    double m_roll_position;
 };
 
 #endif

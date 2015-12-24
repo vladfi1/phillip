@@ -1,14 +1,17 @@
 #include <typeinfo>
 #include <math.h>
+#include <cmath>
 
 #include "Juggle.h"
 #include "../Constants.h"
 #include "../Chains/SmashAttack.h"
 #include "../Chains/Nothing.h"
 #include "../Chains/Jab.h"
+#include "../Chains/Run.h"
 
 Juggle::Juggle()
 {
+    m_roll_position = 0;
     m_chain = NULL;
 }
 
@@ -24,6 +27,112 @@ void Juggle::DetermineChain()
     {
         m_chain->PressButtons();
         return;
+    }
+
+    //If they're rolling, go punish it where they will stop
+    if(m_state->m_memory->player_one_action == ROLL_FORWARD ||
+        m_state->m_memory->player_one_action == ROLL_BACKWARD ||
+        m_state->m_memory->player_one_action == EDGE_ROLL_SLOW ||
+        m_state->m_memory->player_one_action == EDGE_ROLL_QUICK)
+    {
+        //Figure out where they will stop rolling, only on the first frame
+        if(m_state->m_memory->player_one_action_frame == 1)
+        {
+            if(m_state->m_memory->player_one_action == ROLL_FORWARD)
+            {
+                if(m_state->m_memory->player_one_facing)
+                {
+                    m_roll_position = m_state->m_memory->player_one_x + MARTH_ROLL_DISTANCE;
+                }
+                else
+                {
+                    m_roll_position = m_state->m_memory->player_one_x - MARTH_ROLL_DISTANCE;
+                }
+            }
+            else if(m_state->m_memory->player_one_action == ROLL_BACKWARD)
+            {
+                if(m_state->m_memory->player_one_facing)
+                {
+                    m_roll_position = m_state->m_memory->player_one_x - MARTH_ROLL_DISTANCE;
+                }
+                else
+                {
+                    m_roll_position = m_state->m_memory->player_one_x + MARTH_ROLL_DISTANCE;
+                }
+            }
+            else if(m_state->m_memory->player_one_action == EDGE_ROLL_SLOW ||
+                m_state->m_memory->player_one_action == EDGE_ROLL_QUICK)
+            {
+
+                if(m_state->m_memory->player_one_facing)
+                {
+                    m_roll_position = m_state->m_memory->player_one_x + MARTH_EDGE_ROLL_DISTANCE;
+                }
+                else
+                {
+                    m_roll_position = m_state->m_memory->player_one_x - MARTH_EDGE_ROLL_DISTANCE;
+                }
+            }
+            if(m_roll_position > m_state->getStageEdgeGroundPosition())
+            {
+                m_roll_position = m_state->getStageEdgeGroundPosition();
+            }
+            else if (m_roll_position < (-1) * m_state->getStageEdgeGroundPosition())
+            {
+                m_roll_position = (-1) * m_state->getStageEdgeGroundPosition();
+            }
+        }
+
+        int frames_left;
+        if(m_state->m_memory->player_one_action == ROLL_FORWARD ||
+            m_state->m_memory->player_one_action == ROLL_BACKWARD)
+        {
+            frames_left = MARTH_ROLL_FRAMES - m_state->m_memory->player_one_action_frame;
+        }
+        else if(m_state->m_memory->player_one_action == EDGE_ROLL_SLOW)
+        {
+            frames_left = MARTH_EDGE_ROLL_FRAMES - m_state->m_memory->player_one_action_frame;
+        }
+        else if(m_state->m_memory->player_one_action == EDGE_ROLL_QUICK)
+        {
+            frames_left = MARTH_EDGE_ROLL_SLOW_FRAMES - m_state->m_memory->player_one_action_frame;
+        }
+
+        if(frames_left <= 7)
+        {
+            CreateChain(Nothing);
+            m_chain->PressButtons();
+            return;
+        }
+
+        //Upsmash if we're in range and facing the right way
+        //  Factor in sliding during the smash animation
+        double distance;
+        if(m_state->m_memory->player_two_action == DASHING ||
+            m_state->m_memory->player_two_action == RUNNING)
+        {
+            distance = std::abs(std::abs(m_roll_position - m_state->m_memory->player_two_x) - 8);
+        }
+        else
+        {
+            distance = std::abs(m_roll_position - m_state->m_memory->player_two_x);
+        }
+
+
+        bool to_the_left = m_roll_position > m_state->m_memory->player_two_x;
+        if(distance < FOX_UPSMASH_RANGE_NEAR &&
+            to_the_left == m_state->m_memory->player_two_facing)
+        {
+            CreateChain3(SmashAttack, SmashAttack::UP, frames_left - 10);
+            m_chain->PressButtons();
+            return;
+        }
+        else
+        {
+            CreateChain2(Run, to_the_left);
+            m_chain->PressButtons();
+            return;
+        }
     }
 
     //Calculate distance between players
