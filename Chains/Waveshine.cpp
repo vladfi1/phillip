@@ -1,3 +1,5 @@
+#include <cmath>
+
 #include "Waveshine.h"
 
 void Waveshine::PressButtons()
@@ -30,13 +32,21 @@ void Waveshine::PressButtons()
         {
             m_controller->pressButton(Controller::BUTTON_L);
             //TODO: still assumes we're facing the opponent
-            if(m_state->m_memory->player_one_x > m_state->m_memory->player_two_x)
+            //If we're close to the edge, don't wavedash off
+            if(std::abs(m_state->m_memory->player_two_x) + 5 > m_state->getStageEdgeGroundPosition())
             {
-                m_controller->tiltAnalog(Controller::BUTTON_MAIN, .8, .2);
+                m_controller->tiltAnalog(Controller::BUTTON_MAIN, 0, .2);
             }
             else
             {
-                m_controller->tiltAnalog(Controller::BUTTON_MAIN, .2, .2);
+                if(m_state->m_memory->player_one_x > m_state->m_memory->player_two_x)
+                {
+                    m_controller->tiltAnalog(Controller::BUTTON_MAIN, .8, .2);
+                }
+                else
+                {
+                    m_controller->tiltAnalog(Controller::BUTTON_MAIN, .2, .2);
+                }
             }
             break;
         }
