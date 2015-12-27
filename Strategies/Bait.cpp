@@ -49,7 +49,7 @@ void Bait::DetermineTactic()
     else
     {
         m_actionChanged = false;
-        if(m_state->m_memory->player_one_action == SHIELD_STUN)
+        if(m_state->m_memory->player_two_action == SHIELD_STUN)
         {
             m_shieldedAttack = true;
         }

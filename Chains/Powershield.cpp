@@ -1,7 +1,6 @@
 #include <cmath>
 
 #include "Powershield.h"
-
 void Powershield::PressButtons()
 {
     //What frame (relative to the start of the attack) we should be shielding on?
@@ -425,7 +424,7 @@ Powershield::Powershield(uint startFrame)
     m_hasShielded = false;
     m_letGo = false;
     m_startFrame = startFrame;
-    m_frameShielded = 0;
+    m_frameShielded = -100;
     bool player_one_is_to_the_left = (m_state->m_memory->player_one_x - m_state->m_memory->player_two_x > 0);
     m_endEarly = false;
     if(m_state->m_memory->player_one_facing != player_one_is_to_the_left)
