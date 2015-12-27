@@ -325,6 +325,26 @@ void Powershield::PressButtons()
             }
             break;
         }
+        //TODO maybe consider NAIR reverse hit
+        case NAIR:
+        {
+            //If we're right in close
+            if(distance < 18)
+            {
+                shield_on_frame = 3;
+            }
+            //Mid distance
+            else if(distance >= 18 && distance < 27)
+            {
+                shield_on_frame = 3;
+            }
+            //Long distance
+            else if(distance >= 27)
+            {
+                shield_on_frame = 60;
+            }
+            break;
+        }
         case NEUTRAL_ATTACK_1:
         {
             //If we're right in close
@@ -393,6 +413,12 @@ void Powershield::PressButtons()
     //4 frames later, let go of shield
     else if(m_state->m_memory->frame >= (m_frameShielded + 4))
     {
+        //If it's a neutral-air, just hold onto shield until the attack is over
+        if(m_state->m_memory->player_one_action == NAIR &&
+            m_state->m_memory->frame < m_frameShielded + 19)
+        {
+            return;
+        }
         m_letGo = true;
         m_controller->releaseButton(Controller::BUTTON_L);
     }
