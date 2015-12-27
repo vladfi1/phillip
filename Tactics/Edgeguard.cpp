@@ -89,8 +89,22 @@ void Edgeguard::DetermineChain()
     	distance += pow(m_state->m_memory->player_one_y, 2);
     	distance = sqrt(distance);
 
-        //If marth is out of attack range, then go ahead and do it
-        if(distance > MARTH_FSMASH_RANGE)
+        double edge_distance_x = std::abs(std::abs(m_state->m_memory->player_one_x) - m_state->getStageEdgePosition());
+        double edge_distance_y = std::abs(m_state->m_memory->player_one_y - EDGE_HANGING_Y_POSITION);
+
+        //If marth is out of attack range and UP-B range, then go ahead and do it
+        //TODO: Added some hardcoded wiggle room to be safe
+        if(distance > MARTH_FSMASH_RANGE &&
+            (edge_distance_x > MARTH_UP_B_X_DISTANCE + 5 ||
+            edge_distance_y > MARTH_UP_B_HEIGHT + 5))
+        {
+            CreateChain(GrabEdge);
+            m_chain->PressButtons();
+            return;
+        }
+
+        //If marth is side-B'ing (out of attack range) then it's safe
+        if(m_state->m_memory->player_one_action == SWORD_DANCE_1)
         {
             CreateChain(GrabEdge);
             m_chain->PressButtons();
@@ -107,14 +121,14 @@ void Edgeguard::DetermineChain()
         return;
     }
 
-    //Edgestall to kill time
-    if(m_state->m_memory->player_two_action == EDGE_CATCHING ||
-        m_state->m_memory->player_two_action == EDGE_HANGING)
-    {
-        CreateChain(EdgeStall);
-        m_chain->PressButtons();
-        return;
-    }
+    // //Edgestall to kill time
+    // if(m_state->m_memory->player_two_action == EDGE_CATCHING ||
+    //     m_state->m_memory->player_two_action == EDGE_HANGING)
+    // {
+    //     CreateChain(EdgeStall);
+    //     m_chain->PressButtons();
+    //     return;
+    // }
 
     //Just hang out and do nothing
     CreateChain(Nothing);

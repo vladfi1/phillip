@@ -114,7 +114,9 @@ void Bait::DetermineTactic()
     if(m_state->m_memory->player_one_action == ROLL_FORWARD ||
         m_state->m_memory->player_one_action == ROLL_BACKWARD ||
         m_state->m_memory->player_one_action == EDGE_ROLL_SLOW ||
-        m_state->m_memory->player_one_action == EDGE_ROLL_QUICK)
+        m_state->m_memory->player_one_action == EDGE_ROLL_QUICK ||
+        m_state->m_memory->player_one_action == EDGE_GETUP_QUICK ||
+        m_state->m_memory->player_one_action == EDGE_GETUP_SLOW)
     {
         CreateTactic(Juggle);
         m_tactic->DetermineChain();
@@ -252,6 +254,8 @@ bool Bait::isAttacking(ACTION action)
         case NEUTRAL_ATTACK_3:
         case NEUTRAL_B_ATTACKING:
         case NEUTRAL_B_ATTACKING_AIR:
+        case EDGE_ATTACK_QUICK:
+        case EDGE_ATTACK_SLOW:
         {
             return true;
         }

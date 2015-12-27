@@ -200,6 +200,14 @@ uint GameState::firstHitboxFrame(CHARACTER character, ACTION action)
                 {
                     return 16;
                 }
+                case EDGE_ATTACK_SLOW:
+                {
+                    return 38;
+                }
+                case EDGE_ATTACK_QUICK:
+                {
+                    return 25;
+                }
                 default:
                 {
                     return 0;

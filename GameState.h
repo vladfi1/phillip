@@ -131,12 +131,12 @@ enum ACTION
 	SLIDING_OFF_EDGE = 0xfb, //When you get hit and slide off an edge
 	EDGE_CATCHING = 0xFC, //Initial grabbing of edge, stuck in stun here
 	EDGE_HANGING = 0xFD,
+	EDGE_GETUP_SLOW = 0xFE,  // >= 100% damage
 	EDGE_GETUP_QUICK = 0xFF, // < 100% damage
 	EDGE_ATTACK_SLOW = 0x100, // < 100% damage
 	EDGE_ATTACK_QUICK = 0x101, // >= 100% damage
 	EDGE_ROLL_SLOW = 0x102, // >= 100% damage
 	EDGE_ROLL_QUICK = 0x103, // < 100% damage
-	EDGE_GETUP_SLOW = 0x104,  // >= 100% damage
 	ENTRY = 0x142,	//Start of match. Can't move
 	ENTRY_START = 0x143,	//Start of match. Can't move
 	ENTRY_END = 0x144,	//Start of match. Can't move

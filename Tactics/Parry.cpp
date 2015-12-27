@@ -4,6 +4,7 @@
 #include "Parry.h"
 #include "../Chains/Powershield.h"
 #include "../Chains/SpotDodge.h"
+#include "../Chains/EdgeAction.h"
 
 Parry::Parry(uint startFrame)
 {
@@ -18,6 +19,13 @@ Parry::~Parry()
 
 void Parry::DetermineChain()
 {
+    if(m_state->m_memory->player_two_action == EDGE_HANGING)
+    {
+        CreateChain2(EdgeAction, Controller::BUTTON_MAIN);
+        m_chain->PressButtons();
+        return;
+    }
+
     //TODO: SWORD_DANCE_4_LOW is a multi-hit attack. Let's handle that differently. Maybe just light shield
     if(m_state->m_memory->player_one_action == ACTION::GRAB ||
         m_state->m_memory->player_one_action == ACTION::GRAB_RUNNING)

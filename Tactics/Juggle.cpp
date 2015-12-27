@@ -8,6 +8,7 @@
 #include "../Chains/Nothing.h"
 #include "../Chains/Jab.h"
 #include "../Chains/Run.h"
+#include "../Chains/Walk.h"
 
 Juggle::Juggle()
 {
@@ -33,7 +34,9 @@ void Juggle::DetermineChain()
     if(m_state->m_memory->player_one_action == ROLL_FORWARD ||
         m_state->m_memory->player_one_action == ROLL_BACKWARD ||
         m_state->m_memory->player_one_action == EDGE_ROLL_SLOW ||
-        m_state->m_memory->player_one_action == EDGE_ROLL_QUICK)
+        m_state->m_memory->player_one_action == EDGE_ROLL_QUICK ||
+        m_state->m_memory->player_one_action == EDGE_GETUP_QUICK ||
+        m_state->m_memory->player_one_action == EDGE_GETUP_SLOW)
     {
         //Figure out where they will stop rolling, only on the first frame
         if(m_state->m_memory->player_one_action_frame == 1)
@@ -73,6 +76,19 @@ void Juggle::DetermineChain()
                     m_roll_position = m_state->m_memory->player_one_x - MARTH_EDGE_ROLL_DISTANCE;
                 }
             }
+            else if(m_state->m_memory->player_one_action == EDGE_GETUP_QUICK ||
+                m_state->m_memory->player_one_action == EDGE_GETUP_SLOW)
+            {
+
+                if(m_state->m_memory->player_one_facing)
+                {
+                    m_roll_position = m_state->m_memory->player_one_x + MARTH_GETUP_DISTANCE;
+                }
+                else
+                {
+                    m_roll_position = m_state->m_memory->player_one_x - MARTH_GETUP_DISTANCE;
+                }
+            }
             if(m_roll_position > m_state->getStageEdgeGroundPosition())
             {
                 m_roll_position = m_state->getStageEdgeGroundPosition();
@@ -97,6 +113,14 @@ void Juggle::DetermineChain()
         {
             frames_left = MARTH_EDGE_ROLL_FRAMES - m_state->m_memory->player_one_action_frame;
         }
+        else if(m_state->m_memory->player_one_action == EDGE_GETUP_QUICK)
+        {
+            frames_left = MARTH_EDGE_GETUP_QUICK_FRAMES - m_state->m_memory->player_one_action_frame;
+        }
+        else if(m_state->m_memory->player_one_action == EDGE_GETUP_SLOW)
+        {
+            frames_left = MARTH_EDGE_GETUP_SLOW_FRAMES - m_state->m_memory->player_one_action_frame;
+        }
 
         if(frames_left <= 7)
         {
@@ -118,7 +142,6 @@ void Juggle::DetermineChain()
             distance = std::abs(m_roll_position - m_state->m_memory->player_two_x);
         }
 
-
         bool to_the_left = m_roll_position > m_state->m_memory->player_two_x;
         if(distance < FOX_UPSMASH_RANGE_NEAR &&
             to_the_left == m_state->m_memory->player_two_facing)
@@ -129,9 +152,20 @@ void Juggle::DetermineChain()
         }
         else
         {
-            CreateChain2(Run, to_the_left);
-            m_chain->PressButtons();
-            return;
+            //If the target location is right behind us, just turn around, don't run
+            if(distance < FOX_UPSMASH_RANGE_NEAR &&
+                to_the_left != m_state->m_memory->player_two_facing)
+            {
+                CreateChain2(Walk, to_the_left);
+                m_chain->PressButtons();
+                return;
+            }
+            else
+            {
+                CreateChain2(Run, to_the_left);
+                m_chain->PressButtons();
+                return;
+            }
         }
     }
 

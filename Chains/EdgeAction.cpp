@@ -16,6 +16,12 @@ void EdgeAction::PressButtons()
             m_controller->pressButton(Controller::BUTTON_L);
             return;
         }
+        //Stand up
+        if(m_button == Controller::BUTTON_MAIN)
+        {
+            m_controller->tiltAnalog(Controller::BUTTON_MAIN, .5, .70);
+            return;
+        }
     }
     //Reset the controller afterward
     m_controller->emptyInput();
