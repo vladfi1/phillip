@@ -9,6 +9,7 @@
 #include "../Chains/Jab.h"
 #include "../Chains/Run.h"
 #include "../Chains/Walk.h"
+#include "../Chains/Wavedash.h"
 
 Juggle::Juggle()
 {
@@ -174,9 +175,29 @@ void Juggle::DetermineChain()
 	distance += pow(m_state->m_memory->player_one_y - m_state->m_memory->player_two_y, 2);
 	distance = sqrt(distance);
 
-    bool player_two_is_to_the_left = (m_state->m_memory->player_two_x - m_state->m_memory->player_one_x > 0);
+    //How many frames do we have until we need to do something?
+    int frames_left;
+    //Are we before the attack or after?
+    if(m_state->m_memory->player_one_action_frame < m_state->lastHitboxFrame((CHARACTER)m_state->m_memory->player_one_character,
+        (ACTION)m_state->m_memory->player_one_action))
+    {
+        //Before
+        frames_left = m_state->firstHitboxFrame((CHARACTER)m_state->m_memory->player_one_character,
+            (ACTION)m_state->m_memory->player_one_action) - m_state->m_memory->player_one_action_frame - 1;
+    }
+    else
+    {
+        //After
+        frames_left = m_state->totalActionFrames((CHARACTER)m_state->m_memory->player_one_character,
+           (ACTION)m_state->m_memory->player_one_action) - m_state->m_memory->player_one_action_frame - 1;
+    }
+
+    bool player_two_is_to_the_left = (m_state->m_memory->player_one_x > m_state->m_memory->player_two_x);
     //If we're in upsmash/jab range, then prepare for attack
-    if(distance < FOX_UPSMASH_RANGE && m_state->m_memory->player_two_facing != player_two_is_to_the_left)
+    if(m_state->m_memory->player_two_facing != player_two_is_to_the_left && //Facing the right way?
+        (distance < FOX_UPSMASH_RANGE ||
+        (distance < FOX_UPSMASH_RANGE - 25.5 && (m_state->m_memory->player_two_action == DASHING ||
+            m_state->m_memory->player_two_action == RUNNING))))
     {
         //Spot dodge
         if(m_state->m_memory->player_one_action == SPOTDODGE &&
@@ -197,9 +218,6 @@ void Juggle::DetermineChain()
             return;
         }
 
-        int frames_left = m_state->firstHitboxFrame((CHARACTER)m_state->m_memory->player_one_character,
-            (ACTION)m_state->m_memory->player_one_action) - m_state->m_memory->player_one_action_frame - 1;
-
         //Do we have time to upsmash? Do that.
         if(frames_left > 7)
         {
@@ -215,6 +233,22 @@ void Juggle::DetermineChain()
             m_chain->PressButtons();
             return;
         }
+    }
+
+    //Is it safe to wavedash in after shielding the attack?
+    if(frames_left > 10 && m_state->m_memory->player_two_action == SHIELD_RELEASE)
+    {
+        CreateChain2(Wavedash, player_two_is_to_the_left);
+        m_chain->PressButtons();
+        return;
+    }
+
+    //We're out of attack range and already did a wavedash, so if we still have time, try dashing in
+    if(frames_left > 10)
+    {
+        CreateChain2(Walk, player_two_is_to_the_left);
+        m_chain->PressButtons();
+        return;
     }
 
     //Just do nothing

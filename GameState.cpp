@@ -190,11 +190,6 @@ uint GameState::firstHitboxFrame(CHARACTER character, ACTION action)
                 {
                     return 6;
                 }
-                //TODO: I don't have an animation for this...
-                case NEUTRAL_ATTACK_3:
-                {
-                    return 6;
-                }
                 case NEUTRAL_B_ATTACKING:
                 case NEUTRAL_B_ATTACKING_AIR:
                 {
@@ -207,6 +202,322 @@ uint GameState::firstHitboxFrame(CHARACTER character, ACTION action)
                 case EDGE_ATTACK_QUICK:
                 {
                     return 25;
+                }
+                default:
+                {
+                    return 0;
+                    break;
+                }
+            }
+            break;
+        }
+        default:
+        {
+            return 0;
+            break;
+        }
+    }
+}
+
+uint GameState::lastHitboxFrame(CHARACTER character, ACTION action)
+{
+    switch(character)
+    {
+        case MARTH:
+        {
+            switch(action)
+            {
+                case FSMASH_MID:
+                {
+                    return 13;
+                }
+                case DOWNSMASH:
+                {
+                    return 23;
+                }
+                case UPSMASH:
+                {
+                    return 16;
+                }
+                case DASH_ATTACK:
+                {
+                    return 15;
+                }
+                case GRAB:
+                {
+                    return 8;
+                }
+                case GRAB_RUNNING:
+                {
+                    return 11;
+                }
+                case FTILT_HIGH:
+                case FTILT_HIGH_MID:
+                case FTILT_MID:
+                case FTILT_LOW_MID:
+                case FTILT_LOW:
+                {
+                    return 10;
+                }
+                case UPTILT:
+                {
+                    return 13;
+                }
+                case DOWNTILT:
+                {
+                    return 9;
+                }
+                case SWORD_DANCE_1:
+                case SWORD_DANCE_2_HIGH:
+                case SWORD_DANCE_2_MID:
+                case SWORD_DANCE_3_HIGH:
+                case SWORD_DANCE_3_MID:
+                case SWORD_DANCE_3_LOW:
+                case SWORD_DANCE_4_HIGH:
+                case SWORD_DANCE_4_MID:
+                case SWORD_DANCE_4_LOW:
+                case SWORD_DANCE_1_AIR:
+                case SWORD_DANCE_2_HIGH_AIR:
+                case SWORD_DANCE_2_MID_AIR:
+                case SWORD_DANCE_3_HIGH_AIR:
+                case SWORD_DANCE_3_MID_AIR:
+                case SWORD_DANCE_3_LOW_AIR:
+                case SWORD_DANCE_4_HIGH_AIR:
+                case SWORD_DANCE_4_MID_AIR:
+                case SWORD_DANCE_4_LOW_AIR:
+                {
+                    return 8;
+                }
+                case UP_B:
+                case UP_B_GROUND:
+                {
+                    return 10;
+                }
+                case NAIR:
+                {
+                    return 21;
+                }
+                case UAIR:
+                {
+                    return 8;
+                }
+                case DAIR:
+                {
+                    return 9;
+                }
+                case BAIR:
+                {
+                    return 11;
+                }
+                case FAIR:
+                {
+                    return 7;
+                }
+                case NEUTRAL_ATTACK_1:
+                {
+                    return 7;
+                }
+                case NEUTRAL_ATTACK_2:
+                {
+                    return 10;
+                }
+                case NEUTRAL_B_ATTACKING:
+                case NEUTRAL_B_ATTACKING_AIR:
+                {
+                    return 21;
+                }
+                case EDGE_ATTACK_SLOW:
+                {
+                    return 41;
+                }
+                case EDGE_ATTACK_QUICK:
+                {
+                    return 28;
+                }
+                default:
+                {
+                    return 0;
+                    break;
+                }
+            }
+            break;
+        }
+        default:
+        {
+            return 0;
+            break;
+        }
+    }
+}
+
+
+uint GameState::landingLag(CHARACTER character, ACTION action)
+{
+    switch(character)
+    {
+        case MARTH:
+        {
+            switch(action)
+            {
+                case NAIR:
+                {
+                    return 7;
+                }
+                case FAIR:
+                {
+                    return 7;
+                }
+                case BAIR:
+                {
+                    return 12;
+                }
+                case UAIR:
+                {
+                    return 7;
+                }
+                case DAIR:
+                {
+                    return 16;
+                }
+                default:
+                {
+                    return 0;
+                }
+            }
+        }
+        default:
+        {
+            return 0;
+        }
+    }
+}
+
+uint GameState::totalActionFrames(CHARACTER character, ACTION action)
+{
+    switch(character)
+    {
+        case MARTH:
+        {
+            switch(action)
+            {
+                case FSMASH_MID:
+                {
+                    return 48;
+                }
+                case DOWNSMASH:
+                {
+                    return 62;
+                }
+                case UPSMASH:
+                {
+                    return 46;
+                }
+                case DASH_ATTACK:
+                {
+                    return 40;
+                }
+                case GRAB:
+                {
+                    return 30;
+                }
+                case GRAB_RUNNING:
+                {
+                    return 40;
+                }
+                case FTILT_HIGH:
+                case FTILT_HIGH_MID:
+                case FTILT_MID:
+                case FTILT_LOW_MID:
+                case FTILT_LOW:
+                {
+                    return 35;
+                }
+                case UPTILT:
+                {
+                    return 32;
+                }
+                case DOWNTILT:
+                {
+                    return 20;
+                }
+                case SWORD_DANCE_1_AIR:
+                case SWORD_DANCE_1:
+                {
+                    return 29;
+                }
+                case SWORD_DANCE_2_HIGH_AIR:
+                case SWORD_DANCE_2_MID_AIR:
+                case SWORD_DANCE_2_HIGH:
+                case SWORD_DANCE_2_MID:
+                {
+                    return 40;
+                }
+                case SWORD_DANCE_3_HIGH_AIR:
+                case SWORD_DANCE_3_MID_AIR:
+                case SWORD_DANCE_3_LOW_AIR:
+                case SWORD_DANCE_3_HIGH:
+                case SWORD_DANCE_3_MID:
+                case SWORD_DANCE_3_LOW:
+                {
+                    return 46;
+                }
+                case SWORD_DANCE_4_HIGH:
+                case SWORD_DANCE_4_MID:
+                case SWORD_DANCE_4_HIGH_AIR:
+                case SWORD_DANCE_4_MID_AIR:
+                {
+                    return 50;
+                }
+                case SWORD_DANCE_4_LOW:
+                case SWORD_DANCE_4_LOW_AIR:
+                {
+                    return 60;
+                }
+                case UP_B:
+                case UP_B_GROUND:
+                {
+                    return 10;
+                }
+                case NAIR:
+                {
+                    return 21;
+                }
+                case UAIR:
+                {
+                    return 25;
+                }
+                case DAIR:
+                {
+                    return 48;
+                }
+                case BAIR:
+                {
+                    return 32;
+                }
+                case FAIR:
+                {
+                    return 27;
+                }
+                case NEUTRAL_ATTACK_1:
+                {
+                    return 20;
+                }
+                case NEUTRAL_ATTACK_2:
+                {
+                    return 27;
+                }
+                case NEUTRAL_B_ATTACKING:
+                case NEUTRAL_B_ATTACKING_AIR:
+                {
+                    return 44;
+                }
+                case EDGE_ATTACK_SLOW:
+                {
+                    return 68;
+                }
+                case EDGE_ATTACK_QUICK:
+                {
+                    return 54;
                 }
                 default:
                 {

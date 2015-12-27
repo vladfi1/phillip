@@ -123,6 +123,29 @@ void Bait::DetermineTactic()
         return;
     }
 
+    //How many frames do we have until the attack is over?
+    int frames_left = m_state->totalActionFrames((CHARACTER)m_state->m_memory->player_one_character,
+        (ACTION)m_state->m_memory->player_one_action) - m_state->m_memory->player_one_action_frame - 1;
+
+    //If our oponnent is stuck in a laggy ending animation, punish it
+    if(isAttacking((ACTION)m_state->m_memory->player_one_action) &&
+        m_state->m_memory->player_one_action_frame >
+            m_state->lastHitboxFrame((CHARACTER)m_state->m_memory->player_one_character,
+            (ACTION)m_state->m_memory->player_one_action))
+    {
+        if(frames_left > 3)
+        {
+            //Unless we need to wavedash in, then give us more time
+            if(m_state->m_memory->player_two_action != SHIELD_RELEASE ||
+                frames_left > 10)
+            {
+                CreateTactic(Juggle);
+                m_tactic->DetermineChain();
+                return;
+            }
+        }
+    }
+
     //If we're able to shine p1 right now, let's do that
     if(std::abs(distance) < FOX_SHINE_RADIUS)
     {

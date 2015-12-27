@@ -98,6 +98,11 @@ enum ACTION
 	BAIR = 0x43,
 	UAIR = 0x44,
 	DAIR = 0x45,
+	NAIR_LANDING  = 0x46,
+	FAIR_LANDING  = 0x47,
+	BAIR_LANDING  = 0x48,
+	UAIR_LANDING  = 0x49,
+	DAIR_LANDING  = 0x4a,
 	DAMAGE_HIGH_1 = 0x4b,
 	DAMAGE_HIGH_2 = 0x4c,
 	DAMAGE_HIGH_3 = 0x4d,
@@ -213,6 +218,19 @@ public:
 	//Returns the frame of the first hitbox
 	//	return value of 0 means not an attack, or not supported yet
 	uint firstHitboxFrame(CHARACTER, ACTION);
+
+	//Returns the frame of the last hitbox
+	//	return value of 0 means not an attack, or not supported yet
+	uint lastHitboxFrame(CHARACTER, ACTION);
+
+	//Returns the number of frames in the animation total
+	//	Note that this returns the number of frames they are guaranteed to be in, so IASA frames are cut off
+	//	return value of 0 means not an attack, or not supported yet
+	uint totalActionFrames(CHARACTER, ACTION);
+
+	//Returns the amount of landing lag from the given airial attack
+	//	return value of 0 means not an airial attack, or not supported yet
+	uint landingLag(CHARACTER, ACTION);
 
 	GameMemory *m_memory;
 
