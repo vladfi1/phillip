@@ -6,14 +6,15 @@ void SmashAttack::PressButtons()
     if(m_state->m_memory->player_two_action == RUNNING ||
         m_state->m_memory->player_two_action == DASHING)
     {
-        m_controller->pressButton(Controller::BUTTON_Y);
+        m_canInterrupt = false;
+        m_controller->tiltAnalog(Controller::BUTTON_MAIN, .5, 1);
         m_controller->releaseButton(Controller::BUTTON_A);
         return;
     }
 
     uint frame = m_state->m_memory->frame - m_startingFrame;
     //TODO The charge point changes for different smashes
-    if(frame == 1 || frame == 2)
+    if(frame == 1 || frame == 0 || m_state->m_memory->player_two_action == KNEE_BEND)
     {
         m_canInterrupt = false;
         m_controller->releaseButton(Controller::BUTTON_Y);
@@ -81,7 +82,6 @@ bool SmashAttack::IsInterruptible()
 SmashAttack::SmashAttack(DIRECTION d, uint charge_frames)
 {
     m_direction = d;
-    //TODO: Work on transitions to this chain
     m_startingFrame = m_state->m_memory->frame;
     m_charge_frames = charge_frames;
     m_canInterrupt = true;
