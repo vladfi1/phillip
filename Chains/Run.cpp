@@ -1,7 +1,17 @@
-#include "Run.h"
+#include <cmath>
 
+#include "Run.h"
+#include <iostream>
 void Run::PressButtons()
 {
+    //Don't run off the edge of the stage
+    if(m_state->getStageEdgeGroundPosition() - std::abs(m_state->m_memory->player_two_x) < 30 &&
+        (m_isRight == (m_state->m_memory->player_two_x > 0)))
+    {
+        m_controller->emptyInput();
+        return;
+    }
+
     if(!m_isWavedashing)
     {
         switch(m_state->m_memory->player_two_action)

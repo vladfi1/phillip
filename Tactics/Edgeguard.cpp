@@ -56,7 +56,7 @@ void Edgeguard::DetermineChain()
         m_state->m_memory->player_one_action == EDGE_CATCHING ||
         m_state->m_memory->player_one_action == EDGE_HANGING) &&
         m_state->m_memory->player_two_on_ground &&
-        std::abs(m_state->m_memory->player_two_x) < m_state->getStageEdgePosition() - 10)
+        std::abs(m_state->m_memory->player_two_x) < m_state->getStageEdgeGroundPosition())
     {
         if(m_state->m_memory->player_two_x > 0)
         {

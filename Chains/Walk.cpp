@@ -1,18 +1,28 @@
-#include "Walk.h"
+#include <cmath>
 
+#include "Walk.h"
+#include <iostream>
 void Walk::PressButtons()
 {
+    //Don't walk off the edge of the stage
+    if(m_state->getStageEdgeGroundPosition() - std::abs(m_state->m_memory->player_two_x) < 5 &&
+        (m_isRight == (m_state->m_memory->player_two_x > 0)))
+    {
+        m_controller->emptyInput();
+        return;
+    }
+
     switch(m_state->m_memory->player_two_action)
     {
         case WALK_SLOW:
         {
             if(m_isRight)
             {
-                m_controller->tiltAnalog(Controller::BUTTON_MAIN, .75, .5);
+                m_controller->tiltAnalog(Controller::BUTTON_MAIN, .7, .5);
             }
             else
             {
-                m_controller->tiltAnalog(Controller::BUTTON_MAIN, .25, .5);
+                m_controller->tiltAnalog(Controller::BUTTON_MAIN, .3, .5);
             }
             break;
         }

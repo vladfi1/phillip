@@ -236,14 +236,16 @@ void Juggle::DetermineChain()
     }
 
     //Is it safe to wavedash in after shielding the attack?
-    if(frames_left > 10 && m_state->m_memory->player_two_action == SHIELD_RELEASE)
+    //  Don't wavedash off the edge of the stage
+    if(frames_left > 10 && m_state->m_memory->player_two_action == SHIELD_RELEASE &&
+        (m_state->getStageEdgeGroundPosition() - std::abs(m_state->m_memory->player_two_x) > 10))
     {
         CreateChain2(Wavedash, player_two_is_to_the_left);
         m_chain->PressButtons();
         return;
     }
 
-    //We're out of attack range and already did a wavedash, so if we still have time, try dashing in
+    //We're out of attack range and already did a wavedash, so if we still have time, try walking in
     if(frames_left > 10)
     {
         CreateChain2(Walk, player_two_is_to_the_left);

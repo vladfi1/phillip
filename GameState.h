@@ -60,6 +60,7 @@ struct GameMemory
 
 enum ACTION
 {
+	ON_HALO = 0x0d,
 	STANDING = 0x0e,
 	WALK_SLOW = 0x0f,
 	WALK_MIDDLE = 0x10,
