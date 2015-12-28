@@ -194,7 +194,7 @@ void Juggle::DetermineChain()
 
     bool player_two_is_to_the_left = (m_state->m_memory->player_one_x > m_state->m_memory->player_two_x);
     //If we're in upsmash/jab range, then prepare for attack
-    if(m_state->m_memory->player_two_facing != player_two_is_to_the_left && //Facing the right way?
+    if(m_state->m_memory->player_two_facing == player_two_is_to_the_left && //Facing the right way?
         (distance < FOX_UPSMASH_RANGE ||
         (distance < FOX_UPSMASH_RANGE - 25.5 && (m_state->m_memory->player_two_action == DASHING ||
             m_state->m_memory->player_two_action == RUNNING))))
