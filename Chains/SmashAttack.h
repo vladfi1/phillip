@@ -24,6 +24,7 @@ public:
 private:
     DIRECTION m_direction;
     uint m_charge_frames;
+    bool m_canInterrupt;
 };
 
 #endif
