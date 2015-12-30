@@ -9,6 +9,7 @@
 #include "../Chains/GrabEdge.h"
 #include "../Chains/EdgeAction.h"
 #include "../Chains/Walk.h"
+#include "../Chains/MarthKiller.h"
 #include "../Controller.h"
 
 Edgeguard::Edgeguard()
@@ -29,6 +30,23 @@ void Edgeguard::DetermineChain()
 		m_chain->PressButtons();
 		return;
 	}
+
+    //Marth is dead if he's at this point
+    if(m_state->m_memory->player_one_y < MARTH_ONE_JUMP_EVENT_HORIZON)
+    {
+        if(m_state->m_memory->player_two_action == EDGE_HANGING)
+        {
+            CreateChain2(EdgeAction, Controller::BUTTON_MAIN);
+            m_chain->PressButtons();
+            return;
+        }
+        if(m_state->m_memory->player_two_on_ground)
+        {
+            CreateChain(Nothing);
+            m_chain->PressButtons();
+            return;
+        }
+    }
 
 	//distance formula
 	double distance = pow(std::abs(m_state->m_memory->player_one_x - m_state->m_memory->player_two_x), 2);
@@ -114,21 +132,24 @@ void Edgeguard::DetermineChain()
 
     //Edgehog our opponent if they're UP-B'ing sweetspotted.
     //Grab the edge if we're still on the stage
-    if(m_state->m_memory->player_one_y < 50 && m_state->m_memory->player_one_action == UP_B)
+    if(m_state->m_memory->player_one_y < 50 &&
+        m_state->m_memory->player_one_action == UP_B &&
+        m_state->m_memory->player_two_action == EDGE_HANGING)
     {
         CreateChain2(EdgeAction, Controller::BUTTON_L);
         m_chain->PressButtons();
         return;
     }
 
-    // //Edgestall to kill time
-    // if(m_state->m_memory->player_two_action == EDGE_CATCHING ||
-    //     m_state->m_memory->player_two_action == EDGE_HANGING)
-    // {
-    //     CreateChain(EdgeStall);
-    //     m_chain->PressButtons();
-    //     return;
-    // }
+    //Do the marth killer if he's way down there and we're on the stage
+    if(m_state->m_memory->player_two_on_ground &&
+        m_state->m_memory->player_one_y < MARTH_JUMP_ONLY_EVENT_HORIZON &&
+        m_state->m_memory->player_one_y > MARTH_ONE_JUMP_EVENT_HORIZON)
+    {
+        CreateChain(MarthKiller);
+        m_chain->PressButtons();
+        return;
+    }
 
     //Just hang out and do nothing
     CreateChain(Nothing);

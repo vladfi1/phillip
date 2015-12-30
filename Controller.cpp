@@ -274,8 +274,6 @@ void Controller::tiltAnalog(BUTTON b, double x, double y)
             std::cout << "WARNING: Invalid button selected!" << std::endl;
         }
     }
-    //TODO: we can maybe same some cycles per frame by hardcoding each string
-    //  rather than assembling them here
     std::string command = "SET " + button_string + " " + std::to_string(x) +
         " " + std::to_string(y) + "\n";
     uint num = write(m_fifo, command.c_str(), command.length());
@@ -283,13 +281,36 @@ void Controller::tiltAnalog(BUTTON b, double x, double y)
     {
         std::cout << "WARNING: Not all data written to pipe!" << std::endl;
     }
-    //std::cout << "DEBUG: Command = " + command << std::endl;
+}
+
+void Controller::tiltAnalog(BUTTON b, double x)
+{
+    std::string button_string;
+    switch (b)
+    {
+        case BUTTON_L:
+        {
+            button_string = STRING_L;
+            break;
+        }
+        default:
+        {
+            std::cout << "WARNING: Invalid button selected!" << std::endl;
+        }
+    }
+    std::string command = "SET " + button_string + " " + std::to_string(x) + "\n";
+    uint num = write(m_fifo, command.c_str(), command.length());
+    if(num < command.length())
+    {
+        std::cout << "WARNING: Not all data written to pipe!" << std::endl;
+    }
 }
 
 void Controller::emptyInput()
 {
     tiltAnalog(Controller::BUTTON_MAIN, .5, .5);
     tiltAnalog(Controller::BUTTON_C, .5, .5);
+    tiltAnalog(Controller::BUTTON_L, 0);
     releaseButton(Controller::BUTTON_X);
     releaseButton(Controller::BUTTON_Y);
     releaseButton(Controller::BUTTON_A);
