@@ -61,7 +61,7 @@ void Waveshine::PressButtons()
         //If we're close to the edge, don't wavedash off
         if(std::abs(m_state->m_memory->player_two_x) + 10 > m_state->getStageEdgeGroundPosition())
         {
-            m_controller->tiltAnalog(Controller::BUTTON_MAIN, 0, .2);
+            m_controller->tiltAnalog(Controller::BUTTON_MAIN, .5, 0);
         }
         else
         {
