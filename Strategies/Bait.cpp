@@ -192,7 +192,8 @@ void Bait::DetermineTactic()
     }
 
     //If we're far away, just laser
-    if(std::abs(m_state->m_memory->player_one_x - m_state->m_memory->player_two_x) > 90)
+    if(std::abs(m_state->m_memory->player_one_x - m_state->m_memory->player_two_x) > 90 &&
+        std::abs(m_state->m_memory->player_one_x) < 130)
     {
         CreateTactic(Laser);
         m_tactic->DetermineChain();

@@ -45,7 +45,8 @@ void SHDL::PressButtons()
     if(m_startingFrame > 0)
     {
         //If we're waiting for landing lag to end, just wait. Else, let's jump
-        if(TransitionHelper::canJump((ACTION)m_state->m_memory->player_two_action))
+        if(m_state->m_memory->player_two_on_ground &&
+            m_state->m_memory->player_two_action != KNEE_BEND)
         {
             if(m_state->m_memory->frame >= m_landedFrame + 3)
             {
