@@ -1,7 +1,6 @@
 #include <cmath>
 
 #include "Walk.h"
-#include <iostream>
 void Walk::PressButtons()
 {
     //Don't walk off the edge of the stage
