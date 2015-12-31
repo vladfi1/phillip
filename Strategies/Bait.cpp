@@ -59,12 +59,12 @@ void Bait::DetermineTactic()
         m_attackFrame = 0;
     }
 
-	//If we're not in a state to interupt, just continue with what we've got going
-	if((m_tactic != NULL) && (!m_tactic->IsInterruptible()))
-	{
-		m_tactic->DetermineChain();
-		return;
-	}
+    //If we're not in a state to interupt, just continue with what we've got going
+    if((m_tactic != NULL) && (!m_tactic->IsInterruptible()))
+    {
+        m_tactic->DetermineChain();
+        return;
+    }
 
     //If we're still warping in at the start of the match, then just hang out and do nothing
     if(m_state->m_memory->player_two_action == ENTRY ||
@@ -76,10 +76,10 @@ void Bait::DetermineTactic()
         return;
     }
 
-	//Calculate distance between players
-	double distance = pow(m_state->m_memory->player_one_x - m_state->m_memory->player_two_x, 2);
-	distance += pow(m_state->m_memory->player_one_y - m_state->m_memory->player_two_y, 2);
-	distance = sqrt(distance);
+    //Calculate distance between players
+    double distance = pow(m_state->m_memory->player_one_x - m_state->m_memory->player_two_x, 2);
+    distance += pow(m_state->m_memory->player_one_y - m_state->m_memory->player_two_y, 2);
+    distance = sqrt(distance);
 
     //If we're able to upsmash our opponent, let's do that
     bool player_two_is_to_the_left = (m_state->m_memory->player_two_x - m_state->m_memory->player_one_x > 0);
@@ -190,9 +190,9 @@ void Bait::DetermineTactic()
         }
     }
 
-	//If we're far away, just laser
-	if(std::abs(m_state->m_memory->player_one_x - m_state->m_memory->player_two_x) > 90)
-	{
+    //If we're far away, just laser
+    if(std::abs(m_state->m_memory->player_one_x - m_state->m_memory->player_two_x) > 90)
+    {
         CreateTactic(Laser);
         m_tactic->DetermineChain();
         return;

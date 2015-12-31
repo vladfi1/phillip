@@ -24,12 +24,12 @@ Edgeguard::~Edgeguard()
 
 void Edgeguard::DetermineChain()
 {
-	//If we're not in a state to interupt, just continue with what we've got going
-	if((m_chain != NULL) && (!m_chain->IsInterruptible()))
-	{
-		m_chain->PressButtons();
-		return;
-	}
+    //If we're not in a state to interupt, just continue with what we've got going
+    if((m_chain != NULL) && (!m_chain->IsInterruptible()))
+    {
+        m_chain->PressButtons();
+        return;
+    }
 
     //Marth is dead if he's at this point
     if(m_state->m_memory->player_one_y < MARTH_ONE_JUMP_EVENT_HORIZON)
@@ -48,10 +48,10 @@ void Edgeguard::DetermineChain()
         }
     }
 
-	//distance formula
-	double distance = pow(std::abs(m_state->m_memory->player_one_x - m_state->m_memory->player_two_x), 2);
-	distance += pow(std::abs(m_state->m_memory->player_one_y - m_state->m_memory->player_two_y), 2);
-	distance = sqrt(distance);
+    //distance formula
+    double distance = pow(std::abs(m_state->m_memory->player_one_x - m_state->m_memory->player_two_x), 2);
+    distance += pow(std::abs(m_state->m_memory->player_one_y - m_state->m_memory->player_two_y), 2);
+    distance = sqrt(distance);
 
     //If we're able to shine p1 right now, let's do that
     if(std::abs(distance) < FOX_SHINE_RADIUS)
@@ -103,9 +103,9 @@ void Edgeguard::DetermineChain()
         }
 
         //Calculate distance between players
-    	double distance = pow(std::abs(m_state->m_memory->player_one_x) - m_state->getStageEdgePosition(), 2);
-    	distance += pow(m_state->m_memory->player_one_y, 2);
-    	distance = sqrt(distance);
+        double distance = pow(std::abs(m_state->m_memory->player_one_x) - m_state->getStageEdgePosition(), 2);
+        distance += pow(m_state->m_memory->player_one_y, 2);
+        distance = sqrt(distance);
 
         double edge_distance_x = std::abs(std::abs(m_state->m_memory->player_one_x) - m_state->getStageEdgePosition());
         double edge_distance_y = std::abs(m_state->m_memory->player_one_y - EDGE_HANGING_Y_POSITION);

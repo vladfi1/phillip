@@ -6,8 +6,8 @@ void Powershield::PressButtons()
     //What frame (relative to the start of the attack) we should be shielding on?
     int shield_on_frame = 0;
     double distance = pow(std::abs(m_state->m_memory->player_one_x - m_state->m_memory->player_two_x), 2);
-	distance += pow(std::abs(m_state->m_memory->player_one_y - m_state->m_memory->player_two_y), 2);
-	distance = sqrt(distance);
+    distance += pow(std::abs(m_state->m_memory->player_one_y - m_state->m_memory->player_two_y), 2);
+    distance = sqrt(distance);
 
     //Determine when to shield depending on distance and what attack it is
     switch(m_state->m_memory->player_one_action)

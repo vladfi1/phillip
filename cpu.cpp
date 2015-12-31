@@ -125,7 +125,7 @@ int main()
     char *shm;
     GameState *state = GameState::Instance();
 
-	//return 0;
+    //return 0;
     key = 1337;
 
     /*
@@ -150,7 +150,7 @@ int main()
 
     uint last_frame = state->m_memory->frame;
     //Get our goal
-	Goal *goal = NULL;
+    Goal *goal = NULL;
     MENU current_menu = (MENU)state->m_memory->menu_state;
 
     //Main frame loop
@@ -204,5 +204,5 @@ int main()
         }
     }
 
-	return EXIT_SUCCESS;
+    return EXIT_SUCCESS;
 }

@@ -27,7 +27,7 @@ void Multishine::PressButtons()
         case 0:
         {
             //Down-B
-			m_controller->pressButton(Controller::BUTTON_B);
+            m_controller->pressButton(Controller::BUTTON_B);
             m_controller->tiltAnalog(Controller::BUTTON_MAIN, .5, 0);
             break;
         }
@@ -44,7 +44,7 @@ void Multishine::PressButtons()
         }
         case 4:
         {
-			//Let go of Jump
+            //Let go of Jump
             m_controller->releaseButton(Controller::BUTTON_Y);
             break;
         }

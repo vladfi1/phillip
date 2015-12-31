@@ -171,9 +171,9 @@ void Juggle::DetermineChain()
     }
 
     //Calculate distance between players
-	double distance = pow(m_state->m_memory->player_one_x - m_state->m_memory->player_two_x, 2);
-	distance += pow(m_state->m_memory->player_one_y - m_state->m_memory->player_two_y, 2);
-	distance = sqrt(distance);
+    double distance = pow(m_state->m_memory->player_one_x - m_state->m_memory->player_two_x, 2);
+    distance += pow(m_state->m_memory->player_one_y - m_state->m_memory->player_two_y, 2);
+    distance = sqrt(distance);
 
     //How many frames do we have until we need to do something?
     int frames_left;
