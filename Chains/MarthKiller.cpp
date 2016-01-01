@@ -1,7 +1,6 @@
 #include <cmath>
 
 #include "MarthKiller.h"
-
 void MarthKiller::PressButtons()
 {
     if(m_shielded == false)
@@ -20,15 +19,6 @@ void MarthKiller::PressButtons()
         return;
     }
 
-    //Let go of hard shield, start light shield diagonally
-    if(m_state->m_memory->frame == m_rollFrame+1)
-    {
-        m_controller->releaseButton(Controller::BUTTON_L);
-        m_controller->tiltAnalog(Controller::BUTTON_L, .4);
-        m_controller->tiltAnalog(Controller::BUTTON_MAIN, m_onRight ? .9 : .1, .2);
-        return;
-    }
-
     if(!m_state->m_memory->player_two_on_ground)
     {
         m_controller->emptyInput();
@@ -40,6 +30,19 @@ void MarthKiller::PressButtons()
         m_controller->emptyInput();
         return;
     }
+
+    //Let go of hard shield, start light shield
+    if(m_state->m_memory->frame >= m_rollFrame+1)
+    {
+        m_controller->releaseButton(Controller::BUTTON_L);
+        m_controller->tiltAnalog(Controller::BUTTON_L, .4);
+        m_controller->tiltAnalog(Controller::BUTTON_MAIN, m_onRight ? .9 : .1, .5);
+        return;
+    }
+
+    //If all else fails, just hang out and do nothing
+    m_controller->emptyInput();
+    return;
 }
 
 bool MarthKiller::IsInterruptible()

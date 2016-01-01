@@ -31,8 +31,14 @@ void Edgeguard::DetermineChain()
         return;
     }
 
+    double lowerEventHorizon = MARTH_LOWER_EVENT_HORIZON;
+    if(m_state->m_memory->player_one_jumps_left == 0)
+    {
+        lowerEventHorizon += MARTH_DOUBLE_JUMP_HEIGHT;
+    }
+
     //Marth is dead if he's at this point
-    if(m_state->m_memory->player_one_y < MARTH_ONE_JUMP_EVENT_HORIZON)
+    if(m_state->m_memory->player_one_y < lowerEventHorizon)
     {
         if(m_state->m_memory->player_two_action == EDGE_HANGING)
         {
@@ -132,19 +138,35 @@ void Edgeguard::DetermineChain()
 
     //Edgehog our opponent if they're UP-B'ing sweetspotted.
     //Grab the edge if we're still on the stage
-    if(m_state->m_memory->player_one_y < 50 &&
-        m_state->m_memory->player_one_action == UP_B &&
+    if(m_state->m_memory->player_one_action == UP_B &&
         m_state->m_memory->player_two_action == EDGE_HANGING)
     {
-        CreateChain2(EdgeAction, Controller::BUTTON_L);
-        m_chain->PressButtons();
-        return;
+        //Is marth so low that he must grab the edge? If so, just roll up.
+        if(m_state->m_memory->player_one_y < MARTH_RECOVER_HIGH_EVENT_HORIZON + MARTH_DOUBLE_JUMP_HEIGHT)
+        {
+            CreateChain2(EdgeAction, Controller::BUTTON_L);
+            m_chain->PressButtons();
+            return;
+        }
+        //If not, he might land on the stage. So, just stand up and attack on the other end
+        else
+        {
+            CreateChain2(EdgeAction, Controller::BUTTON_MAIN);
+            m_chain->PressButtons();
+            return;
+        }
     }
 
-    //Do the marth killer if he's way down there and we're on the stage
+    double jumpOnlyEventHorizon = MARTH_JUMP_ONLY_EVENT_HORIZON;
+    if(m_state->m_memory->player_one_jumps_left == 0)
+    {
+        jumpOnlyEventHorizon += MARTH_DOUBLE_JUMP_HEIGHT;
+    }
+
+    //Do the marth killer if we're on the stage and Marth must up-b to recover
     if(m_state->m_memory->player_two_on_ground &&
-        m_state->m_memory->player_one_y < MARTH_JUMP_ONLY_EVENT_HORIZON &&
-        m_state->m_memory->player_one_y > MARTH_ONE_JUMP_EVENT_HORIZON)
+        m_state->m_memory->player_one_y < jumpOnlyEventHorizon &&
+        m_state->m_memory->player_one_y > lowerEventHorizon)
     {
         CreateChain(MarthKiller);
         m_chain->PressButtons();

@@ -50,7 +50,9 @@ void Bait::DetermineTactic()
     {
         m_actionChanged = false;
         if(m_state->m_memory->player_two_action == SHIELD_STUN ||
-            m_state->m_memory->player_two_action == SPOTDODGE)
+            m_state->m_memory->player_two_action == SPOTDODGE ||
+            m_state->m_memory->player_two_action == EDGE_GETUP_QUICK ||
+            m_state->m_memory->player_two_action == EDGE_GETUP_SLOW)
         {
             m_shieldedAttack = true;
         }
@@ -202,7 +204,7 @@ void Bait::DetermineTactic()
 
     //If the opponent is off the stage, let's edgeguard them
     //NOTE: Sometimes players can get a little below 0 in Y coordinates without being off the stage
-    if(std::abs(m_state->m_memory->player_one_x) > m_state->getStageEdgeGroundPosition() ||
+    if(std::abs(m_state->m_memory->player_one_x) > m_state->getStageEdgeGroundPosition() + .001||
         m_state->m_memory->player_one_y < -5.5 ||
         m_state->m_memory->player_one_action == EDGE_CATCHING ||
         m_state->m_memory->player_one_action == EDGE_HANGING)
