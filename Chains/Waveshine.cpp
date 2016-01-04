@@ -59,7 +59,19 @@ void Waveshine::PressButtons()
         m_controller->pressButton(Controller::BUTTON_L);
         //TODO: still assumes we're facing the opponent
         //If we're close to the edge, don't wavedash off
-        if(std::abs(m_state->m_memory->player_two_x) + 10 > m_state->getStageEdgeGroundPosition())
+        if(std::abs(m_state->m_memory->player_two_x) + 2 > m_state->getStageEdgeGroundPosition())
+        {
+            //If we're super duper close the the edge, we HAVE to wavedash back, or die
+            if(m_state->m_memory->player_two_x > 0)
+            {
+                m_controller->tiltAnalog(Controller::BUTTON_MAIN, .2, .2);
+            }
+            else
+            {
+                m_controller->tiltAnalog(Controller::BUTTON_MAIN, .8, .2);
+            }
+        }
+        else if(std::abs(m_state->m_memory->player_two_x) + 10 > m_state->getStageEdgeGroundPosition())
         {
             m_controller->tiltAnalog(Controller::BUTTON_MAIN, .5, 0);
         }
