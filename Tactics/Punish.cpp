@@ -215,8 +215,8 @@ void Punish::DetermineChain()
         //Do we have time to upsmash? Do that.
         if(frames_left > 7)
         {
-            //Do one less frame of charging than we could, just to be safe
-            CreateChain3(SmashAttack, SmashAttack::UP, frames_left - 8);
+            //Do two less frames of charging than we could, just to be safe
+            CreateChain3(SmashAttack, SmashAttack::UP, std::max(0, frames_left - 9));
             m_chain->PressButtons();
             return;
         }
@@ -232,24 +232,17 @@ void Punish::DetermineChain()
 
     //Is it safe to wavedash in after shielding the attack?
     //  Don't wavedash off the edge of the stage
-    if(frames_left > 10 && m_state->m_memory->player_two_action == SHIELD_RELEASE &&
-        (m_state->getStageEdgeGroundPosition() - std::abs(m_state->m_memory->player_two_x) > 10))
+    if(frames_left > 14 &&
+        m_state->m_memory->player_two_action == SHIELD_RELEASE &&
+        (m_state->getStageEdgeGroundPosition() > std::abs(m_state->m_memory->player_two_x) + 10))
     {
         CreateChain2(Wavedash, player_two_is_to_the_left);
         m_chain->PressButtons();
         return;
     }
 
-    //We're out of attack range and already did a wavedash, so if we still have time, try walking in
-    if(frames_left > 10)
-    {
-        CreateChain2(Walk, player_two_is_to_the_left);
-        m_chain->PressButtons();
-        return;
-    }
-
-    //Just do nothing
-    CreateChain(Nothing);
+    //Default to walking in towards the player
+    CreateChain2(Walk, player_two_is_to_the_left);
     m_chain->PressButtons();
     return;
 }
