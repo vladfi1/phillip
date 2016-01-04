@@ -10,7 +10,7 @@ class EdgeAction : public Chain
 
 public:
 
-    EdgeAction(Controller::BUTTON b);
+    EdgeAction(Controller::BUTTON b, uint waitFrames = 0);
     ~EdgeAction();
 
     void PressButtons();
@@ -19,6 +19,7 @@ public:
 private:
     Controller::BUTTON m_button;
     bool m_readyToInterrupt;
+    uint m_waitFrames;
 };
 
 #endif

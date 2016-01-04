@@ -530,6 +530,14 @@ uint GameState::totalActionFrames(CHARACTER character, ACTION action)
                         return 10;
                     }
                 }
+                case MARTH_COUNTER:
+                {
+                    return 59;
+                }
+                case SPOTDODGE:
+                {
+                    return 27;
+                }
                 default:
                 {
                     return 0;

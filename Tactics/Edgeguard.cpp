@@ -144,7 +144,7 @@ void Edgeguard::DetermineChain()
         //Is marth so low that he must grab the edge? If so, just roll up.
         if(m_state->m_memory->player_one_y < MARTH_RECOVER_HIGH_EVENT_HORIZON + MARTH_DOUBLE_JUMP_HEIGHT)
         {
-            CreateChain2(EdgeAction, Controller::BUTTON_L);
+            CreateChain3(EdgeAction, Controller::BUTTON_L, 2);
             m_chain->PressButtons();
             return;
         }

@@ -103,7 +103,8 @@ void Bait::DetermineTactic()
     bool player_two_is_to_the_left = (m_state->m_memory->player_two_x - m_state->m_memory->player_one_x > 0);
     if((m_state->m_memory->player_one_action == SPOTDODGE ||
         m_state->m_memory->player_one_action == MARTH_COUNTER ||
-        m_state->m_memory->player_one_action == MARTH_COUNTER_FALLING) &&
+        m_state->m_memory->player_one_action == MARTH_COUNTER_FALLING ||
+        m_state->m_memory->player_one_action == LANDING_SPECIAL) &&
         distance < FOX_UPSMASH_RANGE-2 &&
         m_state->m_memory->player_two_facing != player_two_is_to_the_left)
     {

@@ -2,6 +2,14 @@
 
 void EdgeAction::PressButtons()
 {
+    if(m_waitFrames > 0)
+    {
+        m_waitFrames--;
+        m_controller->emptyInput();
+        m_readyToInterrupt = false;
+        return;
+    }
+
     //Wait until we're not edge catching anymore
     if(m_state->m_memory->player_two_action == EDGE_CATCHING)
     {
@@ -37,10 +45,11 @@ bool EdgeAction::IsInterruptible()
     return m_readyToInterrupt;
 }
 
-EdgeAction::EdgeAction(Controller::BUTTON button)
+EdgeAction::EdgeAction(Controller::BUTTON button, uint waitFrames)
 {
     m_button = button;
     m_readyToInterrupt = false;
+    m_waitFrames = waitFrames;
 }
 
 EdgeAction::~EdgeAction()

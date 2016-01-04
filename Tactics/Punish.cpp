@@ -12,6 +12,8 @@
 #include "../Chains/Wavedash.h"
 #include "../Chains/EdgeAction.h"
 
+#include <iostream>
+
 Punish::Punish()
 {
     m_roll_position = 0;
@@ -210,29 +212,11 @@ void Punish::DetermineChain()
         (distance < FOX_UPSMASH_RANGE - 25.5 && (m_state->m_memory->player_two_action == DASHING ||
             m_state->m_memory->player_two_action == RUNNING))))
     {
-        //Spot dodge
-        if(m_state->m_memory->player_one_action == SPOTDODGE &&
-            m_state->m_memory->player_one_action_frame < 18)
-        {
-            CreateChain3(SmashAttack, SmashAttack::UP, 18 - m_state->m_memory->player_one_action_frame);
-            m_chain->PressButtons();
-            return;
-        }
-
-        //Marth counter
-        if((m_state->m_memory->player_one_action == MARTH_COUNTER ||
-            m_state->m_memory->player_one_action == MARTH_COUNTER_FALLING) &&
-            m_state->m_memory->player_one_action_frame < 50)
-        {
-            CreateChain3(SmashAttack, SmashAttack::UP, 50 - m_state->m_memory->player_one_action_frame);
-            m_chain->PressButtons();
-            return;
-        }
-
         //Do we have time to upsmash? Do that.
         if(frames_left > 7)
         {
-            CreateChain3(SmashAttack, SmashAttack::UP, 0);
+            //Do one less frame of charging than we could, just to be safe
+            CreateChain3(SmashAttack, SmashAttack::UP, frames_left - 8);
             m_chain->PressButtons();
             return;
         }
