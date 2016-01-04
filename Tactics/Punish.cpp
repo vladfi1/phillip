@@ -2,7 +2,7 @@
 #include <math.h>
 #include <cmath>
 
-#include "Juggle.h"
+#include "Punish.h"
 #include "../Constants.h"
 #include "../Chains/SmashAttack.h"
 #include "../Chains/Nothing.h"
@@ -10,23 +10,34 @@
 #include "../Chains/Run.h"
 #include "../Chains/Walk.h"
 #include "../Chains/Wavedash.h"
+#include "../Chains/EdgeAction.h"
 
-Juggle::Juggle()
+Punish::Punish()
 {
     m_roll_position = 0;
     m_chain = NULL;
 }
 
-Juggle::~Juggle()
+Punish::~Punish()
 {
     delete m_chain;
 }
 
-void Juggle::DetermineChain()
+void Punish::DetermineChain()
 {
     //If we're not in a state to interupt, just continue with what we've got going
     if((m_chain != NULL) && (!m_chain->IsInterruptible()))
     {
+        m_chain->PressButtons();
+        return;
+    }
+
+    //If we're hanging on the egde, and they are falling above the stage, stand up
+    if(m_state->m_memory->player_one_action == DEAD_FALL &&
+        m_state->m_memory->player_two_action == EDGE_HANGING &&
+        std::abs(m_state->m_memory->player_one_x) < m_state->getStageEdgeGroundPosition() + .001)
+    {
+        CreateChain2(EdgeAction, Controller::BUTTON_MAIN);
         m_chain->PressButtons();
         return;
     }

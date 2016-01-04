@@ -234,11 +234,15 @@ public:
     //    return value of 0 means not an airial attack, or not supported yet
     uint landingLag(CHARACTER, ACTION);
 
+    //Is the current landing special state from UP-B (true) or wavedash (false)
+    void setLandingState(bool);
+
     GameMemory *m_memory;
 
 private:
     GameState();
     static GameState *m_instance;
+    bool m_landingFromUpB;
 };
 
 #endif

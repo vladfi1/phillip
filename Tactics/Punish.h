@@ -1,15 +1,15 @@
-#ifndef JUGGLE_H
-#define JUGGLE_H
+#ifndef PUNISH_H
+#define PUNISH_H
 
 #include "Tactic.h"
 
 //Keep the opponent in the air
-class Juggle : public Tactic
+class Punish : public Tactic
 {
 
 public:
-    Juggle();
-    ~Juggle();
+    Punish();
+    ~Punish();
     void DetermineChain();
 
 private:

@@ -519,6 +519,17 @@ uint GameState::totalActionFrames(CHARACTER character, ACTION action)
                 {
                     return 54;
                 }
+                case LANDING_SPECIAL:
+                {
+                    if(m_landingFromUpB)
+                    {
+                        return 30;
+                    }
+                    else
+                    {
+                        return 10;
+                    }
+                }
                 default:
                 {
                     return 0;
@@ -533,4 +544,9 @@ uint GameState::totalActionFrames(CHARACTER character, ACTION action)
             break;
         }
     }
+}
+
+void GameState::setLandingState(bool state)
+{
+    m_landingFromUpB = state;
 }
