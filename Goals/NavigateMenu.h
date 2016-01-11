@@ -16,6 +16,7 @@ public:
 private:
     Controller *m_controller;
     bool m_emptiedInput;
+    bool m_characterSelected;
 };
 
 #endif

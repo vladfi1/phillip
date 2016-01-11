@@ -19,7 +19,7 @@ void Laser::DetermineChain()
     if(m_chain != NULL && m_chain->IsInterruptible())
     {
         delete m_chain;
-        m_chain = new SHDL();
+        m_chain = NULL;
     }
     CreateChain(SHDL);
     m_chain->PressButtons();

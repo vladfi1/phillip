@@ -13,6 +13,11 @@ GameState *GameState::Instance()
     return m_instance;
 }
 
+GameState::GameState()
+{
+    m_memory = new GameMemory();
+}
+
 double GameState::getStageEdgePosition()
 {
     double edge_position = 100;
@@ -80,13 +85,6 @@ bool GameState::isDamageState(ACTION action)
     }
     return false;
 }
-
-
-GameState::GameState()
-{
-
-}
-
 
 uint GameState::firstHitboxFrame(CHARACTER character, ACTION action)
 {

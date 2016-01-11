@@ -1,6 +1,4 @@
 #include <sys/types.h>
-#include <sys/ipc.h>
-#include <sys/shm.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <iomanip>
@@ -14,6 +12,7 @@
 #include "Goals/NavigateMenu.h"
 
 #include "GameState.h"
+#include "MemoryWatcher.h"
 
 void PrintState(GameState* state)
 {
@@ -21,6 +20,8 @@ void PrintState(GameState* state)
     std::cout << "p2 percent: " << state->m_memory->player_two_percent << std::endl;
     std::cout << "p1 stock: " << state->m_memory->player_one_stock << std::endl;
     std::cout << "p2 stock: " << state->m_memory->player_two_stock << std::endl;
+    std::cout << "p1 character: " << state->m_memory->player_one_character << std::endl;
+    std::cout << "p2 character: " << state->m_memory->player_two_character << std::endl;
     if(state->m_memory->player_one_facing)
     {
         std::cout << "p1 facing: right" << std::endl;
@@ -120,42 +121,27 @@ void PrintState(GameState* state)
 
 int main()
 {
-    int shmid;
-    key_t key;
-    char *shm;
     GameState *state = GameState::Instance();
 
-    //return 0;
-    key = 1337;
-
-    /*
-     * Locate the segment.
-     */
-    if ((shmid = shmget(key, sizeof(GameState), 0666)) < 0) {
-        perror("shmget");
-        exit(1);
-    }
-
-    /*
-     * Now we attach the segment to our data space.
-     */
-    if ((shm = (char*)shmat(shmid, NULL, 0)) == (char *) -1) {
-        perror("shmat");
-        exit(1);
-    }
-
-    state->m_memory = (GameMemory*)shm;
-
-    PrintState(state);
-
-    uint last_frame = state->m_memory->frame;
+    MemoryWatcher *watcher = new MemoryWatcher();
+    uint last_frame = 0;
     //Get our goal
     Goal *goal = NULL;
-    MENU current_menu = (MENU)state->m_memory->menu_state;
+    MENU current_menu;
 
     //Main frame loop
     for(;;)
     {
+        //If we get a new frame, process it. Otherwise, keep reading memory
+        if(!watcher->ReadMemory())
+        {
+            continue;
+        }
+
+        //PrintState(state);
+
+        current_menu = (MENU)state->m_memory->menu_state;
+
         //Spinloop until we get a new frame
         if(state->m_memory->frame != last_frame)
         {
