@@ -53,6 +53,10 @@ The level 11 CPU is an AI that plays Super Smash Bros: Melee inside the Dolphin 
 
     For right now, the level 11 CPU only runs on a PC as a normal computer program. (Meaning that Melee has to be in an emulator) But I do want to get it running on actual Gamecube/Wii hardware. If you'd like to help with this, let me know!
 
+6. **What Operating Systems does it play on?**
+
+    The CPU only runs on Linux. Under the hood, we use a named pipe input system to Dolphin, which is *nix only. There are no plans to make a Windows port. If we're going to spend time porting, it's going to be to a Gamecube/Wii. 
+
 ##Rough Setup Steps:
 
 ###Works on: Ubuntu 15.04 (Maybe others, but that's all I've tested)
