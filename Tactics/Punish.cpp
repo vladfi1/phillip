@@ -149,7 +149,8 @@ void Punish::DetermineChain()
         if(m_state->m_memory->player_two_action == DASHING ||
             m_state->m_memory->player_two_action == RUNNING)
         {
-            distance = std::abs(std::abs(m_roll_position - m_state->m_memory->player_two_x) - 25.5);
+            double slidingAdjustment = 12.25 * (std::abs(m_state->m_memory->player_two_speed_ground_x_self));
+            distance = std::abs(std::abs(m_roll_position - m_state->m_memory->player_two_x) - slidingAdjustment);
         }
         else
         {
@@ -160,7 +161,7 @@ void Punish::DetermineChain()
         if(distance < FOX_UPSMASH_RANGE_NEAR &&
             to_the_left == m_state->m_memory->player_two_facing)
         {
-            CreateChain3(SmashAttack, SmashAttack::UP, frames_left - 10);
+            CreateChain3(SmashAttack, SmashAttack::UP, std::max(0, frames_left - 9));
             m_chain->PressButtons();
             return;
         }
