@@ -20,6 +20,7 @@ private:
     uint m_frameShined;
     uint m_hitlagFrames;
     uint m_frameKneeBend;
+    uint m_airdodgeFrame;
     bool m_isBusy;
 };
 

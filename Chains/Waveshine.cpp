@@ -4,6 +4,19 @@
 
 void Waveshine::PressButtons()
 {
+    //If we're falling off the stage, then we must have slid off. Jump back on.
+    //(Also, make sure that we're not trying to jump two frames in a row. If so, it would be interpreted as one jump)
+    if(m_state->m_memory->player_two_action == FALLING &&
+        std::abs(m_state->m_memory->player_two_x) > m_state->getStageEdgeGroundPosition() &&
+        m_state->m_memory->frame != m_frameJumped+1)
+    {
+        bool onRight = m_state->m_memory->player_two_x > 0;
+        m_frameJumped = m_state->m_memory->frame;
+        m_controller->tiltAnalog(Controller::BUTTON_MAIN, onRight ? 0 : 1, .5);
+        m_controller->pressButton(Controller::BUTTON_Y);
+        return;
+    }
+
     //Do nothing if we're in hitlag
     if(m_state->m_memory->player_two_hitlag_frames_left > 0)
     {
@@ -41,7 +54,7 @@ void Waveshine::PressButtons()
         return;
     }
 
-    if(m_state->m_memory->frame == m_frameShined+m_hitlagFrames+5)
+    if(m_state->m_memory->frame == m_frameJumped+1)
     {
         m_controller->releaseButton(Controller::BUTTON_Y);
         return;
@@ -54,8 +67,12 @@ void Waveshine::PressButtons()
         return;
     }
 
-    if(m_state->m_memory->frame == m_frameKneeBend+1)
+    //If we're in the air, there won't be any knee bending frames
+    if(m_state->m_memory->frame == m_frameKneeBend+1 ||
+        m_state->m_memory->player_two_action == JUMPING_ARIAL_FORWARD ||
+        m_state->m_memory->player_two_action == JUMPING_ARIAL_BACKWARD)
     {
+        m_airdodgeFrame = m_state->m_memory->frame;
         m_controller->pressButton(Controller::BUTTON_L);
         //TODO: still assumes we're facing the opponent
         //If we're close to the edge, don't wavedash off
@@ -71,6 +88,7 @@ void Waveshine::PressButtons()
                 m_controller->tiltAnalog(Controller::BUTTON_MAIN, .8, .2);
             }
         }
+        //If we're only kinda close to the edge, just wavedash downward
         else if(std::abs(m_state->m_memory->player_two_x) + 10 > m_state->getStageEdgeGroundPosition())
         {
             m_controller->tiltAnalog(Controller::BUTTON_MAIN, .5, 0);
@@ -89,7 +107,7 @@ void Waveshine::PressButtons()
         return;
     }
 
-    if(m_state->m_memory->frame == m_frameKneeBend+2)
+    if(m_state->m_memory->frame == m_airdodgeFrame+1)
     {
         m_isBusy = false;
         m_controller->releaseButton(Controller::BUTTON_L);
@@ -114,6 +132,7 @@ Waveshine::Waveshine()
     m_frameShined = 0;
     m_hitlagFrames = 0;
     m_frameKneeBend = 0;
+    m_airdodgeFrame = 0;
     m_isBusy = false;
 }
 
