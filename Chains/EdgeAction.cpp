@@ -13,6 +13,7 @@ void EdgeAction::PressButtons()
     //Wait until we're not edge catching anymore
     if(m_state->m_memory->player_two_action == EDGE_CATCHING)
     {
+        m_controller->emptyInput();
         return;
     }
     if(m_state->m_memory->player_two_action == EDGE_HANGING)

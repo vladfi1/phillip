@@ -134,6 +134,11 @@ bool MemoryWatcher::ReadMemory()
                 {
                     value_int = std::stoul(value.c_str(), nullptr, 16);
                     value_int = value_int >> 24;
+                    //TODO: This won't work for characters with multiple jumps
+                    if(value_int > 1)
+                    {
+                        value_int = 0;
+                    }
                     m_state->m_memory->player_one_jumps_left = value_int;
                     break;
                 }
@@ -282,6 +287,11 @@ bool MemoryWatcher::ReadMemory()
                 {
                     value_int = std::stoul(value.c_str(), nullptr, 16);
                     value_int = value_int >> 24;
+                    //TODO: This won't work for characters with multiple jumps
+                    if(value_int > 1)
+                    {
+                        value_int = 0;
+                    }
                     m_state->m_memory->player_two_jumps_left = value_int;
                     break;
                 }

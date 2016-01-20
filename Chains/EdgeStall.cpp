@@ -6,18 +6,39 @@ void EdgeStall::PressButtons()
     //We're stunned for this duration, so do nothing
     if(m_state->m_memory->player_two_action == EDGE_CATCHING)
     {
-        m_controller->emptyInput();
-        return;
+        m_catchCount++;
+        if(m_catchCount == 7)
+        {
+            m_catchCount = 0;
+            m_pressedBack = true;
+            m_controller->tiltAnalog(Controller::BUTTON_MAIN, m_isLeftEdge ? 0 : 1, .5);
+            return;
+        }
+        else
+        {
+            m_controller->emptyInput();
+            return;
+        }
     }
 
     //If we're hanging, then drop down
     if(m_state->m_memory->player_two_action == EDGE_HANGING)
     {
-        m_controller->tiltAnalog(Controller::BUTTON_MAIN, m_isLeftEdge ? 0 : 1, .5);
-        return;
+        if(m_pressedBack)
+        {
+            m_controller->emptyInput();
+            m_pressedBack = false;
+            return;
+        }
+        else
+        {
+          m_pressedBack = true;
+          m_controller->tiltAnalog(Controller::BUTTON_MAIN, m_isLeftEdge ? 0 : 1, .5);
+          return;
+        }
     }
 
-    //If we're dropping, shine
+    //Firefox
     if(m_state->m_memory->player_two_action == FALLING)
     {
         m_controller->tiltAnalog(Controller::BUTTON_MAIN, .5, 1);
@@ -34,11 +55,12 @@ void EdgeStall::PressButtons()
 
 bool EdgeStall::IsInterruptible()
 {
-    if(m_state->m_memory->player_two_action == EDGE_HANGING)
+    if(m_state->m_memory->player_two_action == EDGE_HANGING ||
+      m_state->m_memory->player_two_action == EDGE_CATCHING)
     {
         return true;
     }
-    if(m_state->m_memory->frame - m_startingFrame > 60)
+    if(m_state->m_memory->frame - m_startingFrame > 30)
     {
         //Safety return. In case we screw something up, don't permanently get stuck in this chain.
         return true;
@@ -58,6 +80,8 @@ EdgeStall::EdgeStall()
         m_isLeftEdge = true;
     }
     m_startingFrame = m_state->m_memory->frame;
+    m_pressedBack = false;
+    m_catchCount = 0;
 }
 
 EdgeStall::~EdgeStall()

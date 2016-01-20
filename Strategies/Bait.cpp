@@ -10,6 +10,7 @@
 #include "../Tactics/ShineCombo.h"
 #include "../Tactics/Laser.h"
 #include "../Tactics/Edgeguard.h"
+#include "../Tactics/Recover.h"
 #include "../Tactics/Punish.h"
 
 Bait::Bait()
@@ -197,12 +198,26 @@ void Bait::DetermineTactic()
         }
     }
 
+    //If we're hanging on the egde, and the oponnent is on the stage area, then recover
+    if((m_state->m_memory->player_two_action == EDGE_HANGING ||
+        m_state->m_memory->player_two_action == EDGE_CATCHING) &&
+        std::abs(m_state->m_memory->player_one_x) < m_state->getStageEdgeGroundPosition() + .001 &&
+        m_state->m_memory->player_one_y > -5)
+    {
+        CreateTactic(Recover);
+        m_tactic->DetermineChain();
+        return;
+    }
+
     //If we need to defend against an attack, that's next priority. Unless we've already shielded this attack
     if(!m_shieldedAttack && distance < MARTH_FSMASH_RANGE)
     {
         //Don't bother parrying if the attack is in the wrong direction
         bool player_one_is_to_the_left = (m_state->m_memory->player_one_x - m_state->m_memory->player_two_x > 0);
-        if(m_state->m_memory->player_one_facing != player_one_is_to_the_left || (isReverseHit((ACTION)m_state->m_memory->player_one_action)))
+        if((m_state->m_memory->player_one_facing != player_one_is_to_the_left || (isReverseHit((ACTION)m_state->m_memory->player_one_action))) &&
+            (m_state->m_memory->player_two_on_ground ||
+            m_state->m_memory->player_two_action == EDGE_HANGING ||
+            m_state->m_memory->player_two_action == EDGE_CATCHING))
         {
             if(isAttacking((ACTION)m_state->m_memory->player_one_action))
             {
@@ -237,6 +252,14 @@ void Bait::DetermineTactic()
         m_state->m_memory->player_one_action == EDGE_HANGING)
     {
         CreateTactic(Edgeguard);
+        m_tactic->DetermineChain();
+        return;
+    }
+
+    //If we're off the stage and don't need to edgeguard, get back on
+    if(std::abs(m_state->m_memory->player_two_x) > m_state->getStageEdgeGroundPosition() + .001)
+    {
+        CreateTactic(Recover);
         m_tactic->DetermineChain();
         return;
     }

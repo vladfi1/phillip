@@ -1,24 +1,24 @@
-#ifndef EDGESTALL_H
-#define EDGESTALL_H
+#ifndef FIREFOX_H
+#define FIREFOX_H
 
 #include "Chain.h"
 
 //Do a fully invincible edge stall
-class EdgeStall : public Chain
+class FireFox : public Chain
 {
 
 public:
 
-    EdgeStall();
-    ~EdgeStall();
+    FireFox();
+    ~FireFox();
     //Determine what buttons to press in order to execute our tactic
     void PressButtons();
     bool IsInterruptible();
 
-private:
-    bool m_isLeftEdge;
-    bool m_pressedBack;
-    bool m_catchCount;
+  private:
+      bool m_isRightEdge;
+      bool m_pressedJump;
+      bool m_hasUpBd;
 
 };
 
