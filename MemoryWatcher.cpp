@@ -10,6 +10,8 @@
 #include <iostream>
 #include <sstream>
 #include <algorithm>
+#include <cstdlib>
+#include <sys/stat.h>
 
 #include "MemoryWatcher.h"
 
@@ -18,15 +20,37 @@ MemoryWatcher::MemoryWatcher()
     m_state = GameState::Instance();
 
     struct passwd *pw = getpwuid(getuid());
-    std::string path = std::string(pw->pw_dir);
-    path += "/.dolphin-emu/MemoryWatcher/MemoryWatcher";
+    std::string home_path = std::string(pw->pw_dir);
+    std::string legacy_config_path = home_path + "/.dolphin-emu";
+    std::string mem_watcher_path;
+
+    struct stat buffer;
+    if(stat(legacy_config_path.c_str(), &buffer) != 0)
+    {
+        //If the legacy app path is not present, see if the new one is
+        const char* env_XDG_DATA_HOME = std::getenv("XDG_DATA_HOME");
+        if(env_XDG_DATA_HOME == NULL)
+        {
+            std::cout << "ERROR: $XDG_DATA_HOME was empty and so was $HOME/.dolphin-emu." \
+                "Make sure to install Dolphin first and try again." << std::endl;
+            exit(-1);
+        }
+        mem_watcher_path = env_XDG_DATA_HOME;
+        mem_watcher_path += "/MemoryWatcher/";
+    }
+    else
+    {
+        mem_watcher_path = legacy_config_path + "/MemoryWatcher/";
+    }
+
+    mem_watcher_path += "MemoryWatcher";
 
     m_file = socket(AF_UNIX, SOCK_DGRAM, 0);
     struct sockaddr_un addr;
     memset(&addr, 0, sizeof(addr));
     addr.sun_family = AF_UNIX;
-    unlink(path.c_str());
-    strncpy(addr.sun_path, path.c_str(), sizeof(addr.sun_path) - 1);
+    unlink(mem_watcher_path.c_str());
+    strncpy(addr.sun_path, mem_watcher_path.c_str(), sizeof(addr.sun_path) - 1);
     bind(m_file, (struct sockaddr*) &addr, sizeof(addr));
 }
 

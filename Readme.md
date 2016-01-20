@@ -55,7 +55,7 @@ The level 11 CPU is an AI that plays Super Smash Bros: Melee inside the Dolphin 
 
 6. **What Operating Systems does it play on?**
 
-    The CPU only runs on Linux. Under the hood, we use a named pipe input system to Dolphin, which is *nix only. There are no plans to make a Windows port. If we're going to spend time porting, it's going to be to a Gamecube/Wii. 
+    The CPU only runs on Linux. Under the hood, we use a named pipe input system to Dolphin, which is *nix only. There are no plans to make a Windows port. If we're going to spend time porting, it's going to be to a Gamecube/Wii.
 
 ##Rough Setup Steps:
 
@@ -63,19 +63,11 @@ The level 11 CPU is an AI that plays Super Smash Bros: Melee inside the Dolphin 
 
 1. Get a working build of dolphin from source. The latest master branch should be fine. You can find it here:
 https://github.com/dolphin-emu/dolphin
-2. Copy the file `Locations.txt` into `~/.dolphin-emu/MemoryWatcher/`. Depending on your distro, this might actually be `~/.local/share/dolphin-emu/MemoryWatcher/`.
-3. Create a named pipe for our CPU to talk over. This is how the CPU presses buttons programmatically over a virtual controller.
-
-    ```
-    mkfifo ~/.dolphin-emu/Pipes/cpu-level-11
-    ```
-
-4. Configure your controller settings for player 1 and player 2. The CPU will take player 2. You'll probably want a GameCube controller adapter. But configuring that is out of the scope of this document.
-5. Run dolphin and start up Melee.
-6. Run `./cpu`
+2. Configure your controller settings for player 1 and player 2. You will play as Player 1, the CPU will take Player 2. You'll probably want a GameCube controller adapter. Configuring controller settings is out of the scope of this document, but check out the file `GCPadNew.ini` provided here for an example controller config that ought to work. Just stick that in your Dolphin config directory. 
+3. Run `./cpu`
     ```
     ./cpu
     ```
-
-8. Move focus over to the dolphin window. (Or else turn on background input on the controller) Just click on the dolphin window to do this.
-7. Set player 1 to Marth. The CPU will choose its own character.  Set the stage to Final Destination. Start the match.
+4. Run dolphin and start up Melee.
+5. Move focus over to the dolphin window. (Or else turn on background input on the controller) Just click on the dolphin window to do this.
+6. Set player 1 to Marth. The CPU will choose its own character.  Set the stage to Final Destination. Start the match.

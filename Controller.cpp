@@ -5,6 +5,7 @@
 #include <sys/stat.h>   // mkfifo
 #include <fcntl.h>
 #include <cstring>
+#include <cstdlib>
 #include <iostream>
 
 #include <fcntl.h>
@@ -27,8 +28,29 @@ Controller *Controller::Instance()
 Controller::Controller()
 {
     struct passwd *pw = getpwuid(getuid());
-    std::string pipe_path = std::string(pw->pw_dir);
-    pipe_path += "/.dolphin-emu/Pipes/cpu-level-11";
+    std::string home_path = std::string(pw->pw_dir);
+    std::string legacy_config_path = home_path + "/.dolphin-emu";
+    std::string pipe_path;
+
+    struct stat buffer;
+    if(stat(legacy_config_path.c_str(), &buffer) != 0)
+    {
+        //If the legacy app path is not present, see if the new one is
+        const char* env_XDG_DATA_HOME = std::getenv("XDG_DATA_HOME");
+        if(env_XDG_DATA_HOME == NULL)
+        {
+            std::cout << "ERROR: $XDG_DATA_HOME was empty and so was $HOME/.dolphin-emu." \
+                "Make sure to install Dolphin first and try again." << std::endl;
+            exit(-1);
+        }
+        pipe_path = env_XDG_DATA_HOME;
+        pipe_path += "/Pipes/cpu-level-11";
+    }
+    else
+    {
+        pipe_path = legacy_config_path + "/Pipes/cpu-level-11";
+    }
+
     m_fifo = mkfifo(pipe_path.c_str(), S_IWUSR | S_IRUSR | S_IRGRP | S_IROTH);
     std::cout << "DEBUG: Waiting for Dolphin..." << std::endl;
 

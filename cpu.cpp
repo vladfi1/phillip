@@ -3,7 +3,8 @@
 #include <stdlib.h>
 #include <iomanip>
 #include <iostream>
-
+#include <fstream>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <pwd.h>
@@ -13,6 +14,67 @@
 
 #include "GameState.h"
 #include "MemoryWatcher.h"
+
+void FirstTimeSetup()
+{
+    struct passwd *pw = getpwuid(getuid());
+    std::string home_path = std::string(pw->pw_dir);
+    std::string legacy_config_path = home_path + "/.dolphin-emu";
+    std::string mem_watcher_path;
+    std::string pipe_path;
+
+    struct stat buffer;
+    if(stat(legacy_config_path.c_str(), &buffer) != 0)
+    {
+        //If the legacy app path is not present, see if the new one is
+        const char* env_XDG_DATA_HOME = std::getenv("XDG_DATA_HOME");
+        if(env_XDG_DATA_HOME == NULL)
+        {
+            std::cout << "ERROR: $XDG_DATA_HOME was empty and so was $HOME/.dolphin-emu." \
+                "Make sure to install Dolphin first and try again." << std::endl;
+            exit(-1);
+        }
+        mem_watcher_path = env_XDG_DATA_HOME;
+        mem_watcher_path += "/MemoryWatcher/";
+        pipe_path = env_XDG_DATA_HOME;
+        pipe_path += "/Pipes/";
+    }
+    else
+    {
+        mem_watcher_path = legacy_config_path + "/MemoryWatcher/";
+        pipe_path = legacy_config_path + "/Pipes/";
+    }
+
+    //Create the MemoryWatcher directory if it doesn't already exist
+    if(stat(mem_watcher_path.c_str(), &buffer) != 0)
+    {
+        if(mkdir(mem_watcher_path.c_str(), 0775) != 0)
+        {
+            std::cout << "ERROR: Could not create the directory: \"" << mem_watcher_path << "\". Dolphin seems to be installed, " \
+                "But this is not working for some reason. Maybe permissions?" << std::endl;
+            exit(-1);
+        }
+        std::cout << "WARNING: Had to create a MemoryWatcher directory in Dolphin just now. " \
+            "You may need to restart Dolphin and the CPU in order for this to work. (You should only see this warning once)" << std::endl;
+    }
+
+    std::ifstream src("Locations.txt", std::ios::in);
+    std::ofstream dst(mem_watcher_path + "/Locations.txt", std::ios::out);
+    dst << src.rdbuf();
+
+    //Create the Pipes directory if it doesn't already exist
+    if(stat(pipe_path.c_str(), &buffer) != 0)
+    {
+        if(mkdir(pipe_path.c_str(), 0775) != 0)
+        {
+            std::cout << "ERROR: Could not create the directory: \"" << pipe_path << "\". Dolphin seems to be installed, " \
+                "But this is not working for some reason. Maybe permissions?" << std::endl;
+            exit(-1);
+        }
+        std::cout << "WARNING: Had to create a Pipes directory in Dolphin just now. " \
+            "You may need to restart Dolphin and the CPU in order for this to work. (You should only see this warning once)" << std::endl;
+    }
+}
 
 void PrintState(GameState* state)
 {
@@ -121,6 +183,9 @@ void PrintState(GameState* state)
 
 int main()
 {
+    //Do some first-time setup
+    FirstTimeSetup();
+
     GameState *state = GameState::Instance();
 
     MemoryWatcher *watcher = new MemoryWatcher();
