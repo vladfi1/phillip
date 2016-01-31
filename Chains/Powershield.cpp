@@ -274,21 +274,7 @@ void Powershield::PressButtons()
         }
         case FAIR:
         {
-            //If we're right in close
-            if(distance < 18)
-            {
-                shield_on_frame = 1;
-            }
-            //Mid distance
-            else if(distance >= 18 && distance < 27)
-            {
-                shield_on_frame = 2;
-            }
-            //Long distance
-            else if(distance >= 27)
-            {
-                shield_on_frame = 2;
-            }
+            shield_on_frame = 3;
             break;
         }
         case BAIR:
@@ -347,29 +333,11 @@ void Powershield::PressButtons()
         }
         case NEUTRAL_ATTACK_1:
         {
-            //If we're right in close
-            if(distance < 18)
-            {
-                shield_on_frame = 1;
-            }
-            //Mid distance
-            else if(distance >= 18 && distance < 27)
-            {
-                shield_on_frame = 2;
-            }
-            //Long distance
-            else if(distance >= 27)
-            {
-                shield_on_frame = 60;
-            }
+            shield_on_frame = 3;
             break;
         }
         case NEUTRAL_ATTACK_2:
         {
-            if(distance >= 27)
-            {
-                shield_on_frame = 60;
-            }
             shield_on_frame = 3;
             break;
         }

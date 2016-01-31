@@ -135,25 +135,49 @@ uint GameState::firstHitboxFrame(CHARACTER character, ACTION action)
                     return 7;
                 }
                 case SWORD_DANCE_1:
-                case SWORD_DANCE_2_HIGH:
-                case SWORD_DANCE_2_MID:
-                case SWORD_DANCE_3_HIGH:
-                case SWORD_DANCE_3_MID:
-                case SWORD_DANCE_3_LOW:
-                case SWORD_DANCE_4_HIGH:
-                case SWORD_DANCE_4_MID:
-                case SWORD_DANCE_4_LOW:
                 case SWORD_DANCE_1_AIR:
-                case SWORD_DANCE_2_HIGH_AIR:
-                case SWORD_DANCE_2_MID_AIR:
-                case SWORD_DANCE_3_HIGH_AIR:
-                case SWORD_DANCE_3_MID_AIR:
-                case SWORD_DANCE_3_LOW_AIR:
-                case SWORD_DANCE_4_HIGH_AIR:
-                case SWORD_DANCE_4_MID_AIR:
-                case SWORD_DANCE_4_LOW_AIR:
                 {
                     return 6;
+                }
+                case SWORD_DANCE_2_HIGH:
+                case SWORD_DANCE_2_HIGH_AIR:
+                {
+                    return 12;
+                }
+                case SWORD_DANCE_2_MID:
+                case SWORD_DANCE_2_MID_AIR:
+                {
+                    return 14;
+                }
+                case SWORD_DANCE_3_HIGH:
+                case SWORD_DANCE_3_HIGH_AIR:
+                {
+                    return 13;
+                }
+                case SWORD_DANCE_3_MID:
+                case SWORD_DANCE_3_MID_AIR:
+                {
+                    return 11;
+                }
+                case SWORD_DANCE_3_LOW:
+                case SWORD_DANCE_3_LOW_AIR:
+                {
+                    return 15;
+                }
+                case SWORD_DANCE_4_HIGH:
+                case SWORD_DANCE_4_HIGH_AIR:
+                {
+                    return 20;
+                }
+                case SWORD_DANCE_4_MID:
+                case SWORD_DANCE_4_MID_AIR:
+                {
+                    return 23;
+                }
+                case SWORD_DANCE_4_LOW:
+                case SWORD_DANCE_4_LOW_AIR:
+                {
+                    return 13;
                 }
                 case UP_B:
                 case UP_B_GROUND:
@@ -266,25 +290,49 @@ uint GameState::lastHitboxFrame(CHARACTER character, ACTION action)
                     return 9;
                 }
                 case SWORD_DANCE_1:
-                case SWORD_DANCE_2_HIGH:
-                case SWORD_DANCE_2_MID:
-                case SWORD_DANCE_3_HIGH:
-                case SWORD_DANCE_3_MID:
-                case SWORD_DANCE_3_LOW:
-                case SWORD_DANCE_4_HIGH:
-                case SWORD_DANCE_4_MID:
-                case SWORD_DANCE_4_LOW:
                 case SWORD_DANCE_1_AIR:
-                case SWORD_DANCE_2_HIGH_AIR:
-                case SWORD_DANCE_2_MID_AIR:
-                case SWORD_DANCE_3_HIGH_AIR:
-                case SWORD_DANCE_3_MID_AIR:
-                case SWORD_DANCE_3_LOW_AIR:
-                case SWORD_DANCE_4_HIGH_AIR:
-                case SWORD_DANCE_4_MID_AIR:
-                case SWORD_DANCE_4_LOW_AIR:
                 {
                     return 8;
+                }
+                case SWORD_DANCE_2_HIGH:
+                case SWORD_DANCE_2_HIGH_AIR:
+                {
+                    return 15;
+                }
+                case SWORD_DANCE_2_MID:
+                case SWORD_DANCE_2_MID_AIR:
+                {
+                    return 16;
+                }
+                case SWORD_DANCE_3_HIGH:
+                case SWORD_DANCE_3_HIGH_AIR:
+                {
+                    return 17;
+                }
+                case SWORD_DANCE_3_MID:
+                case SWORD_DANCE_3_MID_AIR:
+                {
+                    return 14;
+                }
+                case SWORD_DANCE_3_LOW:
+                case SWORD_DANCE_3_LOW_AIR:
+                {
+                    return 18;
+                }
+                case SWORD_DANCE_4_HIGH:
+                case SWORD_DANCE_4_HIGH_AIR:
+                {
+                    return 25;
+                }
+                case SWORD_DANCE_4_MID:
+                case SWORD_DANCE_4_MID_AIR:
+                {
+                    return 26;
+                }
+                case SWORD_DANCE_4_LOW:
+                case SWORD_DANCE_4_LOW_AIR:
+                {
+                    return 38;
                 }
                 case UP_B:
                 case UP_B_GROUND:
