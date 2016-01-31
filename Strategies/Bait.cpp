@@ -20,6 +20,7 @@ Bait::Bait()
     m_lastAction = (ACTION)m_state->m_memory->player_one_action;
     m_shieldedAttack = false;
     m_actionChanged = true;
+    m_chargingLastFrame = false;
     m_lastActionCount = 0;
 }
 
@@ -45,6 +46,22 @@ void Bait::DetermineTactic()
         {
             m_state->setLandingState(false);
         }
+    }
+
+    //Has opponent just released a sharged smash attack?
+    bool m_chargedSmashReleased = false;
+    if(!m_state->m_memory->player_one_charging_smash && m_chargingLastFrame)
+    {
+        m_chargedSmashReleased = true;
+    }
+    m_chargingLastFrame = m_state->m_memory->player_one_charging_smash;
+
+    //So, turns out that the game changes the player's action state (to 2 or 3) on us when they're charging
+    //If this happens, just change it back. Maybe there's a more elegant solution
+    if(m_state->m_memory->player_one_action == 0x02 ||
+        m_state->m_memory->player_one_action == 0x03)
+    {
+        m_state->m_memory->player_one_action = m_lastAction;
     }
 
     //Update the attack frame if the enemy started a new action
@@ -222,13 +239,13 @@ void Bait::DetermineTactic()
             if(isAttacking((ACTION)m_state->m_memory->player_one_action))
             {
                 //If the p1 action changed, scrap the old Parry and make a new one.
-                if(m_actionChanged)
+                if(m_actionChanged || m_chargedSmashReleased)
                 {
                     delete m_tactic;
                     m_tactic = NULL;
                 }
 
-                CreateTactic2(Parry, m_attackFrame);
+                CreateTactic(Parry);
                 m_tactic->DetermineChain();
                 return;
             }

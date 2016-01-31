@@ -4,7 +4,7 @@
 void Powershield::PressButtons()
 {
     //What frame (relative to the start of the attack) we should be shielding on?
-    int shield_on_frame = 0;
+    uint shield_on_frame = 0;
     double distance = pow(std::abs(m_state->m_memory->player_one_x - m_state->m_memory->player_two_x), 2);
     distance += pow(std::abs(m_state->m_memory->player_one_y - m_state->m_memory->player_two_y), 2);
     distance = sqrt(distance);
@@ -61,7 +61,7 @@ void Powershield::PressButtons()
                 //If we're right in close
                 if(distance < 18)
                 {
-                    shield_on_frame = 3;
+                    shield_on_frame = 4;
                 }
                 //Mid distance
                 else if(distance >= 18 && distance < 27)
@@ -403,7 +403,7 @@ void Powershield::PressButtons()
     }
 
     //If we're the right number of frames past the start of the attack, let's shield
-    if(!m_hasShielded && (m_state->m_memory->frame >= (m_startFrame + shield_on_frame)))
+    if(!m_hasShielded && (m_state->m_memory->player_one_action_frame >= shield_on_frame))
     {
         m_hasShielded = true;
         m_frameShielded = m_state->m_memory->frame;
@@ -445,11 +445,10 @@ bool Powershield::IsInterruptible()
     return true;
 }
 
-Powershield::Powershield(uint startFrame)
+Powershield::Powershield()
 {
     m_hasShielded = false;
     m_letGo = false;
-    m_startFrame = startFrame;
     m_frameShielded = -100;
     bool player_one_is_to_the_left = (m_state->m_memory->player_one_x - m_state->m_memory->player_two_x > 0);
     m_endEarly = false;

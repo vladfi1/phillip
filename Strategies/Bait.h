@@ -23,7 +23,10 @@ private:
     uint m_lastActionCount;
     //Did the enemy's action change from last frame?
     bool m_actionChanged;
+    //Have we shielded the opponent's current attack?
     bool m_shieldedAttack;
+    //Was the opponent charging a smash last frame?
+    bool m_chargingLastFrame;
 
     //Is the given action an attack?
     bool isAttacking(ACTION a);

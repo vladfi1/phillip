@@ -9,7 +9,7 @@ class Powershield : public Chain
 
 public:
 
-    Powershield(uint startFrame);
+    Powershield();
     ~Powershield();
     //Determine what buttons to press in order to execute our tactic
     void PressButtons();
@@ -17,7 +17,6 @@ public:
 
 private:
     uint m_letGo;
-    uint m_startFrame;
     uint m_frameShielded;
     bool m_isReverseFacing;
     bool m_hasShielded;

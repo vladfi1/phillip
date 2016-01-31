@@ -139,6 +139,24 @@ void PrintState(GameState* state)
         std::cout << "p2 not invulnerable" << std::endl;
     }
 
+    if(state->m_memory->player_one_charging_smash)
+    {
+        std::cout << "p1 charging a smash" << std::endl;
+    }
+    else
+    {
+        std::cout << "p1 not charging a smash" << std::endl;
+    }
+
+    if(state->m_memory->player_two_charging_smash)
+    {
+        std::cout << "p2 charging a smash" << std::endl;
+    }
+    else
+    {
+        std::cout << "p2 not charging a smash" << std::endl;
+    }
+
     std::cout << "p1 hitlag frames left: " << state->m_memory->player_one_hitlag_frames_left << std::endl;
     std::cout << "p2 hitlag frames left: " << state->m_memory->player_two_hitlag_frames_left << std::endl;
 

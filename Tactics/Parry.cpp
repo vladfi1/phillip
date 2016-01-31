@@ -6,10 +6,9 @@
 #include "../Chains/SpotDodge.h"
 #include "../Chains/EdgeAction.h"
 
-Parry::Parry(uint startFrame)
+Parry::Parry()
 {
     m_chain = NULL;
-    m_startFrame = startFrame;
 }
 
 Parry::~Parry()
@@ -30,12 +29,13 @@ void Parry::DetermineChain()
     if(m_state->m_memory->player_one_action == ACTION::GRAB ||
         m_state->m_memory->player_one_action == ACTION::GRAB_RUNNING)
     {
-        CreateChain2(SpotDodge, m_startFrame);
+        CreateChain(SpotDodge);
+        m_chain->PressButtons();
     }
     //We're assuming there's no other grab-type attacks. (Yoshi's neutral-b for instance)
     else
     {
-        CreateChain2(Powershield, m_startFrame);
+        CreateChain(Powershield);
+        m_chain->PressButtons();
     }
-    m_chain->PressButtons();
 }

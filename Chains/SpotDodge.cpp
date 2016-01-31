@@ -4,26 +4,7 @@
 
 void SpotDodge::PressButtons()
 {
-    //If we need to transition, wait until we're at a valid state to be able to dodge
-    if(m_startingFrame == 0 &&
-        (m_state->m_memory->player_two_action == STANDING ||
-        m_state->m_memory->player_two_action == WALK_SLOW ||
-        m_state->m_memory->player_two_action == WALK_MIDDLE ||
-        m_state->m_memory->player_two_action == WALK_FAST ||
-        m_state->m_memory->player_two_action == KNEE_BEND ||
-        m_state->m_memory->player_two_action == LANDING ||
-        m_state->m_memory->player_two_action == EDGE_TEETERING ||
-        m_state->m_memory->player_two_action == CROUCHING))
-    {
-        m_startingFrame = m_state->m_memory->frame;
-    }
-    if(m_startingFrame == 0)
-    {
-        m_controller->emptyInput();
-        return;
-    }
-
-    //If we're medium range or more, and reversefacing, don't bother doing anything.
+    //If we're medium range or more, and reverse-facing, don't bother doing anything.
     float distance = std::abs(m_state->m_memory->player_one_x - m_state->m_memory->player_two_x);
     if(m_isReverseFacing && (distance > 18))
     {
@@ -31,23 +12,22 @@ void SpotDodge::PressButtons()
         return;
     }
 
-    uint frame = m_state->m_memory->frame - m_startingFrame;
-    switch(frame)
+    switch(m_state->m_memory->player_one_action_frame)
     {
-        case 0:
+        case 1:
         {
             //Spot dodge
             m_controller->tiltAnalog(Controller::BUTTON_MAIN, .5, .5);
             m_controller->pressButton(Controller::BUTTON_L);
             break;
         }
-        case 1:
+        case 2:
         {
             //down
             m_controller->tiltAnalog(Controller::BUTTON_MAIN, .5, 0);
             break;
         }
-        case 2:
+        case 3:
         {
             //let go
             m_controller->tiltAnalog(Controller::BUTTON_MAIN, .5, .5);
@@ -68,24 +48,8 @@ bool SpotDodge::IsInterruptible()
     return false;
 }
 
-SpotDodge::SpotDodge(uint startFrame)
+SpotDodge::SpotDodge()
 {
-    //Make sure we are capable of dodging this frame, or else we need to transition
-    if(m_state->m_memory->player_two_action == STANDING ||
-        m_state->m_memory->player_two_action == WALK_SLOW ||
-        m_state->m_memory->player_two_action == WALK_MIDDLE ||
-        m_state->m_memory->player_two_action == WALK_FAST ||
-        m_state->m_memory->player_two_action == KNEE_BEND ||
-        m_state->m_memory->player_two_action == LANDING ||
-        m_state->m_memory->player_two_action == EDGE_TEETERING ||
-        m_state->m_memory->player_two_action == CROUCHING)
-    {
-        m_startingFrame = m_state->m_memory->frame;
-    }
-    else
-    {
-        m_startingFrame = 0;
-    }
     bool player_one_is_to_the_left = (m_state->m_memory->player_one_x - m_state->m_memory->player_two_x > 0);
     if(m_state->m_memory->player_one_facing != player_one_is_to_the_left)
     {
@@ -95,7 +59,6 @@ SpotDodge::SpotDodge(uint startFrame)
     {
         m_isReverseFacing = true;
     }
-    m_startFrame = startFrame;
 }
 
 SpotDodge::~SpotDodge()
