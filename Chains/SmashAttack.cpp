@@ -4,7 +4,9 @@ void SmashAttack::PressButtons()
 {
     //Jump-cancel the smash
     if(m_state->m_memory->player_two_action == RUNNING ||
-        m_state->m_memory->player_two_action == DASHING)
+        m_state->m_memory->player_two_action == DASHING ||
+        m_state->m_memory->player_two_action == SHIELD ||
+        m_state->m_memory->player_two_action == SHIELD_RELEASE)
     {
         m_canInterrupt = false;
         m_controller->tiltAnalog(Controller::BUTTON_MAIN, .5, 1);

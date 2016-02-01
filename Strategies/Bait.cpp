@@ -102,10 +102,12 @@ void Bait::DetermineTactic()
         return;
     }
 
-    //If we're still warping in at the start of the match, then just hang out and do nothing
+    //If we're still warping in at the start of the match or in shield stun, then just hang out and do nothing
     if(m_state->m_memory->player_two_action == ENTRY ||
         m_state->m_memory->player_two_action == ENTRY_START ||
-        m_state->m_memory->player_two_action == ENTRY_END)
+        m_state->m_memory->player_two_action == ENTRY_END ||
+        m_state->m_memory->player_two_action == SHIELD_STUN ||
+        m_state->m_memory->player_two_action == LANDING_SPECIAL)
     {
         CreateTactic(Wait);
         m_tactic->DetermineChain();
