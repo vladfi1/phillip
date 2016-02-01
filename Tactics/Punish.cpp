@@ -34,6 +34,13 @@ void Punish::DetermineChain()
         return;
     }
 
+    if(m_state->m_memory->player_one_action == SPOTDODGE)
+    {
+        CreateChain(Nothing);
+        m_chain->PressButtons();
+        return;
+    }
+
     //If we're hanging on the egde, and they are falling above the stage, stand up
     if(m_state->m_memory->player_one_action == DEAD_FALL &&
         m_state->m_memory->player_two_action == EDGE_HANGING &&
