@@ -17,6 +17,8 @@ public:
 
 private:
     bool m_isReverseFacing;
+    bool m_hasShielded;
+    bool m_hasSpotDodged;
 };
 
 #endif

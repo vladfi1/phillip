@@ -67,7 +67,7 @@ void Bait::DetermineTactic()
     //Update the attack frame if the enemy started a new action
     if((m_lastAction != (ACTION)m_state->m_memory->player_one_action) ||
         (m_state->m_memory->player_one_action_counter > m_lastActionCount) ||
-        (m_state->m_memory->player_one_action_frame == 1))
+        (m_state->m_memory->player_one_action_frame == 0))
     {
         m_lastActionCount = m_state->m_memory->player_one_action_counter;
         m_shieldedAttack = false;
