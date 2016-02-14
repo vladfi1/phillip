@@ -82,7 +82,7 @@ bool FireFox::IsInterruptible()
 FireFox::FireFox()
 {
     //Quick variable to tell us which edge we're on
-    m_isRightEdge = m_state->m_memory->player_one_x > 0;
+    m_isRightEdge = m_state->m_memory->player_two_x > 0;
     m_startingFrame = m_state->m_memory->frame;
     m_pressedJump = false;
     m_hasUpBd = false;

@@ -281,15 +281,6 @@ void Bait::DetermineTactic()
         }
     }
 
-    //If we're far away, just laser
-    if(std::abs(m_state->m_memory->player_one_x - m_state->m_memory->player_two_x) > 90 &&
-        std::abs(m_state->m_memory->player_one_x) < 130)
-    {
-        CreateTactic(Laser);
-        m_tactic->DetermineChain();
-        return;
-    }
-
     //If the opponent is off the stage, let's edgeguard them
     //NOTE: Sometimes players can get a little below 0 in Y coordinates without being off the stage
     if(std::abs(m_state->m_memory->player_one_x) > m_state->getStageEdgeGroundPosition() + .001 ||
@@ -306,6 +297,15 @@ void Bait::DetermineTactic()
     if(std::abs(m_state->m_memory->player_two_x) > m_state->getStageEdgeGroundPosition() + .001)
     {
         CreateTactic(Recover);
+        m_tactic->DetermineChain();
+        return;
+    }
+
+    //If we're far away, just laser
+    if(std::abs(m_state->m_memory->player_one_x - m_state->m_memory->player_two_x) > 90 &&
+        std::abs(m_state->m_memory->player_one_x) < 130)
+    {
+        CreateTactic(Laser);
         m_tactic->DetermineChain();
         return;
     }
