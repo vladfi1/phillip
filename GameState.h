@@ -60,7 +60,15 @@ struct GameMemory
 
 enum ACTION
 {
-    ON_HALO = 0x0d,
+    DEAD_DOWN = 0x0,
+    DEAD_LEFT = 0x1,
+    DEAD_RIGHT = 0x2,
+    DEAD_FLY_STAR = 0x4,
+    DEAD_FLY = 0x6, //When you have been hit upwards and are dead
+    DEAD_FLY_SPLATTER = 0x7, //Hit upwards and have splattered on the camera
+    DEAD_FLY_SPLATTER_FLAT = 0x8, //Hit upwards and have splattered on the camera
+    ON_HALO_DESCENT = 0xc,
+    ON_HALO_WAIT = 0x0d,
     STANDING = 0x0e,
     WALK_SLOW = 0x0f,
     WALK_MIDDLE = 0x10,

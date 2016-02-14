@@ -13,6 +13,7 @@
 #include "../Tactics/Edgeguard.h"
 #include "../Tactics/Recover.h"
 #include "../Tactics/Punish.h"
+#include "../Tactics/ShowOff.h"
 
 Bait::Bait()
 {
@@ -281,6 +282,24 @@ void Bait::DetermineTactic()
         }
     }
 
+    //If the enemy is dead, then celebrate!
+    if(m_state->m_memory->player_one_y < MARTH_LOWER_EVENT_HORIZON ||
+        (m_state->m_memory->player_one_action >= DEAD_DOWN &&
+        m_state->m_memory->player_one_action <= DEAD_FLY_SPLATTER_FLAT) ||
+        (m_state->m_memory->player_one_action == DEAD_FALL &&
+         m_state->m_memory->player_one_y < -20))
+    {
+        //Have to be on the ground or on edge
+        if(m_state->m_memory->player_two_on_ground ||
+            m_state->m_memory->player_two_action == EDGE_HANGING ||
+            m_state->m_memory->player_two_action == EDGE_CATCHING)
+        {
+            CreateTactic(ShowOff);
+            m_tactic->DetermineChain();
+            return;
+        }
+    }
+
     //If the opponent is off the stage, let's edgeguard them
     //NOTE: Sometimes players can get a little below 0 in Y coordinates without being off the stage
     if(std::abs(m_state->m_memory->player_one_x) > m_state->getStageEdgeGroundPosition() + .001 ||
@@ -318,12 +337,13 @@ void Bait::DetermineTactic()
         return;
     }
     //If we're in close and p2 is sheilding, just wait
-    if(m_state->m_memory->player_one_action == ACTION::SHIELD)
+    if(m_state->m_memory->player_one_action == SHIELD)
     {
         CreateTactic(Wait);
         m_tactic->DetermineChain();
         return;
     }
+
     //TODO: For now, just default to waiting if nothing else fits
     CreateTactic(Wait);
     m_tactic->DetermineChain();
