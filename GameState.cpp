@@ -448,15 +448,15 @@ uint GameState::totalActionFrames(CHARACTER character, ACTION action)
             {
                 case FSMASH_MID:
                 {
-                    return 48;
+                    return 47;
                 }
                 case DOWNSMASH:
                 {
-                    return 62;
+                    return 61;
                 }
                 case UPSMASH:
                 {
-                    return 46;
+                    return 45;
                 }
                 case DASH_ATTACK:
                 {
@@ -480,11 +480,11 @@ uint GameState::totalActionFrames(CHARACTER character, ACTION action)
                 }
                 case UPTILT:
                 {
-                    return 32;
+                    return 31;
                 }
                 case DOWNTILT:
                 {
-                    return 20;
+                    return 19;
                 }
                 case SWORD_DANCE_1_AIR:
                 case SWORD_DANCE_1:
@@ -546,11 +546,11 @@ uint GameState::totalActionFrames(CHARACTER character, ACTION action)
                 }
                 case NEUTRAL_ATTACK_1:
                 {
-                    return 20;
+                    return 19;
                 }
                 case NEUTRAL_ATTACK_2:
                 {
-                    return 27;
+                    return 19;
                 }
                 case NEUTRAL_B_ATTACKING:
                 case NEUTRAL_B_ATTACKING_AIR:

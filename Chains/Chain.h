@@ -11,7 +11,7 @@ class Chain
 {
 
 public:
-    Chain(){m_controller = Controller::Instance(); m_state = GameState::Instance();};
+    Chain(){m_controller = Controller::Instance(); m_state = GameState::Instance(); m_startingFrame = m_state->m_memory->frame;};
     virtual ~Chain(){};
     //Determine what buttons to press in order to execute our tactic
     virtual void PressButtons() = 0;

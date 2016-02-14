@@ -20,7 +20,6 @@ private:
     uint m_frameJumped;
     uint m_hitlagFrames;
     uint m_frameKneeBend;
-    bool m_isBusy;
     bool m_isright;
 };
 

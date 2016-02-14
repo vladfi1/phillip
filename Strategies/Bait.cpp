@@ -5,6 +5,7 @@
 #include "Bait.h"
 #include "../Constants.h"
 #include "../Tactics/CloseDistance.h"
+#include "../Tactics/CreateDistance.h"
 #include "../Tactics/Wait.h"
 #include "../Tactics/Parry.h"
 #include "../Tactics/ShineCombo.h"
@@ -228,28 +229,54 @@ void Bait::DetermineTactic()
         return;
     }
 
+    //If we just shielded a downtilt and they're still in the attack, get out of there
+    if(m_state->m_memory->player_two_action == SHIELD_RELEASE &&
+        m_state->m_memory->player_one_action == DOWNTILT)
+    {
+        CreateTactic(CreateDistance);
+        m_tactic->DetermineChain();
+        return;
+    }
+
+    //If the enemy is in a looping attack outside our range, back off
+    if(distance > 35 &&
+        distance < 60 &&
+        (m_state->m_memory->player_one_action == DOWNTILT ||
+        m_state->m_memory->player_one_action == NEUTRAL_ATTACK_1 ||
+        m_state->m_memory->player_one_action == NEUTRAL_ATTACK_2))
+    {
+        CreateTactic(CreateDistance);
+        m_tactic->DetermineChain();
+        return;
+    }
+
     //If we need to defend against an attack, that's next priority. Unless we've already shielded this attack
     if(!m_shieldedAttack && distance < MARTH_FSMASH_RANGE)
     {
-        //Don't bother parrying if the attack is in the wrong direction
-        bool player_one_is_to_the_left = (m_state->m_memory->player_one_x - m_state->m_memory->player_two_x > 0);
-        if((m_state->m_memory->player_one_facing != player_one_is_to_the_left || (isReverseHit((ACTION)m_state->m_memory->player_one_action))) &&
-            (m_state->m_memory->player_two_on_ground ||
-            m_state->m_memory->player_two_action == EDGE_HANGING ||
-            m_state->m_memory->player_two_action == EDGE_CATCHING))
+        //Don't bother parrying if the attack is over
+        if(m_state->lastHitboxFrame((CHARACTER)m_state->m_memory->player_one_character, (ACTION)m_state->m_memory->player_one_action) >=
+            m_state->m_memory->player_one_action_frame)
         {
-            if(isAttacking((ACTION)m_state->m_memory->player_one_action))
+            //Don't bother parrying if the attack is in the wrong direction
+            bool player_one_is_to_the_left = (m_state->m_memory->player_one_x - m_state->m_memory->player_two_x > 0);
+            if((m_state->m_memory->player_one_facing != player_one_is_to_the_left || (isReverseHit((ACTION)m_state->m_memory->player_one_action))) &&
+                (m_state->m_memory->player_two_on_ground ||
+                m_state->m_memory->player_two_action == EDGE_HANGING ||
+                m_state->m_memory->player_two_action == EDGE_CATCHING))
             {
-                //If the p1 action changed, scrap the old Parry and make a new one.
-                if(m_actionChanged || m_chargedSmashReleased)
+                if(isAttacking((ACTION)m_state->m_memory->player_one_action))
                 {
-                    delete m_tactic;
-                    m_tactic = NULL;
-                }
+                    //If the p1 action changed, scrap the old Parry and make a new one.
+                    if(m_actionChanged || m_chargedSmashReleased)
+                    {
+                        delete m_tactic;
+                        m_tactic = NULL;
+                    }
 
-                CreateTactic(Parry);
-                m_tactic->DetermineChain();
-                return;
+                    CreateTactic(Parry);
+                    m_tactic->DetermineChain();
+                    return;
+                }
             }
         }
     }

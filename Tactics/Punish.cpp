@@ -12,8 +12,6 @@
 #include "../Chains/Wavedash.h"
 #include "../Chains/EdgeAction.h"
 
-#include <iostream>
-
 Punish::Punish()
 {
     m_roll_position = 0;
@@ -240,7 +238,7 @@ void Punish::DetermineChain()
 
     //Is it safe to wavedash in after shielding the attack?
     //  Don't wavedash off the edge of the stage
-    if(frames_left > 14 &&
+    if(frames_left > 15 &&
         m_state->m_memory->player_two_action == SHIELD_RELEASE &&
         (m_state->getStageEdgeGroundPosition() > std::abs(m_state->m_memory->player_two_x) + 10))
     {

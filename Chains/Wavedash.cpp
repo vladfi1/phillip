@@ -20,7 +20,6 @@ void Wavedash::PressButtons()
     //Jump on the first frame possible
     if(frame == 0)
     {
-        m_isBusy = true;
         m_frameJumped = m_state->m_memory->frame;
         m_controller->pressButton(Controller::BUTTON_Y);
         return;
@@ -79,7 +78,6 @@ void Wavedash::PressButtons()
     //Two frames after knee bend, let go of the buttons and become interruptible
     if(m_state->m_memory->frame == m_frameKneeBend+2)
     {
-        m_isBusy = false;
         m_controller->releaseButton(Controller::BUTTON_L);
         m_controller->tiltAnalog(Controller::BUTTON_MAIN, .5, .5);
         return;
@@ -88,11 +86,17 @@ void Wavedash::PressButtons()
 
 bool Wavedash::IsInterruptible()
 {
-    if(m_state->m_memory->frame - m_startingFrame > 20)
+    int frame = m_state->m_memory->frame - m_startingFrame;
+
+    if(frame > 20)
     {
         return true;
     }
-    return !m_isBusy;
+    if(m_state->m_memory->player_two_action == LANDING_SPECIAL)
+    {
+        return true;
+    }
+    return false;
 }
 
 Wavedash::Wavedash(bool isRight)
@@ -101,7 +105,6 @@ Wavedash::Wavedash(bool isRight)
     m_frameJumped = 0;
     m_hitlagFrames = 0;
     m_frameKneeBend = 0;
-    m_isBusy = false;
     m_isright = isRight;
 }
 

@@ -1,6 +1,3 @@
-#include <cmath>
-#include <typeinfo>
-
 #include "CloseDistance.h"
 #include "../Chains/Walk.h"
 

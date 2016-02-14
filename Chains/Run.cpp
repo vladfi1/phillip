@@ -1,7 +1,6 @@
 #include <cmath>
 
 #include "Run.h"
-#include <iostream>
 void Run::PressButtons()
 {
     //Don't run off the edge of the stage
