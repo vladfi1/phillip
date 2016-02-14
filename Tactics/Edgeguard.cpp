@@ -158,7 +158,9 @@ void Edgeguard::DetermineChain()
     }
 
     double jumpOnlyEventHorizon = MARTH_JUMP_ONLY_EVENT_HORIZON;
-    if(m_state->m_memory->player_one_jumps_left == 0)
+    if(m_state->m_memory->player_one_jumps_left == 0 &&
+        m_state->m_memory->player_one_action != JUMPING_ARIAL_FORWARD &&
+        m_state->m_memory->player_one_action != JUMPING_ARIAL_BACKWARD)
     {
         jumpOnlyEventHorizon += MARTH_DOUBLE_JUMP_HEIGHT;
     }

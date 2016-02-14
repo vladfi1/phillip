@@ -20,6 +20,7 @@ private:
     bool m_rolled;
     bool m_onRight;
     uint m_rollFrame;
+    double m_shieldOffset;
 };
 
 #endif
