@@ -28,15 +28,25 @@ MemoryWatcher::MemoryWatcher()
     if(stat(legacy_config_path.c_str(), &buffer) != 0)
     {
         //If the legacy app path is not present, see if the new one is
-        const char* env_XDG_DATA_HOME = std::getenv("XDG_DATA_HOME");
+        const char *env_XDG_DATA_HOME = std::getenv("XDG_DATA_HOME");
         if(env_XDG_DATA_HOME == NULL)
         {
-            std::cout << "ERROR: $XDG_DATA_HOME was empty and so was $HOME/.dolphin-emu." \
-                "Make sure to install Dolphin first and try again." << std::endl;
-            exit(-1);
+            //Try $HOME/.local/share next
+            std::string backup_path = home_path + "/.local/share/dolphin-emu";
+            if(stat(backup_path.c_str(), &buffer) != 0)
+            {
+                std::cout << "ERROR: $XDG_DATA_HOME was empty and so was $HOME/.dolphin-emu and $HOME/.local/share/dolphin-emu " \
+                    "Are you sure Dolphin is installed? Make sure it is, and then run the CPU again." << std::endl;
+                exit(-1);
+            }
+            mem_watcher_path = backup_path;
+            mem_watcher_path += "/MemoryWatcher/";
         }
-        mem_watcher_path = env_XDG_DATA_HOME;
-        mem_watcher_path += "/MemoryWatcher/";
+        else
+        {
+            mem_watcher_path = env_XDG_DATA_HOME;
+            mem_watcher_path += "/MemoryWatcher/";
+        }
     }
     else
     {
