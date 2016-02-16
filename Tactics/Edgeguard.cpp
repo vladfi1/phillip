@@ -82,18 +82,9 @@ void Edgeguard::DetermineChain()
         m_state->m_memory->player_two_on_ground &&
         std::abs(m_state->m_memory->player_two_x) < m_state->getStageEdgeGroundPosition())
     {
-        if(m_state->m_memory->player_two_x > 0)
-        {
-            CreateChain2(Walk, true);
-            m_chain->PressButtons();
-            return;
-        }
-        else
-        {
-            CreateChain2(Walk, false);
-            m_chain->PressButtons();
-            return;
-        }
+        CreateChain2(Walk, m_state->m_memory->player_one_x > 0 ? true : false);
+        m_chain->PressButtons();
+        return;
     }
 
     //If we're still on the stage, see if it's safe to grab the edge
