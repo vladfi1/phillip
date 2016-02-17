@@ -1,15 +1,16 @@
-#ifndef BAIT_H
-#define BAIT_H
+#ifndef SANDBAG_H
+#define SANDBAG_H
 
 #include "Strategy.h"
-//With this strategy, we're trying to bait our opponent into making a mistake, and then capitalizing on it.
-class Bait : public Strategy
+
+//Be defensive and don't let our opponent hit us
+class Sandbag : public Strategy
 {
 
 public:
 
-    Bait();
-    ~Bait();
+    Sandbag();
+    ~Sandbag();
 
     //Determine what tactic to employ in order to further our strategy
     void DetermineTactic();
@@ -27,6 +28,7 @@ private:
     bool m_shieldedAttack;
     //Was the opponent charging a smash last frame?
     bool m_chargingLastFrame;
+
 };
 
 #endif

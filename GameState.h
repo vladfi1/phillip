@@ -245,6 +245,12 @@ public:
     //Is the current landing special state from UP-B (true) or wavedash (false)
     void setLandingState(bool);
 
+    //Is the given action an attack?
+    bool isAttacking(ACTION a);
+    //Does the given attack have reverse hit frames? (Do we need to worry about parrying from attacks if the
+    //  enemy is facing the other way?)
+    bool isReverseHit(ACTION a);
+
     GameMemory *m_memory;
 
 private:

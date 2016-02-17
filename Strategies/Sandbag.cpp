@@ -1,21 +1,16 @@
 #include <cmath>
 #include <math.h>
-#include <iostream>
 
-#include "Bait.h"
+#include "Sandbag.h"
 #include "../Constants.h"
 #include "../Tactics/CloseDistance.h"
 #include "../Tactics/CreateDistance.h"
 #include "../Tactics/Wait.h"
 #include "../Tactics/Parry.h"
-#include "../Tactics/ShineCombo.h"
-#include "../Tactics/Laser.h"
-#include "../Tactics/Edgeguard.h"
 #include "../Tactics/Recover.h"
-#include "../Tactics/Punish.h"
 #include "../Tactics/ShowOff.h"
 
-Bait::Bait()
+Sandbag::Sandbag()
 {
     m_tactic = NULL;
     m_attackFrame = 0;
@@ -26,15 +21,14 @@ Bait::Bait()
     m_lastActionCount = 0;
 }
 
-Bait::~Bait()
+Sandbag::~Sandbag()
 {
     delete m_tactic;
 }
 
-void Bait::DetermineTactic()
+void Sandbag::DetermineTactic()
 {
-    //std::cout << std::abs(m_state->m_memory->player_one_x - m_state->m_memory->player_two_x) << std::endl;
-
+    //TODO: Move this logic away from here and Bait into KillOpponent
     //Determine how many frames of lag our opponent has during the LANDING_SPECIAL action
     // Unfortunately, the game reuses LANDING_SPECIAL for both landing from an UP-B and from a wavedash
     // So it's non-trivial to figure out which it is.
@@ -121,104 +115,6 @@ void Bait::DetermineTactic()
     distance += pow(m_state->m_memory->player_one_y - m_state->m_memory->player_two_y, 2);
     distance = sqrt(distance);
 
-    //If we're able to upsmash our opponent, let's do that
-    bool player_two_is_to_the_left = (m_state->m_memory->player_two_x - m_state->m_memory->player_one_x > 0);
-    if((m_state->m_memory->player_one_action == SPOTDODGE ||
-        m_state->m_memory->player_one_action == MARTH_COUNTER ||
-        m_state->m_memory->player_one_action == MARTH_COUNTER_FALLING ||
-        m_state->m_memory->player_one_action == LANDING_SPECIAL) &&
-        distance < FOX_UPSMASH_RANGE-2 &&
-        m_state->m_memory->player_two_facing != player_two_is_to_the_left)
-    {
-        CreateTactic(Punish);
-        m_tactic->DetermineChain();
-        return;
-    }
-
-    //If our opponent is stuck in the windup for an attack, let's hit them with something harder than shine
-    if(m_state->isAttacking((ACTION)m_state->m_memory->player_one_action) &&
-        distance < FOX_UPSMASH_RANGE-2 &&
-        m_state->m_memory->player_two_facing != player_two_is_to_the_left)
-    {
-        //How many frames do we have until the attack lands? If it's at least 3, then we can start a Punish
-        int frames_left = m_state->firstHitboxFrame((CHARACTER)m_state->m_memory->player_one_character,
-            (ACTION)m_state->m_memory->player_one_action) - m_state->m_memory->player_one_action_frame - 1;
-        if(frames_left > 3)
-        {
-            CreateTactic(Punish);
-            m_tactic->DetermineChain();
-            return;
-        }
-    }
-
-    //If our opponent is rolling, punish it on the other end
-    if(m_state->m_memory->player_one_action == ROLL_FORWARD ||
-        m_state->m_memory->player_one_action == ROLL_BACKWARD ||
-        m_state->m_memory->player_one_action == EDGE_ROLL_SLOW ||
-        m_state->m_memory->player_one_action == EDGE_ROLL_QUICK ||
-        m_state->m_memory->player_one_action == EDGE_GETUP_QUICK ||
-        m_state->m_memory->player_one_action == EDGE_GETUP_SLOW ||
-        m_state->m_memory->player_two_action == LANDING_SPECIAL)
-    {
-        CreateTactic(Punish);
-        m_tactic->DetermineChain();
-        return;
-    }
-
-    //If we're hanging on the egde, and they are falling above the stage, punish it
-    if(m_state->m_memory->player_one_action == DEAD_FALL &&
-        m_state->m_memory->player_two_action == EDGE_HANGING &&
-        std::abs(m_state->m_memory->player_one_x) < m_state->getStageEdgeGroundPosition() + .001)
-    {
-        CreateTactic(Punish);
-        m_tactic->DetermineChain();
-        return;
-    }
-
-    //How many frames do we have until the attack is over?
-    int frames_left = m_state->totalActionFrames((CHARACTER)m_state->m_memory->player_one_character,
-        (ACTION)m_state->m_memory->player_one_action) - m_state->m_memory->player_one_action_frame - 1;
-
-    //If our oponnent is stuck in a laggy ending animation, punish it
-    if(m_state->isAttacking((ACTION)m_state->m_memory->player_one_action) &&
-        m_state->m_memory->player_one_action_frame >
-            m_state->lastHitboxFrame((CHARACTER)m_state->m_memory->player_one_character,
-            (ACTION)m_state->m_memory->player_one_action))
-    {
-        if(frames_left > 3)
-        {
-            //Unless we need to wavedash in, then give us more time
-            if(m_state->m_memory->player_two_action != SHIELD_RELEASE ||
-                frames_left > 10)
-            {
-                CreateTactic(Punish);
-                m_tactic->DetermineChain();
-                return;
-            }
-        }
-    }
-
-    //If we're able to shine p1 right now, let's do that
-    if(std::abs(distance) < FOX_SHINE_RADIUS)
-    {
-        //Are we in a state where we can shine?
-        if(ReadyForAction(m_state->m_memory->player_two_action))
-        {
-            //Is the opponent in a state where they can get hit by shine?
-            if(m_state->m_memory->player_one_action != SHIELD &&
-                m_state->m_memory->player_one_action != SHIELD_REFLECT &&
-                m_state->m_memory->player_one_action != MARTH_COUNTER &&
-                m_state->m_memory->player_one_action != MARTH_COUNTER_FALLING &&
-                m_state->m_memory->player_one_action != EDGE_CATCHING &&
-                m_state->m_memory->player_one_action != SPOTDODGE)
-            {
-                CreateTactic(ShineCombo);
-                m_tactic->DetermineChain();
-                return;
-            }
-        }
-    }
-
     //If we're hanging on the egde, and the oponnent is on the stage area, then recover
     if((m_state->m_memory->player_two_action == EDGE_HANGING ||
         m_state->m_memory->player_two_action == EDGE_CATCHING) &&
@@ -300,31 +196,10 @@ void Bait::DetermineTactic()
         }
     }
 
-    //If the opponent is off the stage, let's edgeguard them
-    //NOTE: Sometimes players can get a little below 0 in Y coordinates without being off the stage
-    if(std::abs(m_state->m_memory->player_one_x) > m_state->getStageEdgeGroundPosition() + .001 ||
-        m_state->m_memory->player_one_y < -5.5 ||
-        m_state->m_memory->player_one_action == EDGE_CATCHING ||
-        m_state->m_memory->player_one_action == EDGE_HANGING)
-    {
-        CreateTactic(Edgeguard);
-        m_tactic->DetermineChain();
-        return;
-    }
-
     //If we're off the stage and don't need to edgeguard, get back on
     if(std::abs(m_state->m_memory->player_two_x) > m_state->getStageEdgeGroundPosition() + .001)
     {
         CreateTactic(Recover);
-        m_tactic->DetermineChain();
-        return;
-    }
-
-    //If we're far away, just laser
-    if(std::abs(m_state->m_memory->player_one_x - m_state->m_memory->player_two_x) > 90 &&
-        std::abs(m_state->m_memory->player_one_x) < 130)
-    {
-        CreateTactic(Laser);
         m_tactic->DetermineChain();
         return;
     }
