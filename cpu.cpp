@@ -9,11 +9,15 @@
 #include <sys/types.h>
 #include <pwd.h>
 
+#include <chrono>
+#include <thread>
+
 #include "Goals/KillOpponent.h"
 #include "Goals/NavigateMenu.h"
 
 #include "GameState.h"
 #include "MemoryWatcher.h"
+#include "Controller.h"
 
 void FirstTimeSetup()
 {
@@ -220,12 +224,23 @@ int main()
     FirstTimeSetup();
 
     GameState *state = GameState::Instance();
+    Controller *controller = Controller::Instance();
 
     MemoryWatcher *watcher = new MemoryWatcher();
     uint last_frame = 0;
     //Get our goal
     Goal *goal = NULL;
     MENU current_menu;
+    
+    for(;;)
+    {
+        controller->pressButton(Controller::BUTTON_D_RIGHT);
+        while(!watcher->ReadMemory()) {}
+        controller->releaseButton(Controller::BUTTON_D_RIGHT);
+        
+        PrintState(state);
+        //std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    }
 
     //Main frame loop
     for(;;)
