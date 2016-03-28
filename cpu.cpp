@@ -91,16 +91,16 @@ void FirstTimeSetup()
             "You may need to restart Dolphin and the CPU in order for this to work. (You should only see this warning once)" << std::endl;
     }
 }
-/*
-void PrintState(GameState* state)
+
+void PrintState(GameMemory& memory)
 {
-    std::cout << "p1 percent: " << state->m_memory->player_one_percent << std::endl;
-    std::cout << "p2 percent: " << state->m_memory->player_two_percent << std::endl;
-    std::cout << "p1 stock: " << state->m_memory->player_one_stock << std::endl;
-    std::cout << "p2 stock: " << state->m_memory->player_two_stock << std::endl;
-    std::cout << "p1 character: " << state->m_memory->player_one_character << std::endl;
-    std::cout << "p2 character: " << state->m_memory->player_two_character << std::endl;
-    if(state->m_memory->player_one_facing)
+    std::cout << "p1 percent: " << memory.player_one.percent << std::endl;
+    std::cout << "p2 percent: " << memory.player_two.percent << std::endl;
+    std::cout << "p1 stock: " << memory.player_one.stock << std::endl;
+    std::cout << "p2 stock: " << memory.player_two.stock << std::endl;
+    std::cout << "p1 character: " << memory.player_one.character << std::endl;
+    std::cout << "p2 character: " << memory.player_two.character << std::endl;
+    if(memory.player_one.facing)
     {
         std::cout << "p1 facing: right" << std::endl;
     }
@@ -109,7 +109,7 @@ void PrintState(GameState* state)
         std::cout << "p1 facing: left" << std::endl;
 
     }
-    if(state->m_memory->player_two_facing)
+    if(memory.player_two.facing)
     {
         std::cout << "p2 facing: right" << std::endl;
     }
@@ -117,28 +117,28 @@ void PrintState(GameState* state)
     {
         std::cout << "p2 facing: left" << std::endl;
     }
-    std::cout << "stage: " << std::hex << state->m_memory->stage << std::endl;
-    std::cout << "frame: " << std::dec << state->m_memory->frame << std::endl;
-    std::cout << "menu state: " << state->m_memory->menu_state << std::endl;
-    std::cout << "p2 pointer x: " << state->m_memory->player_two_pointer_x << std::endl;
-    std::cout << "p2 pointer y: " << state->m_memory->player_two_pointer_y << std::endl;
+    std::cout << "stage: " << std::hex << memory.stage << std::endl;
+    std::cout << "frame: " << std::dec << memory.frame << std::endl;
+    std::cout << "menu state: " << memory.menu_state << std::endl;
+    std::cout << "p2 pointer x: " << memory.player_two_pointer_x << std::endl;
+    std::cout << "p2 pointer y: " << memory.player_two_pointer_y << std::endl;
 
-    std::cout << "p1 x: " << std::fixed << std::setprecision(10) << state->m_memory->player_one_x << std::endl;
-    std::cout << "p1 y: " << std::fixed << std::setprecision(10) << state->m_memory->player_one_y << std::endl;
+    std::cout << "p1 x: " << std::fixed << std::setprecision(10) << memory.player_one.x << std::endl;
+    std::cout << "p1 y: " << std::fixed << std::setprecision(10) << memory.player_one.y << std::endl;
 
-    std::cout << "p2 x: " << std::fixed << std::setprecision(10) << state->m_memory->player_two_x << std::endl;
-    std::cout << "p2 y: " << std::fixed << std::setprecision(10) << state->m_memory->player_two_y << std::endl;
+    std::cout << "p2 x: " << std::fixed << std::setprecision(10) << memory.player_two.x << std::endl;
+    std::cout << "p2 y: " << std::fixed << std::setprecision(10) << memory.player_two.y << std::endl;
 
-    std::cout << "p1 action: " << std::hex << state->m_memory->player_one_action << std::endl;
-    std::cout << "p2 action: " << std::hex << state->m_memory->player_two_action << std::endl;
+    std::cout << "p1 action: " << std::hex << memory.player_one.action << std::endl;
+    std::cout << "p2 action: " << std::hex << memory.player_two.action << std::endl;
 
-    std::cout << "p1 action count: " << std::dec << state->m_memory->player_one_action_counter << std::endl;
-    std::cout << "p2 action count: " << std::dec << state->m_memory->player_two_action_counter << std::endl;
+    std::cout << "p1 action count: " << std::dec << memory.player_one.action_counter << std::endl;
+    std::cout << "p2 action count: " << std::dec << memory.player_two.action_counter << std::endl;
 
-    std::cout << "p1 action frame: " << std::dec << state->m_memory->player_one_action_frame << std::endl;
-    std::cout << "p2 action frame: " << std::dec << state->m_memory->player_two_action_frame << std::endl;
+    std::cout << "p1 action frame: " << std::dec << memory.player_one.action_frame << std::endl;
+    std::cout << "p2 action frame: " << std::dec << memory.player_two.action_frame << std::endl;
 
-    if(state->m_memory->player_one_invulnerable)
+    if(memory.player_one.invulnerable)
     {
         std::cout << "p1 invulnerable" << std::endl;
     }
@@ -146,7 +146,7 @@ void PrintState(GameState* state)
     {
         std::cout << "p1 not invulnerable" << std::endl;
     }
-    if(state->m_memory->player_two_invulnerable)
+    if(memory.player_two.invulnerable)
     {
         std::cout << "p2 invulnerable" << std::endl;
     }
@@ -155,7 +155,7 @@ void PrintState(GameState* state)
         std::cout << "p2 not invulnerable" << std::endl;
     }
 
-    if(state->m_memory->player_one_charging_smash)
+    if(memory.player_one.charging_smash)
     {
         std::cout << "p1 charging a smash" << std::endl;
     }
@@ -164,7 +164,7 @@ void PrintState(GameState* state)
         std::cout << "p1 not charging a smash" << std::endl;
     }
 
-    if(state->m_memory->player_two_charging_smash)
+    if(memory.player_two.charging_smash)
     {
         std::cout << "p2 charging a smash" << std::endl;
     }
@@ -173,16 +173,16 @@ void PrintState(GameState* state)
         std::cout << "p2 not charging a smash" << std::endl;
     }
 
-    std::cout << "p1 hitlag frames left: " << state->m_memory->player_one_hitlag_frames_left << std::endl;
-    std::cout << "p2 hitlag frames left: " << state->m_memory->player_two_hitlag_frames_left << std::endl;
+    std::cout << "p1 hitlag frames left: " << memory.player_one.hitlag_frames_left << std::endl;
+    std::cout << "p2 hitlag frames left: " << memory.player_two.hitlag_frames_left << std::endl;
 
-    std::cout << "p1 hitstun frames left: " << state->m_memory->player_one_hitstun_frames_left << std::endl;
-    std::cout << "p2 hitstun frames left: " << state->m_memory->player_two_hitstun_frames_left << std::endl;
+    std::cout << "p1 hitstun frames left: " << memory.player_one.hitstun_frames_left << std::endl;
+    std::cout << "p2 hitstun frames left: " << memory.player_two.hitstun_frames_left << std::endl;
 
-    std::cout << "p1 jumps left: " << state->m_memory->player_one_jumps_left << std::endl;
-    std::cout << "p2 jumps left: " << state->m_memory->player_two_jumps_left << std::endl;
+    std::cout << "p1 jumps left: " << memory.player_one.jumps_left << std::endl;
+    std::cout << "p2 jumps left: " << memory.player_two.jumps_left << std::endl;
 
-    if(state->m_memory->player_one_on_ground)
+    if(memory.player_one.on_ground)
     {
         std::cout << "p1 on ground" << std::endl;
     }
@@ -190,7 +190,7 @@ void PrintState(GameState* state)
     {
         std::cout << "p1 in air" << std::endl;
     }
-    if(state->m_memory->player_two_on_ground)
+    if(memory.player_two.on_ground)
     {
         std::cout << "p2 on ground" << std::endl;
     }
@@ -199,22 +199,22 @@ void PrintState(GameState* state)
         std::cout << "p2 in air" << std::endl;
     }
 
-    std::cout << "p1 speed x air self: " << state->m_memory->player_one_speed_air_x_self << std::endl;
-    std::cout << "p2 speed x air self: " << state->m_memory->player_two_speed_air_x_self << std::endl;
+    std::cout << "p1 speed x air self: " << memory.player_one.speed_air_x_self << std::endl;
+    std::cout << "p2 speed x air self: " << memory.player_two.speed_air_x_self << std::endl;
 
-    std::cout << "p1 speed y self: " << state->m_memory->player_one_speed_y_self << std::endl;
-    std::cout << "p2 speed y self: " << state->m_memory->player_two_speed_y_self << std::endl;
+    std::cout << "p1 speed y self: " << memory.player_one.speed_y_self << std::endl;
+    std::cout << "p2 speed y self: " << memory.player_two.speed_y_self << std::endl;
 
-    std::cout << "p1 speed x attack: " << state->m_memory->player_one_speed_x_attack << std::endl;
-    std::cout << "p2 speed x attack: " << state->m_memory->player_two_speed_x_attack << std::endl;
+    std::cout << "p1 speed x attack: " << memory.player_one.speed_x_attack << std::endl;
+    std::cout << "p2 speed x attack: " << memory.player_two.speed_x_attack << std::endl;
 
-    std::cout << "p1 speed y attack: " << state->m_memory->player_one_speed_y_attack << std::endl;
-    std::cout << "p2 speed y attack: " << state->m_memory->player_two_speed_y_attack << std::endl;
+    std::cout << "p1 speed y attack: " << memory.player_one.speed_y_attack << std::endl;
+    std::cout << "p2 speed y attack: " << memory.player_two.speed_y_attack << std::endl;
 
-    std::cout << "p1 speed x ground self: " << state->m_memory->player_one_speed_ground_x_self << std::endl;
-    std::cout << "p2 speed x ground self: " << state->m_memory->player_two_speed_ground_x_self << std::endl;
+    std::cout << "p1 speed x ground self: " << memory.player_one.speed_ground_x_self << std::endl;
+    std::cout << "p2 speed x ground self: " << memory.player_two.speed_ground_x_self << std::endl;
 }
-*/
+
 int main()
 {
     //Do some first-time setup
