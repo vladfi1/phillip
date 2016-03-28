@@ -12,9 +12,6 @@
 #include <chrono>
 #include <thread>
 
-#include "Goals/KillOpponent.h"
-#include "Goals/NavigateMenu.h"
-
 #include "GameState.h"
 #include "MemoryWatcher.h"
 #include "Controller.h"
@@ -94,7 +91,7 @@ void FirstTimeSetup()
             "You may need to restart Dolphin and the CPU in order for this to work. (You should only see this warning once)" << std::endl;
     }
 }
-
+/*
 void PrintState(GameState* state)
 {
     std::cout << "p1 percent: " << state->m_memory->player_one_percent << std::endl;
@@ -217,90 +214,27 @@ void PrintState(GameState* state)
     std::cout << "p1 speed x ground self: " << state->m_memory->player_one_speed_ground_x_self << std::endl;
     std::cout << "p2 speed x ground self: " << state->m_memory->player_two_speed_ground_x_self << std::endl;
 }
-
+*/
 int main()
 {
     //Do some first-time setup
     FirstTimeSetup();
 
-    GameState *state = GameState::Instance();
-    Controller *controller = Controller::Instance();
+    //GameState *state = GameState::Instance();
+    //Controller *controller = Controller::Instance();
 
-    MemoryWatcher *watcher = new MemoryWatcher();
+    MemoryWatcher watcher;
+    GameMemory memory;
     uint last_frame = 0;
-    //Get our goal
-    Goal *goal = NULL;
-    MENU current_menu;
     
     for(;;)
     {
-        controller->pressButton(Controller::BUTTON_D_RIGHT);
-        while(!watcher->ReadMemory()) {}
-        controller->releaseButton(Controller::BUTTON_D_RIGHT);
+        //controller->pressButton(Controller::BUTTON_D_RIGHT);
+        while(!watcher.ReadMemory(memory)) {}
+        //controller->releaseButton(Controller::BUTTON_D_RIGHT);
         
-        PrintState(state);
-        //std::this_thread::sleep_for(std::chrono::milliseconds(20));
-    }
-
-    //Main frame loop
-    for(;;)
-    {
-        //If we get a new frame, process it. Otherwise, keep reading memory
-        if(!watcher->ReadMemory())
-        {
-            continue;
-        }
-
         //PrintState(state);
-
-        current_menu = (MENU)state->m_memory->menu_state;
-
-        //Spinloop until we get a new frame
-        if(state->m_memory->frame != last_frame)
-        {
-            if(state->m_memory->frame > last_frame+1)
-            {
-                std::cout << "WARNING: FRAME MISSED" << std::endl;
-            }
-            last_frame = state->m_memory->frame;
-
-            //If we're in a match, play the match!
-            if(state->m_memory->menu_state == IN_GAME)
-            {
-                if(goal == NULL )
-                {
-                    goal = new KillOpponent();
-                }
-                if(typeid(*goal) != typeid(KillOpponent))
-                {
-                    delete goal;
-                    goal = new KillOpponent();
-                }
-                goal->Strategize();
-            }
-            //If we're in a menu, then let's navigate the menu
-            else if(state->m_memory->menu_state == CHARACTER_SELECT ||
-                state->m_memory->menu_state == STAGE_SELECT ||
-                state->m_memory->menu_state == POSTGAME_SCORES)
-            {
-                if(goal == NULL )
-                {
-                    goal = new NavigateMenu();
-                }
-                if(typeid(*goal) != typeid(NavigateMenu))
-                {
-                    delete goal;
-                    goal = new NavigateMenu();
-                }
-                goal->Strategize();
-            }
-        }
-        //If the menu changed
-        else if(current_menu != state->m_memory->menu_state)
-        {
-            last_frame = 1;
-            current_menu = (MENU)state->m_memory->menu_state;
-        }
+        //std::this_thread::sleep_for(std::chrono::milliseconds(20));
     }
 
     return EXIT_SUCCESS;

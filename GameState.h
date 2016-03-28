@@ -3,51 +3,35 @@
 
 #include <sys/types.h>
 
+struct Player
+{
+    uint percent;
+    uint stock;
+    //True is right, false is left
+    bool facing;
+    float x;
+    float y;
+    uint action;
+    uint action_counter;
+    uint action_frame;
+    uint character;
+    bool invulnerable;
+    uint hitlag_frames_left;
+    uint hitstun_frames_left;
+    uint jumps_left;
+    bool charging_smash;
+    bool on_ground;
+    float speed_air_x_self;
+    float speed_ground_x_self;
+    float speed_y_self;
+    float speed_x_attack;
+    float speed_y_attack;
+};
+
 struct GameMemory
 {
-    uint player_one_percent;
-    uint player_one_stock;
-    //True is right, false is left
-    bool player_one_facing;
-    float player_one_x;
-    float player_one_y;
-    uint player_one_action;
-    uint player_one_action_counter;
-    uint player_one_action_frame;
-    uint player_one_character;
-    bool player_one_invulnerable;
-    uint player_one_hitlag_frames_left;
-    uint player_one_hitstun_frames_left;
-    uint player_one_jumps_left;
-    bool player_one_charging_smash;
-    bool player_one_on_ground;
-    float player_one_speed_air_x_self;
-    float player_one_speed_y_self;
-    float player_one_speed_x_attack;
-    float player_one_speed_y_attack;
-    float player_one_speed_ground_x_self;
-
-    uint player_two_percent;
-    uint player_two_stock;
-    //True is right, false is left
-    bool player_two_facing;
-    float player_two_x;
-    float player_two_y;
-    uint player_two_action;
-    uint player_two_action_counter;
-    uint player_two_action_frame;
-    uint player_two_character;
-    bool player_two_invulnerable;
-    uint player_two_hitlag_frames_left;
-    uint player_two_hitstun_frames_left;
-    uint player_two_jumps_left;
-    bool player_two_charging_smash;
-    bool player_two_on_ground;
-    float player_two_speed_air_x_self;
-    float player_two_speed_y_self;
-    float player_two_speed_x_attack;
-    float player_two_speed_y_attack;
-    float player_two_speed_ground_x_self;
+    Player player_one;
+    Player player_two;
 
     //Character select screen pointer for player 2
     float player_two_pointer_x;
