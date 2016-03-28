@@ -10,7 +10,7 @@ CHAINS=Chains/*.cpp
 
 EXECUTABLE=cpu
 
-all: goals strats tactics chains main
+all: main
 	$(CC) $(LDFLAGS) *.o -o $(EXECUTABLE)
 
 main:
