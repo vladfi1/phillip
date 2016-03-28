@@ -63,7 +63,7 @@ MemoryWatcher::MemoryWatcher()
     bind(m_file, (struct sockaddr*) &addr, sizeof(addr));
 }
 
-float asFloat(uint value_int)
+inline float asFloat(uint value_int)
 {
     return reinterpret_cast<float&>(value_int);
 }
