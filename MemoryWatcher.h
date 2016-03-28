@@ -12,12 +12,11 @@ public:
 
     //Returns true if the memory read was an updated frame count, false otherwise
     //Blocking call
-    bool ReadMemory();
+    bool ReadMemory(GameMemory& memory);
 
 private:
     //File descriptor
     int m_file;
-    GameState *m_state;
 
 };
 
