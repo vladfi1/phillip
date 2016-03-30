@@ -68,6 +68,129 @@ inline float asFloat(uint value_int)
     return reinterpret_cast<float&>(value_int);
 }
 
+void ReadPlayer(PlayerMemory& player, uint ptr_int, uint value_int)
+{
+    switch(ptr_int)
+    {
+        //Action
+        case 0x70:
+        {
+            player.action = value_int;
+            break;
+        }
+        //Action counter
+        case 0x20CC:
+        {
+            player.action_counter = value_int;
+            break;
+        }
+        //Action frame
+        case 0x8F4:
+        {
+            player.action_frame = asFloat(value_int);
+            break;
+        }
+        //Invulnerable
+        case 0x19EC:
+        {
+            if(value_int == 0)
+            {
+                player.invulnerable = false;
+            }
+            else
+            {
+                player.invulnerable = true;
+            }
+            break;
+        }
+        //Hitlag
+        case 0x19BC:
+        {
+            player.hitlag_frames_left = asFloat(value_int);
+            break;
+        }
+        //Hitstun
+        case 0x23a0:
+        {
+            player.hitstun_frames_left = asFloat(value_int);
+            break;
+        }
+        //Is charging a smash?
+        case 0x2174:
+        {
+            player.action = value_int;
+            if(value_int == 2)
+            {
+                player.charging_smash = true;
+            }
+            else
+            {
+                player.charging_smash = false;
+            }
+            break;
+        }
+        //Jumps remaining
+        case 0x19C8:
+        {
+            value_int = value_int >> 24;
+            //TODO: This won't work for characters with multiple jumps
+            if(value_int > 1)
+            {
+                value_int = 0;
+            }
+            player.jumps_left = value_int;
+            break;
+        }
+        //Is on ground?
+        case 0x140:
+        {
+            if(value_int == 0)
+            {
+                player.on_ground = true;
+            }
+            else
+            {
+                player.on_ground = false;
+            }
+            break;
+        }
+        //X air speed self
+        case 0xE0:
+        {
+            player.speed_air_x_self = asFloat(value_int);
+            break;
+        }
+        //Y air speed self
+        case 0xE4:
+        {
+            player.speed_y_self = asFloat(value_int);
+            break;
+        }
+        //X attack
+        case 0xEC:
+        {
+            player.speed_x_attack = asFloat(value_int);
+            break;
+        }
+        //Y attack
+        case 0xF0:
+        {
+            player.speed_y_attack = asFloat(value_int);
+            break;
+        }
+        //x ground self
+        case 0x14C:
+        {
+            player.speed_ground_x_self = asFloat(value_int);
+            break;
+        }
+        default:
+        {
+            std::cout << "WARNING: Got an unexpected memory pointer: " << ptr_int << std::endl;
+        }
+    }
+}
+
 bool MemoryWatcher::ReadMemory(GameMemory& memory)
 {
     char buf[128];
@@ -81,7 +204,7 @@ bool MemoryWatcher::ReadMemory(GameMemory& memory)
 
     std::getline(ss, region, '\n');
     std::getline(ss, value, '\n');
-    uint value_int;
+    uint value_int = std::stoul(value.c_str(), nullptr, 16);
 
     //Is this a followed pointer?
     std::size_t found = region.find(" ");
@@ -92,283 +215,24 @@ bool MemoryWatcher::ReadMemory(GameMemory& memory)
         uint ptr_int = std::stoul(ptr.c_str(), nullptr, 16);
         uint base_int = std::stoul(base.c_str(), nullptr, 16);
 
-        //Player one
-        if(base_int == 0x453130)
+        switch(base_int)
         {
-            switch(ptr_int)
+            //Player one
+            case 0x453130:
             {
-                //Action
-                case 0x70:
-                {
-                    value_int = std::stoul(value.c_str(), nullptr, 16);
-                    memory.player_one.action = value_int;
-                    break;
-                }
-                //Action counter
-                case 0x20CC:
-                {
-                    value_int = std::stoul(value.c_str(), nullptr, 16);
-                    memory.player_one.action_counter = value_int;
-                    break;
-                }
-                //Action frame
-                case 0x8F4:
-                {
-                    value_int = std::stoul(value.c_str(), nullptr, 16);
-                    memory.player_one.action_frame = asFloat(value_int);
-                    break;
-                }
-                //Invulnerable
-                case 0x19EC:
-                {
-                    value_int = std::stoul(value.c_str(), nullptr, 16);
-                    if(value_int == 0)
-                    {
-                        memory.player_one.invulnerable = false;
-                    }
-                    else
-                    {
-                        memory.player_one.invulnerable = true;
-                    }
-                    break;
-                }
-                //Hitlag
-                case 0x19BC:
-                {
-                    value_int = std::stoul(value.c_str(), nullptr, 16);
-                    memory.player_one.hitlag_frames_left = asFloat(value_int);
-                    break;
-                }
-                //Hitstun
-                case 0x23a0:
-                {
-                    value_int = std::stoul(value.c_str(), nullptr, 16);
-                    memory.player_one.hitstun_frames_left = asFloat(value_int);
-                    break;
-                }
-                //Is charging a smash?
-                case 0x2174:
-                {
-                    value_int = std::stoul(value.c_str(), nullptr, 16);
-                    memory.player_one.action = value_int;
-                    if(value_int == 2)
-                    {
-                        memory.player_one.charging_smash = true;
-                    }
-                    else
-                    {
-                        memory.player_one.charging_smash = false;
-                    }
-                    break;
-                }
-                //Jumps remaining
-                case 0x19C8:
-                {
-                    value_int = std::stoul(value.c_str(), nullptr, 16);
-                    value_int = value_int >> 24;
-                    //TODO: This won't work for characters with multiple jumps
-                    if(value_int > 1)
-                    {
-                        value_int = 0;
-                    }
-                    memory.player_one.jumps_left = value_int;
-                    break;
-                }
-                //Is on ground?
-                case 0x140:
-                {
-                    value_int = std::stoul(value.c_str(), nullptr, 16);
-                    if(value_int == 0)
-                    {
-                        memory.player_one.on_ground = true;
-                    }
-                    else
-                    {
-                        memory.player_one.on_ground = false;
-                    }
-                    break;
-                }
-                //X air speed self
-                case 0xE0:
-                {
-                    value_int = std::stoul(value.c_str(), nullptr, 16);
-                    memory.player_one.speed_air_x_self = asFloat(value_int);
-                    break;
-                }
-                //Y air speed self
-                case 0xE4:
-                {
-                    value_int = std::stoul(value.c_str(), nullptr, 16);
-                    memory.player_one.speed_y_self = asFloat(value_int);
-                    break;
-                }
-                //X attack
-                case 0xEC:
-                {
-                    value_int = std::stoul(value.c_str(), nullptr, 16);
-                    memory.player_one.speed_x_attack = asFloat(value_int);
-                    break;
-                }
-                //Y attack
-                case 0xF0:
-                {
-                    value_int = std::stoul(value.c_str(), nullptr, 16);
-                    memory.player_one.speed_y_attack = asFloat(value_int);
-                    break;
-                }
-                //x ground self
-                case 0x14C:
-                {
-                    value_int = std::stoul(value.c_str(), nullptr, 16);
-                    memory.player_one.speed_ground_x_self = asFloat(value_int);
-                    break;
-                }
-                default:
-                {
-                    std::cout << "WARNING: Got an unexpected memory pointer: " << ptr_int << std::endl;
-                }
+                ReadPlayer(memory.player_one, ptr_int, value_int);
+                break;
             }
-        }
-        //Player two
-        else if(base_int == 0x453FC0)
-        {
-            switch(ptr_int)
+            //Player two
+            case 0x453FC0:
             {
-                //Action
-                case 0x70:
-                {
-                    value_int = std::stoul(value.c_str(), nullptr, 16);
-                    memory.player_two.action = value_int;
-                    break;
-                }
-                //Action counter
-                case 0x20CC:
-                {
-                    value_int = std::stoul(value.c_str(), nullptr, 16);
-                    memory.player_two.action_counter = value_int;
-                    break;
-                }
-                //Action frame
-                case 0x8F4:
-                {
-                    value_int = std::stoul(value.c_str(), nullptr, 16);
-                    memory.player_two.action_frame = asFloat(value_int);
-                    break;
-                }
-                //Invulnerable
-                case 0x19EC:
-                {
-                    value_int = std::stoul(value.c_str(), nullptr, 16);
-                    if(value_int == 0)
-                    {
-                        memory.player_two.invulnerable = false;
-                    }
-                    else
-                    {
-                        memory.player_two.invulnerable = true;
-                    }
-                    break;
-                }
-                //Hitlag
-                case 0x19BC:
-                {
-                    value_int = std::stoul(value.c_str(), nullptr, 16);
-                    memory.player_two.hitlag_frames_left = asFloat(value_int);
-                    break;
-                }
-                //Hitstun
-                case 0x23a0:
-                {
-                    value_int = std::stoul(value.c_str(), nullptr, 16);
-                    memory.player_two.hitstun_frames_left = asFloat(value_int);
-                    break;
-                }
-                //Is charging a smash?
-                case 0x2174:
-                {
-                    value_int = std::stoul(value.c_str(), nullptr, 16);
-                    memory.player_two.action = value_int;
-                    if(value_int == 2)
-                    {
-                        memory.player_two.charging_smash = true;
-                    }
-                    else
-                    {
-                        memory.player_two.charging_smash = false;
-                    }
-                    break;
-                }
-                //Jumps remaining
-                case 0x19C8:
-                {
-                    value_int = std::stoul(value.c_str(), nullptr, 16);
-                    value_int = value_int >> 24;
-                    //TODO: This won't work for characters with multiple jumps
-                    if(value_int > 1)
-                    {
-                        value_int = 0;
-                    }
-                    memory.player_two.jumps_left = value_int;
-                    break;
-                }
-                //Is on ground?
-                case 0x140:
-                {
-                    value_int = std::stoul(value.c_str(), nullptr, 16);
-                    if(value_int == 0)
-                    {
-                        memory.player_two.on_ground = true;
-                    }
-                    else
-                    {
-                        memory.player_two.on_ground = false;
-                    }
-                    break;
-                }
-                //X air speed self
-                case 0xE0:
-                {
-                    value_int = std::stoul(value.c_str(), nullptr, 16);
-                    memory.player_two.speed_air_x_self = asFloat(value_int);
-                    break;
-                }
-                //Y air speed self
-                case 0xE4:
-                {
-                    value_int = std::stoul(value.c_str(), nullptr, 16);
-                    memory.player_two.speed_y_self = asFloat(value_int);
-                    break;
-                }
-                //X attack
-                case 0xEC:
-                {
-                    value_int = std::stoul(value.c_str(), nullptr, 16);
-                    memory.player_two.speed_x_attack = asFloat(value_int);
-                    break;
-                }
-                //Y attack
-                case 0xF0:
-                {
-                    value_int = std::stoul(value.c_str(), nullptr, 16);
-                    memory.player_two.speed_y_attack = asFloat(value_int);
-                    break;
-                }
-                //x ground self
-                case 0x14C:
-                {
-                    value_int = std::stoul(value.c_str(), nullptr, 16);
-                    memory.player_two.speed_ground_x_self = asFloat(value_int);
-                    break;
-                }
-                default:
-                {
-                    std::cout << "WARNING: Got an unexpected memory pointer: " << ptr_int << std::endl;
-                }
+                ReadPlayer(memory.player_two, ptr_int, value_int);
+                break;
             }
-        }
-        else
-        {
-            std::cout << "WARNING: Got an unexpected memory base pointer: " << base_int << std::endl;
+            default:
+            {
+                std::cout << "WARNING: Got an unexpected memory base pointer: " << base_int << std::endl;
+            }
         }
     }
     //If not, it's a direct pointer
@@ -380,47 +244,36 @@ bool MemoryWatcher::ReadMemory(GameMemory& memory)
             //Frame
             case 0x479D60:
             {
-                value_int = std::stoul(value.c_str(), nullptr, 16);
                 memory.frame = value_int;
                 break;
             }
             //Player 1 percent
             case 0x4530E0:
             {
-                value_int = std::stoul(value.c_str(), nullptr, 16);
-                value_int = value_int >> 16;
-                memory.player_one.percent = value_int;
+                memory.player_one.percent = value_int >> 16;
                 break;
             }
             //Player 2 percent
             case 0x453F70:
             {
-                value_int = std::stoul(value.c_str(), nullptr, 16);
-                value_int = value_int >> 16;
-                memory.player_two.percent = value_int;
+                memory.player_two.percent = value_int >> 16;
                 break;
             }
             //Player 1 stock
             case 0x45310E:
             {
-                value_int = std::stoul(value.c_str(), nullptr, 16);
-                value_int = value_int >> 24;
-                memory.player_one.stock = value_int;
-
+                memory.player_one.stock = value_int >> 24;
                 break;
             }
             //Player 2 stock
             case 0x453F9E:
             {
-                value_int = std::stoul(value.c_str(), nullptr, 16);
-                value_int = value_int >> 24;
-                memory.player_two.stock = value_int;
+                memory.player_two.stock = value_int >> 24;
                 break;
             }
             //Player 1 facing
             case 0x4530C0:
             {
-                value_int = std::stoul(value.c_str(), nullptr, 16);
                 bool facing = value_int >> 31;
                 memory.player_one.facing = !facing;
                 break;
@@ -428,7 +281,6 @@ bool MemoryWatcher::ReadMemory(GameMemory& memory)
             //Player 2 facing
             case 0x453F50:
             {
-                value_int = std::stoul(value.c_str(), nullptr, 16);
                 bool facing = value_int >> 31;
                 memory.player_two.facing = !facing;
                 break;
@@ -436,79 +288,65 @@ bool MemoryWatcher::ReadMemory(GameMemory& memory)
             //Player 1 x
             case 0x453090:
             {
-                value_int = std::stoul(value.c_str(), nullptr, 16);
                 memory.player_one.x = asFloat(value_int);
                 break;
             }
             //Player 2 x
             case 0x453F20:
             {
-                value_int = std::stoul(value.c_str(), nullptr, 16);
                 memory.player_two.x = asFloat(value_int);
                 break;
             }
             //Player 1 y
             case 0x453094:
             {
-                value_int = std::stoul(value.c_str(), nullptr, 16);
                 memory.player_one.y = asFloat(value_int);
                 break;
             }
             //Player 2 y
             case 0x453F24:
             {
-                value_int = std::stoul(value.c_str(), nullptr, 16);
                 memory.player_two.y = asFloat(value_int);
                 break;
             }
             //Player one character
             case 0x3F0E0A:
             {
-                value_int = std::stoul(value.c_str(), nullptr, 16);
-                value_int = value_int >> 24;
-                memory.player_one.character = value_int;
+                memory.player_one.character = value_int >> 24;
                 break;
             }
             //Player two character
             case 0x3F0E2E:
             {
-                value_int = std::stoul(value.c_str(), nullptr, 16);
-                value_int = value_int >> 24;
-                memory.player_two.character = value_int;
+                memory.player_two.character = value_int >> 24;
                 break;
             }
             //Menu state
             case 0x479d30:
             {
-                value_int = std::stoul(value.c_str(), nullptr, 16);
                 memory.menu_state = value_int;
                 break;
             }
             //Stage
             case 0x4D6CAD:
             {
-                value_int = std::stoul(value.c_str(), nullptr, 16);
-                value_int = value_int >> 16;
-                memory.stage = value_int;
+                memory.stage = value_int >> 16;
                 break;
             }
             //p2 cursor x
             case 0x0111826C:
             {
-                value_int = std::stoul(value.c_str(), nullptr, 16);
                 memory.player_two_pointer_x = asFloat(value_int);
                 break;
             }
             //p2 cursor y
             case 0x01118270:
             {
-                value_int = std::stoul(value.c_str(), nullptr, 16);
                 memory.player_two_pointer_y = asFloat(value_int);
                 break;
             }
             case 0x003F0E08:
             {
-                value_int = std::stoul(value.c_str(), nullptr, 16);
                 std::cout << std::hex << "P1: " << value_int << std::endl;
                 break;
             }
