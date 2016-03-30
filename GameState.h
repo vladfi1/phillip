@@ -34,7 +34,7 @@ struct PlayerMemory
 
 struct PlayerEmbedding : Embedding<PlayerMemory>
 {
-  size_t size() const { return 100; }
+  size_t size() const { return 562; /* = 512 (action) + 32 + 18 */ }
   
   void writeEmbedding(const PlayerMemory& player, vector<float>& buffer) const;
 };
@@ -54,6 +54,19 @@ struct GameMemory
     uint menu_state;
     uint stage;
 };
+
+/*
+struct GameEmbedding : Embedding<GameMemory>
+{
+  size_t size() const { return 562; }
+  
+  void writeEmbedding(const PlayerMemory& player, vector<float>& buffer) const;
+};
+
+extern const RangeEmbedding actionEmbedding;
+*/
+
+extern const RangeEmbedding actionEmbedding;
 
 enum ACTION
 {
