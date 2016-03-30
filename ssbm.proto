@@ -1,0 +1,39 @@
+package ssbm;
+
+message PlayerMemory {
+  required uint32 percent = 1;
+  required uint32 stock = 2;
+  //True is right, false is left
+  required bool facing = 3;
+  required float x = 4;
+  required float y = 5;
+  required uint32 action = 6;
+  required uint32 action_counter = 7;
+  required uint32 action_frame = 8;
+  required uint32 character = 9;
+  required bool invulnerable = 10;
+  required uint32 hitlag_frames_left = 11;
+  required uint32 hitstun_frames_left = 12;
+  required uint32 jumps_left = 13;
+  required bool charging_smash = 14;
+  required bool on_ground = 15;
+  required float speed_air_x_self = 16;
+  required float speed_ground_x_self = 17;
+  required float speed_y_self = 18;
+  required float speed_x_attack = 19;
+  required float speed_y_attack = 20;
+};
+
+message GameMemory
+{
+  required PlayerMemory player_one = 1;
+  required PlayerMemory player_two = 2;
+
+  //Character select screen pointer for player 2
+  required float player_two_pointer_x = 3;
+  required float player_two_pointer_y = 4;
+
+  required uint32 frame = 5;
+  required uint32 menu_state = 6;
+  required uint32 stage = 7;
+};
