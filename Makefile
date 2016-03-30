@@ -1,8 +1,8 @@
 CC=g++
 CFLAGS=-g -c -Wall -std=gnu++11
-LDFLAGS=-g -Wall -std=gnu++11
+LDFLAGS=
 
-SOURCES=cpu.cpp Controller.cpp GameState.cpp MemoryWatcher.cpp
+SOURCES=cpu.cpp Controller.cpp GameState.cpp MemoryWatcher.cpp Embedding.cpp
 GOALS=Goals/*.cpp
 STRATS=Strategies/*.cpp
 TACTICS=Tactics/*.cpp

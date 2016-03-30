@@ -2,6 +2,18 @@
 
 #include <string>
 
+void PlayerEmbedding::writeEmbedding(const PlayerMemory& player, vector<float>& buffer) const
+{
+  floatEmbedding.writeEmbedding(player.percent, buffer);
+  // skip player.stock
+  boolEmbedding.writeEmbedding(player.facing, buffer);
+  floatEmbedding.writeEmbedding(player.x, buffer);
+  floatEmbedding.writeEmbedding(player.y, buffer);
+}
+
+const PlayerEmbedding playerEmbedding;
+
+
 GameState* GameState::m_instance = NULL;
 
 GameState *GameState::Instance()

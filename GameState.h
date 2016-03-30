@@ -2,8 +2,12 @@
 #define GAMESTATE_H
 
 #include <sys/types.h>
+//#include "ssbm.pb.h"
+#include "Embedding.h"
 
-struct Player
+using namespace std;
+
+struct PlayerMemory
 {
     uint percent;
     uint stock;
@@ -28,10 +32,19 @@ struct Player
     float speed_y_attack;
 };
 
+struct PlayerEmbedding : Embedding<PlayerMemory>
+{
+  size_t size() const { return 100; }
+  
+  void writeEmbedding(const PlayerMemory& player, vector<float>& buffer) const;
+};
+
+extern const PlayerEmbedding playerEmbedding;
+
 struct GameMemory
 {
-    Player player_one;
-    Player player_two;
+    PlayerMemory player_one;
+    PlayerMemory player_two;
 
     //Character select screen pointer for player 2
     float player_two_pointer_x;
