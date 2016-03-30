@@ -6,7 +6,6 @@
 #include <fstream>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <sys/types.h>
 #include <pwd.h>
 
 #include <chrono>
@@ -233,7 +232,14 @@ int main()
         while(!watcher.ReadMemory(memory)) {}
         //controller->releaseButton(Controller::BUTTON_D_RIGHT);
         
-        //PrintState(state);
+        if (memory.frame > last_frame + 1)
+        {
+            std::cout << "Missed frames " << last_frame + 1 << "-" << memory.frame - 1 << std::endl;
+        }
+        
+        last_frame = memory.frame;
+        
+        //PrintState(memory);
         //std::this_thread::sleep_for(std::chrono::milliseconds(20));
     }
 
