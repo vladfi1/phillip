@@ -2,40 +2,6 @@
 
 #include <string>
 
-// TODO: find out actual used actions
-const RangeEmbedding actionEmbedding(512);
-
-//const RangeEmbedding jumpEmbedding(8);
-
-// TODO: find out actual characters
-const RangeEmbedding characterEmbedding(32);
-
-void PlayerEmbedding::writeEmbedding(const PlayerMemory& player, vector<float>& buffer) const
-{
-  floatEmbedding.writeEmbedding(player.percent, buffer);
-  // skip player.stock
-  boolEmbedding.writeEmbedding(player.facing, buffer);
-  floatEmbedding.writeEmbedding(player.x, buffer);
-  floatEmbedding.writeEmbedding(player.y, buffer);
-  actionEmbedding.writeEmbedding(player.action, buffer);
-  floatEmbedding.writeEmbedding(player.action_counter, buffer);
-  floatEmbedding.writeEmbedding(player.action_frame, buffer);
-  characterEmbedding.writeEmbedding(player.character, buffer);
-  boolEmbedding.writeEmbedding(player.invulnerable, buffer);
-  floatEmbedding.writeEmbedding(player.hitlag_frames_left, buffer);
-  floatEmbedding.writeEmbedding(player.hitstun_frames_left, buffer);
-  floatEmbedding.writeEmbedding(player.jumps_left, buffer);
-  boolEmbedding.writeEmbedding(player.charging_smash, buffer);
-  boolEmbedding.writeEmbedding(player.on_ground, buffer);
-  floatEmbedding.writeEmbedding(player.speed_air_x_self, buffer);
-  floatEmbedding.writeEmbedding(player.speed_ground_x_self, buffer);
-  floatEmbedding.writeEmbedding(player.speed_y_self, buffer);
-  floatEmbedding.writeEmbedding(player.speed_x_attack, buffer);
-  floatEmbedding.writeEmbedding(player.speed_y_attack, buffer);
-}
-
-const PlayerEmbedding playerEmbedding;
-
 GameState* GameState::m_instance = NULL;
 
 GameState *GameState::Instance()

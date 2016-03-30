@@ -3,7 +3,6 @@
 
 #include <sys/types.h>
 //#include "ssbm.pb.h"
-#include "Embedding.h"
 
 using namespace std;
 
@@ -32,15 +31,6 @@ struct PlayerMemory
     float speed_y_attack;
 };
 
-struct PlayerEmbedding : Embedding<PlayerMemory>
-{
-  size_t size() const { return 562; /* = 512 (action) + 32 + 18 */ }
-  
-  void writeEmbedding(const PlayerMemory& player, vector<float>& buffer) const;
-};
-
-extern const PlayerEmbedding playerEmbedding;
-
 struct GameMemory
 {
     PlayerMemory player_one;
@@ -54,19 +44,6 @@ struct GameMemory
     uint menu_state;
     uint stage;
 };
-
-/*
-struct GameEmbedding : Embedding<GameMemory>
-{
-  size_t size() const { return 562; }
-  
-  void writeEmbedding(const PlayerMemory& player, vector<float>& buffer) const;
-};
-
-extern const RangeEmbedding actionEmbedding;
-*/
-
-extern const RangeEmbedding actionEmbedding;
 
 enum ACTION
 {
