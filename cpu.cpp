@@ -91,6 +91,7 @@ void FirstTimeSetup()
     }
 }
 
+/*
 void PrintState(GameMemory& memory)
 {
     std::cout << "p1 percent: " << memory.player_one.percent << std::endl;
@@ -213,6 +214,7 @@ void PrintState(GameMemory& memory)
     std::cout << "p1 speed x ground self: " << memory.player_one.speed_ground_x_self << std::endl;
     std::cout << "p2 speed x ground self: " << memory.player_two.speed_ground_x_self << std::endl;
 }
+*/
 
 int main()
 {
@@ -223,21 +225,24 @@ int main()
     //Controller *controller = Controller::Instance();
 
     MemoryWatcher watcher;
-    GameMemory memory;
+    
+    PlayerMemory defaultPlayer(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    GameMemory gameMemory(defaultPlayer, defaultPlayer, 0, 0, 0, 0, 0);
+    
     uint last_frame = 0;
     
     for(;;)
     {
         //controller->pressButton(Controller::BUTTON_D_RIGHT);
-        while(!watcher.ReadMemory(memory)) {}
+        while(!watcher.ReadMemory(gameMemory)) {}
         //controller->releaseButton(Controller::BUTTON_D_RIGHT);
         
-        if (memory.frame > last_frame + 1)
+        if (gameMemory.frame() > last_frame + 1)
         {
-            std::cout << "Missed frames " << last_frame + 1 << "-" << memory.frame - 1 << std::endl;
+            std::cout << "Missed frames " << last_frame + 1 << "-" << gameMemory.frame() - 1 << std::endl;
         }
         
-        last_frame = memory.frame;
+        last_frame = gameMemory.frame();
         
         //PrintState(memory);
         //std::this_thread::sleep_for(std::chrono::milliseconds(20));

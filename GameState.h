@@ -2,48 +2,9 @@
 #define GAMESTATE_H
 
 #include <sys/types.h>
-//#include "ssbm.pb.h"
+#include "ssbm_generated.h"
 
-using namespace std;
-
-struct PlayerMemory
-{
-    uint percent;
-    uint stock;
-    //True is right, false is left
-    bool facing;
-    float x;
-    float y;
-    uint action;
-    uint action_counter;
-    uint action_frame;
-    uint character;
-    bool invulnerable;
-    uint hitlag_frames_left;
-    uint hitstun_frames_left;
-    uint jumps_left;
-    bool charging_smash;
-    bool on_ground;
-    float speed_air_x_self;
-    float speed_ground_x_self;
-    float speed_y_self;
-    float speed_x_attack;
-    float speed_y_attack;
-};
-
-struct GameMemory
-{
-    PlayerMemory player_one;
-    PlayerMemory player_two;
-
-    //Character select screen pointer for player 2
-    float player_two_pointer_x;
-    float player_two_pointer_y;
-
-    uint frame;
-    uint menu_state;
-    uint stage;
-};
+using namespace ssbm;
 
 enum ACTION
 {
@@ -199,51 +160,6 @@ enum STAGE
     FINAL_DESTINATION = 0x19,
     DREAMLAND = 0x1a,
     FOUNTAIN_OF_DREAMS = 0x8,
-};
-
-class GameState {
-public:
-    static GameState *Instance();
-
-    //This is the x coordinate of the edge, as you would be hanging from the edge, off the stage
-    double getStageEdgePosition();
-    //This is the x coordinate of the edge, as you would be teetering while standing on the stage
-    double getStageEdgeGroundPosition();
-
-    bool isDamageState(ACTION);
-
-    //Returns the frame of the first hitbox
-    //    return value of 0 means not an attack, or not supported yet
-    uint firstHitboxFrame(CHARACTER, ACTION);
-
-    //Returns the frame of the last hitbox
-    //    return value of 0 means not an attack, or not supported yet
-    uint lastHitboxFrame(CHARACTER, ACTION);
-
-    //Returns the number of frames in the animation total
-    //    Note that this returns the number of frames they are guaranteed to be in, so IASA frames are cut off
-    //    return value of 0 means not an attack, or not supported yet
-    uint totalActionFrames(CHARACTER, ACTION);
-
-    //Returns the amount of landing lag from the given airial attack
-    //    return value of 0 means not an airial attack, or not supported yet
-    uint landingLag(CHARACTER, ACTION);
-
-    //Is the current landing special state from UP-B (true) or wavedash (false)
-    void setLandingState(bool);
-
-    //Is the given action an attack?
-    bool isAttacking(ACTION a);
-    //Does the given attack have reverse hit frames? (Do we need to worry about parrying from attacks if the
-    //  enemy is facing the other way?)
-    bool isReverseHit(ACTION a);
-
-    GameMemory *m_memory;
-
-private:
-    GameState();
-    static GameState *m_instance;
-    bool m_landingFromUpB;
 };
 
 #endif

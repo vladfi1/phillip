@@ -1,0 +1,37 @@
+// Generated from ssbm.proto
+
+namespace ssbm;
+
+struct PlayerMemory {
+  percent:uint;
+  stock:uint;
+  facing:bool;
+  x:float;
+  y:float;
+  action:uint;
+  action_counter:uint;
+  action_frame:uint;
+  character:uint;
+  invulnerable:bool;
+  hitlag_frames_left:uint;
+  hitstun_frames_left:uint;
+  jumps_left:uint;
+  charging_smash:bool;
+  on_ground:bool;
+  speed_air_x_self:float;
+  speed_ground_x_self:float;
+  speed_y_self:float;
+  speed_x_attack:float;
+  speed_y_attack:float;
+}
+
+struct GameMemory {
+  player_one:PlayerMemory;
+  player_two:PlayerMemory;
+  player_two_pointer_x:float;
+  player_two_pointer_y:float;
+  frame:uint;
+  menu_state:uint;
+  stage:uint;
+}
+

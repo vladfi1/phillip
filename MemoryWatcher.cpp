@@ -75,19 +75,19 @@ void ReadPlayer(PlayerMemory& player, uint ptr_int, uint value_int)
         //Action
         case 0x70:
         {
-            player.action = value_int;
+            player.mutate_action(value_int);
             break;
         }
         //Action counter
         case 0x20CC:
         {
-            player.action_counter = value_int;
+            player.mutate_action_counter(value_int);
             break;
         }
         //Action frame
         case 0x8F4:
         {
-            player.action_frame = asFloat(value_int);
+            player.mutate_action_frame(asFloat(value_int));
             break;
         }
         //Invulnerable
@@ -95,37 +95,37 @@ void ReadPlayer(PlayerMemory& player, uint ptr_int, uint value_int)
         {
             if(value_int == 0)
             {
-                player.invulnerable = false;
+                player.mutate_invulnerable(false);
             }
             else
             {
-                player.invulnerable = true;
+                player.mutate_invulnerable(true);
             }
             break;
         }
         //Hitlag
         case 0x19BC:
         {
-            player.hitlag_frames_left = asFloat(value_int);
+            player.mutate_hitlag_frames_left(asFloat(value_int));
             break;
         }
         //Hitstun
         case 0x23a0:
         {
-            player.hitstun_frames_left = asFloat(value_int);
+            player.mutate_hitstun_frames_left(asFloat(value_int));
             break;
         }
         //Is charging a smash?
         case 0x2174:
         {
-            player.action = value_int;
+            player.mutate_action(value_int);
             if(value_int == 2)
             {
-                player.charging_smash = true;
+                player.mutate_charging_smash(true);
             }
             else
             {
-                player.charging_smash = false;
+                player.mutate_charging_smash(false);
             }
             break;
         }
@@ -138,7 +138,7 @@ void ReadPlayer(PlayerMemory& player, uint ptr_int, uint value_int)
             {
                 value_int = 0;
             }
-            player.jumps_left = value_int;
+            player.mutate_jumps_left(value_int);
             break;
         }
         //Is on ground?
@@ -146,42 +146,42 @@ void ReadPlayer(PlayerMemory& player, uint ptr_int, uint value_int)
         {
             if(value_int == 0)
             {
-                player.on_ground = true;
+                player.mutate_on_ground(true);
             }
             else
             {
-                player.on_ground = false;
+                player.mutate_on_ground(false);
             }
             break;
         }
         //X air speed self
         case 0xE0:
         {
-            player.speed_air_x_self = asFloat(value_int);
+            player.mutate_speed_air_x_self(asFloat(value_int));
             break;
         }
         //Y air speed self
         case 0xE4:
         {
-            player.speed_y_self = asFloat(value_int);
+            player.mutate_speed_y_self(asFloat(value_int));
             break;
         }
         //X attack
         case 0xEC:
         {
-            player.speed_x_attack = asFloat(value_int);
+            player.mutate_speed_x_attack(asFloat(value_int));
             break;
         }
         //Y attack
         case 0xF0:
         {
-            player.speed_y_attack = asFloat(value_int);
+            player.mutate_speed_y_attack(asFloat(value_int));
             break;
         }
         //x ground self
         case 0x14C:
         {
-            player.speed_ground_x_self = asFloat(value_int);
+            player.mutate_speed_ground_x_self(asFloat(value_int));
             break;
         }
         default:
@@ -191,7 +191,7 @@ void ReadPlayer(PlayerMemory& player, uint ptr_int, uint value_int)
     }
 }
 
-bool MemoryWatcher::ReadMemory(GameMemory& memory)
+bool MemoryWatcher::ReadMemory(GameMemory& gameMemory)
 {
     char buf[128];
     memset(buf, '\0', 128);
@@ -220,13 +220,13 @@ bool MemoryWatcher::ReadMemory(GameMemory& memory)
             //Player one
             case 0x453130:
             {
-                ReadPlayer(memory.player_one, ptr_int, value_int);
+                ReadPlayer(gameMemory.mutable_player_one(), ptr_int, value_int);
                 break;
             }
             //Player two
             case 0x453FC0:
             {
-                ReadPlayer(memory.player_two, ptr_int, value_int);
+                ReadPlayer(gameMemory.mutable_player_two(), ptr_int, value_int);
                 break;
             }
             default:
@@ -244,105 +244,105 @@ bool MemoryWatcher::ReadMemory(GameMemory& memory)
             //Frame
             case 0x479D60:
             {
-                memory.frame = value_int;
+                gameMemory.mutate_frame(value_int);
                 break;
             }
             //Player 1 percent
             case 0x4530E0:
             {
-                memory.player_one.percent = value_int >> 16;
+                gameMemory.mutable_player_one().mutate_percent(value_int >> 16);
                 break;
             }
             //Player 2 percent
             case 0x453F70:
             {
-                memory.player_two.percent = value_int >> 16;
+                gameMemory.mutable_player_two().mutate_percent(value_int >> 16);
                 break;
             }
             //Player 1 stock
             case 0x45310E:
             {
-                memory.player_one.stock = value_int >> 24;
+                gameMemory.mutable_player_one().mutate_stock(value_int >> 24);
                 break;
             }
             //Player 2 stock
             case 0x453F9E:
             {
-                memory.player_two.stock = value_int >> 24;
+                gameMemory.mutable_player_two().mutate_stock(value_int >> 24);
                 break;
             }
             //Player 1 facing
             case 0x4530C0:
             {
-                bool facing = value_int >> 31;
-                memory.player_one.facing = !facing;
+                bool facing(value_int >> 31);
+                gameMemory.mutable_player_one().mutate_facing(!facing);
                 break;
             }
             //Player 2 facing
             case 0x453F50:
             {
-                bool facing = value_int >> 31;
-                memory.player_two.facing = !facing;
+                bool facing(value_int >> 31);
+                gameMemory.mutable_player_two().mutate_facing(!facing);
                 break;
             }
             //Player 1 x
             case 0x453090:
             {
-                memory.player_one.x = asFloat(value_int);
+                gameMemory.mutable_player_one().mutate_x(asFloat(value_int));
                 break;
             }
             //Player 2 x
             case 0x453F20:
             {
-                memory.player_two.x = asFloat(value_int);
+                gameMemory.mutable_player_two().mutate_x(asFloat(value_int));
                 break;
             }
             //Player 1 y
             case 0x453094:
             {
-                memory.player_one.y = asFloat(value_int);
+                gameMemory.mutable_player_one().mutate_y(asFloat(value_int));
                 break;
             }
             //Player 2 y
             case 0x453F24:
             {
-                memory.player_two.y = asFloat(value_int);
+                gameMemory.mutable_player_two().mutate_y(asFloat(value_int));
                 break;
             }
             //Player one character
             case 0x3F0E0A:
             {
-                memory.player_one.character = value_int >> 24;
+                gameMemory.mutable_player_one().mutate_character(value_int >> 24);
                 break;
             }
             //Player two character
             case 0x3F0E2E:
             {
-                memory.player_two.character = value_int >> 24;
+                gameMemory.mutable_player_two().mutate_character(value_int >> 24);
                 break;
             }
             //Menu state
             case 0x479d30:
             {
-                memory.menu_state = value_int;
+                gameMemory.mutate_menu_state(value_int);
                 break;
             }
             //Stage
             case 0x4D6CAD:
             {
-                memory.stage = value_int >> 16;
+                gameMemory.mutate_stage(value_int >> 16);
                 break;
             }
             //p2 cursor x
             case 0x0111826C:
             {
-                memory.player_two_pointer_x = asFloat(value_int);
+                gameMemory.mutate_player_two_pointer_x(asFloat(value_int));
                 break;
             }
             //p2 cursor y
             case 0x01118270:
             {
-                memory.player_two_pointer_y = asFloat(value_int);
+                gameMemory.mutate_player_two_pointer_y(asFloat(value_int));
                 break;
             }
             case 0x003F0E08:

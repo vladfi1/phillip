@@ -2,6 +2,8 @@
 
 #include <string>
 
+using namespace ssbm;
+
 GameState* GameState::m_instance = NULL;
 
 GameState *GameState::Instance()
