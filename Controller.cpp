@@ -71,89 +71,93 @@ Controller::Controller()
     std::cout << "DEBUG: Off to the races!" << std::endl;
 }
 
-void Controller::pressButton(BUTTON b)
+//Hardcoded strings to send to dolphin
+const std::string STRING_A = "A";
+const std::string STRING_B = "B";
+const std::string STRING_X = "X";
+const std::string STRING_Y = "Y";
+const std::string STRING_Z = "Z";
+const std::string STRING_START = "START";
+const std::string STRING_L = "L";
+const std::string STRING_R = "R";
+const std::string STRING_D_UP = "D_UP";
+const std::string STRING_D_DOWN = "D_DOWN";
+const std::string STRING_D_LEFT = "D_LEFT";
+const std::string STRING_D_RIGHT = "D_RIGHT";
+const std::string STRING_C = "C";
+const std::string STRING_MAIN = "MAIN";
+const std::string STRING_INVALID = "";
+
+const std::string& buttonString(BUTTON b)
 {
-    std::string button_string;
     switch (b)
     {
         case BUTTON_A:
         {
-            button_string = STRING_A;
-            break;
+            return STRING_A;
         }
         case BUTTON_B:
         {
-            button_string = STRING_B;
-            break;
+            return STRING_B;
         }
         case BUTTON_X:
         {
-            button_string = STRING_X;
-            break;
+            return STRING_X;
         }
         case BUTTON_Y:
         {
-            button_string = STRING_Y;
-            break;
+            return STRING_Y;
         }
         case BUTTON_L:
         {
-            button_string = STRING_L;
-            break;
+            return STRING_L;
         }
         case BUTTON_R:
         {
-            button_string = STRING_R;
-            break;
+            return STRING_R;
         }
         case BUTTON_Z:
         {
-            button_string = STRING_Z;
-            break;
+            return STRING_Z;
         }
         case BUTTON_START:
         {
-            button_string = STRING_START;
-            break;
+            return STRING_START;
         }
         case BUTTON_D_UP:
         {
-            button_string = STRING_D_UP;
-            break;
+            return STRING_D_UP;
         }
         case BUTTON_D_DOWN:
         {
-            button_string = STRING_D_DOWN;
-            break;
+            return STRING_D_DOWN;
         }
         case BUTTON_D_LEFT:
         {
-            button_string = STRING_D_LEFT;
-            break;
+            return STRING_D_LEFT;
         }
         case BUTTON_D_RIGHT:
         {
-            button_string = STRING_D_RIGHT;
-            break;
+            return STRING_D_RIGHT;
         }
         case BUTTON_MAIN:
         {
-            button_string = STRING_MAIN;
-            break;
+            return STRING_MAIN;
         }
         case BUTTON_C:
         {
-            button_string = STRING_C;
-            break;
+            return STRING_C;
         }
         default:
         {
-            std::cout << "WARNING: Invalid button selected!" << std::endl;
+            std::cout << "WARNING: Invalid button selected: " << b << std::endl;
+            return STRING_INVALID;
         }
     }
-    //TODO: we can maybe same some cycles per frame by hardcoding each string
-    //  rather than assembling them here
-    std::string command = "PRESS " + button_string + "\n";
+}
+
+void Controller::sendCommand(const std::string& command)
+{
     //TODO: Maybe we should loop the writes until it finishes
     uint num = write(m_fifo, command.c_str(), command.length());
     if(num < command.length())
@@ -163,99 +167,24 @@ void Controller::pressButton(BUTTON b)
     //std::cout << "DEBUG: Command = " + command << std::endl;
 }
 
+void Controller::pressButton(BUTTON b)
+{
+    setButton(b, true);
+}
+
 void Controller::releaseButton(BUTTON b)
 {
-    std::string button_string;
-    switch (b)
-    {
-        case BUTTON_A:
-        {
-            button_string = STRING_A;
-            break;
-        }
-        case BUTTON_B:
-        {
-            button_string = STRING_B;
-            break;
-        }
-        case BUTTON_X:
-        {
-            button_string = STRING_X;
-            break;
-        }
-        case BUTTON_Y:
-        {
-            button_string = STRING_Y;
-            break;
-        }
-        case BUTTON_L:
-        {
-            button_string = STRING_L;
-            break;
-        }
-        case BUTTON_R:
-        {
-            button_string = STRING_R;
-            break;
-        }
-        case BUTTON_Z:
-        {
-            button_string = STRING_Z;
-            break;
-        }
-        case BUTTON_START:
-        {
-            button_string = STRING_START;
-            break;
-        }
-        case BUTTON_D_UP:
-        {
-            button_string = STRING_D_UP;
-            break;
-        }
-        case BUTTON_D_DOWN:
-        {
-            button_string = STRING_D_DOWN;
-            break;
-        }
-        case BUTTON_D_LEFT:
-        {
-            button_string = STRING_D_LEFT;
-            break;
-        }
-        case BUTTON_D_RIGHT:
-        {
-            button_string = STRING_D_RIGHT;
-            break;
-        }
-        case BUTTON_MAIN:
-        {
-            button_string = STRING_MAIN;
-            break;
-        }
-        case BUTTON_C:
-        {
-            button_string = STRING_C;
-            break;
-        }
-        default:
-        {
-            std::cout << "WARNING: Invalid button selected!" << std::endl;
-        }
-    }
-    //TODO: we can maybe same some cycles per frame by hardcoding each string
-    //  rather than assembling them here
-    std::string command = "RELEASE " + button_string + "\n";
-    uint num = write(m_fifo, command.c_str(), command.length());
-    if(num < command.length())
-    {
-        std::cout << "WARNING: Not all data written to pipe!" << std::endl;
-    }
-    //std::cout << "DEBUG: Command = " + command << std::endl;
-
+    setButton(b, false);
 }
 
-void Controller::pressShoulder(BUTTON b, double amount)
+void Controller::setButton(BUTTON b, bool press)
+{
+    //TODO: we can maybe save some cycles per frame by hardcoding each string
+    //  rather than assembling them here
+    sendCommand((press ? "PRESS " : "RELEASE ") + buttonString(b) + "\n");
+}
+
+void Controller::pressShoulder(BUTTON b, float amount)
 {
     std::string button_string;
     switch (b)
@@ -272,21 +201,16 @@ void Controller::pressShoulder(BUTTON b, double amount)
         }
         default:
         {
-            std::cout << "WARNING: Invalid button selected!" << std::endl;
+            std::cout << "WARNING: Invalid shoulder button selected: " << b << std::endl;
         }
     }
-    //TODO: we can maybe same some cycles per frame by hardcoding each string
+    //TODO: we can maybe save some cycles per frame by hardcoding each string
     //  rather than assembling them here
     std::string command = "SET " + button_string + " " + std::to_string(amount) + "\n";
-    uint num = write(m_fifo, command.c_str(), command.length());
-    if(num < command.length())
-    {
-        std::cout << "WARNING: Not all data written to pipe!" << std::endl;
-    }
-    //std::cout << "DEBUG: Command = " + command << std::endl;
+    sendCommand(command);
 }
 
-void Controller::tiltAnalog(BUTTON b, double x, double y)
+void Controller::tiltAnalog(BUTTON b, float x, float y)
 {
     std::string button_string;
     switch (b)
@@ -303,19 +227,15 @@ void Controller::tiltAnalog(BUTTON b, double x, double y)
         }
         default:
         {
-            std::cout << "WARNING: Invalid button selected!" << std::endl;
+            std::cout << "WARNING: Invalid analog stick selected: " << b << std::endl;
         }
     }
     std::string command = "SET " + button_string + " " + std::to_string(x) +
         " " + std::to_string(y) + "\n";
-    uint num = write(m_fifo, command.c_str(), command.length());
-    if(num < command.length())
-    {
-        std::cout << "WARNING: Not all data written to pipe!" << std::endl;
-    }
+    sendCommand(command);
 }
 
-void Controller::tiltAnalog(BUTTON b, double x)
+void Controller::tiltAnalog(BUTTON b, float x)
 {
     std::string button_string;
     switch (b)
@@ -331,23 +251,35 @@ void Controller::tiltAnalog(BUTTON b, double x)
         }
     }
     std::string command = "SET " + button_string + " " + std::to_string(x) + "\n";
-    uint num = write(m_fifo, command.c_str(), command.length());
-    if(num < command.length())
-    {
-        std::cout << "WARNING: Not all data written to pipe!" << std::endl;
-    }
+    sendCommand(command);
 }
 
 void Controller::emptyInput()
 {
-    tiltAnalog(Controller::BUTTON_MAIN, .5, .5);
-    tiltAnalog(Controller::BUTTON_C, .5, .5);
-    tiltAnalog(Controller::BUTTON_L, 0);
-    releaseButton(Controller::BUTTON_X);
-    releaseButton(Controller::BUTTON_Y);
-    releaseButton(Controller::BUTTON_A);
-    releaseButton(Controller::BUTTON_B);
-    releaseButton(Controller::BUTTON_L);
-    releaseButton(Controller::BUTTON_R);
-    releaseButton(Controller::BUTTON_START);
+    tiltAnalog(BUTTON_MAIN, .5, .5);
+    tiltAnalog(BUTTON_C, .5, .5);
+    tiltAnalog(BUTTON_L, 0);
+    releaseButton(BUTTON_X);
+    releaseButton(BUTTON_Y);
+    releaseButton(BUTTON_A);
+    releaseButton(BUTTON_B);
+    releaseButton(BUTTON_L);
+    releaseButton(BUTTON_R);
+    releaseButton(BUTTON_START);
 }
+
+void Controller::sendController(const ControllerState& controllerState)
+{
+  setButton(BUTTON_A, controllerState.buttonA());
+  setButton(BUTTON_B, controllerState.buttonB());
+  setButton(BUTTON_X, controllerState.buttonX());
+  setButton(BUTTON_Y, controllerState.buttonY());
+  setButton(BUTTON_L, controllerState.buttonL());
+  setButton(BUTTON_R, controllerState.buttonR());
+  
+  pressShoulder(BUTTON_L, controllerState.analogL());
+  
+  tiltAnalog(BUTTON_MAIN, controllerState.mainX(), controllerState.mainY());
+  tiltAnalog(BUTTON_C, controllerState.cX(), controllerState.cY());
+}
+

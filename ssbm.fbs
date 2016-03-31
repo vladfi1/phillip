@@ -3,7 +3,7 @@
 namespace ssbm;
 
 struct PlayerMemory {
-  percent:uint;
+  percent:uint = 0;
   stock:uint;
   facing:bool;
   x:float;
@@ -35,3 +35,19 @@ struct GameMemory {
   stage:uint;
 }
 
+struct ControllerState {
+  buttonA : bool = false;
+  buttonB : bool = false;
+  buttonX : bool = false;
+  buttonY : bool = false;
+  buttonL : bool = false;
+  buttonR : bool = false;
+  
+  analogL : float = 0;
+  //analogR : float = 0;
+  
+  mainX : float = 0.5;
+  mainY : float = 0.5;
+  cX : float = 0.5;
+  cY : float = 0.5;
+}
