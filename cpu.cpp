@@ -222,7 +222,8 @@ int main()
     FirstTimeSetup();
 
     //GameState *state = GameState::Instance();
-    //Controller *controller = Controller::Instance();
+    ControllerState controllerState(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    Controller *controller = Controller::Instance();
 
     MemoryWatcher watcher;
     

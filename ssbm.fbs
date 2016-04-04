@@ -1,5 +1,3 @@
-// Generated from ssbm.proto
-
 namespace ssbm;
 
 struct PlayerMemory {
@@ -44,10 +42,11 @@ struct ControllerState {
   buttonR : bool = false;
   
   analogL : float = 0;
-  //analogR : float = 0;
+  analogR : float = 0;
   
   mainX : float = 0.5;
   mainY : float = 0.5;
   cX : float = 0.5;
   cY : float = 0.5;
 }
+

@@ -129,14 +129,15 @@ MANUALLY_ALIGNED_STRUCT(4) ControllerState FLATBUFFERS_FINAL_CLASS {
   uint8_t buttonR_;
   int16_t __padding0;
   float analogL_;
+  float analogR_;
   float mainX_;
   float mainY_;
   float cX_;
   float cY_;
 
  public:
-  ControllerState(bool _buttonA, bool _buttonB, bool _buttonX, bool _buttonY, bool _buttonL, bool _buttonR, float _analogL, float _mainX, float _mainY, float _cX, float _cY)
-    : buttonA_(flatbuffers::EndianScalar(static_cast<uint8_t>(_buttonA))), buttonB_(flatbuffers::EndianScalar(static_cast<uint8_t>(_buttonB))), buttonX_(flatbuffers::EndianScalar(static_cast<uint8_t>(_buttonX))), buttonY_(flatbuffers::EndianScalar(static_cast<uint8_t>(_buttonY))), buttonL_(flatbuffers::EndianScalar(static_cast<uint8_t>(_buttonL))), buttonR_(flatbuffers::EndianScalar(static_cast<uint8_t>(_buttonR))), __padding0(0), analogL_(flatbuffers::EndianScalar(_analogL)), mainX_(flatbuffers::EndianScalar(_mainX)), mainY_(flatbuffers::EndianScalar(_mainY)), cX_(flatbuffers::EndianScalar(_cX)), cY_(flatbuffers::EndianScalar(_cY)) { (void)__padding0; }
+  ControllerState(bool _buttonA, bool _buttonB, bool _buttonX, bool _buttonY, bool _buttonL, bool _buttonR, float _analogL, float _analogR, float _mainX, float _mainY, float _cX, float _cY)
+    : buttonA_(flatbuffers::EndianScalar(static_cast<uint8_t>(_buttonA))), buttonB_(flatbuffers::EndianScalar(static_cast<uint8_t>(_buttonB))), buttonX_(flatbuffers::EndianScalar(static_cast<uint8_t>(_buttonX))), buttonY_(flatbuffers::EndianScalar(static_cast<uint8_t>(_buttonY))), buttonL_(flatbuffers::EndianScalar(static_cast<uint8_t>(_buttonL))), buttonR_(flatbuffers::EndianScalar(static_cast<uint8_t>(_buttonR))), __padding0(0), analogL_(flatbuffers::EndianScalar(_analogL)), analogR_(flatbuffers::EndianScalar(_analogR)), mainX_(flatbuffers::EndianScalar(_mainX)), mainY_(flatbuffers::EndianScalar(_mainY)), cX_(flatbuffers::EndianScalar(_cX)), cY_(flatbuffers::EndianScalar(_cY)) { (void)__padding0; }
 
   bool buttonA() const { return flatbuffers::EndianScalar(buttonA_) != 0; }
   void mutate_buttonA(bool _buttonA) { flatbuffers::WriteScalar(&buttonA_, static_cast<uint8_t>(_buttonA)); }
@@ -152,6 +153,8 @@ MANUALLY_ALIGNED_STRUCT(4) ControllerState FLATBUFFERS_FINAL_CLASS {
   void mutate_buttonR(bool _buttonR) { flatbuffers::WriteScalar(&buttonR_, static_cast<uint8_t>(_buttonR)); }
   float analogL() const { return flatbuffers::EndianScalar(analogL_); }
   void mutate_analogL(float _analogL) { flatbuffers::WriteScalar(&analogL_, _analogL); }
+  float analogR() const { return flatbuffers::EndianScalar(analogR_); }
+  void mutate_analogR(float _analogR) { flatbuffers::WriteScalar(&analogR_, _analogR); }
   float mainX() const { return flatbuffers::EndianScalar(mainX_); }
   void mutate_mainX(float _mainX) { flatbuffers::WriteScalar(&mainX_, _mainX); }
   float mainY() const { return flatbuffers::EndianScalar(mainY_); }
@@ -161,7 +164,7 @@ MANUALLY_ALIGNED_STRUCT(4) ControllerState FLATBUFFERS_FINAL_CLASS {
   float cY() const { return flatbuffers::EndianScalar(cY_); }
   void mutate_cY(float _cY) { flatbuffers::WriteScalar(&cY_, _cY); }
 };
-STRUCT_END(ControllerState, 28);
+STRUCT_END(ControllerState, 32);
 
 }  // namespace ssbm
 

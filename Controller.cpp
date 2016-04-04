@@ -268,6 +268,7 @@ void Controller::emptyInput()
     releaseButton(BUTTON_START);
 }
 
+// TODO: use a buffer to improve efficiency
 void Controller::sendController(const ControllerState& controllerState)
 {
   setButton(BUTTON_A, controllerState.buttonA());
@@ -278,6 +279,7 @@ void Controller::sendController(const ControllerState& controllerState)
   setButton(BUTTON_R, controllerState.buttonR());
   
   pressShoulder(BUTTON_L, controllerState.analogL());
+  pressShoulder(BUTTON_R, controllerState.analogR());
   
   tiltAnalog(BUTTON_MAIN, controllerState.mainX(), controllerState.mainY());
   tiltAnalog(BUTTON_C, controllerState.cX(), controllerState.cY());
