@@ -14,6 +14,7 @@
 #include "GameState.h"
 #include "MemoryWatcher.h"
 #include "Controller.h"
+#include "Serial.hpp"
 
 void FirstTimeSetup()
 {
@@ -224,24 +225,45 @@ int main()
 
     MemoryWatcher watcher;
     GameMemory memory;
-    uint last_frame = 0;
+    ControllerState controllerState;
     
-    for(;;)
+    uint last_frame = 0;
+    uint record_count = 0;
+    
+    const uint recordFrames = 60 * 60;
+    
+    WriteBuffer writeBuffer;
+    
+    for(; record_count < 1; ++record_count)
     {
-        //controller->pressButton(Controller::BUTTON_D_RIGHT);
-        while(!watcher.ReadMemory(memory)) {}
-        //controller->releaseButton(Controller::BUTTON_D_RIGHT);
+        string recordFile = "testRecord" + std::to_string(record_count);
         
-        if (memory.frame > last_frame + 1)
+        ofstream fout;
+        fout.open(recordFile, ios::binary | ios::out);
+
+        for(uint frame = 0; frame < recordFrames;)
         {
-            std::cout << "Missed frames " << last_frame + 1 << "-" << memory.frame - 1 << std::endl;
+            //controller->pressButton(Controller::BUTTON_D_RIGHT);
+            while(!watcher.ReadMemory(memory)) {}
+            //controller->releaseButton(Controller::BUTTON_D_RIGHT);
+            
+            if (memory.frame > last_frame + 1)
+            {
+                std::cout << "Missed frames " << last_frame + 1 << "-" << memory.frame - 1 << std::endl;
+            }
+            
+            last_frame = memory.frame;
+            
+            if (memory.menu_state == IN_GAME)
+            {
+                fout.write(reinterpret_cast<char*>(&memory), sizeof(GameMemory));
+                ++frame;
+            }
         }
         
-        last_frame = memory.frame;
-        
-        //PrintState(memory);
-        //std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        //fout.write(writeBuffer.getBuf(), writeBuffer.getSize());
+        fout.close();
     }
-
+    
     return EXIT_SUCCESS;
 }

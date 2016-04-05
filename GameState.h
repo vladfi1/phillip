@@ -2,9 +2,6 @@
 #define GAMESTATE_H
 
 #include <sys/types.h>
-//#include "ssbm.pb.h"
-
-using namespace std;
 
 struct PlayerMemory
 {
