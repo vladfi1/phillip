@@ -155,7 +155,12 @@ def computeRewards(states, discount = 0.99):
   scores = map(score, states)
   return util.scanr1(lambda r1, r2: r1 + discount * r2, scores)
   
-def readFile(filename, states=[], controls=[]):
+def readFile(filename, states=None, controls=None):
+  if states is None:
+    states = []
+  if controls is None:
+    controls = []
+  
   with open('testRecord0', 'rb') as f:
     for i in range(60 * 60):
       states.append(ssbm.GameMemory())
@@ -163,6 +168,9 @@ def readFile(filename, states=[], controls=[]):
       
       controls.append(ssbm.ControllerState())
       f.readinto(controls[-1])
+    
+    # should be zero
+    # print(len(f.read()))
   
   return states, controls
 
@@ -176,8 +184,10 @@ def computeQLoss(filename):
   feedCTypes(ssbm.ControllerState, input_controls, controls, feed_dict)
   
   print(sess.run(qLoss, feed_dict))
-  sess.run(trainQ, feed_dict)
-  print(sess.run(qLoss, feed_dict))
+  
+  for _ in range(10):
+    sess.run(trainQ, feed_dict)
+    print(sess.run(qLoss, feed_dict))
 
 sess.run(tf.initialize_all_variables())
 computeQLoss('testRecord0')
