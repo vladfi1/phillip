@@ -1,11 +1,15 @@
 from ctypes import *
 
+def toString(struct):
+  fields = [field + "=" + getattr(struct, field) for (field, _) in struct._fields_]
+  return "%s{%s}" % (struct.__class__.__name__, ", ".join(fields))
+
 class PlayerMemory(Structure):
   _fields_ = [
     ('percent', c_uint),
     ('stock', c_uint),
     # True is right, false is left
-    ('facing', c_uint),
+    ('facing', c_bool),
     ('x', c_float),
     ('y', c_float),
     ('action', c_uint),
@@ -24,6 +28,8 @@ class PlayerMemory(Structure):
     ('speed_x_attack', c_float),
     ('speed_y_attack', c_float)
   ]
+  
+  __repr__ = toString
 
 class GameMemory(Structure):
   _fields_ = [
@@ -38,4 +44,45 @@ class GameMemory(Structure):
     ('menu_state', c_uint),
     ('stage', c_uint)
   ]
+
+  __repr__ = toString
+
+class ControllerState(Structure):
+  _fields_ = [
+    ('buttonA', c_bool),
+    ('buttonB', c_bool),
+    ('buttonX', c_bool),
+    ('buttonY', c_bool),
+    ('buttonL', c_bool),
+    ('buttonR', c_bool),
+  
+    ('analogL', c_float),
+    ('analogR', c_float),
+  
+    ('mainX', c_float),
+    ('mainY', c_float),
+    
+    ('cX', c_float),
+    ('cY', c_float)
+  ]
+
+  __repr__ = toString
+
+  def reset(self):
+    "Resets controller to neutral position."
+    self.buttonA = False
+    self.buttonB = False
+    self.buttonX = False
+    self.buttonY = False
+    self.buttonL = False
+    self.buttonR = False
+    
+    self.analogL = 0.0
+    self.analogR = 0.0
+    
+    self.mainX = 0.5
+    self.mainY = 0.5
+    
+    self.cX = 0.5
+    self.cY = 0.5
 
