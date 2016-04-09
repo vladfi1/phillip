@@ -16,6 +16,8 @@
 #include "Controller.h"
 #include "Serial.hpp"
 
+using namespace std;
+
 void FirstTimeSetup()
 {
     struct passwd *pw = getpwuid(getuid());
@@ -221,7 +223,7 @@ int main()
     FirstTimeSetup();
 
     //GameState *state = GameState::Instance();
-    //Controller *controller = Controller::Instance();
+    Controller controller("cpu1");
 
     MemoryWatcher watcher;
     GameMemory memory;
@@ -256,7 +258,9 @@ int main()
             
             if (memory.menu_state == IN_GAME)
             {
+                controller.sendState(controllerState);
                 fout.write(reinterpret_cast<char*>(&memory), sizeof(GameMemory));
+                fout.write(reinterpret_cast<char*>(&controllerState), sizeof(ControllerState));
                 ++frame;
             }
         }

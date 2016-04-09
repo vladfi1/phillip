@@ -14,18 +14,25 @@
 #include <unistd.h>
 #include <pwd.h>
 
-Controller* Controller::m_instance = NULL;
-
-Controller *Controller::Instance()
+void ControllerState::reset()
 {
-    if (!m_instance)
-    {
-        m_instance = new Controller();
-    }
-    return m_instance;
+    buttonA = false;
+    buttonB = false;
+    buttonX = false;
+    buttonY = false;
+    buttonL = false;
+    buttonR = false;
+    analogL = 0.0;
+    analogR = 0.0;
+    mainX = 0.5;
+    mainY = 0.5;
+    cX = 0.5;
+    cY = 0.5;
 }
 
-Controller::Controller()
+ControllerState::ControllerState() { reset(); }
+
+Controller::Controller(const std::string& pipeName)
 {
     struct passwd *pw = getpwuid(getuid());
     std::string home_path = std::string(pw->pw_dir);
@@ -48,18 +55,20 @@ Controller::Controller()
                 exit(-1);
             }
             pipe_path = backup_path;
-            pipe_path += "/Pipes/cpu-level-11";
+            pipe_path += "/Pipes/";
         }
         else
         {
             pipe_path = env_XDG_DATA_HOME;
-            pipe_path += "/Pipes/cpu-level-11";
+            pipe_path += "/Pipes/";
         }
     }
     else
     {
-        pipe_path = legacy_config_path + "/Pipes/cpu-level-11";
+        pipe_path = legacy_config_path + "/Pipes/";
     }
+    
+    pipe_path += pipeName;
 
     m_fifo = mkfifo(pipe_path.c_str(), S_IWUSR | S_IRUSR | S_IRGRP | S_IROTH);
     std::cout << "DEBUG: Waiting for Dolphin..." << std::endl;
@@ -250,7 +259,7 @@ void Controller::emptyInput()
     releaseButton(BUTTON_START);
 }
 
-void Controller::sendController(const ControllerState& controllerState)
+void Controller::sendState(const ControllerState& controllerState)
 {
   setButton(BUTTON_A, controllerState.buttonA);
   setButton(BUTTON_B, controllerState.buttonB);
@@ -260,7 +269,7 @@ void Controller::sendController(const ControllerState& controllerState)
   setButton(BUTTON_R, controllerState.buttonR);
   
   pressShoulder(BUTTON_L, controllerState.analogL);
-  pressShoulder(BUTTON_R, controllerState.analogL);
+  pressShoulder(BUTTON_R, controllerState.analogR);
   
   tiltAnalog(BUTTON_MAIN, controllerState.mainX, controllerState.mainY);
   tiltAnalog(BUTTON_C, controllerState.cX, controllerState.cY);

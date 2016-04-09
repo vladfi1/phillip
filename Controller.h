@@ -31,11 +31,15 @@ struct ControllerState {
   
   float mainX, mainY;
   float cX, cY;
+  
+  void reset();
+  
+  ControllerState();
 };
 
 class Controller {
 public:
-    static Controller *Instance();
+    Controller(const std::string& pipeName);
 
     void pressButton(BUTTON b);
     void releaseButton(BUTTON b);
@@ -49,12 +53,9 @@ public:
     //Press no buttons, move sticks back to neutral
     void emptyInput();
     
-    void sendController(const ControllerState& controllerState);
+    void sendState(const ControllerState& controllerState);
 
 private:
-    Controller();
-    static Controller* m_instance;
-    
     void sendCommand(const std::string& command);
     
     int m_fifo;
