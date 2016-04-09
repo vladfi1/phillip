@@ -1,8 +1,23 @@
+# TODO: move the ctype-generic stuff into a separate file
+
 from ctypes import *
 
 def toString(struct):
-  fields = [field + "=" + getattr(struct, field) for (field, _) in struct._fields_]
+  fields = [field + "=" + str(getattr(struct, field)) for (field, _) in struct._fields_]
   return "%s{%s}" % (struct.__class__.__name__, ", ".join(fields))
+
+# TODO: add a named tuple/dict version
+def toTuple(struct):
+  if isinstance(struct, Structure):
+    return tuple(toTuple(getattr(struct, f)) for f, _ in struct._fields_)
+  # just a regular ctype
+  return struct
+
+def hashStruct(struct):
+  return hash(toTuple(struct))
+
+def eqStruct(struct1, struct2):
+  return toTuple(struct1) == toTuple(struct2)
 
 class PlayerMemory(Structure):
   _fields_ = [
@@ -30,6 +45,8 @@ class PlayerMemory(Structure):
   ]
   
   __repr__ = toString
+  __hash__ = hashStruct
+  __eq__ = eqStruct
 
 class GameMemory(Structure):
   _fields_ = [
@@ -46,6 +63,8 @@ class GameMemory(Structure):
   ]
 
   __repr__ = toString
+  __hash__ = hashStruct
+  __eq__ = eqStruct
 
 class ControllerState(Structure):
   _fields_ = [
@@ -67,6 +86,8 @@ class ControllerState(Structure):
   ]
 
   __repr__ = toString
+  __hash__ = hashStruct
+  __eq__ = eqStruct
 
   def reset(self):
     "Resets controller to neutral position."
