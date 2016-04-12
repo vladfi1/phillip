@@ -155,24 +155,20 @@ with tf.name_scope('trainQ'):
 
 with tf.variable_scope("actor"):
   layers = [state_size, 64, control_size]
-  nls = [tf.tanh, tf.sigmoid]
-  applyLayers = []
+  # all controls are in [0, 1]
+  nls = [tf.tanh] * (len(layers) - 2) + [tf.sigmoid]
   
-  applyC1 = tfl.makeAffineLayer(state_size, 64, tf.tanh)
-  # the first 8 members of controllerEmbedding are in [0,1]
-  applyC2 = t
-  applyC2Sigmoid = tfl.makeAffineLayer(64, 8, tf.sigmoid)
-  # the last 4 are in [-1, 1]
-  applyC2Tanh = tfl.makeAffineLayer(64, 4, tf.tanh)
+  zip_layers = zip(layers[:-1], layers[1:])
+  
+  applyLayers = [tfl.makeAffineLayer(prev, next, nl) for (prev, next), nl in zip(zip_layers, nls)]
+  
+def applyActor(state):
+  for f in applyLayers:
+    state = f(state)
+  return state
 
 actor_variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='actor')
 #print(actor_variables)
-
-def applyActor(states):
-  c1 = applyC1(states)
-  c2Sigmoid = applyC2Sigmoid(c1)
-  c2Tanh = applyC2Tanh(c1)
-  return tf.concat(1, [c2Sigmoid, c2Tanh])
 
 with tf.name_scope("actorQ"):
   actions = applyActor(embedded_states)
@@ -191,7 +187,7 @@ with tf.name_scope('predict'):
   reshaped = deepMapDict(lambda t: tf.reshape(t, [1]), predict_state)
   embedded_state = embedGame(reshaped)
   
-  embedded_action = tf.squeeze(applyActor(embedded_state))
+  embedded_action = tf.squeeze(applyActor(embedded_state), name="control")
   #split = tf.split(0, 12, embedded_action, name='action')
 
 sess = tf.Session()
