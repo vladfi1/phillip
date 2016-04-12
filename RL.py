@@ -53,8 +53,8 @@ maxCharacter = 32 # should be large enough?
 
 maxJumps = 8 # unused
 
-#with 
-actionHelper = tfl.makeAffineLayer(maxAction, actionSpace)
+with tf.variable_scope("embed_action"):
+  actionHelper = tfl.makeAffineLayer(maxAction, actionSpace)
 
 def embedAction(t):
   return actionHelper(one_hot(maxAction)(t))
@@ -93,7 +93,8 @@ embedPlayer = embedStruct(playerEmbedding)
 maxStage = 64 # overestimate
 stageSpace = 32
 
-stageHelper = tfl.makeAffineLayer(maxStage, stageSpace)
+with tf.variable_scope("embed_stage"):
+  stageHelper = tfl.makeAffineLayer(maxStage, stageSpace)
 
 def embedStage(stage):
   return stageHelper(one_hot(maxStage)(stage))
@@ -138,18 +139,19 @@ with tf.variable_scope("qNetwork"):
   q2 = tfl.makeAffineLayer(512, 1)
 
 def q(states, controls):
-  state_actions = tf.concat(1, [embedded_states, embedded_controls])
+  state_actions = tf.concat(1, [states, controls])
   return tf.squeeze(q2(q1(state_actions)))
-
-qPredictions = q(embedded_states, embedded_controls)
 
 # pre-computed long-term rewards
 rewards = tf.placeholder(tf.float32, [None], name='rewards')
 
-qLosses = tf.squared_difference(qPredictions, rewards)
-qLoss = tf.reduce_sum(qLosses)
+with tf.name_scope('trainQ'):
+  qPredictions = q(embedded_states, embedded_controls)
 
-trainQ = tf.train.RMSPropOptimizer(0.0001).minimize(qLoss)
+  qLosses = tf.squared_difference(qPredictions, rewards)
+  qLoss = tf.reduce_sum(qLosses)
+
+  trainQ = tf.train.RMSPropOptimizer(0.0001).minimize(qLoss)
 
 with tf.variable_scope("actor"):
   applyC1 = tfl.makeAffineLayer(state_size, 64, tf.tanh)
@@ -162,17 +164,29 @@ actor_variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='act
 #print(actor_variables)
 
 def actor(states):
-  c1 = applyC1(states)
-  c2Sigmoid = applyC2Sigmoid(c1)
-  c2Tanh = applyC2Tanh(c1)
-  return tf.concat(1, [c2Sigmoid, c2Tanh])
+  with tf.name_scope("c1"):
+    c1 = applyC1(states)
+  with tf.name_scope("c2"):
+    c2Sigmoid = applyC2Sigmoid(c1)
+    c2Tanh = applyC2Tanh(c1)
+    return tf.concat(1, [c2Sigmoid, c2Tanh])
 
-actions = actor(embedded_states)
-actorQ = tf.reduce_sum(q(embedded_states, actions))
+with tf.name_scope("actorQ"):
+  actions = actor(embedded_states)
+  actorQ = tf.reduce_sum(q(embedded_states, actions))
 
 #trainActor = tf.train.RMSPropOptimizer(0.001).minimize(-actorQ)
 trainActor = tf.train.RMSPropOptimizer(0.001).minimize(-actorQ, var_list=actor_variables)
-#trainActor = tf.train.RMSPropOptimizer(0.001).minimize(-actorQ, var_list=tf.trainable_variables())
+
+with tf.name_scope('prediction'):
+  input_state = tf.
+
+sess = tf.Session()
+
+#summaryWriter = tf.train.SummaryWriter('logs/', sess.graph)
+#summaryWriter.flush()
+
+saver = tf.train.Saver(tf.all_variables())
 
 # see GameState.h for explanations
 dyingActions = set([0x0, 0x1, 0x2, 0x4, 0x6, 0x7, 0x8])
@@ -216,15 +230,11 @@ def readFile(filename, states=None, controls=None):
   
   return states, controls
 
-saver = tf.train.Saver(tf.all_variables())
-
-sess = tf.Session()
-
 def train(filename):
   states, controls = readFile(filename)
   
   feed_dict = {rewards : computeRewards(states)}
-  feedCTypes(ssbm.GameMemory, input_states, states, feed_dict)  
+  feedCTypes(ssbm.GameMemory, input_states, states, feed_dict)
   feedCTypes(ssbm.ControllerState, input_controls, controls, feed_dict)
   
   print(sess.run(qLoss, feed_dict))
