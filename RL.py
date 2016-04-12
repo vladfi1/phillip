@@ -12,12 +12,11 @@ ctypes2TF = {
   ctypes.c_uint : tf.int32,
 }
 
-# TODO: use tensorflow variable scopes?
 def inputCType(ctype, shape=None, name=""):
   if ctype in ctypes2TF:
     return tf.placeholder(ctypes2TF[ctype], shape, name)
   elif issubclass(ctype, ctypes.Structure):
-    return {f : inputCType(t, shape, name + "." + f) for (f, t) in ctype._fields_}
+    return {f : inputCType(t, shape, name + "/" + f) for (f, t) in ctype._fields_}
   else:
     raise TypeError("Unhandled ctype " + ctype)
 
@@ -34,10 +33,11 @@ def feedCTypes(ctype, input, values, feed_dict=None):
   
   return feed_dict
 
-input_states = inputCType(ssbm.GameMemory, [None], "input_states")
+with tf.name_scope('train'):
+  train_states = inputCType(ssbm.GameMemory, [None], "states")
 
-# player 2's controls
-input_controls = inputCType(ssbm.ControllerState, [None], "input_controls")
+  # player 2's controls
+  train_controls = inputCType(ssbm.ControllerState, [None], "controls")
 
 embedFloat = lambda t: tf.reshape(t, [-1, 1])
 
@@ -108,7 +108,7 @@ gameEmbedding = [
 ]
 
 embedGame = embedStruct(gameEmbedding)
-embedded_states = embedGame(input_states)
+embedded_states = embedGame(train_states)
 state_size = embedded_states.get_shape()[-1].value
 
 controllerEmbedding = [
@@ -130,11 +130,11 @@ controllerEmbedding = [
 ]
 
 embedController = embedStruct(controllerEmbedding)
-embedded_controls = embedController(input_controls)
+embedded_controls = embedController(train_controls)
 control_size = embedded_controls.get_shape()[-1].value
 assert(control_size == 12)
 
-with tf.variable_scope("qNetwork"):
+with tf.variable_scope("q_net"):
   q1 = tfl.makeAffineLayer(state_size + control_size, 512, tf.tanh)
   q2 = tfl.makeAffineLayer(512, 1)
 
@@ -154,8 +154,13 @@ with tf.name_scope('trainQ'):
   trainQ = tf.train.RMSPropOptimizer(0.0001).minimize(qLoss)
 
 with tf.variable_scope("actor"):
+  layers = [state_size, 64, control_size]
+  nls = [tf.tanh, tf.sigmoid]
+  applyLayers = []
+  
   applyC1 = tfl.makeAffineLayer(state_size, 64, tf.tanh)
   # the first 8 members of controllerEmbedding are in [0,1]
+  applyC2 = t
   applyC2Sigmoid = tfl.makeAffineLayer(64, 8, tf.sigmoid)
   # the last 4 are in [-1, 1]
   applyC2Tanh = tfl.makeAffineLayer(64, 4, tf.tanh)
@@ -163,23 +168,31 @@ with tf.variable_scope("actor"):
 actor_variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='actor')
 #print(actor_variables)
 
-def actor(states):
-  with tf.name_scope("c1"):
-    c1 = applyC1(states)
-  with tf.name_scope("c2"):
-    c2Sigmoid = applyC2Sigmoid(c1)
-    c2Tanh = applyC2Tanh(c1)
-    return tf.concat(1, [c2Sigmoid, c2Tanh])
+def applyActor(states):
+  c1 = applyC1(states)
+  c2Sigmoid = applyC2Sigmoid(c1)
+  c2Tanh = applyC2Tanh(c1)
+  return tf.concat(1, [c2Sigmoid, c2Tanh])
 
 with tf.name_scope("actorQ"):
-  actions = actor(embedded_states)
+  actions = applyActor(embedded_states)
   actorQ = tf.reduce_sum(q(embedded_states, actions))
 
 #trainActor = tf.train.RMSPropOptimizer(0.001).minimize(-actorQ)
 trainActor = tf.train.RMSPropOptimizer(0.001).minimize(-actorQ, var_list=actor_variables)
 
-with tf.name_scope('prediction'):
-  input_state = tf.
+def deepMapDict(f, d):
+  if isinstance(d, dict):
+    return {k : deepMapDict(f, v) for k, v in d.items()}
+  return f(d)
+
+with tf.name_scope('predict'):
+  predict_state = inputCType(ssbm.GameMemory, [], "state")
+  reshaped = deepMapDict(lambda t: tf.reshape(t, [1]), predict_state)
+  embedded_state = embedGame(reshaped)
+  
+  embedded_action = tf.squeeze(applyActor(embedded_state))
+  #split = tf.split(0, 12, embedded_action, name='action')
 
 sess = tf.Session()
 
@@ -234,8 +247,8 @@ def train(filename):
   states, controls = readFile(filename)
   
   feed_dict = {rewards : computeRewards(states)}
-  feedCTypes(ssbm.GameMemory, input_states, states, feed_dict)
-  feedCTypes(ssbm.ControllerState, input_controls, controls, feed_dict)
+  feedCTypes(ssbm.GameMemory, train_states, states, feed_dict)
+  feedCTypes(ssbm.ControllerState, train_controls, controls, feed_dict)
   
   print(sess.run(qLoss, feed_dict))
   
