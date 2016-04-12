@@ -1,3 +1,19 @@
+def foldl(f, init, l):
+  for x in l:
+    init = f(init, x)
+  return init
+
+def foldl1(f, l):
+  return foldl(f, l[0], l[1:])
+
+def foldr(f, init, l):
+  for x in reversed(l):
+    init = f(x, init)
+  return init
+
+def foldr1(f, l):
+  return foldr(f, l[-1], l[:-1])
+
 def scanl(f, init, l):
   r = [init]
   for x in l:
@@ -20,3 +36,5 @@ def scanr1(f, l):
 def zipWith(f, l1, l2):
   return [f(a1, a2) for a1, a2 in zip(l1, l2)]
 
+def compose(f, g):
+  return lambda x: f(g(x))
