@@ -140,7 +140,8 @@ void getControl(Session* session, const GameMemory& memory, ControllerState& con
     controllerState.cY = control(11);
 }
 
-int main()
+// TODO: configure from command line
+int main(int argc, char* argv[])
 {
     //Do some first-time setup
     FirstTimeSetup();
@@ -148,14 +149,13 @@ int main()
     minstd_rand generator;
     
     //GameState *state = GameState::Instance();
-    Controller controller("cpu2");
+    Controller controller("phillip");
 
     MemoryWatcher watcher;
     GameMemory memory;
     ControllerState controllerState;
     
     string graphFile = "models/simpleDQN.pb";
-    Session* session = startSession(graphFile);
     
     uint last_frame = 0;
     uint record_count = 0;
@@ -166,6 +166,9 @@ int main()
     
     for(;; ++record_count)
     {
+        Session* session = startSession(graphFile);
+        
+        // name recording based on stage/characters?
         string recordFile = "experience/" + to_string(record_count);
         
         ofstream fout;
@@ -196,8 +199,9 @@ int main()
         
         //fout.write(writeBuffer.getBuf(), writeBuffer.getSize());
         fout.close();
+        
+        session->Close();
     }
     
-    session->Close();
     return EXIT_SUCCESS;
 }
