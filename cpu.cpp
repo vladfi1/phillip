@@ -1,7 +1,6 @@
 #include <sys/types.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <iomanip>
 #include <iostream>
 #include <fstream>
 #include <sys/stat.h>
@@ -10,13 +9,20 @@
 
 #include <chrono>
 #include <thread>
+#include <random>
 
 #include "GameState.h"
 #include "MemoryWatcher.h"
 #include "Controller.h"
-#include "Serial.hpp"
+//#include "Serial.hpp"
+
+#include "tensorflow/core/public/session.h"
+#include "tensorflow/core/platform/env.h"
+
+#include "tf.hpp"
 
 using namespace std;
+using namespace tensorflow;
 
 void FirstTimeSetup()
 {
@@ -94,134 +100,53 @@ void FirstTimeSetup()
     }
 }
 
-void PrintState(GameMemory& memory)
+template <typename rng>
+bool flip(float p, rng& generator)
 {
-    std::cout << "p1 percent: " << memory.player_one.percent << std::endl;
-    std::cout << "p2 percent: " << memory.player_two.percent << std::endl;
-    std::cout << "p1 stock: " << memory.player_one.stock << std::endl;
-    std::cout << "p2 stock: " << memory.player_two.stock << std::endl;
-    std::cout << "p1 character: " << memory.player_one.character << std::endl;
-    std::cout << "p2 character: " << memory.player_two.character << std::endl;
-    if(memory.player_one.facing)
-    {
-        std::cout << "p1 facing: right" << std::endl;
+    bernoulli_distribution dist(p);
+    return dist(generator);
+}
+
+template <typename rng>
+void getControl(Session* session, const GameMemory& memory, ControllerState& controllerState, rng& generator)
+{
+    feed_dict inputs;
+    feed("predict/state", memory, inputs);
+    
+    std::vector<tensorflow::Tensor> outputs;
+
+    Status status = session->Run(inputs, {"predict/control"}, {}, &outputs);
+    if (!status.ok()) {
+      std::cout << status.ToString() << std::endl;
+      return;
     }
-    else
-    {
-        std::cout << "p1 facing: left" << std::endl;
+    
+    auto control = outputs[0].vec<float>();
+    
+    controllerState.buttonA = flip(control(0), generator);
+    controllerState.buttonB = flip(control(1), generator);
+    controllerState.buttonX = flip(control(2), generator);
+    controllerState.buttonY = flip(control(3), generator);
+    controllerState.buttonL = flip(control(4), generator);
+    controllerState.buttonR = flip(control(5), generator);
+    
+    controllerState.analogL = control(6);
+    controllerState.analogR = control(7);
 
-    }
-    if(memory.player_two.facing)
-    {
-        std::cout << "p2 facing: right" << std::endl;
-    }
-    else
-    {
-        std::cout << "p2 facing: left" << std::endl;
-    }
-    std::cout << "stage: " << std::hex << memory.stage << std::endl;
-    std::cout << "frame: " << std::dec << memory.frame << std::endl;
-    std::cout << "menu state: " << memory.menu_state << std::endl;
-    std::cout << "p2 pointer x: " << memory.player_two_pointer_x << std::endl;
-    std::cout << "p2 pointer y: " << memory.player_two_pointer_y << std::endl;
+    controllerState.mainX = control(8);
+    controllerState.mainY = control(9);
 
-    std::cout << "p1 x: " << std::fixed << std::setprecision(10) << memory.player_one.x << std::endl;
-    std::cout << "p1 y: " << std::fixed << std::setprecision(10) << memory.player_one.y << std::endl;
-
-    std::cout << "p2 x: " << std::fixed << std::setprecision(10) << memory.player_two.x << std::endl;
-    std::cout << "p2 y: " << std::fixed << std::setprecision(10) << memory.player_two.y << std::endl;
-
-    std::cout << "p1 action: " << std::hex << memory.player_one.action << std::endl;
-    std::cout << "p2 action: " << std::hex << memory.player_two.action << std::endl;
-
-    std::cout << "p1 action count: " << std::dec << memory.player_one.action_counter << std::endl;
-    std::cout << "p2 action count: " << std::dec << memory.player_two.action_counter << std::endl;
-
-    std::cout << "p1 action frame: " << std::dec << memory.player_one.action_frame << std::endl;
-    std::cout << "p2 action frame: " << std::dec << memory.player_two.action_frame << std::endl;
-
-    if(memory.player_one.invulnerable)
-    {
-        std::cout << "p1 invulnerable" << std::endl;
-    }
-    else
-    {
-        std::cout << "p1 not invulnerable" << std::endl;
-    }
-    if(memory.player_two.invulnerable)
-    {
-        std::cout << "p2 invulnerable" << std::endl;
-    }
-    else
-    {
-        std::cout << "p2 not invulnerable" << std::endl;
-    }
-
-    if(memory.player_one.charging_smash)
-    {
-        std::cout << "p1 charging a smash" << std::endl;
-    }
-    else
-    {
-        std::cout << "p1 not charging a smash" << std::endl;
-    }
-
-    if(memory.player_two.charging_smash)
-    {
-        std::cout << "p2 charging a smash" << std::endl;
-    }
-    else
-    {
-        std::cout << "p2 not charging a smash" << std::endl;
-    }
-
-    std::cout << "p1 hitlag frames left: " << memory.player_one.hitlag_frames_left << std::endl;
-    std::cout << "p2 hitlag frames left: " << memory.player_two.hitlag_frames_left << std::endl;
-
-    std::cout << "p1 hitstun frames left: " << memory.player_one.hitstun_frames_left << std::endl;
-    std::cout << "p2 hitstun frames left: " << memory.player_two.hitstun_frames_left << std::endl;
-
-    std::cout << "p1 jumps left: " << memory.player_one.jumps_left << std::endl;
-    std::cout << "p2 jumps left: " << memory.player_two.jumps_left << std::endl;
-
-    if(memory.player_one.on_ground)
-    {
-        std::cout << "p1 on ground" << std::endl;
-    }
-    else
-    {
-        std::cout << "p1 in air" << std::endl;
-    }
-    if(memory.player_two.on_ground)
-    {
-        std::cout << "p2 on ground" << std::endl;
-    }
-    else
-    {
-        std::cout << "p2 in air" << std::endl;
-    }
-
-    std::cout << "p1 speed x air self: " << memory.player_one.speed_air_x_self << std::endl;
-    std::cout << "p2 speed x air self: " << memory.player_two.speed_air_x_self << std::endl;
-
-    std::cout << "p1 speed y self: " << memory.player_one.speed_y_self << std::endl;
-    std::cout << "p2 speed y self: " << memory.player_two.speed_y_self << std::endl;
-
-    std::cout << "p1 speed x attack: " << memory.player_one.speed_x_attack << std::endl;
-    std::cout << "p2 speed x attack: " << memory.player_two.speed_x_attack << std::endl;
-
-    std::cout << "p1 speed y attack: " << memory.player_one.speed_y_attack << std::endl;
-    std::cout << "p2 speed y attack: " << memory.player_two.speed_y_attack << std::endl;
-
-    std::cout << "p1 speed x ground self: " << memory.player_one.speed_ground_x_self << std::endl;
-    std::cout << "p2 speed x ground self: " << memory.player_two.speed_ground_x_self << std::endl;
+    controllerState.cX = control(10);
+    controllerState.cY = control(11);
 }
 
 int main()
 {
     //Do some first-time setup
     FirstTimeSetup();
-
+    
+    minstd_rand generator;
+    
     //GameState *state = GameState::Instance();
     Controller controller("cpu1");
 
@@ -229,12 +154,14 @@ int main()
     GameMemory memory;
     ControllerState controllerState;
     
+    Session* session = startSession("models/simpleDQN.pb");
+    
     uint last_frame = 0;
     uint record_count = 0;
     
     const uint recordFrames = 60 * 60;
     
-    WriteBuffer writeBuffer;
+    //WriteBuffer writeBuffer;
     
     for(; record_count < 1; ++record_count)
     {
@@ -258,6 +185,7 @@ int main()
             
             if (memory.menu_state == IN_GAME)
             {
+                getControl(session, memory, controllerState, generator);
                 controller.sendState(controllerState);
                 fout.write(reinterpret_cast<char*>(&memory), sizeof(GameMemory));
                 fout.write(reinterpret_cast<char*>(&controllerState), sizeof(ControllerState));
@@ -269,5 +197,6 @@ int main()
         fout.close();
     }
     
+    session->Close();
     return EXIT_SUCCESS;
 }
