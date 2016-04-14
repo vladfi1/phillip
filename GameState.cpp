@@ -1,6 +1,134 @@
 #include "GameState.h"
 
+#include <iostream>
 #include <string>
+#include <iomanip>
+
+using namespace std;
+
+// TODO: this should be toString
+void PrintMemory(GameMemory& memory)
+{
+    cout << "p1 percent: " << memory.player_one.percent << endl;
+    cout << "p2 percent: " << memory.player_two.percent << endl;
+    cout << "p1 stock: " << memory.player_one.stock << endl;
+    cout << "p2 stock: " << memory.player_two.stock << endl;
+    cout << "p1 character: " << memory.player_one.character << endl;
+    cout << "p2 character: " << memory.player_two.character << endl;
+    if(memory.player_one.facing)
+    {
+        cout << "p1 facing: right" << endl;
+    }
+    else
+    {
+        cout << "p1 facing: left" << endl;
+
+    }
+    if(memory.player_two.facing)
+    {
+        cout << "p2 facing: right" << endl;
+    }
+    else
+    {
+        cout << "p2 facing: left" << endl;
+    }
+    cout << "stage: " << hex << memory.stage << endl;
+    cout << "frame: " << dec << memory.frame << endl;
+    cout << "menu state: " << memory.menu_state << endl;
+    cout << "p2 pointer x: " << memory.player_two_pointer_x << endl;
+    cout << "p2 pointer y: " << memory.player_two_pointer_y << endl;
+
+    cout << "p1 x: " << fixed << setprecision(10) << memory.player_one.x << endl;
+    cout << "p1 y: " << fixed << setprecision(10) << memory.player_one.y << endl;
+
+    cout << "p2 x: " << fixed << setprecision(10) << memory.player_two.x << endl;
+    cout << "p2 y: " << fixed << setprecision(10) << memory.player_two.y << endl;
+
+    cout << "p1 action: " << hex << memory.player_one.action << endl;
+    cout << "p2 action: " << hex << memory.player_two.action << endl;
+
+    cout << "p1 action count: " << dec << memory.player_one.action_counter << endl;
+    cout << "p2 action count: " << dec << memory.player_two.action_counter << endl;
+
+    cout << "p1 action frame: " << dec << memory.player_one.action_frame << endl;
+    cout << "p2 action frame: " << dec << memory.player_two.action_frame << endl;
+
+    if(memory.player_one.invulnerable)
+    {
+        cout << "p1 invulnerable" << endl;
+    }
+    else
+    {
+        cout << "p1 not invulnerable" << endl;
+    }
+    if(memory.player_two.invulnerable)
+    {
+        cout << "p2 invulnerable" << endl;
+    }
+    else
+    {
+        cout << "p2 not invulnerable" << endl;
+    }
+
+    if(memory.player_one.charging_smash)
+    {
+        cout << "p1 charging a smash" << endl;
+    }
+    else
+    {
+        cout << "p1 not charging a smash" << endl;
+    }
+
+    if(memory.player_two.charging_smash)
+    {
+        cout << "p2 charging a smash" << endl;
+    }
+    else
+    {
+        cout << "p2 not charging a smash" << endl;
+    }
+
+    cout << "p1 hitlag frames left: " << memory.player_one.hitlag_frames_left << endl;
+    cout << "p2 hitlag frames left: " << memory.player_two.hitlag_frames_left << endl;
+
+    cout << "p1 hitstun frames left: " << memory.player_one.hitstun_frames_left << endl;
+    cout << "p2 hitstun frames left: " << memory.player_two.hitstun_frames_left << endl;
+
+    cout << "p1 jumps left: " << memory.player_one.jumps_left << endl;
+    cout << "p2 jumps left: " << memory.player_two.jumps_left << endl;
+
+    if(memory.player_one.on_ground)
+    {
+        cout << "p1 on ground" << endl;
+    }
+    else
+    {
+        cout << "p1 in air" << endl;
+    }
+    if(memory.player_two.on_ground)
+    {
+        cout << "p2 on ground" << endl;
+    }
+    else
+    {
+        cout << "p2 in air" << endl;
+    }
+
+    cout << "p1 speed x air self: " << memory.player_one.speed_air_x_self << endl;
+    cout << "p2 speed x air self: " << memory.player_two.speed_air_x_self << endl;
+
+    cout << "p1 speed y self: " << memory.player_one.speed_y_self << endl;
+    cout << "p2 speed y self: " << memory.player_two.speed_y_self << endl;
+
+    cout << "p1 speed x attack: " << memory.player_one.speed_x_attack << endl;
+    cout << "p2 speed x attack: " << memory.player_two.speed_x_attack << endl;
+
+    cout << "p1 speed y attack: " << memory.player_one.speed_y_attack << endl;
+    cout << "p2 speed y attack: " << memory.player_two.speed_y_attack << endl;
+
+    cout << "p1 speed x ground self: " << memory.player_one.speed_ground_x_self << endl;
+    cout << "p2 speed x ground self: " << memory.player_two.speed_ground_x_self << endl;
+}
 
 GameState* GameState::m_instance = NULL;
 

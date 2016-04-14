@@ -42,6 +42,8 @@ struct GameMemory
     uint stage;
 };
 
+void PrintMemory(GameMemory& memory);
+
 enum ACTION
 {
     DEAD_DOWN = 0x0,
