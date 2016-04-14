@@ -239,6 +239,10 @@ def readFile(filename, states=None, controls=None):
   
   return states, controls
 
+def writeGraph():
+  graph_def = tf.python.client.graph_util.convert_variables_to_constants(sess, sess.graph_def, ['predict/control'])
+  tf.train.write_graph(graph_def, 'models/', 'simpleDQN.pb', as_text=False)
+
 def train(filename):
   states, controls = readFile(filename)
   
@@ -253,8 +257,11 @@ def train(filename):
       sess.run([trainQ, trainActor], feed_dict)
     print(sess.run([qLoss, actorQ], feed_dict))
   
-  saver.save(sess, 'simpleDQN')
+  saver.save(sess, 'saves/simpleDQN')
+  
+#sess.run(tf.initialize_all_variables())
+#train('testRecord0')
 
-sess.run(tf.initialize_all_variables())
-train('testRecord0')
+saver.restore(sess, 'saves/simpleDQN')
+writeGraph()
 
