@@ -27,24 +27,24 @@ using namespace tensorflow;
 void FirstTimeSetup()
 {
     struct passwd *pw = getpwuid(getuid());
-    std::string home_path = std::string(pw->pw_dir);
-    std::string legacy_config_path = home_path + "/.dolphin-emu";
-    std::string mem_watcher_path;
-    std::string pipe_path;
+    string home_path = string(pw->pw_dir);
+    string legacy_config_path = home_path + "/.dolphin-emu";
+    string mem_watcher_path;
+    string pipe_path;
 
     struct stat buffer;
     if(stat(legacy_config_path.c_str(), &buffer) != 0)
     {
         //If the legacy app path is not present, see if the new one is
-        const char *env_XDG_DATA_HOME = std::getenv("XDG_DATA_HOME");
+        const char *env_XDG_DATA_HOME = getenv("XDG_DATA_HOME");
         if(env_XDG_DATA_HOME == NULL)
         {
             //Try $HOME/.local/share next
-            std::string backup_path = home_path + "/.local/share/dolphin-emu";
+            string backup_path = home_path + "/.local/share/dolphin-emu";
             if(stat(backup_path.c_str(), &buffer) != 0)
             {
-                std::cout << "ERROR: $XDG_DATA_HOME was empty and so was $HOME/.dolphin-emu and $HOME/.local/share/dolphin-emu " \
-                    "Are you sure Dolphin is installed? Make sure it is, and then run the CPU again." << std::endl;
+                cout << "ERROR: $XDG_DATA_HOME was empty and so was $HOME/.dolphin-emu and $HOME/.local/share/dolphin-emu " \
+                    "Are you sure Dolphin is installed? Make sure it is, and then run the CPU again." << endl;
                 exit(-1);
             }
             else
@@ -74,16 +74,16 @@ void FirstTimeSetup()
     {
         if(mkdir(mem_watcher_path.c_str(), 0775) != 0)
         {
-            std::cout << "ERROR: Could not create the directory: \"" << mem_watcher_path << "\". Dolphin seems to be installed, " \
-                "But this is not working for some reason. Maybe permissions?" << std::endl;
+            cout << "ERROR: Could not create the directory: \"" << mem_watcher_path << "\". Dolphin seems to be installed, " \
+                "But this is not working for some reason. Maybe permissions?" << endl;
             exit(-1);
         }
-        std::cout << "WARNING: Had to create a MemoryWatcher directory in Dolphin just now. " \
-            "You may need to restart Dolphin and the CPU in order for this to work. (You should only see this warning once)" << std::endl;
+        cout << "WARNING: Had to create a MemoryWatcher directory in Dolphin just now. " \
+            "You may need to restart Dolphin and the CPU in order for this to work. (You should only see this warning once)" << endl;
     }
 
-    std::ifstream src("Locations.txt", std::ios::in);
-    std::ofstream dst(mem_watcher_path + "/Locations.txt", std::ios::out);
+    ifstream src("Locations.txt", ios::in);
+    ofstream dst(mem_watcher_path + "/Locations.txt", ios::out);
     dst << src.rdbuf();
 
     //Create the Pipes directory if it doesn't already exist
@@ -91,12 +91,12 @@ void FirstTimeSetup()
     {
         if(mkdir(pipe_path.c_str(), 0775) != 0)
         {
-            std::cout << "ERROR: Could not create the directory: \"" << pipe_path << "\". Dolphin seems to be installed, " \
-                "But this is not working for some reason. Maybe permissions?" << std::endl;
+            cout << "ERROR: Could not create the directory: \"" << pipe_path << "\". Dolphin seems to be installed, " \
+                "But this is not working for some reason. Maybe permissions?" << endl;
             exit(-1);
         }
-        std::cout << "WARNING: Had to create a Pipes directory in Dolphin just now. " \
-            "You may need to restart Dolphin and the CPU in order for this to work. (You should only see this warning once)" << std::endl;
+        cout << "WARNING: Had to create a Pipes directory in Dolphin just now. " \
+            "You may need to restart Dolphin and the CPU in order for this to work. (You should only see this warning once)" << endl;
     }
 }
 
@@ -113,11 +113,11 @@ void getControl(Session* session, const GameMemory& memory, ControllerState& con
     feed_dict inputs;
     feed("predict/state", memory, inputs);
     
-    std::vector<tensorflow::Tensor> outputs;
+    vector<tensorflow::Tensor> outputs;
 
     Status status = session->Run(inputs, {"predict/control"}, {}, &outputs);
     if (!status.ok()) {
-      std::cout << status.ToString() << std::endl;
+      cout << status.ToString() << endl;
       return;
     }
     
@@ -148,13 +148,14 @@ int main()
     minstd_rand generator;
     
     //GameState *state = GameState::Instance();
-    Controller controller("cpu1");
+    Controller controller("cpu2");
 
     MemoryWatcher watcher;
     GameMemory memory;
     ControllerState controllerState;
     
-    Session* session = startSession("models/simpleDQN.pb");
+    string graphFile = "models/simpleDQN.pb";
+    Session* session = startSession(graphFile);
     
     uint last_frame = 0;
     uint record_count = 0;
@@ -163,9 +164,9 @@ int main()
     
     //WriteBuffer writeBuffer;
     
-    for(; record_count < 1; ++record_count)
+    for(;; ++record_count)
     {
-        string recordFile = "testRecord" + std::to_string(record_count);
+        string recordFile = "experience/" + to_string(record_count);
         
         ofstream fout;
         fout.open(recordFile, ios::binary | ios::out);
@@ -178,7 +179,7 @@ int main()
             
             if (memory.frame > last_frame + 1)
             {
-                std::cout << "Missed frames " << last_frame + 1 << "-" << memory.frame - 1 << std::endl;
+                cout << "Missed frames " << last_frame + 1 << "-" << memory.frame - 1 << endl;
             }
             
             last_frame = memory.frame;
