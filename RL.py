@@ -243,25 +243,27 @@ def writeGraph():
   graph_def = tf.python.client.graph_util.convert_variables_to_constants(sess, sess.graph_def, ['predict/control'])
   tf.train.write_graph(graph_def, 'models/', 'simpleDQN.pb', as_text=False)
 
-def train(filename):
+def train(filename, steps=1):
   states, controls = readFile(filename)
   
   feed_dict = {rewards : computeRewards(states)}
   feedCTypes(ssbm.GameMemory, train_states, states, feed_dict)
   feedCTypes(ssbm.ControllerState, train_controls, controls, feed_dict)
   
-  print(sess.run(qLoss, feed_dict))
-  
-  for _ in range(10):
-    for _ in range(10):
-      sess.run([trainQ, trainActor], feed_dict)
-    print(sess.run([qLoss, actorQ], feed_dict))
-  
-  saver.save(sess, 'saves/simpleDQN')
-  
+  # FIXME: we feed the inputs in on each iteration, which might be inefficient.
+  for _ in range(steps):
+    sess.run([trainQ, trainActor], feed_dict)
+  print(sess.run([qLoss, actorQ], feed_dict))
+
+def save(filename='saves/simpleDQN'):
+  saver.save(sess, filename)
+
+def restore(filename='saves/simpleDQN'):
+  saver.restore(sess, filename)
+
 #sess.run(tf.initialize_all_variables())
 #train('testRecord0')
 
-saver.restore(sess, 'saves/simpleDQN')
-writeGraph()
+#saver.restore(sess, 'saves/simpleDQN')
+#writeGraph()
 
