@@ -20,6 +20,7 @@
 #include "tensorflow/core/platform/env.h"
 
 #include "tf.hpp"
+#include "Serial.hpp"
 
 using namespace std;
 using namespace tensorflow;
@@ -108,6 +109,30 @@ bool flip(float p, rng& generator)
 }
 
 template <typename rng>
+float normal(float mean, float stddev, rng& generator)
+{
+  normal_distribution<float> dist(mean, stddev);
+  return dist(generator);
+}
+
+template <typename rng>
+float uniform(float a, float b, rng& generator)
+{
+  uniform_real_distribution<float> dist(a, b);
+  return dist(generator);
+}
+
+template <typename rng>
+float epsilonGreedy(float epsilon, float control, rng& generator)
+{
+  if(flip(epsilon, generator)) {
+    return uniform(0, 1, generator);
+  } else {
+    return control;
+  }
+}
+
+template <typename rng>
 void getControl(Session* session, const GameMemory& memory, ControllerState& controllerState, rng& generator)
 {
     feed_dict inputs;
@@ -130,14 +155,16 @@ void getControl(Session* session, const GameMemory& memory, ControllerState& con
     controllerState.buttonL = flip(control(4), generator);
     controllerState.buttonR = flip(control(5), generator);
     
-    controllerState.analogL = control(6);
-    controllerState.analogR = control(7);
+    float epsilon = 0.1;
+    
+    controllerState.analogL = epsilonGreedy(epsilon, control(6), generator);
+    controllerState.analogR = epsilonGreedy(epsilon, control(7), generator);
 
-    controllerState.mainX = control(8);
-    controllerState.mainY = control(9);
+    controllerState.mainX = epsilonGreedy(epsilon, control(8), generator);
+    controllerState.mainY = epsilonGreedy(epsilon, control(9), generator);
 
-    controllerState.cX = control(10);
-    controllerState.cY = control(11);
+    controllerState.cX = epsilonGreedy(epsilon, control(10), generator);
+    controllerState.cY = epsilonGreedy(epsilon, control(11), generator);
 }
 
 // TODO: configure from command line
@@ -162,18 +189,12 @@ int main(int argc, char* argv[])
     
     const uint recordFrames = 60 * 60;
     
-    //WriteBuffer writeBuffer;
+    WriteBuffer writeBuffer;
     
     for(;; ++record_count)
     {
         Session* session = startSession(graphFile);
         
-        // name recording based on stage/characters?
-        string recordFile = "experience/" + to_string(record_count);
-        
-        ofstream fout;
-        fout.open(recordFile, ios::binary | ios::out);
-
         for(uint frame = 0; frame < recordFrames;)
         {
             //controller->pressButton(Controller::BUTTON_D_RIGHT);
@@ -190,15 +211,24 @@ int main(int argc, char* argv[])
             if (memory.menu_state == IN_GAME)
             {
                 getControl(session, memory, controllerState, generator);
+                //cout << controllerState.mainX << endl;
                 controller.sendState(controllerState);
-                fout.write(reinterpret_cast<char*>(&memory), sizeof(GameMemory));
-                fout.write(reinterpret_cast<char*>(&controllerState), sizeof(ControllerState));
+                
+                writeBuffer.write(memory);
+                writeBuffer.write(controllerState);
+                //fout.write(reinterpret_cast<char*>(&memory), sizeof(GameMemory));
+                //fout.write(reinterpret_cast<char*>(&controllerState), sizeof(ControllerState));
                 ++frame;
             }
         }
         
-        //fout.write(writeBuffer.getBuf(), writeBuffer.getSize());
-        fout.close();
+        // name recording based on stage/characters?
+        string recordFile = "experience/" + to_string(record_count);
+        
+        cout << "Writing experience to " << recordFile << endl;
+        
+        writeBuffer.writeFile(recordFile);
+        writeBuffer.reset();
         
         session->Close();
     }

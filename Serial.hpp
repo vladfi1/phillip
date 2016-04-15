@@ -39,6 +39,13 @@ public:
     memcpy(buf + size, &data, sizeof(T));
     size = new_size;
   }
+  
+  void writeFile(const string& filename) {
+    ofstream fout;
+    fout.open(filename, ios::binary | ios::out);
+    fout.write(buf, size);
+    fout.close();
+  }
 };
 
 /* Example usage

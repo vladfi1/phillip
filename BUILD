@@ -15,7 +15,7 @@ cc_library(
 
 cc_binary(
     name = "cpu",
-    srcs = ["cpu.cpp", "tf.hpp"],
+    srcs = ["cpu.cpp", "tf.hpp", "Serial.hpp"],
     deps = [
         ":ssbm",
         "//tensorflow/core:tensorflow",
