@@ -226,7 +226,7 @@ def readFile(filename, states=None, controls=None):
   if controls is None:
     controls = []
   
-  with open('testRecord0', 'rb') as f:
+  with open(filename, 'rb') as f:
     for i in range(60 * 60):
       states.append(ssbm.GameMemory())
       f.readinto(states[-1])
@@ -261,7 +261,8 @@ def save(filename='saves/simpleDQN'):
 def restore(filename='saves/simpleDQN'):
   saver.restore(sess, filename)
 
-#sess.run(tf.initialize_all_variables())
+def init():
+  sess.run(tf.initialize_all_variables())
 #train('testRecord0')
 
 #saver.restore(sess, 'saves/simpleDQN')
