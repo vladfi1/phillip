@@ -327,6 +327,7 @@ bool MemoryWatcher::ReadMemory(GameMemory& memory)
             case 0x479d30:
             {
                 memory.menu_state = value_int;
+                cout << value_int << endl;
                 break;
             }
             //Stage
