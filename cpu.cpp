@@ -148,6 +148,8 @@ void getControl(Session* session, const GameMemory& memory, ControllerState& con
     
     auto control = outputs[0].vec<float>();
     
+    //cout << control(0) << endl;
+    
     controllerState.buttonA = flip(control(0), generator);
     controllerState.buttonB = flip(control(1), generator);
     controllerState.buttonX = flip(control(2), generator);
@@ -212,6 +214,7 @@ int main(int argc, char* argv[])
             {
                 getControl(session, memory, controllerState, generator);
                 //cout << controllerState.mainX << endl;
+                //cout << controllerState.mainX << endl;
                 controller.sendState(controllerState);
                 
                 writeBuffer.write(memory);
@@ -219,6 +222,8 @@ int main(int argc, char* argv[])
                 //fout.write(reinterpret_cast<char*>(&memory), sizeof(GameMemory));
                 //fout.write(reinterpret_cast<char*>(&controllerState), sizeof(ControllerState));
                 ++frame;
+            } else {
+              controller.emptyInput();
             }
         }
         
