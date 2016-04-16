@@ -175,7 +175,8 @@ with tf.name_scope("actorQ"):
   actorQ = tf.reduce_sum(q(embedded_states, actions))
 
 #trainActor = tf.train.RMSPropOptimizer(0.001).minimize(-actorQ)
-trainActor = tf.train.RMSPropOptimizer(0.001).minimize(-actorQ, var_list=actor_variables)
+# FIXME: is this the right sign?
+trainActor = tf.train.RMSPropOptimizer(0.001).minimize(actorQ, var_list=actor_variables)
 
 def deepMapDict(f, d):
   if isinstance(d, dict):
