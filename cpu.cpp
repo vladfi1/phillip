@@ -140,7 +140,7 @@ void getControl(Session* session, const GameMemory& memory, ControllerState& con
     
     vector<tensorflow::Tensor> outputs;
 
-    Status status = session->Run(inputs, {"predict/control"}, {}, &outputs);
+    Status status = session->Run(inputs, {"predict/action"}, {}, &outputs);
     if (!status.ok()) {
       cout << status.ToString() << endl;
       return;
@@ -228,7 +228,7 @@ int main(int argc, char* argv[])
         }
         
         // name recording based on stage/characters?
-        string recordFile = "experience/" + to_string(record_count);
+        string recordFile = "experience/" + to_string(record_count % 10);
         
         cout << "Writing experience to " << recordFile << endl;
         
