@@ -20,6 +20,19 @@ def inputCType(ctype, shape=None, name=""):
   else:
     raise TypeError("Unhandled ctype " + ctype)
 
+def feedCType(ctype, input, value, feed_dict=None):
+  if feed_dict is None:
+    feed_dict = {}
+  if ctype in ctypes2TF:
+    feed_dict[input] = value
+  elif issubclass(ctype, ctypes.Structure):
+    for f, t in ctype._fields_:
+      feedCType(t, input[f], getattr(value, f), feed_dict)
+  else:
+    raise TypeError("Unhandled ctype " + ctype)
+  
+  return feed_dict
+
 def feedCTypes(ctype, input, values, feed_dict=None):
   if feed_dict is None:
     feed_dict = {}
@@ -140,7 +153,7 @@ with tf.variable_scope("q_net"):
 
 def q(states, controls):
   state_actions = tf.concat(1, [states, controls])
-  return tf.squeeze(q2(q1(state_actions)))
+  return tf.squeeze(q2(q1(state_actions)), name='q')
 
 # pre-computed long-term rewards
 rewards = tf.placeholder(tf.float32, [None], name='rewards')
@@ -149,9 +162,10 @@ with tf.name_scope('trainQ'):
   qPredictions = q(embedded_states, embedded_controls)
 
   qLosses = tf.squared_difference(qPredictions, rewards)
-  qLoss = tf.reduce_sum(qLosses)
+  qLoss = tf.reduce_mean(qLosses)
 
-  trainQ = tf.train.RMSPropOptimizer(0.0001).minimize(qLoss)
+  #trainQ = tf.train.RMSPropOptimizer(0.0001).minimize(qLoss)
+  trainQ = tf.train.AdamOptimizer().minimize(qLoss)
 
 with tf.variable_scope("actor"):
   layers = [state_size, 64, control_size]
@@ -161,7 +175,7 @@ with tf.variable_scope("actor"):
   zip_layers = zip(layers[:-1], layers[1:])
   
   applyLayers = [tfl.makeAffineLayer(prev, next, nl) for (prev, next), nl in zip(zip_layers, nls)]
-  
+
 def applyActor(state):
   for f in applyLayers:
     state = f(state)
@@ -172,11 +186,12 @@ actor_variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='act
 
 with tf.name_scope("actorQ"):
   actions = applyActor(embedded_states)
-  actorQ = tf.reduce_sum(q(embedded_states, actions))
+  actorQ = tf.reduce_mean(q(embedded_states, actions))
 
 #trainActor = tf.train.RMSPropOptimizer(0.001).minimize(-actorQ)
 # FIXME: is this the right sign?
-trainActor = tf.train.RMSPropOptimizer(0.001).minimize(actorQ, var_list=actor_variables)
+#trainActor = tf.train.RMSPropOptimizer(0.0001).minimize(-actorQ, var_list=actor_variables)
+trainActor = tf.train.AdamOptimizer().minimize(-actorQ, var_list=actor_variables)
 
 def deepMapDict(f, d):
   if isinstance(d, dict):
@@ -184,11 +199,14 @@ def deepMapDict(f, d):
   return f(d)
 
 with tf.name_scope('predict'):
-  predict_state = inputCType(ssbm.GameMemory, [], "state")
-  reshaped = deepMapDict(lambda t: tf.reshape(t, [1]), predict_state)
+  predict_input_state = inputCType(ssbm.GameMemory, [], "state")
+  reshaped = deepMapDict(lambda t: tf.reshape(t, [1]), predict_input_state)
   embedded_state = embedGame(reshaped)
-  
-  embedded_action = tf.squeeze(applyActor(embedded_state), name="control")
+
+  predict_actions = applyActor(embedded_state)
+  predict_action = tf.squeeze(predict_actions, name="action")
+  predictQ = q(embedded_state, predict_actions)
+    
   #split = tf.split(0, 12, embedded_action, name='action')
 
 sess = tf.Session()
@@ -219,7 +237,10 @@ def computeRewards(states, discount = 0.99):
   
   scores = util.zipWith(lambda x, y: x - y, kills, deaths)
   
-  return util.scanr1(lambda r1, r2: r1 + discount * r2, scores)
+  lastQ = sess.run(predictQ, feedCType(ssbm.GameMemory, predict_input_state, states[-1]))
+  #lastQ = sess.run(qPredictions, feedCTypes(ssbm.GameMemory, predict_input_state, states[-1:]))
+  
+  return util.scanr(lambda r1, r2: r1 + discount * r2, lastQ, scores[1:-1])
   
 def readFile(filename, states=None, controls=None):
   if states is None:
@@ -240,20 +261,18 @@ def readFile(filename, states=None, controls=None):
   
   return states, controls
 
-def writeGraph():
-  graph_def = tf.python.client.graph_util.convert_variables_to_constants(sess, sess.graph_def, ['predict/control'])
-  tf.train.write_graph(graph_def, 'models/', 'simpleDQN.pb', as_text=False)
-
 def train(filename, steps=1):
   states, controls = readFile(filename)
   
   feed_dict = {rewards : computeRewards(states)}
-  feedCTypes(ssbm.GameMemory, train_states, states, feed_dict)
-  feedCTypes(ssbm.ControllerState, train_controls, controls, feed_dict)
+  feedCTypes(ssbm.GameMemory, train_states, states[:-1], feed_dict)
+  feedCTypes(ssbm.ControllerState, train_controls, controls[:-1], feed_dict)
   
   # FIXME: we feed the inputs in on each iteration, which might be inefficient.
   for _ in range(steps):
-    sess.run([trainQ, trainActor], feed_dict)
+    #sess.run([trainQ, trainActor], feed_dict)
+    sess.run(trainQ, feed_dict)
+    sess.run(trainActor, feed_dict)
   print(sess.run([qLoss, actorQ], feed_dict))
 
 def save(filename='saves/simpleDQN'):
@@ -261,6 +280,10 @@ def save(filename='saves/simpleDQN'):
 
 def restore(filename='saves/simpleDQN'):
   saver.restore(sess, filename)
+
+def writeGraph():
+  graph_def = tf.python.client.graph_util.convert_variables_to_constants(sess, sess.graph_def, ['predict/action'])
+  tf.train.write_graph(graph_def, 'models/', 'simpleDQN.pb', as_text=False)
 
 def init():
   sess.run(tf.initialize_all_variables())
