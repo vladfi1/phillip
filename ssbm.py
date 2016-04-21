@@ -21,7 +21,7 @@ def eqStruct(struct1, struct2):
 
 class PlayerMemory(Structure):
   _fields_ = [
-    ('percent', c_uint),
+    ('percent', c_float),
     ('stock', c_uint),
     # True is right, false is left
     ('facing', c_bool),
@@ -65,23 +65,34 @@ class GameMemory(Structure):
   __hash__ = hashStruct
   __eq__ = eqStruct
 
+class Stick(Structure):
+  _fields_ = [
+    ('x', c_float),
+    ('y', c_float),
+  ]
+
+  __repr__ = toString
+  __hash__ = hashStruct
+  __eq__ = eqStruct
+  
+  def reset(self):
+    self.x = 0.5
+    self.y = 0.5
+
 class ControllerState(Structure):
   _fields_ = [
-    ('buttonA', c_bool),
-    ('buttonB', c_bool),
-    ('buttonX', c_bool),
-    ('buttonY', c_bool),
-    ('buttonL', c_bool),
-    ('buttonR', c_bool),
+    ('button_A', c_bool),
+    ('button_B', c_bool),
+    ('button_X', c_bool),
+    ('button_Y', c_bool),
+    ('button_L', c_bool),
+    ('button_R', c_bool),
   
-    ('analogL', c_float),
-    ('analogR', c_float),
+    ('trigger_L', c_float),
+    ('trigger_R', c_float),
   
-    ('mainX', c_float),
-    ('mainY', c_float),
-    
-    ('cX', c_float),
-    ('cY', c_float)
+    ('stick_MAIN', Stick),
+    ('stick_C', Stick),
   ]
 
   __repr__ = toString
@@ -90,19 +101,16 @@ class ControllerState(Structure):
 
   def reset(self):
     "Resets controller to neutral position."
-    self.buttonA = False
-    self.buttonB = False
-    self.buttonX = False
-    self.buttonY = False
-    self.buttonL = False
-    self.buttonR = False
+    self.button_A = False
+    self.button_B = False
+    self.button_X = False
+    self.button_Y = False
+    self.button_L = False
+    self.button_R = False
     
-    self.analogL = 0.0
-    self.analogR = 0.0
+    self.analog_L = 0.0
+    self.analog_R = 0.0
     
-    self.mainX = 0.5
-    self.mainY = 0.5
-    
-    self.cX = 0.5
-    self.cY = 0.5
+    self.stick_MAIN.reset()
+    self.stick_C.reset()
 

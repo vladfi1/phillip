@@ -4,53 +4,11 @@ import ctypes
 import tf_lib as tfl
 import util
 
-# TODO: fill out the rest of this table
-ctypes2TF = {
-  ctypes.c_bool : tf.bool,
-  ctypes.c_float : tf.float32,
-  ctypes.c_double : tf.float64,
-  ctypes.c_uint : tf.int32,
-}
-
-def inputCType(ctype, shape=None, name=""):
-  if ctype in ctypes2TF:
-    return tf.placeholder(ctypes2TF[ctype], shape, name)
-  elif issubclass(ctype, ctypes.Structure):
-    return {f : inputCType(t, shape, name + "/" + f) for (f, t) in ctype._fields_}
-  else:
-    raise TypeError("Unhandled ctype " + ctype)
-
-def feedCType(ctype, input, value, feed_dict=None):
-  if feed_dict is None:
-    feed_dict = {}
-  if ctype in ctypes2TF:
-    feed_dict[input] = value
-  elif issubclass(ctype, ctypes.Structure):
-    for f, t in ctype._fields_:
-      feedCType(t, input[f], getattr(value, f), feed_dict)
-  else:
-    raise TypeError("Unhandled ctype " + ctype)
-  
-  return feed_dict
-
-def feedCTypes(ctype, input, values, feed_dict=None):
-  if feed_dict is None:
-    feed_dict = {}
-  if ctype in ctypes2TF:
-    feed_dict[input] = values
-  elif issubclass(ctype, ctypes.Structure):
-    for f, t in ctype._fields_:
-      feedCTypes(t, input[f], [getattr(c, f) for c in values], feed_dict)
-  else:
-    raise TypeError("Unhandled ctype " + ctype)
-  
-  return feed_dict
-
 with tf.name_scope('train'):
-  train_states = inputCType(ssbm.GameMemory, [None], "states")
+  train_states = tfl.inputCType(ssbm.GameMemory, [None], "states")
 
   # player 2's controls
-  train_controls = inputCType(ssbm.ControllerState, [None], "controls")
+  train_controls = tfl.inputCType(ssbm.ControllerState, [None], "controls")
 
 embedFloat = lambda t: tf.reshape(t, [-1, 1])
 
@@ -103,6 +61,11 @@ def embedStruct(embedding):
 
 embedPlayer = embedStruct(playerEmbedding)
 
+def embedArray(embed):
+  def f(array):
+    return tf.concat(1, list(map(embed, array)))
+  return f
+
 maxStage = 64 # overestimate
 stageSpace = 32
 
@@ -113,8 +76,7 @@ def embedStage(stage):
   return stageHelper(one_hot(maxStage)(stage))
 
 gameEmbedding = [
-  ('player_one', embedPlayer),
-  ('player_two', embedPlayer),
+  ('players', embedArray(embedPlayer)),
 
   #('frame', c_uint),
   ('stage', embedStage)
@@ -124,22 +86,26 @@ embedGame = embedStruct(gameEmbedding)
 embedded_states = embedGame(train_states)
 state_size = embedded_states.get_shape()[-1].value
 
+stickEmbedding = [
+  ('x', embedFloat),
+  ('y', embedFloat)
+]
+
+embedStick = embedStruct(stickEmbedding)
+
 controllerEmbedding = [
-  ('buttonA', castFloat),
-  ('buttonB', castFloat),
-  ('buttonX', castFloat),
-  ('buttonY', castFloat),
-  ('buttonL', castFloat),
-  ('buttonR', castFloat),
+  ('button_A', castFloat),
+  ('button_B', castFloat),
+  ('button_X', castFloat),
+  ('button_Y', castFloat),
+  ('button_L', castFloat),
+  ('button_R', castFloat),
   
-  ('analogL', embedFloat),
-  ('analogR', embedFloat),
+  ('trigger_L', embedFloat),
+  ('trigger_R', embedFloat),
   
-  ('mainX', embedFloat),
-  ('mainY', embedFloat),
-    
-  ('cX', embedFloat),
-  ('cY', embedFloat)
+  ('stick_MAIN', embedStick),
+  ('stick_C', embedStick),
 ]
 
 embedController = embedStruct(controllerEmbedding)
@@ -193,14 +159,16 @@ with tf.name_scope("actorQ"):
 #trainActor = tf.train.RMSPropOptimizer(0.0001).minimize(-actorQ, var_list=actor_variables)
 trainActor = tf.train.AdamOptimizer().minimize(-actorQ, var_list=actor_variables)
 
-def deepMapDict(f, d):
-  if isinstance(d, dict):
-    return {k : deepMapDict(f, v) for k, v in d.items()}
-  return f(d)
+def deepMap(f, obj):
+  if isinstance(obj, dict):
+    return {k : deepMap(f, v) for k, v in obj.items()}
+  if isinstance(obj, list):
+    return [deepMap(f, x) for x in obj]
+  return f(obj)
 
 with tf.name_scope('predict'):
-  predict_input_state = inputCType(ssbm.GameMemory, [], "state")
-  reshaped = deepMapDict(lambda t: tf.reshape(t, [1]), predict_input_state)
+  predict_input_state = tfl.inputCType(ssbm.GameMemory, [], "state")
+  reshaped = deepMap(lambda t: tf.reshape(t, [1]), predict_input_state)
   embedded_state = embedGame(reshaped)
 
   predict_actions = applyActor(embedded_state)
@@ -216,8 +184,8 @@ sess = tf.Session()
 
 saver = tf.train.Saver(tf.all_variables())
 
-# see GameState.h for explanations
-dyingActions = set([0x0, 0x1, 0x2, 0x4, 0x6, 0x7, 0x8])
+# see https://docs.google.com/spreadsheets/d/1JX2w-r2fuvWuNgGb6D3Cs4wHQKLFegZe2jhbBuIhCG8/edit#gid=13
+dyingActions = set(range(0xA))
 
 def isDying(player):
   return player.action in dyingActions
@@ -229,15 +197,15 @@ def processDeaths(deaths):
 
 # from player 2's perspective
 def computeRewards(states, discount = 0.99):
-  kills = [isDying(state.player_one) for state in states]
-  deaths = [isDying(state.player_two) for state in states]
+  kills = [isDying(state.players[0]) for state in states]
+  deaths = [isDying(state.players[1]) for state in states]
   
   kills = processDeaths(kills)
   deaths = processDeaths(deaths)
   
   scores = util.zipWith(lambda x, y: x - y, kills, deaths)
   
-  lastQ = sess.run(predictQ, feedCType(ssbm.GameMemory, predict_input_state, states[-1]))
+  lastQ = sess.run(predictQ, tfl.feedCType(ssbm.GameMemory, 'predict/state', states[-1]))
   #lastQ = sess.run(qPredictions, feedCTypes(ssbm.GameMemory, predict_input_state, states[-1:]))
   
   return util.scanr(lambda r1, r2: r1 + discount * r2, lastQ, scores[1:-1])
@@ -265,8 +233,8 @@ def train(filename, steps=1):
   states, controls = readFile(filename)
   
   feed_dict = {rewards : computeRewards(states)}
-  feedCTypes(ssbm.GameMemory, train_states, states[:-1], feed_dict)
-  feedCTypes(ssbm.ControllerState, train_controls, controls[:-1], feed_dict)
+  tfl.feedCTypes(ssbm.GameMemory, 'train/states', states[:-1], feed_dict)
+  tfl.feedCTypes(ssbm.ControllerState, 'train/controls', controls[:-1], feed_dict)
   
   # FIXME: we feed the inputs in on each iteration, which might be inefficient.
   for _ in range(steps):
