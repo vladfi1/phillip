@@ -151,22 +151,22 @@ void getControl(Session* session, const GameMemory& memory, ControllerState& con
     //cout << control(0) << endl;
     
     controllerState.buttonA = flip(control(0), generator);
-    controllerState.buttonB = flip(control(1), generator);
-    controllerState.buttonX = flip(control(2), generator);
-    controllerState.buttonY = flip(control(3), generator);
-    controllerState.buttonL = flip(control(4), generator);
-    controllerState.buttonR = flip(control(5), generator);
+    //controllerState.buttonB = flip(control(1), generator);
+    //controllerState.buttonX = flip(control(2), generator);
+    //controllerState.buttonY = flip(control(3), generator);
+    //controllerState.buttonL = flip(control(4), generator);
+    //controllerState.buttonR = flip(control(5), generator);
     
-    float epsilon = 0.1;
+    float epsilon = 0.5;
     
-    controllerState.analogL = epsilonGreedy(epsilon, control(6), generator);
-    controllerState.analogR = epsilonGreedy(epsilon, control(7), generator);
+    //controllerState.analogL = epsilonGreedy(epsilon, control(6), generator);
+    //controllerState.analogR = epsilonGreedy(epsilon, control(7), generator);
 
     controllerState.mainX = epsilonGreedy(epsilon, control(8), generator);
     controllerState.mainY = epsilonGreedy(epsilon, control(9), generator);
 
-    controllerState.cX = epsilonGreedy(epsilon, control(10), generator);
-    controllerState.cY = epsilonGreedy(epsilon, control(11), generator);
+    //controllerState.cX = epsilonGreedy(epsilon, control(10), generator);
+    //controllerState.cY = epsilonGreedy(epsilon, control(11), generator);
 }
 
 // TODO: configure from command line
@@ -178,11 +178,10 @@ int main(int argc, char* argv[])
     minstd_rand generator;
     
     //GameState *state = GameState::Instance();
-    Controller controller("phillip");
-
     MemoryWatcher watcher;
     GameMemory memory;
     ControllerState controllerState;
+    Controller controller("phillip");
     
     string graphFile = "models/simpleDQN.pb";
     
