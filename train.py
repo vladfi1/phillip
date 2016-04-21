@@ -1,7 +1,8 @@
 import RL
 import os
 
-RL.restore()
+RL.init()
+#RL.restore()
 
 def sweep(data_dir='experience/'):
   for f in os.listdir(data_dir):
