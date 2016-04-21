@@ -27,13 +27,14 @@ class PlayerMemory(Structure):
     ('facing', c_bool),
     ('x', c_float),
     ('y', c_float),
+    ('z', c_float),
     ('action', c_uint),
     ('action_counter', c_uint),
-    ('action_frame', c_uint),
+    ('action_frame', c_float),
     ('character', c_uint),
     ('invulnerable', c_bool),
-    ('hitlag_frames_left', c_uint),
-    ('hitstun_frames_left', c_uint),
+    ('hitlag_frames_left', c_float),
+    ('hitstun_frames_left', c_float),
     ('jumps_left', c_uint),
     ('charging_smash', c_bool),
     ('on_ground', c_bool),
@@ -41,7 +42,10 @@ class PlayerMemory(Structure):
     ('speed_ground_x_self', c_float),
     ('speed_y_self', c_float),
     ('speed_x_attack', c_float),
-    ('speed_y_attack', c_float)
+    ('speed_y_attack', c_float),
+    
+    ('cursor_x', c_float),
+    ('cursor_y', c_float),
   ]
   
   __repr__ = toString
@@ -50,15 +54,10 @@ class PlayerMemory(Structure):
 
 class GameMemory(Structure):
   _fields_ = [
-    ('player_one', PlayerMemory),
-    ('player_two', PlayerMemory),
-
-    #Character select screen pointer for player 2
-    ('player_two_pointer_x', c_float),
-    ('player_two_pointer_y', c_float),
+    ('players', PlayerMemory * 4),
 
     ('frame', c_uint),
-    ('menu_state', c_uint),
+    ('menu', c_uint),
     ('stage', c_uint)
   ]
 
