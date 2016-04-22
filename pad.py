@@ -66,3 +66,22 @@ class Pad:
         except AssertionError:
           import ipdb; ipdb.set_trace()
         self.pipe.write('SET {} {:.2f} {:.2f}\n'.format(stick.name, x, y))
+    
+    def send_controller(self, controller):
+        for button in Button:
+            field = 'button_' + button.name
+            if hasattr(controller, field):
+                if getattr(controller, field):
+                    self.press_button(button)
+                else:
+                    self.release_button(button)
+        
+        for trigger in Trigger:
+            field = 'trigger_' + trigger.name
+            self.press_trigger(trigger, getattr(controller, field))
+        
+        for stick in Stick:
+            field = 'stick_' + stick.name
+            value = getattr(controller, field)
+            self.tilt_stick(stick, value.x, value.y)
+

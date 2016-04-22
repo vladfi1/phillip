@@ -7,6 +7,7 @@ import os
 import pad
 import time
 import fox
+import agent
 
 class CPU:
     def __init__(self, dump=True, dump_size=3600, dump_dir='experience/'):
@@ -22,6 +23,7 @@ class CPU:
         self.write_locations(dolphin_dir)
 
         self.fox = fox.Fox()
+        self.agent = agent.Agent()
         self.mm = menu_manager.MenuManager()
 
         try:
@@ -107,7 +109,8 @@ class CPU:
         if self.state.menu == Menu.Game.value:
             if self.dump:
                 self.dump_state()
-            self.fox.advance(self.state, self.pad)
+            #self.fox.advance(self.state, self.pad)
+            self.agent.advance(self.state, self.pad)
         elif self.state.menu == Menu.Characters.value:
             self.mm.pick_fox(self.state, self.pad)
         elif self.state.menu == Menu.Stages.value:

@@ -61,9 +61,10 @@ def embedStruct(embedding):
 
 embedPlayer = embedStruct(playerEmbedding)
 
-def embedArray(embed):
+def embedArray(embed, indices=None):
+  
   def f(array):
-    return tf.concat(1, list(map(embed, array)))
+    return tf.concat(1, [embed(array[i]) for i in indices])
   return f
 
 maxStage = 64 # overestimate
@@ -76,7 +77,7 @@ def embedStage(stage):
   return stageHelper(one_hot(maxStage)(stage))
 
 gameEmbedding = [
-  ('players', embedArray(embedPlayer)),
+  ('players', embedArray(embedPlayer, [0, 1])),
 
   #('frame', c_uint),
   ('stage', embedStage)
