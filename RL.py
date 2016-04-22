@@ -173,6 +173,9 @@ with tf.name_scope('trainQ'):
   grads_and_vars = opt.compute_gradients(qLoss)
   train_q = opt.apply_gradients(grads_and_vars)
 
+global_step = tf.Variable(0, name='global_step', trainable=False)
+temperature = 20.0 * 0.5 ** (tf.cast(global_step, tf.float32) / 1000.0) + 1.0
+
 with tf.variable_scope("actor"):
   layers = [state_size, 64]
 
@@ -182,8 +185,9 @@ with tf.variable_scope("actor"):
 
   applyLayers = [tfl.makeAffineLayer(prev, next, nl) for (prev, next), nl in zip(zip_layers, nls)]
 
-  button_layer = tfl.makeAffineLayer(layers[-1], len(ssbm.SimpleButton._fields_), tf.nn.softmax)
-  stick_layer = tfl.makeAffineLayer(layers[-1], len(ssbm.SimpleStick._fields_), tf.nn.softmax)
+  button_layer = tfl.makeAffineLayer(layers[-1], len(ssbm.SimpleButton._fields_), util.compose(tf.nn.softmax, lambda x: x / temperature))
+
+  stick_layer = tfl.makeAffineLayer(layers[-1], len(ssbm.SimpleStick._fields_), util.compose(tf.nn.softmax, lambda x: x / temperature))
 
 def applyActor(state):
   for f in applyLayers:
@@ -206,9 +210,11 @@ with tf.name_scope("actorQ"):
 
 # trainActor = tf.train.AdamOptimizer().minimize(-actorQ, var_list=actor_variables)
 
+
+
 actor_opt = tf.train.AdamOptimizer()
 actor_grads_and_vars = opt.compute_gradients(-actorQ, var_list=actor_variables)
-trainActor = opt.apply_gradients(actor_grads_and_vars)
+trainActor = opt.apply_gradients(actor_grads_and_vars, global_step=global_step)
 
 def deepMap(f, obj):
   if isinstance(obj, dict):
@@ -300,6 +306,8 @@ def readFile(filename, states=None, controls=None):
 
   return states, controls
 
+
+
 def train(filename, steps=1):
   states, controls = readFile(filename)
 
@@ -309,19 +317,21 @@ def train(filename, steps=1):
 
   # FIXME: we feed the inputs in on each iteration, which might be inefficient.
   for step_index in range(steps):
-    for _ in range(1):
-      gs = sess.run([gv[0] for gv in actor_grads_and_vars], feed_dict)
-      vs = sess.run([gv[1] for gv in actor_grads_and_vars], feed_dict)
+    # for _ in range(1):
+    #   gs = sess.run([gv[0] for gv in actor_grads_and_vars], feed_dict)
+    #   vs = sess.run([gv[1] for gv in actor_grads_and_vars], feed_dict)
     #   loss = sess.run(qLoss, feed_dict)
     #   act_4 = sess.run(q1_layer, feed_dict)
 
-      import numpy as np
+    t = sess.run(temperature)
+    print("Temperature: ", t)
+    #   import numpy as np
     #   print("act_4", act_4)
-      print("grad/param(0)", np.mean(np.abs(gs[0] / vs[0])))
-      print("grad/param(2)", np.mean(np.abs(gs[2] / vs[2])))
-      print("grad/param(4)", np.mean(np.abs(gs[4] / vs[4])))
+    #   print("grad/param(0)", np.mean(np.abs(gs[0] / vs[0])))
+    #   print("grad/param(2)", np.mean(np.abs(gs[2] / vs[2])))
+    #   print("grad/param(4)", np.mean(np.abs(gs[4] / vs[4])))
     #   print("grad", np.mean(np.abs(gs[4])))
-      print("param", np.mean(np.abs(vs[0])))
+    #   print("param", np.mean(np.abs(vs[0])))
 
     # if step_index == 10:
     # import pdb; pdb.set_trace()
@@ -342,7 +352,10 @@ def restore(filename='saves/simpleDQN'):
 def writeGraph():
   graph_def = tf.python.client.graph_util.convert_variables_to_constants(sess, sess.graph_def, ['predict/action'])
   tf.train.write_graph(graph_def, 'models/', 'simpleDQN.pb.temp', as_text=False)
-  os.remove('models/simpleDQN.pb')
+  try:
+    os.remove('models/simpleDQN.pb')
+  except:
+      print("No previous model file.")
   os.rename('models/simpleDQN.pb.temp', 'models/simpleDQN.pb')
 
 

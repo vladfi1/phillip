@@ -82,11 +82,13 @@ class Agent:
         print("loading ", self.graph_path)
         if self.sess is not None:
             self.sess.close()
+        self.sess = tf.Session()
+
         graph_def = tf.GraphDef()
         with open(self.graph_path, 'rb') as f:
             graph_def.ParseFromString(f.read())
-        tf.import_graph_def(graph_def, name='')
-        self.sess = tf.Session()
+        with self.sess.graph.as_default():
+            tf.import_graph_def(graph_def, name='')
         # TODO: precompute which ops are necessary
         self.ops = set([op.name + ':0' for op in self.sess.graph.get_operations()])
 
