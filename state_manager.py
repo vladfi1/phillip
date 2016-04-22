@@ -103,14 +103,14 @@ def playerAddresses(player_id, addresses=None):
     add_static_address(0x8E, 'stock', byteHandler)
 
     # nametag positions
-    #add_static_address(0x10, 'x', float_handler)
-    #add_static_address(0x14, 'y', float_handler)
-    #add_static_address(0x18, 'z', float_handler)
+    add_static_address(0x10, 'x', floatHandler)
+    add_static_address(0x14, 'y', floatHandler)
+    add_static_address(0x18, 'z', floatHandler)
 
     # hitbox positions
-    add_static_address(0x18B4, 'x', floatHandler)
-    add_static_address(0x18B8, 'y', floatHandler)
-    add_static_address(0x18BC, 'z', floatHandler)
+    # add_static_address(0x18B4, 'x', floatHandler)
+    # add_static_address(0x18B8, 'y', floatHandler)
+    # add_static_address(0x18BC, 'z', floatHandler)
 
     data_pointer = add_address('80453130', 0xE90 * player_id)
 
