@@ -230,7 +230,10 @@ def processDeaths(deaths):
   return util.zipWith(lambda prev, next: (not prev) and next, [False] + deaths[:-1] , deaths)
 
 # from player 2's perspective
-def computeRewards(states, discount = 0.99):
+def computeRewards(states, reward_halflife = 2):
+  fps = 60
+  discount = 0.5 ** ( 1 / (fps*reward_halflife) )
+  
   kills = [isDying(state.players[0]) for state in states]
   deaths = [isDying(state.players[1]) for state in states]
 

@@ -98,7 +98,7 @@ def playerAddresses(player_id, addresses=None):
       else:
         addresses[address].append(handle)
 
-    add_static_address(0x60, 'percent', intHandler, mask=short_mask)
+    add_static_address(0x60, 'percent', shortHandler)
     # add_static_address(0x1890, 'percent', floatHandler)
     add_static_address(0x8E, 'stock', byteHandler)
 
