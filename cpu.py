@@ -14,7 +14,7 @@ class CPU:
         self.dump = dump
         self.dump_size = dump_size
         self.dump_dir = dump_dir
-        
+
         # TODO This might not always be accurate.
         dolphin_dir = os.path.expanduser('~/.local/share/dolphin-emu')
 
@@ -51,7 +51,7 @@ class CPU:
         self.total_frames = 0
         self.skip_frames = 0
         self.thinking_time = 0
-        
+
         self.dump_frame = 0
         self.dump_count = 0
 
@@ -67,16 +67,17 @@ class CPU:
         print('Writing locations to:', path)
         with open(path, 'w') as f:
             f.write('\n'.join(self.sm.locations()))
-    
+
     def dump_state(self):
         if self.dump_frame == 0:
             # pre-allocate/reuse space?
             self.dump_array = bytearray()
-        
+
         self.dump_array.extend(self.state)
-        
+        self.dump_array.extend(self.agent.simple_controller)
+
         self.dump_frame += 1
-        
+
         if self.dump_frame == self.dump_size:
             dump_path = self.dump_dir + str(self.dump_count)
             print("Dumping to ", dump_path)
@@ -94,7 +95,7 @@ class CPU:
             self.total_frames += self.state.frame - last_frame
             last_frame = self.state.frame
             start = time.time()
-            
+
             self.make_action()
             self.thinking_time += time.time() - start
 
@@ -123,4 +124,3 @@ class CPU:
 
 cpu = CPU()
 cpu.run()
-

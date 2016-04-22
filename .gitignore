@@ -3,3 +3,7 @@ cpu
 *.d
 *~
 *.pyc
+experience/
+logs/
+models/
+saves/

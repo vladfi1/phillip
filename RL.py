@@ -1,4 +1,5 @@
 import tensorflow as tf
+import os
 import ssbm
 import ctypes
 import tf_lib as tfl
@@ -8,7 +9,7 @@ with tf.name_scope('train'):
   train_states = tfl.inputCType(ssbm.GameMemory, [None], "states")
 
   # player 2's controls
-  train_controls = tfl.inputCType(ssbm.ControllerState, [None], "controls")
+  train_controls = tfl.inputCType(ssbm.SimpleControllerState, [None], "controls")
 
 embedFloat = lambda t: tf.reshape(t, [-1, 1])
 
@@ -32,19 +33,19 @@ def embedAction(t):
 
 playerEmbedding = [
   ("percent", castFloat),
-  ("facing", castFloat),
+  ("facing", embedFloat),
   ("x", embedFloat),
   ("y", embedFloat),
-  ("action", embedAction),
+  ("action_state", embedAction),
   ("action_counter", castFloat),
   ("action_frame", castFloat),
   ("character", one_hot(maxCharacter)),
   ("invulnerable", castFloat),
   ("hitlag_frames_left", castFloat),
   ("hitstun_frames_left", castFloat),
-  ("jumps_left", castFloat),
+  ("jumps_used", castFloat),
   ("charging_smash", castFloat),
-  ("on_ground", castFloat),
+  ("in_air", castFloat),
   ('speed_air_x_self',  embedFloat),
   ('speed_ground_x_self', embedFloat),
   ('speed_y_self', embedFloat),
@@ -62,7 +63,7 @@ def embedStruct(embedding):
 embedPlayer = embedStruct(playerEmbedding)
 
 def embedArray(embed, indices=None):
-  
+
   def f(array):
     return tf.concat(1, [embed(array[i]) for i in indices])
   return f
@@ -101,18 +102,44 @@ controllerEmbedding = [
   ('button_Y', castFloat),
   ('button_L', castFloat),
   ('button_R', castFloat),
-  
+
   ('trigger_L', embedFloat),
   ('trigger_R', embedFloat),
-  
+
   ('stick_MAIN', embedStick),
   ('stick_C', embedStick),
 ]
 
 embedController = embedStruct(controllerEmbedding)
-embedded_controls = embedController(train_controls)
+
+simpleStickEmbedding = [
+  ('up', embedFloat),
+  ('down', embedFloat),
+  ('left', embedFloat),
+  ('right', embedFloat),
+  ('neutral', embedFloat),
+]
+
+embedSimpleStick = embedStruct(simpleStickEmbedding)
+
+simpleButtonEmbedding = [
+  ('A', embedFloat),
+  ('none', embedFloat),
+]
+
+embedSimpleButton = embedStruct(simpleButtonEmbedding)
+
+simpleControllerEmbedding = [
+  ('buttons', embedSimpleButton),
+  ('stick_MAIN', embedSimpleStick),
+]
+
+embedSimpleController = embedStruct(simpleControllerEmbedding)
+
+#embedded_controls = embedController(train_controls)
+embedded_controls = embedSimpleController(train_controls)
 control_size = embedded_controls.get_shape()[-1].value
-assert(control_size == 12)
+assert(control_size == 7)
 
 with tf.variable_scope("q_net"):
   q1 = tfl.makeAffineLayer(state_size + control_size, 512, tf.tanh)
@@ -135,18 +162,24 @@ with tf.name_scope('trainQ'):
   trainQ = tf.train.AdamOptimizer().minimize(qLoss)
 
 with tf.variable_scope("actor"):
-  layers = [state_size, 64, control_size]
-  # all controls are in [0, 1]
-  nls = [tf.tanh] * (len(layers) - 2) + [tf.sigmoid]
-  
+  layers = [state_size, 64]
+
+  nls = [tf.tanh] * (len(layers) - 1)
+
   zip_layers = zip(layers[:-1], layers[1:])
-  
+
   applyLayers = [tfl.makeAffineLayer(prev, next, nl) for (prev, next), nl in zip(zip_layers, nls)]
+
+  button_layer = tfl.makeAffineLayer(layers[-1], len(ssbm.SimpleButton._fields_), tf.nn.softmax)
+  stick_layer = tfl.makeAffineLayer(layers[-1], len(ssbm.SimpleStick._fields_), tf.nn.softmax)
 
 def applyActor(state):
   for f in applyLayers:
     state = f(state)
-  return state
+  button_state = button_layer(state)
+  stick_state = stick_layer(state)
+
+  return tf.concat(1, [button_state, stick_state])
 
 actor_variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='actor')
 #print(actor_variables)
@@ -175,13 +208,13 @@ with tf.name_scope('predict'):
   predict_actions = applyActor(embedded_state)
   predict_action = tf.squeeze(predict_actions, name="action")
   predictQ = q(embedded_state, predict_actions)
-    
+
   #split = tf.split(0, 12, embedded_action, name='action')
 
 sess = tf.Session()
 
-#summaryWriter = tf.train.SummaryWriter('logs/', sess.graph)
-#summaryWriter.flush()
+# summaryWriter = tf.train.SummaryWriter('logs/', sess.graph)
+# summaryWriter.flush()
 
 saver = tf.train.Saver(tf.all_variables())
 
@@ -189,7 +222,7 @@ saver = tf.train.Saver(tf.all_variables())
 dyingActions = set(range(0xA))
 
 def isDying(player):
-  return player.action in dyingActions
+  return player.action_state in dyingActions
 
 # players tend to be dead for many frames in a row
 # here we prune a all but the first frame of the death
@@ -200,43 +233,56 @@ def processDeaths(deaths):
 def computeRewards(states, discount = 0.99):
   kills = [isDying(state.players[0]) for state in states]
   deaths = [isDying(state.players[1]) for state in states]
-  
+
+  print(states[0].players[0])
+
+
   kills = processDeaths(kills)
   deaths = processDeaths(deaths)
-  
-  scores = util.zipWith(lambda x, y: x - y, kills, deaths)
-  
+  print("Deaths for current memory: ", sum(deaths))
+  print("Kills for current memory: ", sum(kills))
+
+
+  # dividing by ten to normalize to [0,1]-ish
+  damage_dealt = [max(states[i+1].players[0].percent - states[i].players[0].percent, 0) for i in range(len(states)-1)]
+
+  scores = util.zipWith(lambda x, y: x - y, kills[1:], deaths[1:])
+  final_scores = util.zipWith(lambda x, y: x + y / 100, scores, damage_dealt)
+
+  print("Damage for current memory: ", sum(damage_dealt))
+
   lastQ = sess.run(predictQ, tfl.feedCType(ssbm.GameMemory, 'predict/state', states[-1]))
   #lastQ = sess.run(qPredictions, feedCTypes(ssbm.GameMemory, predict_input_state, states[-1:]))
-  
-  return util.scanr(lambda r1, r2: r1 + discount * r2, lastQ, scores[1:-1])
-  
+
+  return util.scanr(lambda r1, r2: r1 + discount * r2, lastQ, final_scores)[:-1]
+  # return util.scanr(lambda r1, r2: r1 + discount * r2, lastQ, damage_dealt)[:-1]
+
 def readFile(filename, states=None, controls=None):
   if states is None:
     states = []
   if controls is None:
     controls = []
-  
+
   with open(filename, 'rb') as f:
     for i in range(60 * 60):
       states.append(ssbm.GameMemory())
       f.readinto(states[-1])
-      
-      controls.append(ssbm.ControllerState())
+
+      controls.append(ssbm.SimpleControllerState())
       f.readinto(controls[-1])
-    
+
     # should be zero
     # print(len(f.read()))
-  
+
   return states, controls
 
 def train(filename, steps=1):
   states, controls = readFile(filename)
-  
+
   feed_dict = {rewards : computeRewards(states)}
   tfl.feedCTypes(ssbm.GameMemory, 'train/states', states[:-1], feed_dict)
-  tfl.feedCTypes(ssbm.ControllerState, 'train/controls', controls[:-1], feed_dict)
-  
+  tfl.feedCTypes(ssbm.SimpleControllerState, 'train/controls', controls[:-1], feed_dict)
+
   # FIXME: we feed the inputs in on each iteration, which might be inefficient.
   for _ in range(steps):
     #sess.run([trainQ, trainActor], feed_dict)
@@ -252,7 +298,10 @@ def restore(filename='saves/simpleDQN'):
 
 def writeGraph():
   graph_def = tf.python.client.graph_util.convert_variables_to_constants(sess, sess.graph_def, ['predict/action'])
-  tf.train.write_graph(graph_def, 'models/', 'simpleDQN.pb', as_text=False)
+  tf.train.write_graph(graph_def, 'models/', 'simpleDQN.pb.temp', as_text=False)
+  os.remove('models/simpleDQN.pb')
+  os.rename('models/simpleDQN.pb.temp', 'models/simpleDQN.pb')
+
 
 def init():
   sess.run(tf.initialize_all_variables())
@@ -260,4 +309,3 @@ def init():
 
 #saver.restore(sess, 'saves/simpleDQN')
 #writeGraph()
-

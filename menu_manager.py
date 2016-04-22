@@ -12,7 +12,7 @@ class MenuManager:
             pad.release_button(Button.A)
             pad.tilt_stick(Stick.MAIN, 0.5, 0.5)
             angle = (state.frame % 240) / 240.0 * 2 * math.pi
-            pad.tilt_stick(Stick.C, 0.4 * math.cos(angle) + 0.5, 0.4 * math.sin(angle) + 0.5)
+            #pad.tilt_stick(Stick.C, 0.4 * math.cos(angle) + 0.5, 0.4 * math.sin(angle) + 0.5)
             #pad.tilt_stick(Stick.C, 0.5, 1)
         else:
             # Go to fox and press A
