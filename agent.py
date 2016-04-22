@@ -119,4 +119,6 @@ class Agent:
 
         action = self.sess.run('predict/action:0', feed_dict)
         self.get_simple_controller(action)
+        print(self.simple_controller)
+        # print(self.simple_controller.stick_MAIN)
         pad.send_controller(simple_to_real_controller(self.simple_controller))

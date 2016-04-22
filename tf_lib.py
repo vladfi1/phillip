@@ -1,6 +1,7 @@
 import tensorflow as tf
 #import pdb
 import ctypes
+import math
 
 def shapeSize(shape):
   size = 1
@@ -15,7 +16,7 @@ def weight_variable(shape):
     :param shape: The dimensions of the desired Tensor
     :return: The initialized Tensor
     '''
-    initial = tf.truncated_normal(shape, stddev=0.1)
+    initial = tf.truncated_normal(shape, stddev=1.0/math.sqrt(shape[0]))
     return tf.Variable(initial)
 
 def bias_variable(shape):
@@ -25,7 +26,8 @@ def bias_variable(shape):
     :param shape: The dimensions of the desired Tensor
     :return: The initialized Tensor
     '''
-    initial = tf.constant(0.1, shape=shape)
+    stddev = 1.0/math.sqrt(shape[0])
+    initial = tf.random_uniform(shape, -stddev, stddev)
     return tf.Variable(initial)
 
 def conv2d(x, W):
@@ -58,34 +60,34 @@ def convLayer(x, filter_size=5, filter_depth=64, pool_size=2):
   x_depth = x.get_shape()[-1].value
   W = weight_variable([filter_size, filter_size, x_depth, filter_depth])
   conv = tf.nn.conv2d(x, W, strides=[1, 1, 1, 1], padding='SAME')
-  
+
   b = bias_variable([filter_depth])
   relu = tf.nn.relu(conv + b)
-  
+
   pool = tf.nn.max_pool(relu,
                         ksize=[1,pool_size,pool_size,1],
                         strides=[1,pool_size,pool_size,1],
                         padding = 'SAME')
-  
+
   return pool
 
 def affineLayer(x, output_size, nl=None):
   W = weight_variable([x.get_shape()[-1].value, output_size])
   b = bias_variable([output_size])
-  
+
   fc = tf.matmul(x, W) + b
-  
+
   return nl(fc) if nl else fc
 
 def makeAffineLayer(input_size, output_size, nl=None):
   W = weight_variable([input_size, output_size])
   b = bias_variable([output_size])
-  
+
   def applyLayer(x):
     fc = tf.matmul(x, W) + b
-    
+
     return nl(fc) if nl else fc
-  
+
   return applyLayer
 
 # TODO: fill out the rest of this table
@@ -117,7 +119,7 @@ def feedCType(ctype, name, value, feed_dict=None):
     base_type = ctype._type_
     for i in range(ctype._length_):
       feedCType(base_type, name + '/' + str(i), value[i], feed_dict)
-  
+
   return feed_dict
 
 def feedCTypes(ctype, name, values, feed_dict=None):
@@ -132,6 +134,5 @@ def feedCTypes(ctype, name, values, feed_dict=None):
     base_type = ctype._type_
     for i in range(ctype._length_):
       feedCTypes(base_type, name + '/' + str(i), [v[i] for v in values], feed_dict)
-  
-  return feed_dict
 
+  return feed_dict

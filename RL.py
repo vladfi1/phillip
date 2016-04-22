@@ -1,5 +1,6 @@
 import tensorflow as tf
 import os
+import random
 import ssbm
 import ctypes
 import tf_lib as tfl
@@ -31,14 +32,17 @@ with tf.variable_scope("embed_action"):
 def embedAction(t):
   return actionHelper(one_hot(maxAction)(t))
 
+def rescale(a):
+  return lambda x: a * x
+
 playerEmbedding = [
-  ("percent", castFloat),
+  ("percent", util.compose(rescale(0.01), castFloat)),
   ("facing", embedFloat),
-  ("x", embedFloat),
-  ("y", embedFloat),
+  ("x", util.compose(rescale(0.01), embedFloat)),
+  ("y", util.compose(rescale(0.01), embedFloat)),
   ("action_state", embedAction),
-  ("action_counter", castFloat),
-  ("action_frame", castFloat),
+  # ("action_counter", castFloat),
+  ("action_frame", util.compose(rescale(0.02), castFloat)),
   ("character", one_hot(maxCharacter)),
   ("invulnerable", castFloat),
   ("hitlag_frames_left", castFloat),
@@ -145,21 +149,29 @@ with tf.variable_scope("q_net"):
   q1 = tfl.makeAffineLayer(state_size + control_size, 512, tf.tanh)
   q2 = tfl.makeAffineLayer(512, 1)
 
+
 def q(states, controls):
   state_actions = tf.concat(1, [states, controls])
-  return tf.squeeze(q2(q1(state_actions)), name='q')
+  with tf.name_scope('q1'):
+    q1_layer = q1(state_actions)
+  return tf.squeeze(q2(q1_layer), name='q'), q1_layer
 
 # pre-computed long-term rewards
 rewards = tf.placeholder(tf.float32, [None], name='rewards')
 
 with tf.name_scope('trainQ'):
-  qPredictions = q(embedded_states, embedded_controls)
+  qPredictions, q1_layer = q(embedded_states, embedded_controls)
 
   qLosses = tf.squared_difference(qPredictions, rewards)
   qLoss = tf.reduce_mean(qLosses)
 
   #trainQ = tf.train.RMSPropOptimizer(0.0001).minimize(qLoss)
-  trainQ = tf.train.AdamOptimizer().minimize(qLoss)
+
+  # trainQ = tf.train.AdamOptimizer().minimize(qLoss)
+  opt = tf.train.AdamOptimizer()
+  # opt = tf.train.GradientDescentOptimizer(0.0)
+  grads_and_vars = opt.compute_gradients(qLoss)
+  train_q = opt.apply_gradients(grads_and_vars)
 
 with tf.variable_scope("actor"):
   layers = [state_size, 64]
@@ -186,12 +198,17 @@ actor_variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='act
 
 with tf.name_scope("actorQ"):
   actions = applyActor(embedded_states)
-  actorQ = tf.reduce_mean(q(embedded_states, actions))
+  actorQ = tf.reduce_mean(q(embedded_states, actions)[0])
 
 #trainActor = tf.train.RMSPropOptimizer(0.001).minimize(-actorQ)
 # FIXME: is this the right sign?
 #trainActor = tf.train.RMSPropOptimizer(0.0001).minimize(-actorQ, var_list=actor_variables)
-trainActor = tf.train.AdamOptimizer().minimize(-actorQ, var_list=actor_variables)
+
+# trainActor = tf.train.AdamOptimizer().minimize(-actorQ, var_list=actor_variables)
+
+actor_opt = tf.train.AdamOptimizer()
+actor_grads_and_vars = opt.compute_gradients(-actorQ, var_list=actor_variables)
+trainActor = opt.apply_gradients(actor_grads_and_vars)
 
 def deepMap(f, obj):
   if isinstance(obj, dict):
@@ -207,7 +224,7 @@ with tf.name_scope('predict'):
 
   predict_actions = applyActor(embedded_state)
   predict_action = tf.squeeze(predict_actions, name="action")
-  predictQ = q(embedded_state, predict_actions)
+  predictQ, _ = q(embedded_state, predict_actions)
 
   #split = tf.split(0, 12, embedded_action, name='action')
 
@@ -225,7 +242,7 @@ def isDying(player):
   return player.action_state in dyingActions
 
 # players tend to be dead for many frames in a row
-# here we prune a all but the first frame of the death
+# here we prune all but the first frame of the death
 def processDeaths(deaths):
   return util.zipWith(lambda prev, next: (not prev) and next, [False] + deaths[:-1] , deaths)
 
@@ -233,17 +250,17 @@ def processDeaths(deaths):
 def computeRewards(states, reward_halflife = 2):
   fps = 60
   discount = 0.5 ** ( 1 / (fps*reward_halflife) )
-  
+
   kills = [isDying(state.players[0]) for state in states]
   deaths = [isDying(state.players[1]) for state in states]
 
-  print(states[0].players[0])
+  # print(states[random.randint(0, len(states))].players[0])
 
 
   kills = processDeaths(kills)
   deaths = processDeaths(deaths)
-  print("Deaths for current memory: ", sum(deaths))
-  print("Kills for current memory: ", sum(kills))
+  # print("Deaths for current memory: ", sum(deaths))
+  # print("Kills for current memory: ", sum(kills))
 
 
   # dividing by ten to normalize to [0,1]-ish
@@ -252,12 +269,16 @@ def computeRewards(states, reward_halflife = 2):
   scores = util.zipWith(lambda x, y: x - y, kills[1:], deaths[1:])
   final_scores = util.zipWith(lambda x, y: x + y / 100, scores, damage_dealt)
 
-  print("Damage for current memory: ", sum(damage_dealt))
+  # print("Damage for current memory: ", sum(damage_dealt))
+  # print("Scores for current memory: ", final_scores[:1000])
 
   lastQ = sess.run(predictQ, tfl.feedCType(ssbm.GameMemory, 'predict/state', states[-1]))
   #lastQ = sess.run(qPredictions, feedCTypes(ssbm.GameMemory, predict_input_state, states[-1:]))
 
-  return util.scanr(lambda r1, r2: r1 + discount * r2, lastQ, final_scores)[:-1]
+  discounted_rewards = util.scanr(lambda r1, r2: r1 + discount * r2, lastQ, final_scores)[:-1]
+
+  # print("discounted_rewards for current memory: ", discounted_rewards[:])
+  return discounted_rewards
   # return util.scanr(lambda r1, r2: r1 + discount * r2, lastQ, damage_dealt)[:-1]
 
 def readFile(filename, states=None, controls=None):
@@ -287,10 +308,29 @@ def train(filename, steps=1):
   tfl.feedCTypes(ssbm.SimpleControllerState, 'train/controls', controls[:-1], feed_dict)
 
   # FIXME: we feed the inputs in on each iteration, which might be inefficient.
-  for _ in range(steps):
-    #sess.run([trainQ, trainActor], feed_dict)
-    sess.run(trainQ, feed_dict)
-    sess.run(trainActor, feed_dict)
+  for step_index in range(steps):
+    for _ in range(1):
+      gs = sess.run([gv[0] for gv in actor_grads_and_vars], feed_dict)
+      vs = sess.run([gv[1] for gv in actor_grads_and_vars], feed_dict)
+    #   loss = sess.run(qLoss, feed_dict)
+    #   act_4 = sess.run(q1_layer, feed_dict)
+
+      import numpy as np
+    #   print("act_4", act_4)
+      print("grad/param(0)", np.mean(np.abs(gs[0] / vs[0])))
+      print("grad/param(2)", np.mean(np.abs(gs[2] / vs[2])))
+      print("grad/param(4)", np.mean(np.abs(gs[4] / vs[4])))
+    #   print("grad", np.mean(np.abs(gs[4])))
+      print("param", np.mean(np.abs(vs[0])))
+
+    # if step_index == 10:
+    # import pdb; pdb.set_trace()
+
+    # print(sum(gvs))
+    sess.run([train_q, trainActor], feed_dict)
+
+    # sess.run(trainQ, feed_dict)
+    #sess.run(trainActor, feed_dict)
   print(sess.run([qLoss, actorQ], feed_dict))
 
 def save(filename='saves/simpleDQN'):
