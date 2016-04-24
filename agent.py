@@ -80,15 +80,15 @@ class Agent:
 
     def load_graph(self):
         print("loading ", self.graph_path)
-        if self.sess is not None:
-            self.sess.close()
-        self.sess = tf.Session()
-
+        
         graph_def = tf.GraphDef()
         with open(self.graph_path, 'rb') as f:
             graph_def.ParseFromString(f.read())
-        with self.sess.graph.as_default():
+        
+        with tf.Graph().as_default() as imported_graph:
             tf.import_graph_def(graph_def, name='')
+            self.sess = tf.Session(graph=imported_graph)
+        
         # TODO: precompute which ops are necessary
         self.ops = set([op.name + ':0' for op in self.sess.graph.get_operations()])
 
@@ -121,6 +121,6 @@ class Agent:
 
         action = self.sess.run('predict/action:0', feed_dict)
         self.get_simple_controller(action)
-        print(self.simple_controller)
-        # print(self.simple_controller.stick_MAIN)
+        #print(self.simple_controller)
+        print(self.simple_controller.stick_MAIN)
         pad.send_controller(simple_to_real_controller(self.simple_controller))
