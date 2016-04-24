@@ -2,6 +2,7 @@ import tensorflow as tf
 import ssbm
 import tf_lib as tfl
 from numpy import random
+import RL
 
 def flip(p):
     return random.binomial(1, p)
@@ -72,11 +73,12 @@ def simple_to_real_controller(simple_controller):
 class Agent:
     def __init__(self, graph_path='models/simpleDQN.pb', reload_every=60*60):
         self.graph_path = graph_path
-        self.sess = None
-        self.load_graph()
+        #self.sess = None
+        #self.load_graph()
         self.reload_every = reload_every
         self.counter = 0
         self.simple_controller = ssbm.SimpleControllerState()
+        RL.restore()
 
     def load_graph(self):
         print("loading ", self.graph_path)
@@ -91,6 +93,20 @@ class Agent:
         
         # TODO: precompute which ops are necessary
         self.ops = set([op.name + ':0' for op in self.sess.graph.get_operations()])
+    
+    def get_action(self, state):
+        "Run the state through the loaded graph. Currently unused."
+        feed_dict = tfl.feedCType(ssbm.GameMemory, 'predict/state', state)
+
+        to_remove = []
+        for op in feed_dict:
+            if op not in self.ops:
+                to_remove.append(op)
+        for op in to_remove:
+            #print("removing", op)
+            del feed_dict[op]
+
+        return self.sess.run('predict/action:0', feed_dict)
 
     # action: [A, none, up, down, left, right, neutral]
     def get_simple_controller(self, action):
@@ -106,20 +122,12 @@ class Agent:
         self.counter += 1
 
         if self.counter >= self.reload_every:
-            self.load_graph()
+            #self.load_graph()
+            print("RL.restore()")
+            RL.restore()
             self.counter = 0
 
-        feed_dict = tfl.feedCType(ssbm.GameMemory, 'predict/state', state)
-
-        to_remove = []
-        for op in feed_dict:
-            if op not in self.ops:
-                to_remove.append(op)
-        for op in to_remove:
-            #print("removing", op)
-            del feed_dict[op]
-
-        action = self.sess.run('predict/action:0', feed_dict)
+        action = RL.predictAction(state)
         self.get_simple_controller(action)
         #print(self.simple_controller)
         print(self.simple_controller.stick_MAIN)

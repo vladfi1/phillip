@@ -241,6 +241,10 @@ sess = tf.Session()
 
 saver = tf.train.Saver(tf.all_variables())
 
+def predictAction(state):
+  feed_dict = tfl.feedCType(ssbm.GameMemory, 'predict/state', state)
+  return sess.run('predict/action:0', feed_dict)
+
 # see https://docs.google.com/spreadsheets/d/1JX2w-r2fuvWuNgGb6D3Cs4wHQKLFegZe2jhbBuIhCG8/edit#gid=13
 dyingActions = set(range(0xA))
 
