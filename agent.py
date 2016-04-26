@@ -130,5 +130,7 @@ class Agent:
         action = RL.predictAction(state)
         self.get_simple_controller(action)
         #print(self.simple_controller)
-        print(self.simple_controller.stick_MAIN)
+        if self.counter % 60 == 0:
+            print(self.counter)
+            print(self.simple_controller.stick_MAIN)
         pad.send_controller(simple_to_real_controller(self.simple_controller))
