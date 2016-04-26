@@ -174,7 +174,9 @@ with tf.name_scope('trainQ'):
   train_q = opt.apply_gradients(grads_and_vars)
 
 global_step = tf.Variable(0, name='global_step', trainable=False)
-temperature = 20.0 * 0.5 ** (tf.cast(global_step, tf.float32) / 1000.0) + 1.0
+
+with tf.name_scope('temperature'):
+  temperature = 20.0 * 0.5 ** (tf.cast(global_step, tf.float32) / 1000.0) + 1.0
 
 with tf.variable_scope("actor"):
   layers = [state_size, 64]
@@ -236,8 +238,8 @@ with tf.name_scope('predict'):
 
 sess = tf.Session()
 
-# summaryWriter = tf.train.SummaryWriter('logs/', sess.graph)
-# summaryWriter.flush()
+summaryWriter = tf.train.SummaryWriter('logs/', sess.graph)
+summaryWriter.flush()
 
 saver = tf.train.Saver(tf.all_variables())
 
