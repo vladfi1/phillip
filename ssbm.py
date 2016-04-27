@@ -1,23 +1,6 @@
-# TODO: move the ctype-generic stuff into a separate file
-
 from ctypes import *
-
-def toString(struct):
-  fields = [field + "=" + str(getattr(struct, field)) for (field, _) in struct._fields_]
-  return "%s{%s}" % (struct.__class__.__name__, ", ".join(fields))
-
-# TODO: add a named tuple/dict version
-def toTuple(struct):
-  if isinstance(struct, Structure):
-    return tuple(toTuple(getattr(struct, f)) for f, _ in struct._fields_)
-  # just a regular ctype
-  return struct
-
-def hashStruct(struct):
-  return hash(toTuple(struct))
-
-def eqStruct(struct1, struct2):
-  return toTuple(struct1) == toTuple(struct2)
+from ctype_util import *
+from enum import IntEnum
 
 class PlayerMemory(Structure):
   _fields_ = [
@@ -71,6 +54,10 @@ class Stick(Structure):
     ('y', c_float),
   ]
 
+  def __init__(self, x=0.5, y=0.5):
+    self.x = x
+    self.y = y  
+  
   __repr__ = toString
   __hash__ = hashStruct
   __eq__ = eqStruct
@@ -79,26 +66,6 @@ class Stick(Structure):
     self.x = 0.5
     self.y = 0.5
 
-
-class SimpleStick(Structure):
-  _fields_ = [
-    ('up', c_float),
-    ('down', c_float),
-    ('left', c_float),
-    ('right', c_float),
-    ('neutral', c_float),
-  ]
-
-  __repr__ = toString
-  __hash__ = hashStruct
-  __eq__ = eqStruct
-
-  def reset(self):
-    self.up = 0
-    self.down = 0
-    self.left = 0
-    self.right = 0
-    self.neutral = 1
 
 class RealControllerState(Structure):
   _fields_ = [
@@ -120,6 +87,9 @@ class RealControllerState(Structure):
   __hash__ = hashStruct
   __eq__ = eqStruct
 
+  def __init__(self):
+    self.reset()
+  
   def reset(self):
     "Resets controller to neutral position."
     self.button_A = False
@@ -135,31 +105,45 @@ class RealControllerState(Structure):
     self.stick_MAIN.reset()
     self.stick_C.reset()
 
-class SimpleButton(Structure):
-  _fields_ = [
-    ('A', c_float),
-    ('none', c_float),
-  ]
+class SimpleButton(IntEnum):
+  NONE = 0
+  A = 1
 
-  __repr__ = toString
-  __hash__ = hashStruct
-  __eq__ = eqStruct
+class SimpleStick(IntEnum):
+  NEUTRAL = 0
+  UP = 1
+  DOWN = 2
+  LEFT = 3
+  RIGHT = 4
 
-  def reset(self):
-    self.A = 0
-    self.none = 1
+SimpleStick.UP.stick = Stick(0.5, 1)
+SimpleStick.DOWN.stick = Stick(0.5, 0)
+SimpleStick.LEFT.stick = Stick(0, 0.5)
+SimpleStick.RIGHT.stick = Stick(1, 0.5)
+SimpleStick.NEUTRAL.stick = Stick(0.5, 0.5)
 
+@pretty_struct
 class SimpleControllerState(Structure):
-  _fields_ = [
-    ('buttons', SimpleButton),
+  _fields = [
+    ('button', SimpleButton),
     ('stick_MAIN', SimpleStick),
   ]
-
-  __repr__ = toString
-  __hash__ = hashStruct
-  __eq__ = eqStruct
-
+  
+  def __init__(self, button=SimpleButton.NONE, stick_MAIN=SimpleStick.NEUTRAL):
+    self.button = button
+    self.stick_MAIN = stick_MAIN
+  
   def reset(self):
-    "Resets controller to neutral position."
-    self.stick_MAIN.reset()
-    self.buttons.reset()
+    self.button = SimpleButton.NONE
+    self.main = SimpleStick.NEUTRAL
+  
+  def realController(self):
+    controller = RealControllerState()
+    controller.button_A = self.button == SimpleButton.A
+    #controller.button_B = self.button == SimpleButton.B
+    
+    controller.stick_MAIN = SimpleStick(self.stick_MAIN).stick
+    return controller
+  
+simpleControllerStates = SimpleControllerState.allValues()
+
