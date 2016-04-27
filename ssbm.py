@@ -1,6 +1,7 @@
 from ctypes import *
 from ctype_util import *
 from enum import IntEnum
+import struct
 
 class PlayerMemory(Structure):
   _fields_ = [
@@ -146,4 +147,37 @@ class SimpleControllerState(Structure):
     return controller
   
 simpleControllerStates = SimpleControllerState.allValues()
+
+intStruct = struct.Struct('i')
+
+def readInt(f):
+  return intStruct.unpack(f.read(4))[0]
+
+def writeStateActions(filename, data):
+  with open(filename, 'wb') as f:
+    f.write(intStruct.pack(len(data)))
+    
+    for state, control in data:
+      f.write(state)
+      f.write(control)
+
+def readStateActions(filename, stateActions = None):
+  if stateActions is None:
+    stateActions = []
+
+  with open(filename, 'rb') as f:
+    size = readInt(f)
+    
+    for i in range(size):
+      state = GameMemory()
+      f.readinto(state)
+
+      control = SimpleControllerState()
+      f.readinto(control)
+      
+      stateActions.append((state, control))
+
+    assert(len(f.read()) == 0)
+
+  return stateActions
 

@@ -8,13 +8,20 @@ import pad
 import time
 import fox
 import agent
+import util
+from ctype_util import copy
 
 class CPU:
-    def __init__(self, dump=True, dump_size=3600, dump_dir='experience/', dump_max=20):
+    def __init__(self, dump=True, dump_seconds=60, dump_dir='experience/', dump_max=20, act_every=1):
         self.dump = dump
-        self.dump_size = dump_size
-        self.dump_dir = dump_dir
-        self.dump_max = dump_max
+        if dump:
+          self.dump_dir = dump_dir
+          self.dump_max = dump_max
+          self.dump_size = 60 * dump_seconds // act_every
+          self.dump_state_actions = [(ssbm.GameMemory(), ssbm.SimpleControllerState()) for i in range(self.dump_size)]
+        
+        self.last_acted_frame = 0
+        self.act_every = act_every
 
         # TODO This might not always be accurate.
         dolphin_dir = os.path.expanduser('~/.local/share/dolphin-emu')
@@ -70,37 +77,35 @@ class CPU:
             f.write('\n'.join(self.sm.locations()))
 
     def dump_state(self):
-        if self.dump_frame == 0:
-            # pre-allocate/reuse space?
-            self.dump_array = bytearray()
-
-        self.dump_array.extend(self.state)
-        self.dump_array.extend(self.agent.simple_controller)
+        state, action = self.dump_state_actions[self.dump_frame]
+        copy(self.state, state)
+        copy(self.agent.simple_controller, action)
 
         self.dump_frame += 1
 
         if self.dump_frame == self.dump_size:
             dump_path = self.dump_dir + str(self.dump_count % self.dump_max)
             print("Dumping to ", dump_path)
-            with open(dump_path, 'wb') as f:
-                f.write(self.dump_array)
+            ssbm.writeStateActions(dump_path, self.dump_state_actions)
             self.dump_count += 1
             self.dump_frame = 0
 
     def advance_frame(self):
         last_frame = self.state.frame
         if self.update_state():
-          if self.state.frame > last_frame:
-              skipped_frames = self.state.frame - last_frame - 1
-              if skipped_frames > 0:
-                  self.skip_frames += skipped_frames
-                  print("Skipped frames ", skipped_frames)
-              self.total_frames += self.state.frame - last_frame
-              last_frame = self.state.frame
-              start = time.time()
-
-              self.make_action()
-              self.thinking_time += time.time() - start
+            if self.state.frame > last_frame:
+                skipped_frames = self.state.frame - last_frame - 1
+                if skipped_frames > 0:
+                    self.skip_frames += skipped_frames
+                    print("Skipped frames ", skipped_frames)
+                self.total_frames += self.state.frame - last_frame
+                last_frame = self.state.frame
+                
+                if self.state.frame - self.last_acted_frame >= self.act_every:
+                    start = time.time()
+                    self.make_action()
+                    self.thinking_time += time.time() - start
+                    self.last_acted_frame = self.state.frame
 
     def update_state(self):
         res = next(self.mw)
@@ -118,7 +123,7 @@ class CPU:
             #self.fox.advance(self.state, self.pad)
             self.agent.advance(self.state, self.pad)
         elif self.state.menu in [menu.value for menu in [Menu.Characters, Menu.Stages, Menu.PostGame]]:
-            # this should be kotkeyed to loading an in-game state
+            # D_DOWN should be hotkeyed to loading an in-game state
             if self.state.frame % 2:
               self.pad.press_button(pad.Button.D_DOWN)
             else:

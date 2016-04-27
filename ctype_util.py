@@ -4,23 +4,32 @@ from itertools import product
 import random
 import tensorflow as tf
 
+def copy(src, dst):
+    """Copies the contents of src to dst"""
+    pointer(dst)[0] = src
+
+knownCTypes = set([c_float, c_uint, c_int, c_bool])
+
 def toString(struct):
   fields = [field + "=" + str(getattr(struct, field)) for (field, _) in struct._fields_]
   return "%s{%s}" % (struct.__class__.__name__, ", ".join(fields))
 
 # TODO: add a named tuple/dict version
-def toTuple(struct):
-  if isinstance(struct, Structure):
-    return tuple(toTuple(getattr(struct, f)) for f, _ in struct._fields_)
-  # just a regular ctype
-  return struct
+def toTuple(value, ctype=None):
+  if ctype is None:
+    ctype = type(value)
+  if ctype in knownCTypes:
+    return value
+  if issubclass(ctype, Structure):
+    return tuple(toTuple(getattr(value, f), t) for f, t in ctype._fields_)
+  # an array type
+  return tuple(toTuple(v, ctype._type_) for v in value)
 
 def hashStruct(struct):
   return hash(toTuple(struct))
 
 def eqStruct(struct1, struct2):
   return toTuple(struct1) == toTuple(struct2)
-
 
 def toCType(t):
   if issubclass(t, IntEnum):

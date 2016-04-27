@@ -168,7 +168,7 @@ with tf.name_scope('train_q'):
   # train_q = opt.apply_gradients(grads_and_vars)
 
 with tf.name_scope('epsilon'):
-  epsilon = tf.maximum(0.05, 0.7 - tf.cast(global_step, tf.float32) / 5000.0)
+  epsilon = tf.maximum(0.05, 0.7 - tf.cast(global_step, tf.float32) / 50000.0)
 
 def getEpsilon():
   return sess.run(epsilon)
@@ -296,27 +296,8 @@ def computeRewards(states, reward_halflife = 2.0):
   print("discounted_rewards for current memory: ", discounted_rewards[:10])
   return discounted_rewards
 
-def readFile(filename, states=None, controls=None):
-  if states is None:
-    states = []
-  if controls is None:
-    controls = []
-
-  with open(filename, 'rb') as f:
-    for i in range(60 * 60):
-      states.append(ssbm.GameMemory())
-      f.readinto(states[-1])
-
-      controls.append(ssbm.SimpleControllerState())
-      f.readinto(controls[-1])
-
-    # should be zero
-    # print(len(f.read()))
-
-  return states, controls
-
 def train(filename, steps=1):
-  states, controls = readFile(filename)
+  states, controls = zip(*ssbm.readStateActions(filename))
 
   feed_dict = {rewards : computeRewards(states)}
   feedStateActions(states[:-1], controls[:-1], feed_dict)
