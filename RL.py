@@ -1,16 +1,16 @@
 import tensorflow as tf
-import os
 import random
 import ssbm
 import ctypes
 import tf_lib as tfl
 import util
+import ctype_util as ct
 
-with tf.name_scope('train'):
-  train_states = tfl.inputCType(ssbm.GameMemory, [None], "states")
+with tf.name_scope('input'):
+  input_states = ct.inputCType(ssbm.GameMemory, [None], "states")
 
   # player 2's controls
-  train_controls = tfl.inputCType(ssbm.SimpleControllerState, [None], "controls")
+  input_controls = ct.inputCType(ssbm.SimpleControllerState, [None], "controls")
 
 embedFloat = lambda t: tf.reshape(t, [-1, 1])
 
@@ -89,7 +89,7 @@ gameEmbedding = [
 ]
 
 embedGame = embedStruct(gameEmbedding)
-embedded_states = embedGame(train_states)
+embedded_states = embedGame(input_states)
 state_size = embedded_states.get_shape()[-1].value
 
 stickEmbedding = [
@@ -116,39 +116,24 @@ controllerEmbedding = [
 
 embedController = embedStruct(controllerEmbedding)
 
-simpleStickEmbedding = [
-  ('up', embedFloat),
-  ('down', embedFloat),
-  ('left', embedFloat),
-  ('right', embedFloat),
-  ('neutral', embedFloat),
-]
-
-embedSimpleStick = embedStruct(simpleStickEmbedding)
-
-simpleButtonEmbedding = [
-  ('A', embedFloat),
-  ('none', embedFloat),
-]
-
-embedSimpleButton = embedStruct(simpleButtonEmbedding)
+def embedEnum(enum):
+  return one_hot(len(enum))
 
 simpleControllerEmbedding = [
-  ('buttons', embedSimpleButton),
-  ('stick_MAIN', embedSimpleStick),
+  ('button', embedEnum(ssbm.SimpleButton)),
+  ('stick_MAIN', embedEnum(ssbm.SimpleStick)),
 ]
 
 embedSimpleController = embedStruct(simpleControllerEmbedding)
 
 #embedded_controls = embedController(train_controls)
-embedded_controls = embedSimpleController(train_controls)
+embedded_controls = embedSimpleController(input_controls)
 control_size = embedded_controls.get_shape()[-1].value
 assert(control_size == 7)
 
 with tf.variable_scope("q_net"):
   q1 = tfl.makeAffineLayer(state_size + control_size, 512, tf.tanh)
   q2 = tfl.makeAffineLayer(512, 1)
-
 
 def q(states, controls):
   state_actions = tf.concat(1, [states, controls])
@@ -159,7 +144,7 @@ def q(states, controls):
 # pre-computed long-term rewards
 rewards = tf.placeholder(tf.float32, [None], name='rewards')
 
-with tf.name_scope('trainQ'):
+with tf.name_scope('train_q'):
   qPredictions, q1_layer = q(embedded_states, embedded_controls)
 
   qLosses = tf.squared_difference(qPredictions, rewards)
@@ -167,17 +152,20 @@ with tf.name_scope('trainQ'):
 
   #trainQ = tf.train.RMSPropOptimizer(0.0001).minimize(qLoss)
 
-  # trainQ = tf.train.AdamOptimizer().minimize(qLoss)
-  opt = tf.train.AdamOptimizer()
+  train_q = tf.train.AdamOptimizer().minimize(qLoss)
+  # opt = tf.train.AdamOptimizer()
   # opt = tf.train.GradientDescentOptimizer(0.0)
-  grads_and_vars = opt.compute_gradients(qLoss)
-  train_q = opt.apply_gradients(grads_and_vars)
+  # grads_and_vars = opt.compute_gradients(qLoss)
+  # train_q = opt.apply_gradients(grads_and_vars)
 
+"""
 global_step = tf.Variable(0, name='global_step', trainable=False)
 
 with tf.name_scope('temperature'):
   temperature = 20.0 * 0.5 ** (tf.cast(global_step, tf.float32) / 1000.0) + 1.0
+"""
 
+""" no more actor
 with tf.variable_scope("actor"):
   layers = [state_size, 64]
 
@@ -211,9 +199,6 @@ with tf.name_scope("actorQ"):
 #trainActor = tf.train.RMSPropOptimizer(0.0001).minimize(-actorQ, var_list=actor_variables)
 
 # trainActor = tf.train.AdamOptimizer().minimize(-actorQ, var_list=actor_variables)
-
-
-
 actor_opt = tf.train.AdamOptimizer()
 actor_grads_and_vars = opt.compute_gradients(-actorQ, var_list=actor_variables)
 trainActor = opt.apply_gradients(actor_grads_and_vars, global_step=global_step)
@@ -226,15 +211,13 @@ def deepMap(f, obj):
   return f(obj)
 
 with tf.name_scope('predict'):
-  predict_input_state = tfl.inputCType(ssbm.GameMemory, [], "state")
-  reshaped = deepMap(lambda t: tf.reshape(t, [1]), predict_input_state)
-  embedded_state = embedGame(reshaped)
-
-  predict_actions = applyActor(embedded_state)
-  predict_action = tf.squeeze(predict_actions, name="action")
-  predictQ, _ = q(embedded_state, predict_actions)
-
-  #split = tf.split(0, 12, embedded_action, name='action')
+  predict_state = inputCType(ssbm.GameMemory, [None], 'state')
+  #reshaped = deepMap(lambda t: tf.reshape(t, [1]), predict_input_state)
+  embedded_state = embedGame(predict_state)
+  
+  predict_action = inputCType(ssbm.SimpleControllerState, [None], 'action')
+  e
+"""
 
 sess = tf.Session()
 
@@ -243,9 +226,21 @@ summaryWriter.flush()
 
 saver = tf.train.Saver(tf.all_variables())
 
-def predictAction(state):
-  feed_dict = tfl.feedCType(ssbm.GameMemory, 'predict/state', state)
-  return sess.run('predict/action:0', feed_dict)
+#def predictAction(state):
+#  feed_dict = tfl.feedCType(ssbm.GameMemory, 'predict/state', state)
+#  return sess.run('predict/action:0', feed_dict)
+
+def predictQ(states, controls):
+  feed_dict = {}
+  ct.feedCTypes(ssbm.GameMemory, 'input/states', states, feed_dict)
+  ct.feedCTypes(ssbm.SimpleControllerState, 'input/controls', controls, feed_dict)
+  
+  return sess.run(qPredictions, feed_dict)
+
+# TODO: do this within the tf model?
+# if we do, then we can add in softmax and temperature
+def scoreActions(state):
+  return predictQ([state] * len(ssbm.simpleControllerStates), ssbm.simpleControllerStates)
 
 # see https://docs.google.com/spreadsheets/d/1JX2w-r2fuvWuNgGb6D3Cs4wHQKLFegZe2jhbBuIhCG8/edit#gid=13
 dyingActions = set(range(0xA))
@@ -259,24 +254,23 @@ def processDeaths(deaths):
   return util.zipWith(lambda prev, next: (not prev) and next, [False] + deaths[:-1] , deaths)
 
 # from player 2's perspective
-def computeRewards(states, reward_halflife = 2):
-  fps = 60
-  discount = 0.5 ** ( 1 / (fps*reward_halflife) )
+def computeRewards(states, reward_halflife = 2.0):
+  # reward_halflife is measured in seconds
+  fps = 60.0
+  discount = 0.5 ** ( 1.0 / (fps*reward_halflife) )
 
   kills = [isDying(state.players[0]) for state in states]
   deaths = [isDying(state.players[1]) for state in states]
 
   # print(states[random.randint(0, len(states))].players[0])
 
-
   kills = processDeaths(kills)
   deaths = processDeaths(deaths)
   # print("Deaths for current memory: ", sum(deaths))
   # print("Kills for current memory: ", sum(kills))
 
-
-  # dividing by ten to normalize to [0,1]-ish
   damage_dealt = [max(states[i+1].players[0].percent - states[i].players[0].percent, 0) for i in range(len(states)-1)]
+  # damage_dealt = util.zipWith(lambda prev, next: max(next.players[0].percent - prev.players[0].percent, 0), states[:-1], states[1:])
 
   scores = util.zipWith(lambda x, y: x - y, kills[1:], deaths[1:])
   final_scores = util.zipWith(lambda x, y: x + y / 100, scores, damage_dealt)
@@ -284,8 +278,8 @@ def computeRewards(states, reward_halflife = 2):
   # print("Damage for current memory: ", sum(damage_dealt))
   # print("Scores for current memory: ", final_scores[:1000])
 
-  lastQ = sess.run(predictQ, tfl.feedCType(ssbm.GameMemory, 'predict/state', states[-1]))
-  #lastQ = sess.run(qPredictions, feedCTypes(ssbm.GameMemory, predict_input_state, states[-1:]))
+  # use last action taken?
+  lastQ = max(scoreActions(states[-1]))
 
   discounted_rewards = util.scanr(lambda r1, r2: r1 + discount * r2, lastQ, final_scores)[:-1]
 
@@ -343,19 +337,23 @@ def train(filename, steps=1):
     # import pdb; pdb.set_trace()
 
     # print(sum(gvs))
-    sess.run([train_q, trainActor], feed_dict)
+    #sess.run([train_q, trainActor], feed_dict)
+    sess.run(train_q, feed_dict)
 
     # sess.run(trainQ, feed_dict)
     #sess.run(trainActor, feed_dict)
-  print(sess.run([qLoss, actorQ], feed_dict))
+  #print(sess.run([qLoss, actorQ], feed_dict))
+  print(sess.run(qLoss, feed_dict))
 
 def save(filename='saves/simpleDQN'):
+  print("Saving to", filename)
   saver.save(sess, filename)
 
 def restore(filename='saves/simpleDQN'):
   saver.restore(sess, filename)
 
 def writeGraph():
+  import os
   graph_def = tf.python.client.graph_util.convert_variables_to_constants(sess, sess.graph_def, ['predict/action'])
   tf.train.write_graph(graph_def, 'models/', 'simpleDQN.pb.temp', as_text=False)
   try:
