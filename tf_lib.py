@@ -2,12 +2,11 @@ import tensorflow as tf
 #import pdb
 import ctypes
 import math
+import functools
+import operator
 
-def shapeSize(shape):
-  size = 1
-  for dim in shape:
-    size *= dim
-  return size
+def product(xs):
+  return functools.reduce(operator.mul, xs, 1.0)
 
 def weight_variable(shape):
     '''
@@ -16,7 +15,9 @@ def weight_variable(shape):
     :param shape: The dimensions of the desired Tensor
     :return: The initialized Tensor
     '''
-    initial = tf.truncated_normal(shape, stddev=1.0/math.sqrt(shape[0]))
+    #initial = tf.truncated_normal(shape, stddev=0.1)
+    input_size = product(shape[:-1])
+    initial = tf.truncated_normal(shape, stddev=1.0/math.sqrt(input_size))
     return tf.Variable(initial)
 
 def bias_variable(shape):
@@ -26,8 +27,8 @@ def bias_variable(shape):
     :param shape: The dimensions of the desired Tensor
     :return: The initialized Tensor
     '''
-    stddev = 1.0/math.sqrt(shape[0])
-    initial = tf.random_uniform(shape, -stddev, stddev)
+    size = 1.0 / math.sqrt(product(shape))
+    initial = tf.random_uniform(shape, -size, size)
     return tf.Variable(initial)
 
 def conv2d(x, W):
@@ -90,49 +91,3 @@ def makeAffineLayer(input_size, output_size, nl=None):
 
   return applyLayer
 
-# TODO: fill out the rest of this table
-ctypes2TF = {
-  ctypes.c_bool : tf.bool,
-  ctypes.c_float : tf.float32,
-  ctypes.c_double : tf.float64,
-  ctypes.c_uint : tf.int32,
-}
-
-def inputCType(ctype, shape=None, name=""):
-  if ctype in ctypes2TF:
-    return tf.placeholder(ctypes2TF[ctype], shape, name)
-  elif issubclass(ctype, ctypes.Structure):
-    return {f : inputCType(t, shape, name + "/" + f) for (f, t) in ctype._fields_}
-  else: # assume an array type
-    base_type = ctype._type_
-    return [inputCType(base_type, shape, name + "/" + str(i)) for i in range(ctype._length_)]
-
-def feedCType(ctype, name, value, feed_dict=None):
-  if feed_dict is None:
-    feed_dict = {}
-  if ctype in ctypes2TF:
-    feed_dict[name + ':0'] = value
-  elif issubclass(ctype, ctypes.Structure):
-    for f, t in ctype._fields_:
-      feedCType(t, name + '/' + f, getattr(value, f), feed_dict)
-  else: # assume an array type
-    base_type = ctype._type_
-    for i in range(ctype._length_):
-      feedCType(base_type, name + '/' + str(i), value[i], feed_dict)
-
-  return feed_dict
-
-def feedCTypes(ctype, name, values, feed_dict=None):
-  if feed_dict is None:
-    feed_dict = {}
-  if ctype in ctypes2TF:
-    feed_dict[name + ':0'] = values
-  elif issubclass(ctype, ctypes.Structure):
-    for f, t in ctype._fields_:
-      feedCTypes(t, name + '/' + f, [getattr(v, f) for v in values], feed_dict)
-  else: # assume an array type
-    base_type = ctype._type_
-    for i in range(ctype._length_):
-      feedCTypes(base_type, name + '/' + str(i), [v[i] for v in values], feed_dict)
-
-  return feed_dict
