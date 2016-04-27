@@ -33,8 +33,8 @@ def scanr(f, init, l):
 def scanr1(f, l):
   return scanr(f, l[-1], l[:-1])
 
-def zipWith(f, l1, l2):
-  return [f(a1, a2) for a1, a2 in zip(l1, l2)]
+def zipWith(f, *sequences):
+  return [f(*args) for args in zip(*sequences)]
 
 def compose(f, g):
   "compose(f, g)(x) = f(g(x))"
