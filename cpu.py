@@ -112,15 +112,9 @@ class CPU:
                 self.dump_state()
             #self.fox.advance(self.state, self.pad)
             self.agent.advance(self.state, self.pad)
-        elif self.state.menu == Menu.Characters.value:
-            self.mm.pick_fox(self.state, self.pad)
-        elif self.state.menu == Menu.Stages.value:
-            # Handle this once we know where the cursor position is in memory.
-            self.pad.tilt_stick(pad.Stick.C, 0.5, 0.5)
-        elif self.state.menu == Menu.PostGame.value:
-            self.mm.press_start_lots(self.state, self.pad)
+        elif self.state.menu in [menu.value for menu in [Menu.Characters, Menu.Stages, Menu.PostGame]]:
+            # this should be kotkeyed to loading an in-game state
+            self.pad.press_button(pad.Button.D_DOWN)
         else:
             print("Weird menu state", self.state.menu)
 
-cpu = CPU()
-cpu.run()
