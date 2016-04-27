@@ -37,4 +37,5 @@ def zipWith(f, l1, l2):
   return [f(a1, a2) for a1, a2 in zip(l1, l2)]
 
 def compose(f, g):
+  "compose(f, g)(x) = f(g(x))"
   return lambda x: f(g(x))
