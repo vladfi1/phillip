@@ -10,10 +10,11 @@ import fox
 import agent
 
 class CPU:
-    def __init__(self, dump=True, dump_size=3600, dump_dir='experience/'):
+    def __init__(self, dump=True, dump_size=3600, dump_dir='experience/', dump_max=20):
         self.dump = dump
         self.dump_size = dump_size
         self.dump_dir = dump_dir
+        self.dump_max = dump_max
 
         # TODO This might not always be accurate.
         dolphin_dir = os.path.expanduser('~/.local/share/dolphin-emu')
@@ -79,7 +80,7 @@ class CPU:
         self.dump_frame += 1
 
         if self.dump_frame == self.dump_size:
-            dump_path = self.dump_dir + str(self.dump_count)
+            dump_path = self.dump_dir + str(self.dump_count % self.dump_max)
             print("Dumping to ", dump_path)
             with open(dump_path, 'wb') as f:
                 f.write(self.dump_array)
@@ -88,21 +89,25 @@ class CPU:
 
     def advance_frame(self):
         last_frame = self.state.frame
-        self.update_state()
-        if self.state.frame > last_frame:
-            if self.state.frame != last_frame + 1:
-                self.skip_frames += 1
-            self.total_frames += self.state.frame - last_frame
-            last_frame = self.state.frame
-            start = time.time()
+        if self.update_state():
+          if self.state.frame > last_frame:
+              skipped_frames = self.state.frame - last_frame - 1
+              if skipped_frames > 0:
+                  self.skip_frames += skipped_frames
+                  print("Skipped frames ", skipped_frames)
+              self.total_frames += self.state.frame - last_frame
+              last_frame = self.state.frame
+              start = time.time()
 
-            self.make_action()
-            self.thinking_time += time.time() - start
+              self.make_action()
+              self.thinking_time += time.time() - start
 
     def update_state(self):
         res = next(self.mw)
         if res is not None:
             self.sm.handle(self.state, *res)
+            return True
+        return False
 
     def make_action(self):
         #menu = state.Menu(self.state.menu)
@@ -114,7 +119,10 @@ class CPU:
             self.agent.advance(self.state, self.pad)
         elif self.state.menu in [menu.value for menu in [Menu.Characters, Menu.Stages, Menu.PostGame]]:
             # this should be kotkeyed to loading an in-game state
-            self.pad.press_button(pad.Button.D_DOWN)
+            if self.state.frame % 2:
+              self.pad.press_button(pad.Button.D_DOWN)
+            else:
+              self.pad.release_button(pad.Button.D_DOWN)
         else:
             print("Weird menu state", self.state.menu)
 
