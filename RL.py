@@ -277,22 +277,24 @@ def computeRewards(states, reward_halflife = 2.0):
   # print("Kills for current memory: ", sum(kills))
 
   damage_dealt = [max(states[i+1].players[0].percent - states[i].players[0].percent, 0) for i in range(len(states)-1)]
+  damage_taken = [max(states[i+1].players[1].percent - states[i].players[1].percent, 0) for i in range(len(states)-1)]
+  
   # damage_dealt = util.zipWith(lambda prev, next: max(next.players[0].percent - prev.players[0].percent, 0), states[:-1], states[1:])
 
-  scores = util.zipWith(lambda x, y: x - y, kills[1:], deaths[1:])
-  final_scores = util.zipWith(lambda x, y: x + y / 100, scores, damage_dealt)
+  scores = util.zipWith(lambda k, d: k - d, kills[1:], deaths[1:])
+  final_scores = util.zipWith(lambda score, dealt, taken: score + (dealt - taken) / 100, scores, damage_dealt, damage_taken)
 
-  # print("Damage for current memory: ", sum(damage_dealt))
-  # print("Scores for current memory: ", final_scores[:1000])
+  print("Damage dealt for current memory: ", sum(damage_dealt))
+  print("Damage taken for current memory: ", sum(damage_taken))
+  print("Scores for current memory: ", final_scores[:10])
 
   # use last action taken?
   lastQ = max(scoreActions(states[-1]))
 
   discounted_rewards = util.scanr(lambda r1, r2: r1 + discount * r2, lastQ, final_scores)[:-1]
 
-  # print("discounted_rewards for current memory: ", discounted_rewards[:])
+  print("discounted_rewards for current memory: ", discounted_rewards[:10])
   return discounted_rewards
-  # return util.scanr(lambda r1, r2: r1 + discount * r2, lastQ, damage_dealt)[:-1]
 
 def readFile(filename, states=None, controls=None):
   if states is None:
@@ -347,7 +349,7 @@ def train(filename, steps=1):
     # sess.run(trainQ, feed_dict)
     #sess.run(trainActor, feed_dict)
   #print(sess.run([qLoss, actorQ], feed_dict))
-  print(sess.run(qLoss, feed_dict))
+  print("qLoss", sess.run(qLoss, feed_dict))
 
 def save(filename='saves/simpleDQN'):
   print("Saving to", filename)
