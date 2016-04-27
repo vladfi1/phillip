@@ -12,6 +12,13 @@ with tf.name_scope('input'):
   # player 2's controls
   input_controls = ct.inputCType(ssbm.SimpleControllerState, [None], "controls")
 
+def feedStateActions(states, actions, feed_dict = None):
+  if feed_dict is None:
+    feed_dict = {}
+  ct.feedCTypes(ssbm.GameMemory, 'input/states', states, feed_dict)
+  ct.feedCTypes(ssbm.SimpleControllerState, 'input/controls', actions, feed_dict)
+  return feed_dict
+
 embedFloat = lambda t: tf.reshape(t, [-1, 1])
 
 castFloat = lambda t: embedFloat(tf.cast(t, tf.float32))
@@ -144,6 +151,8 @@ def q(states, controls):
 # pre-computed long-term rewards
 rewards = tf.placeholder(tf.float32, [None], name='rewards')
 
+global_step = tf.Variable(0, name='global_step', trainable=False)
+
 with tf.name_scope('train_q'):
   qPredictions, q1_layer = q(embedded_states, embedded_controls)
 
@@ -152,18 +161,20 @@ with tf.name_scope('train_q'):
 
   #trainQ = tf.train.RMSPropOptimizer(0.0001).minimize(qLoss)
 
-  train_q = tf.train.AdamOptimizer().minimize(qLoss)
+  train_q = tf.train.AdamOptimizer().minimize(qLoss, global_step=global_step)
   # opt = tf.train.AdamOptimizer()
   # opt = tf.train.GradientDescentOptimizer(0.0)
   # grads_and_vars = opt.compute_gradients(qLoss)
   # train_q = opt.apply_gradients(grads_and_vars)
 
-"""
-global_step = tf.Variable(0, name='global_step', trainable=False)
+with tf.name_scope('epsilon'):
+  epsilon = tf.maximum(0.05, 0.7 - tf.cast(global_step, tf.float32) / 5000.0)
 
-with tf.name_scope('temperature'):
-  temperature = 20.0 * 0.5 ** (tf.cast(global_step, tf.float32) / 1000.0) + 1.0
-"""
+def getEpsilon():
+  return sess.run(epsilon)
+
+#with tf.name_scope('temperature'):
+#  temperature = 20.0 * 0.5 ** (tf.cast(global_step, tf.float32) / 1000.0) + 1.0
 
 """ no more actor
 with tf.variable_scope("actor"):
@@ -231,11 +242,7 @@ saver = tf.train.Saver(tf.all_variables())
 #  return sess.run('predict/action:0', feed_dict)
 
 def predictQ(states, controls):
-  feed_dict = {}
-  ct.feedCTypes(ssbm.GameMemory, 'input/states', states, feed_dict)
-  ct.feedCTypes(ssbm.SimpleControllerState, 'input/controls', controls, feed_dict)
-  
-  return sess.run(qPredictions, feed_dict)
+  return sess.run(qPredictions, feedStateActions(states, controls))
 
 # TODO: do this within the tf model?
 # if we do, then we can add in softmax and temperature
@@ -306,14 +313,11 @@ def readFile(filename, states=None, controls=None):
 
   return states, controls
 
-
-
 def train(filename, steps=1):
   states, controls = readFile(filename)
 
   feed_dict = {rewards : computeRewards(states)}
-  tfl.feedCTypes(ssbm.GameMemory, 'train/states', states[:-1], feed_dict)
-  tfl.feedCTypes(ssbm.SimpleControllerState, 'train/controls', controls[:-1], feed_dict)
+  feedStateActions(states[:-1], controls[:-1], feed_dict)
 
   # FIXME: we feed the inputs in on each iteration, which might be inefficient.
   for step_index in range(steps):
@@ -323,8 +327,8 @@ def train(filename, steps=1):
     #   loss = sess.run(qLoss, feed_dict)
     #   act_4 = sess.run(q1_layer, feed_dict)
 
-    t = sess.run(temperature)
-    print("Temperature: ", t)
+    #t = sess.run(temperature)
+    #print("Temperature: ", t)
     #   import numpy as np
     #   print("act_4", act_4)
     #   print("grad/param(0)", np.mean(np.abs(gs[0] / vs[0])))
