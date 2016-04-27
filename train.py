@@ -14,7 +14,7 @@ def sweep(data_dir='experience/'):
     else:
         print("Not training on file:", f)
   RL.save()
-  RL.writeGraph()
+  #RL.writeGraph()
 
 while True:
   sweep()
