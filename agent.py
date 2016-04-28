@@ -44,7 +44,7 @@ class Agent:
         else:
           self.simple_controller = best_action
 
-    def advance(self, state, pad):
+    def act(self, state, pad):
         self.counter += 1
 
         if self.counter >= self.reload_every:
@@ -56,6 +56,7 @@ class Agent:
         self.get_action(state)
         if self.counter % 60 == 0:
             print("Frame %d of recording." % self.counter)
+            print(state.players[1])
             print(self.simple_controller)
-            print(self.epsilon)
+            print("epsilon: ", self.epsilon)
         pad.send_controller(self.simple_controller.realController())

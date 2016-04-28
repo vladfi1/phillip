@@ -31,7 +31,7 @@ class CPU:
         self.write_locations(dolphin_dir)
 
         self.fox = fox.Fox()
-        self.agent = agent.Agent()
+        self.agent = agent.Agent(reload_every=60*dump_seconds//act_every)
         self.mm = menu_manager.MenuManager()
 
         try:
@@ -121,7 +121,7 @@ class CPU:
             if self.dump:
                 self.dump_state()
             #self.fox.advance(self.state, self.pad)
-            self.agent.advance(self.state, self.pad)
+            self.agent.act(self.state, self.pad)
         elif self.state.menu in [menu.value for menu in [Menu.Characters, Menu.Stages, Menu.PostGame]]:
             # D_DOWN should be hotkeyed to loading an in-game state
             if self.state.frame % 2:
