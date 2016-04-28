@@ -19,9 +19,14 @@ class CPU:
           self.dump_max = dump_max
           self.dump_size = 60 * dump_seconds // act_every
           self.dump_state_actions = [(ssbm.GameMemory(), ssbm.SimpleControllerState()) for i in range(self.dump_size)]
+          
+          self.dump_frame = 0
+          self.dump_count = 0
         
+        self.first_frame = True
         self.last_acted_frame = 0
         self.act_every = act_every
+        self.toggle = False
 
         # TODO This might not always be accurate.
         dolphin_dir = os.path.expanduser('~/.local/share/dolphin-emu')
@@ -49,6 +54,7 @@ class CPU:
         if not self.initialized:
             return
         print('Starting run loop.')
+        self.start_time = time.time()
         try:
             while True:
                 self.advance_frame()
@@ -60,13 +66,13 @@ class CPU:
         self.skip_frames = 0
         self.thinking_time = 0
 
-        self.dump_frame = 0
-        self.dump_count = 0
-
     def print_stats(self):
+        total_time = time.time() - self.start_time
         frac_skipped = self.skip_frames / self.total_frames
         frac_thinking = self.thinking_time * 1000 / self.total_frames
+        print('Total Time:', total_time)
         print('Total Frames:', self.total_frames)
+        print('Average FPS:', self.total_frames / total_time)
         print('Fraction Skipped: {:.6f}'.format(frac_skipped))
         print('Average Thinking Time (ms): {:.6f}'.format(frac_thinking))
 
@@ -93,7 +99,9 @@ class CPU:
     def advance_frame(self):
         last_frame = self.state.frame
         if self.update_state():
-            if self.state.frame > last_frame:
+            if self.first_frame:
+                self.first_frame = False
+            elif self.state.frame > last_frame:
                 skipped_frames = self.state.frame - last_frame - 1
                 if skipped_frames > 0:
                     self.skip_frames += skipped_frames
@@ -115,19 +123,21 @@ class CPU:
         return False
 
     def make_action(self):
-        #menu = state.Menu(self.state.menu)
-        #print (menu)
+        menu = Menu(self.state.menu)
+        print(menu)
         if self.state.menu == Menu.Game.value:
+            self.agent.act(self.state, self.pad)
             if self.dump:
                 self.dump_state()
             #self.fox.advance(self.state, self.pad)
-            self.agent.act(self.state, self.pad)
         elif self.state.menu in [menu.value for menu in [Menu.Characters, Menu.Stages, Menu.PostGame]]:
             # D_DOWN should be hotkeyed to loading an in-game state
-            if self.state.frame % 2:
+            if self.toggle:
               self.pad.press_button(pad.Button.D_DOWN)
+              self.toggle = False
             else:
               self.pad.release_button(pad.Button.D_DOWN)
+              self.toggle = True
         else:
             print("Weird menu state", self.state.menu)
 
