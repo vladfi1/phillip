@@ -123,8 +123,8 @@ class CPU:
         return False
 
     def make_action(self):
-        menu = Menu(self.state.menu)
-        print(menu)
+        #menu = Menu(self.state.menu)
+        #print(menu)
         if self.state.menu == Menu.Game.value:
             self.agent.act(self.state, self.pad)
             if self.dump:
