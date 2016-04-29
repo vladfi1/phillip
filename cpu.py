@@ -22,7 +22,7 @@ class CPU:
           
           self.dump_frame = 0
           self.dump_count = 0
-        
+
         self.first_frame = True
         self.last_acted_frame = 0
         self.act_every = act_every
