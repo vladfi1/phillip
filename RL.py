@@ -168,7 +168,7 @@ with tf.name_scope('train_q'):
   # train_q = opt.apply_gradients(grads_and_vars)
 
 with tf.name_scope('epsilon'):
-  epsilon = tf.maximum(0.05, 0.7 - tf.cast(global_step, tf.float32) / 50000.0)
+  epsilon = tf.maximum(0.05, 0.7 - tf.cast(global_step, tf.float32) / 1000000.0)
 
 def getEpsilon():
   return sess.run(epsilon)
@@ -232,8 +232,8 @@ with tf.name_scope('predict'):
 
 sess = tf.Session()
 
-summaryWriter = tf.train.SummaryWriter('logs/', sess.graph)
-summaryWriter.flush()
+#summaryWriter = tf.train.SummaryWriter('logs/', sess.graph)
+#summaryWriter.flush()
 
 saver = tf.train.Saver(tf.all_variables())
 
