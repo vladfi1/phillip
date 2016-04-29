@@ -20,6 +20,9 @@ class CPU:
           self.dump_size = 60 * dump_seconds // act_every
           self.dump_state_actions = [(ssbm.GameMemory(), ssbm.SimpleControllerState()) for i in range(self.dump_size)]
         
+          self.dump_frame = 0
+          self.dump_count = 0
+
         self.last_acted_frame = 0
         self.act_every = act_every
 
@@ -59,9 +62,6 @@ class CPU:
         self.total_frames = 0
         self.skip_frames = 0
         self.thinking_time = 0
-
-        self.dump_frame = 0
-        self.dump_count = 0
 
     def print_stats(self):
         frac_skipped = self.skip_frames / self.total_frames
