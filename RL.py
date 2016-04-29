@@ -182,62 +182,19 @@ with tf.name_scope('epsilon'):
 def getEpsilon():
   return sess.run(epsilon)
 
-#with tf.name_scope('temperature'):
-#  temperature = 20.0 * 0.5 ** (tf.cast(global_step, tf.float32) / 1000.0) + 1.0
+with tf.name_scope('temperature'):
+  temperature = 20.0 * 0.5 ** (tf.cast(global_step, tf.float32) / 1000.0) + 1.0
 
-""" no more actor
-with tf.variable_scope("actor"):
-  layers = [state_size, 64]
-
-  nls = [tf.tanh] * (len(layers) - 1)
-
-  zip_layers = zip(layers[:-1], layers[1:])
-
-  applyLayers = [tfl.makeAffineLayer(prev, next, nl) for (prev, next), nl in zip(zip_layers, nls)]
-
-  button_layer = tfl.makeAffineLayer(layers[-1], len(ssbm.SimpleButton._fields_), util.compose(tf.nn.softmax, lambda x: x / temperature))
-
-  stick_layer = tfl.makeAffineLayer(layers[-1], len(ssbm.SimpleStick._fields_), util.compose(tf.nn.softmax, lambda x: x / temperature))
-
-def applyActor(state):
-  for f in applyLayers:
-    state = f(state)
-  button_state = button_layer(state)
-  stick_state = stick_layer(state)
-
-  return tf.concat(1, [button_state, stick_state])
-
-actor_variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='actor')
-#print(actor_variables)
-
-with tf.name_scope("actorQ"):
-  actions = applyActor(embedded_states)
-  actorQ = tf.reduce_mean(q(embedded_states, actions)[0])
-
-#trainActor = tf.train.RMSPropOptimizer(0.001).minimize(-actorQ)
-# FIXME: is this the right sign?
-#trainActor = tf.train.RMSPropOptimizer(0.0001).minimize(-actorQ, var_list=actor_variables)
-
-# trainActor = tf.train.AdamOptimizer().minimize(-actorQ, var_list=actor_variables)
-actor_opt = tf.train.AdamOptimizer()
-actor_grads_and_vars = opt.compute_gradients(-actorQ, var_list=actor_variables)
-trainActor = opt.apply_gradients(actor_grads_and_vars, global_step=global_step)
-
-def deepMap(f, obj):
-  if isinstance(obj, dict):
-    return {k : deepMap(f, v) for k, v in obj.items()}
-  if isinstance(obj, list):
-    return [deepMap(f, x) for x in obj]
-  return f(obj)
-
-with tf.name_scope('predict'):
-  predict_state = inputCType(ssbm.GameMemory, [None], 'state')
-  #reshaped = deepMap(lambda t: tf.reshape(t, [1]), predict_input_state)
-  embedded_state = embedGame(predict_state)
+with tf.name_scope('actor'):
+  actor_state = ct.inputCType(ssbm.GameMemory, [], 'state')
+  reshaped = util.deepMap(lambda t: tf.reshape(t, [1]), actor_state)
+  embedded_state = embedGame(reshaped)
+  tiled = tf.tile(embedded_state, [len(ssbm.simpleControllerStates), 1])
   
-  predict_action = inputCType(ssbm.SimpleControllerState, [None], 'action')
-  e
-"""
+  all_actions = ct.constantCTypes(ssbm.SimpleControllerState, ssbm.simpleControllerStates, 'all_actions')
+  embedded_actions = embedSimpleController(all_actions)
+  
+  all_scores = applyQ(tiled, embedded_actions)[-1]
 
 sess = tf.Session()
 
@@ -256,7 +213,7 @@ def predictQ(states, controls):
 # TODO: do this within the tf model?
 # if we do, then we can add in softmax and temperature
 def scoreActions(state):
-  return predictQ([state] * len(ssbm.simpleControllerStates), ssbm.simpleControllerStates)
+  return sess.run(all_scores, ct.feedCType(ssbm.GameMemory, 'actor/state', state))
 
 # see https://docs.google.com/spreadsheets/d/1JX2w-r2fuvWuNgGb6D3Cs4wHQKLFegZe2jhbBuIhCG8/edit#gid=13
 dyingActions = set(range(0xA))
