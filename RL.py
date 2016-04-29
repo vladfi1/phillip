@@ -140,17 +140,17 @@ control_size = embedded_controls.get_shape()[-1].value
 assert(control_size == 7)
 
 with tf.variable_scope("q_net"):
-  layers = [state_size+control_size, 512]
-  qs = [tfl.makeAffineLayer(prev, next, tfl.leaky_relu) for prev, next in zip(layers[:-1], layers[1:])]
+  layers = [state_size+control_size, 128, 128]
+  applyQs = [tfl.makeAffineLayer(prev, next, tfl.leaky_relu) for prev, next in zip(layers[:-1], layers[1:])]
   #q1 = tfl.makeAffineLayer(state_size + control_size, 512, tf.tanh)
-  qs.append(util.compose(tf.squeeze, tfl.makeAffineLayer(layers[-1], 1)))
+  applyQs.append(util.compose(tf.squeeze, tfl.makeAffineLayer(layers[-1], 1)))
 
 def applyQ(states, controls):
   """Applies the q network, returning all intermediate layers in order.
   The last returned value is the final q prediction."""
   state_actions = tf.concat(1, [states, controls])
   outputs = [state_actions]
-  for i, f in enumerate(qs):
+  for i, f in enumerate(applyQs):
     with tf.name_scope('q%d' % i):
       outputs.append(f(outputs[-1]))
   
@@ -162,9 +162,10 @@ rewards = tf.placeholder(tf.float32, [None], name='rewards')
 global_step = tf.Variable(0, name='global_step', trainable=False)
 
 with tf.name_scope('train_q'):
-  q0, q1, q2 = applyQ(embedded_states, embedded_controls)
+  qs = applyQ(embedded_states, embedded_controls)
+  qOut = qs[-1]
 
-  qLosses = tf.squared_difference(q2, rewards)
+  qLosses = tf.squared_difference(qs[-1], rewards)
   qLoss = tf.reduce_mean(qLosses)
 
   #trainQ = tf.train.RMSPropOptimizer(0.0001).minimize(qLoss)
@@ -250,7 +251,7 @@ saver = tf.train.Saver(tf.all_variables())
 #  return sess.run('predict/action:0', feed_dict)
 
 def predictQ(states, controls):
-  return sess.run(q2, feedStateActions(states, controls))
+  return sess.run(qOut, feedStateActions(states, controls))
 
 # TODO: do this within the tf model?
 # if we do, then we can add in softmax and temperature
@@ -319,18 +320,20 @@ def train(filename, steps=1):
       gs = sess.run([gv[0] for gv in grads_and_vars], feed_dict)
       vs = sess.run([gv[1] for gv in grads_and_vars], feed_dict)
       #   loss = sess.run(qLoss, feed_dict)
-      act_q1 = sess.run(q1, feed_dict)
-      act_q1 = np.sort(np.abs(act_q1))
+      act_qs = sess.run(qs, feed_dict)
+      act_qs = map(util.compose(np.sort, np.abs), act_qs)
 
       #t = sess.run(temperature)
       #print("Temperature: ", t)
-      print("act_q1", act_q1)
+      for i, act in enumerate(act_qs):
+        print("act_%d"%i, act)
       print("grad/param(action)", np.mean(np.abs(gs[0] / vs[0])))
       print("grad/param(stage)", np.mean(np.abs(gs[2] / vs[2])))
-      print("grad/param(q1)", np.mean(np.abs(gs[4] / vs[4])))
-      print("grad/param(q2)", np.mean(np.abs(gs[6] / vs[6])))
-      print("grad", np.mean(np.abs(gs[4])))
-      print("param", np.mean(np.abs(vs[0])))
+      for i in range(len(layers)):
+        j = 2 * (i+2)
+        print("grad/param(q%d)" % (i+1), np.mean(np.abs(gs[j] / vs[j])))
+      #print("grad", np.mean(np.abs(gs[4])))
+      #print("param", np.mean(np.abs(vs[0])))
 
       # if step_index == 10:
       import pdb; pdb.set_trace()
