@@ -5,6 +5,7 @@ import ctypes
 import tf_lib as tfl
 import util
 import ctype_util as ct
+import numpy as np
 
 with tf.name_scope('input'):
   input_states = ct.inputCType(ssbm.GameMemory, [None], "states")
@@ -146,7 +147,7 @@ def q(states, controls):
   state_actions = tf.concat(1, [states, controls])
   with tf.name_scope('q1'):
     q1_layer = q1(state_actions)
-  return tf.squeeze(q2(q1_layer), name='q'), q1_layer
+  return tf.squeeze(q2(q1_layer), name='q_out'), q1_layer
 
 # pre-computed long-term rewards
 rewards = tf.placeholder(tf.float32, [None], name='rewards')
@@ -154,21 +155,21 @@ rewards = tf.placeholder(tf.float32, [None], name='rewards')
 global_step = tf.Variable(0, name='global_step', trainable=False)
 
 with tf.name_scope('train_q'):
-  qPredictions, q1_layer = q(embedded_states, embedded_controls)
+  qPredictions, q1_predict = q(embedded_states, embedded_controls)
 
   qLosses = tf.squared_difference(qPredictions, rewards)
   qLoss = tf.reduce_mean(qLosses)
 
   #trainQ = tf.train.RMSPropOptimizer(0.0001).minimize(qLoss)
 
-  train_q = tf.train.AdamOptimizer().minimize(qLoss, global_step=global_step)
-  # opt = tf.train.AdamOptimizer()
+  opt = tf.train.AdamOptimizer()
+  # train_q = opt.minimize(qLoss, global_step=global_step)
   # opt = tf.train.GradientDescentOptimizer(0.0)
-  # grads_and_vars = opt.compute_gradients(qLoss)
-  # train_q = opt.apply_gradients(grads_and_vars)
+  grads_and_vars = opt.compute_gradients(qLoss)
+  train_q = opt.apply_gradients(grads_and_vars, global_step=global_step)
 
 with tf.name_scope('epsilon'):
-  epsilon = tf.maximum(0.05, 0.7 - tf.cast(global_step, tf.float32) / 1000000.0)
+  epsilon = tf.maximum(0.05, 0.7 - tf.cast(global_step, tf.float32) / 5000000.0)
 
 def getEpsilon():
   return sess.run(epsilon)
@@ -263,7 +264,7 @@ def processDeaths(deaths):
 # from player 2's perspective
 def computeRewards(states, reward_halflife = 2.0):
   # reward_halflife is measured in seconds
-  fps = 60.0
+  fps = 60.0 / 5.0
   discount = 0.5 ** ( 1.0 / (fps*reward_halflife) )
 
   kills = [isDying(state.players[0]) for state in states]
@@ -304,24 +305,25 @@ def train(filename, steps=1):
 
   # FIXME: we feed the inputs in on each iteration, which might be inefficient.
   for step_index in range(steps):
-    # for _ in range(1):
-    #   gs = sess.run([gv[0] for gv in actor_grads_and_vars], feed_dict)
-    #   vs = sess.run([gv[1] for gv in actor_grads_and_vars], feed_dict)
-    #   loss = sess.run(qLoss, feed_dict)
-    #   act_4 = sess.run(q1_layer, feed_dict)
+    if False:
+      gs = sess.run([gv[0] for gv in grads_and_vars], feed_dict)
+      vs = sess.run([gv[1] for gv in grads_and_vars], feed_dict)
+      #   loss = sess.run(qLoss, feed_dict)
+      act_4 = sess.run(q1_predict, feed_dict)
+      act_4 = np.sort(np.abs(act_4))
 
-    #t = sess.run(temperature)
-    #print("Temperature: ", t)
-    #   import numpy as np
-    #   print("act_4", act_4)
-    #   print("grad/param(0)", np.mean(np.abs(gs[0] / vs[0])))
-    #   print("grad/param(2)", np.mean(np.abs(gs[2] / vs[2])))
-    #   print("grad/param(4)", np.mean(np.abs(gs[4] / vs[4])))
-    #   print("grad", np.mean(np.abs(gs[4])))
-    #   print("param", np.mean(np.abs(vs[0])))
+      #t = sess.run(temperature)
+      #print("Temperature: ", t)
+      print("act_4", act_4)
+      print("grad/param(action)", np.mean(np.abs(gs[0] / vs[0])))
+      print("grad/param(stage)", np.mean(np.abs(gs[2] / vs[2])))
+      print("grad/param(q1)", np.mean(np.abs(gs[4] / vs[4])))
+      print("grad/param(q2)", np.mean(np.abs(gs[6] / vs[6])))
+      print("grad", np.mean(np.abs(gs[4])))
+      print("param", np.mean(np.abs(vs[0])))
 
-    # if step_index == 10:
-    # import pdb; pdb.set_trace()
+      # if step_index == 10:
+      import pdb; pdb.set_trace()
 
     # print(sum(gvs))
     #sess.run([train_q, trainActor], feed_dict)
