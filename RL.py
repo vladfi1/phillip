@@ -25,7 +25,9 @@ embedFloat = lambda t: tf.reshape(t, [-1, 1])
 castFloat = lambda t: embedFloat(tf.cast(t, tf.float32))
 
 def one_hot(size):
-  return lambda t: tf.one_hot(tf.cast(t, tf.int64), size, 1.0, 0.0)
+  def clamp(input):
+    return tf.minimum(tf.maximum(input, 0), size)
+  return lambda t: tf.one_hot(clamp(tf.cast(t, tf.int64)), size, 1.0, 0.0)
 
 maxAction = 512 # altf4 says 0x017E
 actionSpace = 32
@@ -46,12 +48,12 @@ def rescale(a):
 playerEmbedding = [
   ("percent", util.compose(rescale(0.01), castFloat)),
   ("facing", embedFloat),
-  ("x", util.compose(rescale(0.01), embedFloat)),
-  ("y", util.compose(rescale(0.01), embedFloat)),
+  ("x", util.compose(rescale(0.1), embedFloat)),
+  ("y", util.compose(rescale(0.1), embedFloat)),
   ("action_state", embedAction),
   # ("action_counter", castFloat),
   ("action_frame", util.compose(rescale(0.02), castFloat)),
-  ("character", one_hot(maxCharacter)),
+  # ("character", one_hot(maxCharacter)),
   ("invulnerable", castFloat),
   ("hitlag_frames_left", castFloat),
   ("hitstun_frames_left", castFloat),
@@ -93,7 +95,7 @@ gameEmbedding = [
   ('players', embedArray(embedPlayer, [0, 1])),
 
   #('frame', c_uint),
-  ('stage', embedStage)
+  # ('stage', embedStage)
 ]
 
 embedGame = embedStruct(gameEmbedding)
@@ -153,7 +155,7 @@ def applyQ(states, controls):
   for i, f in enumerate(applyQs):
     with tf.name_scope('q%d' % i):
       outputs.append(f(outputs[-1]))
-  
+
   return outputs
 
 # pre-computed long-term rewards
@@ -190,10 +192,10 @@ with tf.name_scope('actor'):
   reshaped = util.deepMap(lambda t: tf.reshape(t, [1]), actor_state)
   embedded_state = embedGame(reshaped)
   tiled = tf.tile(embedded_state, [len(ssbm.simpleControllerStates), 1])
-  
+
   all_actions = ct.constantCTypes(ssbm.SimpleControllerState, ssbm.simpleControllerStates, 'all_actions')
   embedded_actions = embedSimpleController(all_actions)
-  
+
   all_scores = applyQ(tiled, embedded_actions)[-1]
 
 sess = tf.Session()
@@ -244,7 +246,7 @@ def computeRewards(states, reward_halflife = 2.0):
 
   damage_dealt = [max(states[i+1].players[0].percent - states[i].players[0].percent, 0) for i in range(len(states)-1)]
   damage_taken = [max(states[i+1].players[1].percent - states[i].players[1].percent, 0) for i in range(len(states)-1)]
-  
+
   # damage_dealt = util.zipWith(lambda prev, next: max(next.players[0].percent - prev.players[0].percent, 0), states[:-1], states[1:])
 
   scores = util.zipWith(lambda k, d: k - d, kills[1:], deaths[1:])
@@ -278,7 +280,7 @@ def train(filename, steps=1):
       vs = sess.run([gv[1] for gv in grads_and_vars], feed_dict)
       #   loss = sess.run(qLoss, feed_dict)
       act_qs = sess.run(qs, feed_dict)
-      act_qs = map(util.compose(np.sort, np.abs), act_qs)
+      act_qs = list(map(util.compose(np.sort, np.abs), act_qs))
 
       #t = sess.run(temperature)
       #print("Temperature: ", t)
