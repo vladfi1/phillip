@@ -39,3 +39,11 @@ def zipWith(f, *sequences):
 def compose(f, g):
   "compose(f, g)(x) = f(g(x))"
   return lambda x: f(g(x))
+
+def deepMap(f, obj):
+  if isinstance(obj, dict):
+    return {k : deepMap(f, v) for k, v in obj.items()}
+  if isinstance(obj, list):
+    return [deepMap(f, x) for x in obj]
+  return f(obj)
+
