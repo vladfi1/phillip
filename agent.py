@@ -33,11 +33,13 @@ class Agent:
     
     def get_action(self, state):
         scores = RL.scoreActions(state)
+        self.scores = scores
         
         score, best_action = max(zip(scores, ssbm.simpleControllerStates), key=lambda x: x[0])
         #print(score, best_action)
         
-        self.epsilon = RL.getEpsilon()
+        #self.epsilon = RL.getEpsilon()
+        self.epsilon = 0.02
         
         if flip(self.epsilon):
           self.simple_controller = ssbm.SimpleControllerState.randomValue()
@@ -57,6 +59,7 @@ class Agent:
         if self.counter % 60 == 0:
             print("Frame %d of recording." % self.counter)
             print(state.players[1])
+            print("Scores", self.scores)
             print(self.simple_controller)
             print("epsilon: ", self.epsilon)
         pad.send_controller(self.simple_controller.realController())
