@@ -97,6 +97,15 @@ def inputCType(ctype, shape=None, name=""):
     base_type = ctype._type_
     return [inputCType(base_type, shape, name + "/" + str(i)) for i in range(ctype._length_)]
 
+def constantCTypes(ctype, values, name=""):
+  if ctype in ctypes2TF:
+    return tf.constant(values, dtype=ctypes2TF[ctype], name=name)
+  elif issubclass(ctype, Structure):
+    return {f : constantCTypes(t, [getattr(v, f) for v in values], name + "/" + f) for (f, t) in ctype._fields_}
+  else: # assume an array type
+    base_type = ctype._type_
+    return [inputCType(base_type, [v[i] for v in values], name + "/" + str(i)) for i in range(ctype._length_)]
+
 def feedCType(ctype, name, value, feed_dict=None):
   if feed_dict is None:
     feed_dict = {}
