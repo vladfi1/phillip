@@ -140,14 +140,21 @@ control_size = embedded_controls.get_shape()[-1].value
 assert(control_size == 7)
 
 with tf.variable_scope("q_net"):
-  q1 = tfl.makeAffineLayer(state_size + control_size, 512, tf.tanh)
-  q2 = tfl.makeAffineLayer(512, 1)
+  layers = [state_size+control_size, 512]
+  qs = [tfl.makeAffineLayer(prev, next, tfl.leaky_relu) for prev, next in zip(layers[:-1], layers[1:])]
+  #q1 = tfl.makeAffineLayer(state_size + control_size, 512, tf.tanh)
+  qs.append(util.compose(tf.squeeze, tfl.makeAffineLayer(layers[-1], 1)))
 
-def q(states, controls):
+def applyQ(states, controls):
+  """Applies the q network, returning all intermediate layers in order.
+  The last returned value is the final q prediction."""
   state_actions = tf.concat(1, [states, controls])
-  with tf.name_scope('q1'):
-    q1_layer = q1(state_actions)
-  return tf.squeeze(q2(q1_layer), name='q_out'), q1_layer
+  outputs = [state_actions]
+  for i, f in enumerate(qs):
+    with tf.name_scope('q%d' % i):
+      outputs.append(f(outputs[-1]))
+  
+  return outputs
 
 # pre-computed long-term rewards
 rewards = tf.placeholder(tf.float32, [None], name='rewards')
@@ -155,14 +162,14 @@ rewards = tf.placeholder(tf.float32, [None], name='rewards')
 global_step = tf.Variable(0, name='global_step', trainable=False)
 
 with tf.name_scope('train_q'):
-  qPredictions, q1_predict = q(embedded_states, embedded_controls)
+  q0, q1, q2 = applyQ(embedded_states, embedded_controls)
 
-  qLosses = tf.squared_difference(qPredictions, rewards)
+  qLosses = tf.squared_difference(q2, rewards)
   qLoss = tf.reduce_mean(qLosses)
 
   #trainQ = tf.train.RMSPropOptimizer(0.0001).minimize(qLoss)
 
-  opt = tf.train.AdamOptimizer()
+  opt = tf.train.AdamOptimizer(10.0 ** -5)
   # train_q = opt.minimize(qLoss, global_step=global_step)
   # opt = tf.train.GradientDescentOptimizer(0.0)
   grads_and_vars = opt.compute_gradients(qLoss)
@@ -243,7 +250,7 @@ saver = tf.train.Saver(tf.all_variables())
 #  return sess.run('predict/action:0', feed_dict)
 
 def predictQ(states, controls):
-  return sess.run(qPredictions, feedStateActions(states, controls))
+  return sess.run(q2, feedStateActions(states, controls))
 
 # TODO: do this within the tf model?
 # if we do, then we can add in softmax and temperature
@@ -291,6 +298,7 @@ def computeRewards(states, reward_halflife = 2.0):
 
   # use last action taken?
   lastQ = max(scoreActions(states[-1]))
+  print("lastQ", lastQ)
 
   discounted_rewards = util.scanr(lambda r1, r2: r1 + discount * r2, lastQ, final_scores)[:-1]
 
@@ -305,16 +313,17 @@ def train(filename, steps=1):
 
   # FIXME: we feed the inputs in on each iteration, which might be inefficient.
   for step_index in range(steps):
+    #if True:
     if False:
       gs = sess.run([gv[0] for gv in grads_and_vars], feed_dict)
       vs = sess.run([gv[1] for gv in grads_and_vars], feed_dict)
       #   loss = sess.run(qLoss, feed_dict)
-      act_4 = sess.run(q1_predict, feed_dict)
-      act_4 = np.sort(np.abs(act_4))
+      act_q1 = sess.run(q1, feed_dict)
+      act_q1 = np.sort(np.abs(act_q1))
 
       #t = sess.run(temperature)
       #print("Temperature: ", t)
-      print("act_4", act_4)
+      print("act_q1", act_q1)
       print("grad/param(action)", np.mean(np.abs(gs[0] / vs[0])))
       print("grad/param(stage)", np.mean(np.abs(gs[2] / vs[2])))
       print("grad/param(q1)", np.mean(np.abs(gs[4] / vs[4])))
@@ -350,7 +359,6 @@ def writeGraph():
   except:
       print("No previous model file.")
   os.rename('models/simpleDQN.pb.temp', 'models/simpleDQN.pb')
-
 
 def init():
   sess.run(tf.initialize_all_variables())

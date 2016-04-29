@@ -5,6 +5,9 @@ import math
 import functools
 import operator
 
+def leaky_relu(x, alpha=0.01):
+  return tf.maximum(alpha * x, x)
+
 def product(xs):
   return functools.reduce(operator.mul, xs, 1.0)
 
