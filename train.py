@@ -1,8 +1,23 @@
 import RL
 import os
 
-# RL.init()
-RL.restore()
+from argparse import ArgumentParser
+parser = ArgumentParser()
+parser.add_argument("--debug", action="store_true",
+                   help="set debug breakpoint")
+parser.add_argument("-q", "--quiet", action="store_true",
+                   help="don't print status messages to stdout")
+parser.add_argument("--init", action="store_true",
+                   help="initialize variables")
+
+args = parser.parse_args()
+
+if args.init:
+  RL.init()
+else:
+  RL.restore()
+
+RL.debug = args.debug
 
 def sweep(data_dir='experience/'):
   # for f in ["2"]:

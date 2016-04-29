@@ -305,6 +305,8 @@ def computeRewards(states, reward_halflife = 2.0):
   print("discounted_rewards for current memory: ", discounted_rewards[:10])
   return discounted_rewards
 
+debug = False
+
 def train(filename, steps=1):
   states, controls = zip(*ssbm.readStateActions(filename))
 
@@ -313,8 +315,7 @@ def train(filename, steps=1):
 
   # FIXME: we feed the inputs in on each iteration, which might be inefficient.
   for step_index in range(steps):
-    #if True:
-    if False:
+    if debug:
       gs = sess.run([gv[0] for gv in grads_and_vars], feed_dict)
       vs = sess.run([gv[1] for gv in grads_and_vars], feed_dict)
       #   loss = sess.run(qLoss, feed_dict)
