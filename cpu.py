@@ -134,21 +134,16 @@ class CPU:
         return False
 
     def make_action(self):
-        menu = Menu(self.state.menu)
-        print(menu)
+        #menu = Menu(self.state.menu)
+        #print(menu)
         if self.state.menu == Menu.Game.value:
             self.agent.act(self.state, self.pad)
             if self.dump:
                 self.dump_state()
             #self.fox.advance(self.state, self.pad)
         elif self.state.menu in [menu.value for menu in [Menu.Characters, Menu.Stages, Menu.PostGame]]:
-            # D_DOWN should be hotkeyed to loading an in-game state
-            if self.toggle:
-              self.pad.press_button(pad.Button.D_DOWN)
-              self.toggle = False
-            else:
-              self.pad.release_button(pad.Button.D_DOWN)
-              self.toggle = True
+            # wait for the movie to get us into the game
+            pass
         else:
             print("Weird menu state", self.state.menu)
 
