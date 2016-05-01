@@ -10,32 +10,35 @@ import fox
 import agent
 import util
 from ctype_util import copy
+import RL
 
 default_args = dict(
-  dump = True,
-  dump_seconds = 60,
-  dump_dir = 'experience/',
-  dump_max = 1000,
-  act_every = 5,
-  # TODO This might not always be accurate.
-  dolphin_dir = '~/.local/share/dolphin-emu',
+    name='simpleDQN',
+    dump = True,
+    dump_seconds = 60,
+    dump_max = 1000,
+    act_every = 5,
+    # TODO This might not always be accurate.
+    dolphin_dir = '~/.local/share/dolphin-emu',
 )
 
 class CPU:
     def __init__(self, **args):
         for k, v in default_args.items():
-          if k in args and args[k] is not None:
-            setattr(self, k, args[k])
-          else:
-            setattr(self, k, v)
-        
-        if self.dump:
-          self.dump_size = 60 * self.dump_seconds // self.act_every
-          self.dump_state_actions = [(ssbm.GameMemory(), ssbm.SimpleControllerState()) for i in range(self.dump_size)]
-          
-          self.dump_frame = 0
-          self.dump_count = 0
+            if k in args and args[k] is not None:
+                setattr(self, k, args[k])
+            else:
+                setattr(self, k, v)
 
+        if self.dump:
+            self.dump_dir = "saves/" + self.name + "/experience/"
+            self.dump_size = 60 * self.dump_seconds // self.act_every
+            self.dump_state_actions = [(ssbm.GameMemory(), ssbm.SimpleControllerState()) for i in range(self.dump_size)]
+
+            self.dump_frame = 0
+            self.dump_count = 0
+
+        self.reward_logfile = 'saves/' + self.name + '/rewards.log'
         self.first_frame = True
         self.last_acted_frame = 0
         self.toggle = False
@@ -47,7 +50,7 @@ class CPU:
         self.write_locations(self.dolphin_dir)
 
         self.fox = fox.Fox()
-        self.agent = agent.Agent(reload_every=60*self.dump_seconds//self.act_every)
+        self.agent = agent.Agent(name=self.name, reload_every=60*self.dump_seconds//self.act_every)
         self.mm = menu_manager.MenuManager()
 
         try:
@@ -107,6 +110,14 @@ class CPU:
             self.dump_count += 1
             self.dump_frame = 0
 
+            rewards = RL.computeRewards([memory[0]
+                for memory in self.dump_state_actions])
+
+            with open(self.reward_logfile, 'a') as f:
+                f.write(str(sum(rewards) / len(rewards)) + "\n")
+                f.flush()
+
+
     def advance_frame(self):
         last_frame = self.state.frame
         if self.update_state():
@@ -119,7 +130,7 @@ class CPU:
                     print("Skipped frames ", skipped_frames)
                 self.total_frames += self.state.frame - last_frame
                 last_frame = self.state.frame
-                
+
                 if self.state.frame - self.last_acted_frame >= self.act_every:
                     start = time.time()
                     self.make_action()
@@ -134,16 +145,33 @@ class CPU:
         return False
 
     def make_action(self):
-        #menu = Menu(self.state.menu)
-        #print(menu)
+        # menu = Menu(self.state.menu)
+        # print(menu)
         if self.state.menu == Menu.Game.value:
             self.agent.act(self.state, self.pad)
             if self.dump:
                 self.dump_state()
             #self.fox.advance(self.state, self.pad)
+
+        # elif self.state.menu in [menu.value for menu in [Menu.Characters, Menu.Stages]]:
+        #     # D_DOWN should be hotkeyed to loading an in-game state
+        #     pass
+        #     if self.toggle:
+        #       self.pad.press_button(pad.Button.D_DOWN)
+        #       self.toggle = False
+        #     else:
+        #       self.pad.release_button(pad.Button.D_DOWN)
+        #       self.toggle = True
+        # elif self.state.menu in [menu.value for menu in [Menu.PostGame]]:
+        #     if self.toggle:
+        #       self.pad.press_button(pad.Button.START)
+        #       self.toggle = False
+        #     else:
+        #       self.pad.release_button(pad.Button.START)
+        #       self.toggle = True
+
         elif self.state.menu in [menu.value for menu in [Menu.Characters, Menu.Stages, Menu.PostGame]]:
             # wait for the movie to get us into the game
             pass
         else:
             print("Weird menu state", self.state.menu)
-
