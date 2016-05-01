@@ -11,12 +11,25 @@ import agent
 import util
 from ctype_util import copy
 
+default_args = dict(
+  dump = True,
+  dump_seconds = 60,
+  dump_dir = 'experience/',
+  dump_max = 1000,
+  act_every = 5,
+  # TODO This might not always be accurate.
+  dolphin_dir = '~/.local/share/dolphin-emu',
+)
+
 class CPU:
-    def __init__(self, dump=True, dump_seconds=60, dump_dir='experience/', dump_max=20, act_every=1):
-        self.dump = dump
-        if dump:
-          self.dump_dir = dump_dir
-          self.dump_max = dump_max
+    def __init__(self, **args):
+        for k, v in default_args.items():
+          if k in args and args[k] is not None:
+            setattr(self, k, args[k])
+          else:
+            setattr(self, k, v)
+        
+        if self.dump:
           self.dump_size = 60 * dump_seconds // act_every
           self.dump_state_actions = [(ssbm.GameMemory(), ssbm.SimpleControllerState()) for i in range(self.dump_size)]
           
@@ -25,25 +38,23 @@ class CPU:
 
         self.first_frame = True
         self.last_acted_frame = 0
-        self.act_every = act_every
         self.toggle = False
 
-        # TODO This might not always be accurate.
-        dolphin_dir = os.path.expanduser('~/.local/share/dolphin-emu')
+        self.dolphin_dir = os.path.expanduser(self.dolphin_dir)
 
         self.state = ssbm.GameMemory()
         self.sm = state_manager.StateManager([0, 1])
-        self.write_locations(dolphin_dir)
+        self.write_locations(self.dolphin_dir)
 
         self.fox = fox.Fox()
-        self.agent = agent.Agent(reload_every=60*dump_seconds//act_every)
+        self.agent = agent.Agent(reload_every=60*self.dump_seconds//self.act_every)
         self.mm = menu_manager.MenuManager()
 
         try:
             print('Creating MemoryWatcher.')
-            self.mw = memory_watcher.MemoryWatcher(dolphin_dir + '/MemoryWatcher/MemoryWatcher')
+            self.mw = memory_watcher.MemoryWatcher(self.dolphin_dir + '/MemoryWatcher/MemoryWatcher')
             print('Creating Pad. Open dolphin now.')
-            self.pad = pad.Pad(dolphin_dir + '/Pipes/phillip')
+            self.pad = pad.Pad(self.dolphin_dir + '/Pipes/phillip')
             self.initialized = True
         except KeyboardInterrupt:
             self.initialized = False
@@ -123,8 +134,8 @@ class CPU:
         return False
 
     def make_action(self):
-        #menu = Menu(self.state.menu)
-        #print(menu)
+        menu = Menu(self.state.menu)
+        print(menu)
         if self.state.menu == Menu.Game.value:
             self.agent.act(self.state, self.pad)
             if self.dump:
