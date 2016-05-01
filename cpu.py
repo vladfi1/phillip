@@ -154,24 +154,26 @@ class CPU:
             if self.dump:
                 self.dump_state()
             #self.fox.advance(self.state, self.pad)
-        elif self.state.menu in [menu.value for menu in [Menu.Characters, Menu.Stages]]:
-            # D_DOWN should be hotkeyed to loading an in-game state
-            pass
-            if self.toggle:
-              self.pad.press_button(pad.Button.D_DOWN)
-              self.toggle = False
-            else:
-              self.pad.release_button(pad.Button.D_DOWN)
-              self.toggle = True
-        elif self.state.menu in [menu.value for menu in [Menu.PostGame]]:
-            if self.toggle:
-              self.pad.press_button(pad.Button.START)
-              self.toggle = False
-            else:
-              self.pad.release_button(pad.Button.START)
-              self.toggle = True
-        # elif self.state.menu in [menu.value for menu in [Menu.Characters, Menu.Stages, Menu.PostGame]]:
-        #     # wait for the movie to get us into the game
+
+        # elif self.state.menu in [menu.value for menu in [Menu.Characters, Menu.Stages]]:
+        #     # D_DOWN should be hotkeyed to loading an in-game state
         #     pass
+        #     if self.toggle:
+        #       self.pad.press_button(pad.Button.D_DOWN)
+        #       self.toggle = False
+        #     else:
+        #       self.pad.release_button(pad.Button.D_DOWN)
+        #       self.toggle = True
+        # elif self.state.menu in [menu.value for menu in [Menu.PostGame]]:
+        #     if self.toggle:
+        #       self.pad.press_button(pad.Button.START)
+        #       self.toggle = False
+        #     else:
+        #       self.pad.release_button(pad.Button.START)
+        #       self.toggle = True
+
+        elif self.state.menu in [menu.value for menu in [Menu.Characters, Menu.Stages, Menu.PostGame]]:
+            # wait for the movie to get us into the game
+            pass
         else:
             print("Weird menu state", self.state.menu)
