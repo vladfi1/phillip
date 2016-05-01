@@ -13,10 +13,9 @@ from ctype_util import copy
 import RL
 
 default_args = dict(
-    name='simpleDQN'
+    name='simpleDQN',
     dump = True,
     dump_seconds = 60,
-    dump_dir = 'experience/',
     dump_max = 1000,
     act_every = 5,
     # TODO This might not always be accurate.
@@ -32,14 +31,14 @@ class CPU:
                 setattr(self, k, v)
 
         if self.dump:
-            self.dump_dir = "saves/" + name + "/experience/"
-            self.dump_size = 60 * dump_seconds // act_every
+            self.dump_dir = "saves/" + self.name + "/experience/"
+            self.dump_size = 60 * self.dump_seconds // self.act_every
             self.dump_state_actions = [(ssbm.GameMemory(), ssbm.SimpleControllerState()) for i in range(self.dump_size)]
 
             self.dump_frame = 0
             self.dump_count = 0
 
-        self.reward_logfile = 'saves/' + name + '/rewards.log'
+        self.reward_logfile = 'saves/' + self.name + '/rewards.log'
         self.first_frame = True
         self.last_acted_frame = 0
         self.toggle = False
@@ -51,7 +50,7 @@ class CPU:
         self.write_locations(self.dolphin_dir)
 
         self.fox = fox.Fox()
-        self.agent = agent.Agent(name=name, reload_every=60*self.dump_seconds//self.act_every)
+        self.agent = agent.Agent(name=self.name, reload_every=60*self.dump_seconds//self.act_every)
         self.mm = menu_manager.MenuManager()
 
         try:
@@ -105,7 +104,6 @@ class CPU:
         self.dump_frame += 1
 
         if self.dump_frame == self.dump_size:
-            # import pdb; pdb.set_trace()
             dump_path = self.dump_dir + str(self.dump_count % self.dump_max)
             print("Dumping to ", dump_path)
             ssbm.writeStateActions(dump_path, self.dump_state_actions)
