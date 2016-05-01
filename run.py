@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-from cpu import CPU
 from argparse import ArgumentParser
 
 parser = ArgumentParser()
@@ -17,4 +16,5 @@ parser.add_argument("--dolphin_dir", type=str,
 
 args = parser.parse_args()
 
+from cpu import CPU
 CPU(**args.__dict__).run()
