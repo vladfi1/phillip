@@ -14,6 +14,7 @@ args = parser.parse_args()
 
 if args.init:
   RL.init()
+  RL.save()
 else:
   RL.restore()
 
