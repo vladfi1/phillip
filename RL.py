@@ -269,8 +269,8 @@ debug = False
 
 def train(filename, steps=1):
   states, controls = zip(*ssbm.readStateActions(filename))
-
-  feed_dict = {rewards : computeRewards(states)}
+  r = computeRewards(states)
+  feed_dict = {rewards : r}
   feedStateActions(states[:-1], controls[:-1], feed_dict)
 
   # FIXME: we feed the inputs in on each iteration, which might be inefficient.
@@ -305,13 +305,16 @@ def train(filename, steps=1):
     #sess.run(trainActor, feed_dict)
   #print(sess.run([qLoss, actorQ], feed_dict))
   print("qLoss", sess.run(qLoss, feed_dict))
+  return sum(r)
 
-def save(filename='saves/simpleDQN'):
-  print("Saving to", filename)
-  saver.save(sess, filename)
+def save(name):
+  save_location = "saves/" + name + "/snapshot"
+  print("Saving to", save_location)
+  saver.save(sess, save_location)
 
-def restore(filename='saves/simpleDQN'):
-  saver.restore(sess, filename)
+def restore(name):
+  save_location = "saves/" + name + "/snapshot"
+  saver.restore(sess, save_location)
 
 def writeGraph():
   import os
