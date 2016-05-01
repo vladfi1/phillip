@@ -85,7 +85,7 @@ ctypes2TF = {
   c_bool : tf.bool,
   c_float : tf.float32,
   c_double : tf.float64,
-  c_uint : tf.int32,
+  c_uint : tf.int64, # no tf.uint32 :(
 }
 
 def inputCType(ctype, shape=None, name=""):

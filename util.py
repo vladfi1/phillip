@@ -36,9 +36,13 @@ def scanr1(f, l):
 def zipWith(f, *sequences):
   return [f(*args) for args in zip(*sequences)]
 
-def compose(f, g):
-  "compose(f, g)(x) = f(g(x))"
-  return lambda x: f(g(x))
+def compose(*fs):
+  "compose(f1, f2, ..., fn)(x) = f1(f2( ... fn(x)))"
+  def composed(x):
+    for f in reversed(fs):
+      x = f(x)
+    return x
+  return composed
 
 def deepMap(f, obj):
   if isinstance(obj, dict):

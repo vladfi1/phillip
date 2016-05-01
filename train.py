@@ -19,7 +19,8 @@ if not os.path.exists(experience_dir):
     os.makedirs(experience_dir)
 
 if args.init:
-    RL.init()
+  RL.init()
+  RL.save(args.name)
 else:
     RL.restore(args.name)
 

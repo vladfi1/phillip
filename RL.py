@@ -82,6 +82,7 @@ def embedArray(embed, indices=None):
     return tf.concat(1, [embed(array[i]) for i in indices])
   return f
 
+"""
 maxStage = 64 # overestimate
 stageSpace = 32
 
@@ -90,6 +91,7 @@ with tf.variable_scope("embed_stage"):
 
 def embedStage(stage):
   return stageHelper(one_hot(maxStage)(stage))
+"""
 
 gameEmbedding = [
   ('players', embedArray(embedPlayer, [0, 1])),
@@ -287,9 +289,9 @@ def train(filename, steps=1):
       for i, act in enumerate(act_qs):
         print("act_%d"%i, act)
       print("grad/param(action)", np.mean(np.abs(gs[0] / vs[0])))
-      print("grad/param(stage)", np.mean(np.abs(gs[2] / vs[2])))
+      #print("grad/param(stage)", np.mean(np.abs(gs[2] / vs[2])))
       for i in range(len(layers)):
-        j = 2 * (i+2)
+        j = 2 * (i+1)
         print("grad/param(q%d)" % (i+1), np.mean(np.abs(gs[j] / vs[j])))
       #print("grad", np.mean(np.abs(gs[4])))
       #print("param", np.mean(np.abs(vs[0])))

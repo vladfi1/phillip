@@ -12,13 +12,27 @@ import util
 from ctype_util import copy
 import RL
 
+default_args = dict(
+    name='simpleDQN'
+    dump = True,
+    dump_seconds = 60,
+    dump_dir = 'experience/',
+    dump_max = 1000,
+    act_every = 5,
+    # TODO This might not always be accurate.
+    dolphin_dir = '~/.local/share/dolphin-emu',
+)
+
 class CPU:
-    def __init__(self, dump=True, dump_seconds=60, dump_max=20, act_every=1, name='simpleDQN'):
-        self.dump = dump
-        self.name = name
-        if dump:
+    def __init__(self, **args):
+        for k, v in default_args.items():
+            if k in args and args[k] is not None:
+                setattr(self, k, args[k])
+            else:
+                setattr(self, k, v)
+
+        if self.dump:
             self.dump_dir = "saves/" + name + "/experience/"
-            self.dump_max = dump_max
             self.dump_size = 60 * dump_seconds // act_every
             self.dump_state_actions = [(ssbm.GameMemory(), ssbm.SimpleControllerState()) for i in range(self.dump_size)]
 
@@ -28,25 +42,23 @@ class CPU:
         self.reward_logfile = 'saves/' + name + '/rewards.log'
         self.first_frame = True
         self.last_acted_frame = 0
-        self.act_every = act_every
         self.toggle = False
 
-        # TODO This might not always be accurate.
-        dolphin_dir = os.path.expanduser('~/.local/share/dolphin-emu')
+        self.dolphin_dir = os.path.expanduser(self.dolphin_dir)
 
         self.state = ssbm.GameMemory()
         self.sm = state_manager.StateManager([0, 1])
-        self.write_locations(dolphin_dir)
+        self.write_locations(self.dolphin_dir)
 
         self.fox = fox.Fox()
-        self.agent = agent.Agent(name=name, reload_every=60*dump_seconds//act_every)
+        self.agent = agent.Agent(name=name, reload_every=60*self.dump_seconds//self.act_every)
         self.mm = menu_manager.MenuManager()
 
         try:
             print('Creating MemoryWatcher.')
-            self.mw = memory_watcher.MemoryWatcher(dolphin_dir + '/MemoryWatcher/MemoryWatcher')
+            self.mw = memory_watcher.MemoryWatcher(self.dolphin_dir + '/MemoryWatcher/MemoryWatcher')
             print('Creating Pad. Open dolphin now.')
-            self.pad = pad.Pad(dolphin_dir + '/Pipes/phillip')
+            self.pad = pad.Pad(self.dolphin_dir + '/Pipes/phillip')
             self.initialized = True
         except KeyboardInterrupt:
             self.initialized = False
@@ -142,7 +154,6 @@ class CPU:
             if self.dump:
                 self.dump_state()
             #self.fox.advance(self.state, self.pad)
-        # elif self.state.menu in [menu.value for menu in [Menu.Characters, Menu.Stages, Menu.PostGame]]:
         elif self.state.menu in [menu.value for menu in [Menu.Characters, Menu.Stages]]:
             # D_DOWN should be hotkeyed to loading an in-game state
             pass
@@ -159,5 +170,8 @@ class CPU:
             else:
               self.pad.release_button(pad.Button.START)
               self.toggle = True
+        # elif self.state.menu in [menu.value for menu in [Menu.Characters, Menu.Stages, Menu.PostGame]]:
+        #     # wait for the movie to get us into the game
+        #     pass
         else:
             print("Weird menu state", self.state.menu)
