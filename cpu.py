@@ -30,7 +30,7 @@ class CPU:
             setattr(self, k, v)
         
         if self.dump:
-          self.dump_size = 60 * dump_seconds // act_every
+          self.dump_size = 60 * self.dump_seconds // self.act_every
           self.dump_state_actions = [(ssbm.GameMemory(), ssbm.SimpleControllerState()) for i in range(self.dump_size)]
           
           self.dump_frame = 0
