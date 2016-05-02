@@ -14,7 +14,6 @@ class Agent:
         #self.sess = None
         #self.load_graph()
         self.name = name
-        self.reload_every = reload_every
         self.counter = 0
         self.simple_controller = ssbm.SimpleControllerState()
         RL.restore(self.name)
@@ -52,11 +51,11 @@ class Agent:
     def act(self, state, pad):
         self.counter += 1
 
-        if self.counter >= self.reload_every:
-            #self.load_graph()
-            print("RL.restore()-ing " + self.name)
-            RL.restore(self.name)
-            self.counter = 0
+        # if self.counter >= self.reload_every:
+        #     #self.load_graph()
+        #     print("RL.restore()-ing " + self.name)
+        #     RL.restore(self.name)
+        #     self.counter = 0
 
         self.get_action(state)
         if self.counter % 60 == 0:

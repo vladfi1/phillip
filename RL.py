@@ -82,6 +82,7 @@ def embedArray(embed, indices=None):
     return tf.concat(1, [embed(array[i]) for i in indices])
   return f
 
+# comment here
 """
 maxStage = 64 # overestimate
 stageSpace = 32
@@ -92,6 +93,7 @@ with tf.variable_scope("embed_stage"):
 def embedStage(stage):
   return stageHelper(one_hot(maxStage)(stage))
 """
+# end here
 
 gameEmbedding = [
   ('players', embedArray(embedPlayer, [0, 1])),

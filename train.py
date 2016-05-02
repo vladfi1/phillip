@@ -30,7 +30,9 @@ def sweep(data_dir='experience/'):
     i = 0
     rewards = []
     for f in os.listdir(data_dir):
-        if f.isdigit() and f != '0':
+        # jankily skip the first experience generated
+        # by each of up to four agents
+        if f.isdigit() and f not in ['0', '1', '2', '3']:
             filename = data_dir + f
             print("Step", i)
             print("Experience " + filename)

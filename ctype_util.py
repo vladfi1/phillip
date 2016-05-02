@@ -8,6 +8,12 @@ def copy(src, dst):
     """Copies the contents of src to dst"""
     pointer(dst)[0] = src
 
+def clone(src):
+    """Returns a new ctypes object which is a bitwise copy of an existing one"""
+    dst = type(src)()
+    pointer(dst)[0] = src
+    return dst
+
 knownCTypes = set([c_float, c_uint, c_int, c_bool])
 
 def toString(struct):
@@ -42,41 +48,41 @@ def pretty_struct(cls):
   cls.__repr__ = toString
   cls.__hash__ = hashStruct
   cls.__eq__ = eqStruct
-  
+
   cls.allValues = classmethod(allValues)
   cls.randomValue = classmethod(randomValue)
-  
+
   return cls
 
 def allValues(ctype):
   if issubclass(ctype, IntEnum):
     return list(ctype)
-  
+
   if issubclass(ctype, Structure):
     names, types = zip(*ctype._fields)
     values = [allValues(t) for t in types]
-    
+
     def make(vals):
       obj = ctype()
       for name, val in zip(names, vals):
         setattr(obj, name, val)
       return obj
-  
+
     return [make(vals) for vals in product(*values)]
-  
+
   # TODO: handle arrays
   raise TypeError("Unsupported type %s" % ctype)
 
 def randomValue(ctype):
   if issubclass(ctype, IntEnum):
     return random.choice(list(ctype))
-  
+
   if issubclass(ctype, Structure):
     obj = ctype()
     for name, type_ in ctype._fields:
       setattr(obj, name, randomValue(type_))
     return obj
-  
+
   # TODO: handle arrays
   raise TypeError("Unsupported type %s" % ctype)
 
@@ -135,4 +141,3 @@ def feedCTypes(ctype, name, values, feed_dict=None):
       feedCTypes(base_type, name + '/' + str(i), [v[i] for v in values], feed_dict)
 
   return feed_dict
-
