@@ -57,8 +57,8 @@ class Stick(Structure):
 
   def __init__(self, x=0.5, y=0.5):
     self.x = x
-    self.y = y  
-  
+    self.y = y
+
   __repr__ = toString
   __hash__ = hashStruct
   __eq__ = eqStruct
@@ -90,7 +90,7 @@ class RealControllerState(Structure):
 
   def __init__(self):
     self.reset()
-  
+
   def reset(self):
     "Resets controller to neutral position."
     self.button_A = False
@@ -123,29 +123,31 @@ SimpleStick.LEFT.stick = Stick(0, 0.5)
 SimpleStick.RIGHT.stick = Stick(1, 0.5)
 SimpleStick.NEUTRAL.stick = Stick(0.5, 0.5)
 
+NeutralControllerState = RealControllerState()
+
 @pretty_struct
 class SimpleControllerState(Structure):
   _fields = [
     ('button', SimpleButton),
     ('stick_MAIN', SimpleStick),
   ]
-  
+
   def __init__(self, button=SimpleButton.NONE, stick_MAIN=SimpleStick.NEUTRAL):
     self.button = button
     self.stick_MAIN = stick_MAIN
-  
+
   def reset(self):
     self.button = SimpleButton.NONE
     self.main = SimpleStick.NEUTRAL
-  
+
   def realController(self):
     controller = RealControllerState()
     controller.button_A = self.button == SimpleButton.A
     #controller.button_B = self.button == SimpleButton.B
-    
+
     controller.stick_MAIN = SimpleStick(self.stick_MAIN).stick
     return controller
-  
+
 simpleControllerStates = SimpleControllerState.allValues()
 
 intStruct = struct.Struct('i')
@@ -156,7 +158,7 @@ def readInt(f):
 def writeStateActions(filename, data):
   with open(filename, 'wb') as f:
     f.write(intStruct.pack(len(data)))
-    
+
     for state, control in data:
       f.write(state)
       f.write(control)
@@ -167,17 +169,16 @@ def readStateActions(filename, stateActions = None):
 
   with open(filename, 'rb') as f:
     size = readInt(f)
-    
+
     for i in range(size):
       state = GameMemory()
       f.readinto(state)
 
       control = SimpleControllerState()
       f.readinto(control)
-      
+
       stateActions.append((state, control))
 
     assert(len(f.read()) == 0)
 
   return stateActions
-
