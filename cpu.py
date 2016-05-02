@@ -18,6 +18,7 @@ default_args = dict(
     dump_seconds = 60,
     dump_max = 1000,
     act_every = 5,
+    num_agents = 1,
     # TODO This might not always be accurate.
     dolphin_dir = '~/.local/share/dolphin-emu',
 )
@@ -57,7 +58,9 @@ class CPU:
             print('Creating MemoryWatcher.')
             self.mw = memory_watcher.MemoryWatcher(self.dolphin_dir + '/MemoryWatcher/MemoryWatcher')
             print('Creating Pad. Open dolphin now.')
-            self.pad = pad.Pad(self.dolphin_dir + '/Pipes/phillip')
+            # self.pad = pad.Pad(self.dolphin_dir + '/Pipes/phillip')
+            self.pads = [pad.Pad(self.dolphin_dir + '/Pipes/phillip' + i)
+                for i in range(self.num_agents)]
             self.initialized = True
         except KeyboardInterrupt:
             self.initialized = False
@@ -145,10 +148,21 @@ class CPU:
         return False
 
     def make_action(self):
+        def switch_players(state, a, b):
+            swapped_player = state.players[a]
+            state.players[a] = state.players[b]
+            state.players[b] = swapped_player
+            return state
         # menu = Menu(self.state.menu)
         # print(menu)
         if self.state.menu == Menu.Game.value:
-            self.agent.act(self.state, self.pad)
+            for agent_index in range(2):
+                state = switch_players(state, 1, agent_index)
+
+                self.agent.act(self.state, self.pads[i])
+                
+            # TODO: this only dumps the experience from one agent
+            # really there should be multiple of these
             if self.dump:
                 self.dump_state()
             #self.fox.advance(self.state, self.pad)

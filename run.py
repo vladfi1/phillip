@@ -12,6 +12,9 @@ parser.add_argument("--dump_dir", type=str,
 parser.add_argument("--dump_max", type=int,
                    help="caps number of experiences")
 
+parser.add_argument("--num_agents", type=int,
+                   help="how many agents will be playing at once")
+
 parser.add_argument("--dolphin_dir", type=str,
                    help="dolphin user directory")
 
