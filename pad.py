@@ -55,7 +55,7 @@ class Pad:
     def press_trigger(self, trigger, amount):
         """Press a trigger. Amount is in [0, 1], with 0 as released."""
         assert trigger in Trigger
-        assert 0 <= amount <= 1
+        # assert 0 <= amount <= 1
         self.pipe.write('SET {} {:.2f}\n'.format(trigger.name, amount))
 
     def tilt_stick(self, stick, x, y):
@@ -66,7 +66,7 @@ class Pad:
         except AssertionError:
           import ipdb; ipdb.set_trace()
         self.pipe.write('SET {} {:.2f} {:.2f}\n'.format(stick.name, x, y))
-    
+
     def send_controller(self, controller):
         for button in Button:
             field = 'button_' + button.name
@@ -75,13 +75,12 @@ class Pad:
                     self.press_button(button)
                 else:
                     self.release_button(button)
-        
-        for trigger in Trigger:
-            field = 'trigger_' + trigger.name
-            self.press_trigger(trigger, getattr(controller, field))
-        
+
+        # for trigger in Trigger:
+        #     field = 'trigger_' + trigger.name
+        #     self.press_trigger(trigger, getattr(controller, field))
+
         for stick in Stick:
             field = 'stick_' + stick.name
             value = getattr(controller, field)
             self.tilt_stick(stick, value.x, value.y)
-

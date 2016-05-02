@@ -100,8 +100,8 @@ class RealControllerState(Structure):
     self.button_L = False
     self.button_R = False
 
-    self.analog_L = 0.0
-    self.analog_R = 0.0
+    self.analog_L = -1.0
+    self.analog_R = -1.0
 
     self.stick_MAIN.reset()
     self.stick_C.reset()
@@ -124,6 +124,8 @@ SimpleStick.RIGHT.stick = Stick(1, 0.5)
 SimpleStick.NEUTRAL.stick = Stick(0.5, 0.5)
 
 NeutralControllerState = RealControllerState()
+NeutralControllerState.reset()
+# InitialControllerState = RealControllerState()
 
 @pretty_struct
 class SimpleControllerState(Structure):
