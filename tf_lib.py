@@ -94,3 +94,15 @@ def makeAffineLayer(input_size, output_size, nl=None):
 
   return applyLayer
 
+def clamp(input, minimum, maximum):
+  return tf.minimum(tf.maximum(input, minimum), maximum)
+
+def one_hot(size):
+  """
+  A clamped integer to one-hot vector function.
+  """
+  return lambda t: tf.one_hot(
+      clamp(tf.cast(t, tf.int64), 0, size - 1),
+      size,
+      1.0,
+      0.0)

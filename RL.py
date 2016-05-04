@@ -6,12 +6,28 @@ import tf_lib as tfl
 import util
 import ctype_util as ct
 import numpy as np
+import embed
+from dqn import DQN
 
+#----- set up inputs and model -----------
 with tf.name_scope('input'):
   input_states = ct.inputCType(ssbm.GameMemory, [None], "states")
 
   # player 2's controls
   input_controls = ct.inputCType(ssbm.SimpleControllerState, [None], "controls")
+
+
+embedded_states = embed.embedGame(input_states)
+state_size = embedded_states.get_shape()[-1].value
+
+embedded_controls = embed.embedSimpleController(input_controls)
+control_size = embedded_controls.get_shape()[-1].value
+assert(control_size == 7)
+
+
+model = DQN(state_size+control_size, control_size)
+#---------------------------------------
+
 
 def feedStateActions(states, actions, feed_dict = None):
   if feed_dict is None:
@@ -20,159 +36,14 @@ def feedStateActions(states, actions, feed_dict = None):
   ct.feedCTypes(ssbm.SimpleControllerState, 'input/controls', actions, feed_dict)
   return feed_dict
 
-embedFloat = lambda t: tf.reshape(t, [-1, 1])
-
-castFloat = lambda t: embedFloat(tf.cast(t, tf.float32))
-
-def one_hot(size):
-  def clamp(input):
-    return tf.minimum(tf.maximum(input, 0), size)
-  return lambda t: tf.one_hot(clamp(tf.cast(t, tf.int64)), size, 1.0, 0.0)
-
-maxAction = 512 # altf4 says 0x017E
-actionSpace = 32
-
-maxCharacter = 32 # should be large enough?
-
-maxJumps = 8 # unused
-
-with tf.variable_scope("embed_action"):
-  actionHelper = tfl.makeAffineLayer(maxAction, actionSpace)
-
-def embedAction(t):
-  return actionHelper(one_hot(maxAction)(t))
-
-def rescale(a):
-  return lambda x: a * x
-
-playerEmbedding = [
-  ("percent", util.compose(rescale(0.01), castFloat)),
-  ("facing", embedFloat),
-  ("x", util.compose(rescale(0.1), embedFloat)),
-  ("y", util.compose(rescale(0.1), embedFloat)),
-  ("action_state", embedAction),
-  # ("action_counter", castFloat),
-  ("action_frame", util.compose(rescale(0.02), castFloat)),
-  # ("character", one_hot(maxCharacter)),
-  ("invulnerable", castFloat),
-  ("hitlag_frames_left", castFloat),
-  ("hitstun_frames_left", castFloat),
-  ("jumps_used", castFloat),
-  ("charging_smash", castFloat),
-  ("in_air", castFloat),
-  ('speed_air_x_self',  embedFloat),
-  ('speed_ground_x_self', embedFloat),
-  ('speed_y_self', embedFloat),
-  ('speed_x_attack', embedFloat),
-  ('speed_y_attack', embedFloat)
-]
-
-# TODO: give the tensors some names/scopes
-def embedStruct(embedding):
-  def f(struct):
-    embed = [op(struct[field]) for field, op in embedding]
-    return tf.concat(1, embed)
-  return f
-
-embedPlayer = embedStruct(playerEmbedding)
-
-def embedArray(embed, indices=None):
-
-  def f(array):
-    return tf.concat(1, [embed(array[i]) for i in indices])
-  return f
-
-"""
-maxStage = 64 # overestimate
-stageSpace = 32
-
-with tf.variable_scope("embed_stage"):
-  stageHelper = tfl.makeAffineLayer(maxStage, stageSpace)
-
-def embedStage(stage):
-  return stageHelper(one_hot(maxStage)(stage))
-"""
-
-gameEmbedding = [
-  ('players', embedArray(embedPlayer, [0, 1])),
-
-  #('frame', c_uint),
-  # ('stage', embedStage)
-]
-
-embedGame = embedStruct(gameEmbedding)
-embedded_states = embedGame(input_states)
-state_size = embedded_states.get_shape()[-1].value
-
-stickEmbedding = [
-  ('x', embedFloat),
-  ('y', embedFloat)
-]
-
-embedStick = embedStruct(stickEmbedding)
-
-controllerEmbedding = [
-  ('button_A', castFloat),
-  ('button_B', castFloat),
-  ('button_X', castFloat),
-  ('button_Y', castFloat),
-  ('button_L', castFloat),
-  ('button_R', castFloat),
-
-  ('trigger_L', embedFloat),
-  ('trigger_R', embedFloat),
-
-  ('stick_MAIN', embedStick),
-  ('stick_C', embedStick),
-]
-
-embedController = embedStruct(controllerEmbedding)
-
-def embedEnum(enum):
-  return one_hot(len(enum))
-
-simpleControllerEmbedding = [
-  ('button', embedEnum(ssbm.SimpleButton)),
-  ('stick_MAIN', embedEnum(ssbm.SimpleStick)),
-]
-
-embedSimpleController = embedStruct(simpleControllerEmbedding)
-
-#embedded_controls = embedController(train_controls)
-embedded_controls = embedSimpleController(input_controls)
-control_size = embedded_controls.get_shape()[-1].value
-assert(control_size == 7)
-
-with tf.variable_scope("q_net"):
-  layers = [state_size+control_size, 128, 128]
-  applyQs = [tfl.makeAffineLayer(prev, next, tfl.leaky_relu) for prev, next in zip(layers[:-1], layers[1:])]
-  #q1 = tfl.makeAffineLayer(state_size + control_size, 512, tf.tanh)
-  applyQs.append(util.compose(tf.squeeze, tfl.makeAffineLayer(layers[-1], 1)))
-
-def applyQ(states, controls):
-  """Applies the q network, returning all intermediate layers in order.
-  The last returned value is the final q prediction."""
-  state_actions = tf.concat(1, [states, controls])
-  outputs = [state_actions]
-  for i, f in enumerate(applyQs):
-    with tf.name_scope('q%d' % i):
-      outputs.append(f(outputs[-1]))
-
-  return outputs
-
 # pre-computed long-term rewards
 rewards = tf.placeholder(tf.float32, [None], name='rewards')
 
 global_step = tf.Variable(0, name='global_step', trainable=False)
 
 with tf.name_scope('train_q'):
-  qs = applyQ(embedded_states, embedded_controls)
-  qOut = qs[-1]
-
-  qLosses = tf.squared_difference(qs[-1], rewards)
-  qLoss = tf.reduce_mean(qLosses)
-
-  #trainQ = tf.train.RMSPropOptimizer(0.0001).minimize(qLoss)
+  embedded_input = tf.concat(1, [embedded_states, embedded_controls])
+  qLoss = model.getQLoss(embedded_input, rewards)
 
   opt = tf.train.AdamOptimizer(10.0 ** -5)
   # train_q = opt.minimize(qLoss, global_step=global_step)
@@ -189,16 +60,17 @@ def getEpsilon():
 with tf.name_scope('temperature'):
   temperature = 20.0 * 0.5 ** (tf.cast(global_step, tf.float32) / 1000.0) + 1.0
 
-with tf.name_scope('actor'):
+with tf.name_scope('get_action'):
   actor_state = ct.inputCType(ssbm.GameMemory, [], 'state')
   reshaped = util.deepMap(lambda t: tf.reshape(t, [1]), actor_state)
-  embedded_state = embedGame(reshaped)
+  embedded_state = embed.embedGame(reshaped)
   tiled = tf.tile(embedded_state, [len(ssbm.simpleControllerStates), 1])
 
   all_actions = ct.constantCTypes(ssbm.SimpleControllerState, ssbm.simpleControllerStates, 'all_actions')
-  embedded_actions = embedSimpleController(all_actions)
+  embedded_actions = embed.embedSimpleController(all_actions)
 
-  all_scores = applyQ(tiled, embedded_actions)[-1]
+  embedded_input = tf.concat(1, [tiled, embedded_actions])
+  all_scores = model.getQValues(embedded_input)[-1]
 
 sess = tf.Session()
 
@@ -217,7 +89,7 @@ def predictQ(states, controls):
 # TODO: do this within the tf model?
 # if we do, then we can add in softmax and temperature
 def scoreActions(state):
-  return sess.run(all_scores, ct.feedCType(ssbm.GameMemory, 'actor/state', state))
+  return sess.run(all_scores, ct.feedCType(ssbm.GameMemory, 'get_action/state', state))
 
 # see https://docs.google.com/spreadsheets/d/1JX2w-r2fuvWuNgGb6D3Cs4wHQKLFegZe2jhbBuIhCG8/edit#gid=13
 dyingActions = set(range(0xA))
