@@ -182,9 +182,11 @@ def train(filename, steps=1):
   return sum(r)
 
 def save(name):
-  save_location = "saves/" + name + "/snapshot"
-  print("Saving to", save_location)
-  saver.save(sess, save_location)
+  save_dir = "saves/%s/" % name
+  import os
+  os.makedirs(save_dir, exist_ok=True)
+  print("Saving to", save_dir)
+  saver.save(sess, save_dir + 'snapshot')
 
 def restore(name):
   save_location = "saves/" + name + "/snapshot"

@@ -14,6 +14,7 @@ import RL
 
 default_args = dict(
     name='simpleDQN',
+    tag=None,
     dump = True,
     dump_seconds = 60,
     dump_max = 1000,
@@ -57,15 +58,17 @@ class CPU:
             print('Creating MemoryWatcher.')
             self.mw = memory_watcher.MemoryWatcher(self.dolphin_dir + '/MemoryWatcher/MemoryWatcher')
             print('Creating Pad. Open dolphin now.')
-            self.pad = pad.Pad(self.dolphin_dir + '/Pipes/phillip')
+            os.makedirs(self.dolphin_dir + 'Pipes/', exist_ok=True)
+            self.pad = pad.Pad(self.dolphin_dir + 'Pipes/phillip1')
             self.initialized = True
         except KeyboardInterrupt:
             self.initialized = False
 
         self.init_stats()
 
-    def run(self):
+    def run(self, dolphin_process=None):
         if not self.initialized:
+            print("CPU not initialized!")
             return
         print('Starting run loop.')
         self.start_time = time.time()
@@ -73,6 +76,8 @@ class CPU:
             while True:
                 self.advance_frame()
         except KeyboardInterrupt:
+            if dolphin_process is not None:
+                dolphin_process.terminate()
             self.print_stats()
 
     def init_stats(self):
@@ -91,9 +96,10 @@ class CPU:
         print('Average Thinking Time (ms): {:.6f}'.format(frac_thinking))
 
     def write_locations(self, dolphin_dir):
-        path = dolphin_dir + '/MemoryWatcher/Locations.txt'
+        path = dolphin_dir + '/MemoryWatcher/'
+        os.makedirs(path, exist_ok=True)
         print('Writing locations to:', path)
-        with open(path, 'w') as f:
+        with open(path + 'Locations.txt', 'w') as f:
             f.write('\n'.join(self.sm.locations()))
 
     def dump_state(self):
@@ -104,7 +110,8 @@ class CPU:
         self.dump_frame += 1
 
         if self.dump_frame == self.dump_size:
-            dump_path = self.dump_dir + str(self.dump_count % self.dump_max)
+            dump_tag = "" if self.tag is None else (self.tag + "-")
+            dump_path = self.dump_dir + dump_tag + str(self.dump_count % self.dump_max)
             print("Dumping to ", dump_path)
             ssbm.writeStateActions(dump_path, self.dump_state_actions)
             self.dump_count += 1

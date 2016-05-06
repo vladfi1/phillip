@@ -2,6 +2,12 @@ import math
 
 from pad import *
 
+def pushButton(button):
+  return lambda pad: pad.push_button(button)
+
+def releaseButton(button):
+  return lambda pad: pad.release_button(button)
+
 class MenuManager:
     def __init__(self):
         self.selected_fox = False

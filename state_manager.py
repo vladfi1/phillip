@@ -123,13 +123,15 @@ def playerAddresses(player_id, addresses=None):
         addresses[address].append(handle)
 
     add_data_address('70', 'action_state', intHandler)#, wrapper=ActionState, default=ActionState.Unselected)
-    add_data_address('20CC', 'action_counter', intHandler)
+    add_data_address('20CC', 'action_counter', shortHandler)
     add_data_address('8F4', 'action_frame', floatHandler)
 
     add_data_address('19EC', 'vulnerable', intHandler)
 
     add_data_address('19BC', 'hitlag_frames_left', floatHandler)
     add_data_address('23A0', 'hitstun_frames_left', floatHandler)
+    # TODO: make this an actal int
+    # 2 = charging, 3 = attacking, 0 = otherwise
     add_data_address('2174', 'charging_smash', IntHandler(mask=0x2))
 
     add_data_address('19C8', 'jumps_used', byteHandler)
