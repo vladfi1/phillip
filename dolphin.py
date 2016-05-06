@@ -78,7 +78,7 @@ if __name__ == "__main__":
   parser.add_argument("--prefix", default="parallel/")
   parser.add_argument("--count", type=int, default=1)
   parser.add_argument("--movie", type=str)
-  parser.add_argument("--gfx", type=str, help="graphics backend")
+  parser.add_argument("--gfx", type=str, default="Null", help="graphics backend")
 
   args = parser.parse_args()
 

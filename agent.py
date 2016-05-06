@@ -19,7 +19,6 @@ class Agent:
         self.simple_controller = ssbm.SimpleControllerState()
         RL.restore(self.name)
 
-
     def load_graph(self):
         print("loading ", self.graph_path)
 

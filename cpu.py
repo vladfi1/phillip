@@ -31,8 +31,14 @@ class CPU:
             else:
                 setattr(self, k, v)
 
+        if self.tag is not None:
+            import random
+            random.seed(self.tag)
+
         if self.dump:
             self.dump_dir = "saves/" + self.name + "/experience/"
+            os.makedirs(self.dump_dir, exist_ok=True)
+            self.dump_tag = "" if self.tag is None else str(self.tag) + "-"
             self.dump_size = 60 * self.dump_seconds // self.act_every
             self.dump_state_actions = [(ssbm.GameMemory(), ssbm.SimpleControllerState()) for i in range(self.dump_size)]
 
@@ -110,8 +116,7 @@ class CPU:
         self.dump_frame += 1
 
         if self.dump_frame == self.dump_size:
-            dump_tag = "" if self.tag is None else (self.tag + "-")
-            dump_path = self.dump_dir + dump_tag + str(self.dump_count % self.dump_max)
+            dump_path = self.dump_dir + self.dump_tag + str(self.dump_count % self.dump_max)
             print("Dumping to ", dump_path)
             ssbm.writeStateActions(dump_path, self.dump_state_actions)
             self.dump_count += 1

@@ -11,26 +11,36 @@ parser.add_argument("--tag", type=str,
 parser.add_argument("--nodump", dest='dump', action="store_false",
                     help="don't dump experiences to disk")
 
-parser.add_argument("--dump_dir", type=str,
-                    help="where to dump experiences")
-
 parser.add_argument("--dump_max", type=int,
                    help="caps number of experiences")
 
 parser.add_argument("--dolphin_dir", type=str,
                    help="dolphin user directory")
 
-parser.add_argument("--run_dolphin", action="store_true", help="run dolphin")
-parser.add_argument("--setup_dolphin", action="store_true", help="create dolphin dir")
+parser.add_argument("--parallel", type=int, help="spawn parallel cpus")
 
 args = parser.parse_args()
 
-p=None
+def runCPU(args):
+  from cpu import CPU
+  CPU(**args).run()
 
-if args.run_dolphin:
-  from run_parallel import runDolphin
-  p = runDolphin(user=args.dolphin_dir, setup=args.setup_dolphin)
+if args.parallel is None:
+  runCPU(args.__dict__)
+else:
+  from multiprocessing import Process
+  processes = []
+  for i in range(args.parallel):
+    d = args.__dict__.copy()
+    d['tag'] = i
+    d['dolphin_dir'] = 'parallel/%d/' % i
+    p = Process(target=runCPU, args=[d])
+    p.start()
+    processes.append(p)
 
-from cpu import CPU
-cpu = CPU(**args.__dict__)
-cpu.run(dolphin_process=p)
+  try:
+    for p in processes:
+      p.join()
+  except KeyboardInterrupt:
+    for p in processes:
+      p.terminate()
