@@ -83,3 +83,10 @@ if __name__ == "__main__":
   args = parser.parse_args()
 
   processes = [runDolphin(user=args.prefix + "%d/" % i, movie=args.movie, gfx=args.gfx) for i in range(args.count)]
+
+  try:
+    for p in processes:
+      p.wait()
+  except KeyboardInterrupt:
+    for p in processes:
+      p.terminate()
