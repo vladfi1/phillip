@@ -44,7 +44,7 @@ with open('Dolphin.ini', 'r') as f:
 import shutil
 import os
 
-def setupUser(user='dolphin-test/'):
+def setupUser(user, gfx):
   configDir = user + 'Config/'
   os.makedirs(configDir, exist_ok=True)
 
@@ -52,7 +52,7 @@ def setupUser(user='dolphin-test/'):
     f.write(generateGCPadNew())
 
   with open(configDir + 'Dolphin.ini', 'w') as f:
-    f.write(dolphinConfig.format(user=user))
+    f.write(dolphinConfig.format(user=user, gfx=gfx))
 
   gcDir = user + 'GC/'
   os.makedirs(gcDir, exist_ok=True)
@@ -61,9 +61,11 @@ def setupUser(user='dolphin-test/'):
 
 import subprocess
 
-def runDolphin(exe='dolphin-emu-nogui', user='dolphin-test/', movie="Fox5FalconBattlefield.dtm", iso="SSBM.iso", setup=True):
+def runDolphin(exe='dolphin-emu-nogui', user='dolphin-test/', iso="SSBM.iso", movie=None, setup=True, gfx=None):
   if setup:
-    setupUser(user)
+    if gfx is None:
+      gfx = "Null"
+    setupUser(user, gfx)
   args = [exe, "--user", user, "--exec", iso]
   if movie is not None:
     args += ["--movie", movie]
@@ -75,7 +77,9 @@ if __name__ == "__main__":
 
   parser.add_argument("--prefix", default="parallel/")
   parser.add_argument("--count", type=int, default=1)
+  parser.add_argument("--movie", type=str)
+  parser.add_argument("--gfx", type=str, help="graphics backend")
 
   args = parser.parse_args()
 
-  processes = [runDolphin(user=args.prefix + "%d/" % i) for i in range(args.count)]
+  processes = [runDolphin(user=args.prefix + "%d/" % i, movie=args.movie, gfx=args.gfx) for i in range(args.count)]
