@@ -94,6 +94,18 @@ def makeAffineLayer(input_size, output_size, nl=None):
 
   return applyLayer
 
+def makeSplitLayer(split_sizes):
+  split_starts = [sum(split_sizes[0: i]) for i in range(len(split_sizes))]
+
+  def applyLayer(x):
+    return [tf.slice(x, [0, start], [-1, size])
+        for start, size in zip(split_starts, split_sizes)]
+
+  return applyLayer
+
+def makeSoftmaxLayer(name):
+  return lambda x: tf.nn.softmax(x, name=name)
+
 def clamp(input, minimum, maximum):
   return tf.minimum(tf.maximum(input, minimum), maximum)
 

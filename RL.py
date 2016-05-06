@@ -8,6 +8,7 @@ import ctype_util as ct
 import numpy as np
 import embed
 from dqn import DQN
+from actor_critic import ActorCritic
 
 #----- set up inputs and model -----------
 with tf.name_scope('input'):
@@ -25,7 +26,8 @@ control_size = embedded_controls.get_shape()[-1].value
 assert(control_size == 7)
 
 
-model = DQN(state_size+control_size, control_size)
+# model = DQN(state_size, control_size)
+model = ActorCritic(state_size, control_size)
 #---------------------------------------
 
 
@@ -42,10 +44,9 @@ rewards = tf.placeholder(tf.float32, [None], name='rewards')
 global_step = tf.Variable(0, name='global_step', trainable=False)
 
 with tf.name_scope('train_q'):
-  embedded_input = tf.concat(1, [embedded_states, embedded_controls])
-  qLoss = model.getQLoss(embedded_input, rewards)
+  qLoss = model.getLoss(embedded_states, embedded_controls, rewards)
 
-  opt = tf.train.AdamOptimizer(10.0 ** -5)
+  opt = tf.train.AdamOptimizer(10.0 ** -3)
   # train_q = opt.minimize(qLoss, global_step=global_step)
   # opt = tf.train.GradientDescentOptimizer(0.0)
   grads_and_vars = opt.compute_gradients(qLoss)
@@ -69,8 +70,9 @@ with tf.name_scope('get_action'):
   all_actions = ct.constantCTypes(ssbm.SimpleControllerState, ssbm.simpleControllerStates, 'all_actions')
   embedded_actions = embed.embedSimpleController(all_actions)
 
-  embedded_input = tf.concat(1, [tiled, embedded_actions])
-  all_scores = model.getQValues(embedded_input)[-1]
+
+  action_dist = model.getActionDist(embedded_state)
+  state_value = model.getValue(embedded_state)
 
 sess = tf.Session()
 
@@ -88,8 +90,11 @@ def predictQ(states, controls):
 
 # TODO: do this within the tf model?
 # if we do, then we can add in softmax and temperature
-def scoreActions(state):
-  return sess.run(all_scores, ct.feedCType(ssbm.GameMemory, 'get_action/state', state))
+def getActions(state):
+  return sess.run(action_dist, ct.feedCType(ssbm.GameMemory, 'get_action/state', state))
+
+def scoreStates(state):
+  return sess.run(state_value, ct.feedCType(ssbm.GameMemory, 'get_action/state', state))
 
 # see https://docs.google.com/spreadsheets/d/1JX2w-r2fuvWuNgGb6D3Cs4wHQKLFegZe2jhbBuIhCG8/edit#gid=13
 dyingActions = set(range(0xA))
@@ -131,10 +136,12 @@ def computeRewards(states, reward_halflife = 2.0):
   print("Scores for current memory: ", final_scores[:10])
 
   # use last action taken?
-  lastQ = max(scoreActions(states[-1]))
+  lastQ = scoreStates(states[-1])
   print("lastQ", lastQ)
 
   discounted_rewards = util.scanr(lambda r1, r2: r1 + discount * r2, lastQ, final_scores)[:-1]
+
+  # import ipdb; ipdb.set_trace()
 
   print("discounted_rewards for current memory: ", discounted_rewards[:10])
   return discounted_rewards

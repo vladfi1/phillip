@@ -14,6 +14,7 @@ class Agent:
         #self.sess = None
         #self.load_graph()
         self.name = name
+        self.sample = True
         self.reload_every = reload_every
         self.counter = 0
         self.simple_controller = ssbm.SimpleControllerState()
@@ -31,22 +32,33 @@ class Agent:
             self.sess = tf.Session(graph=imported_graph)
 
         # TODO: precompute which ops are necessary
-        self.ops = set([op.name + ':0' for op in self.sess.graph.get_operations()])
+        self.ops = set([op.name + ':0'
+                        for op in self.sess.graph.get_operations()])
 
     def get_action(self, state):
-        scores = RL.scoreActions(state)
+        scores = RL.getActions(state)
         self.scores = scores
-
-        score, best_action = max(zip(scores, ssbm.simpleControllerStates), key=lambda x: x[0])
-        #print(score, best_action)
-
-        #self.epsilon = RL.getEpsilon()
         self.epsilon = 0.02
 
-        if flip(self.epsilon):
-          self.simple_controller = ssbm.SimpleControllerState.randomValue()
+
+        if self.sample:
+            # import ipdb; ipdb.set_trace()
+            scores = scores[0]
+            stick = random.choice([s for s in ssbm.SimpleStick], p=scores[:5])
+            button = random.choice([s for s in ssbm.SimpleButton], p=scores[5:])
+            self.simple_controller = ssbm.SimpleControllerState(
+                button=button,
+                stick_MAIN=stick)
         else:
-          self.simple_controller = best_action
+            scored_actions = zip(scores, ssbm.simpleControllerStates)
+            score, best_action = max(
+                                     scored_actions,
+                                     key=lambda x: x[0])
+            if flip(self.epsilon):
+                self.simple_controller = ssbm.SimpleControllerState.randomValue()
+            else:
+                self.simple_controller = best_action
+
 
     def act(self, state, pad):
         self.counter += 1
