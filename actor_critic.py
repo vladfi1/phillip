@@ -39,7 +39,8 @@ class ActorCritic:
 
 
   def getActionDist(self, state):
-    return getOutput(self.shared_layers + self.actor, state)
+    epsilon = 1e-5
+    return getOutput(self.shared_layers + self.actor, state) + epsilon
 
   def getValue(self, state):
     return getOutput(self.shared_layers + self.critic, state)
@@ -51,23 +52,20 @@ class ActorCritic:
     vLoss = tf.reduce_mean(vLosses)
 
     action_probs = self.getActionDist(states)
-    epsilon = 1e-5
-    log_action_probs = tf.log(action_probs + epsilon)
+
+    log_action_probs = tf.log(action_probs)
+
+    entropy = - tf.reduce_sum(action_probs * log_action_probs, 1)
+
     # advantages = tf.stop_gradient(vOuts - rewards) # this way is victory
-    advantages = tf.stop_gradient(rewards - vOuts) # this way is death
-    
-
-    # n_examples = rewards.get_shape()[0].value
-    # import ipdb; ipdb.set_trace()
+    advantages = tf.stop_gradient(rewards - vOuts)
 
 
-    # correct
     sum_log_action_probs = tf.reduce_sum(actions * log_action_probs, 1)
 
-    # functional
-    # sum_log_action_probs = tf.reduce_sum(actions * action_probs, 1)
 
     self.aLosses = sum_log_action_probs * advantages
     aLoss = tf.reduce_mean(self.aLosses)
 
+    aLoss = - aLoss # this gradient is in the direction of increasing reward
     return vLoss + aLoss

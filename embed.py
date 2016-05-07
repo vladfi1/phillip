@@ -81,17 +81,17 @@ embedStick = embedStruct(stickEmbedding)
 
 controllerEmbedding = [
   ('button_A', castFloat),
-  ('button_B', castFloat),
-  ('button_X', castFloat),
-  ('button_Y', castFloat),
-  ('button_L', castFloat),
-  ('button_R', castFloat),
+  # ('button_B', castFloat),
+  # ('button_X', castFloat),
+  # ('button_Y', castFloat),
+  # ('button_L', castFloat),
+  # ('button_R', castFloat),
 
-  ('trigger_L', embedFloat),
-  ('trigger_R', embedFloat),
+  # ('trigger_L', embedFloat),
+  # ('trigger_R', embedFloat),
 
   ('stick_MAIN', embedStick),
-  ('stick_C', embedStick),
+  # ('stick_C', embedStick),
 ]
 
 embedController = embedStruct(controllerEmbedding)

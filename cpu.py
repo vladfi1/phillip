@@ -138,9 +138,10 @@ class CPU:
     def advance_frame(self):
         last_frame = self.state.frame
         if self.update_state():
-            copy(
-                self.state.controller,
-                clone(self.agent.simple_controller.realController()))
+            self.state.controller = self.agent.simple_controller.realController()
+            # copy(
+                # self.state.controller,
+                # self.agent.simple_controller.realController())
 
             if self.state.frame > last_frame:
                 skipped_frames = self.state.frame - last_frame - 1
