@@ -45,7 +45,7 @@ with tf.name_scope('train_q'):
   embedded_input = tf.concat(1, [embedded_states, embedded_controls])
   qLoss = model.getQLoss(embedded_input, rewards)
 
-  opt = tf.train.AdamOptimizer(10.0 ** -5)
+  opt = tf.train.AdamOptimizer(10.0 ** -6)
   # train_q = opt.minimize(qLoss, global_step=global_step)
   # opt = tf.train.GradientDescentOptimizer(0.0)
   grads_and_vars = opt.compute_gradients(qLoss)
@@ -58,7 +58,11 @@ def getEpsilon():
   return sess.run(epsilon)
 
 with tf.name_scope('temperature'):
-  temperature = 20.0 * 0.5 ** (tf.cast(global_step, tf.float32) / 1000.0) + 1.0
+  #temperature = 0.05  * (0.5 ** (tf.cast(global_step, tf.float32) / 100000.0) + 0.1)
+  temperature = tf.constant(0.01)
+
+def getTemperature():
+  return sess.run(temperature)
 
 with tf.name_scope('get_action'):
   actor_state = ct.inputCType(ssbm.GameMemory, [], 'state')
@@ -71,6 +75,7 @@ with tf.name_scope('get_action'):
 
   embedded_input = tf.concat(1, [tiled, embedded_actions])
   all_scores = model.getQValues(embedded_input)[-1]
+  action_probs = tf.squeeze(tf.nn.softmax(tf.expand_dims(all_scores / temperature, 0)))
 
 sess = tf.Session()
 
@@ -86,10 +91,11 @@ saver = tf.train.Saver(tf.all_variables())
 def predictQ(states, controls):
   return sess.run(qOut, feedStateActions(states, controls))
 
-# TODO: do this within the tf model?
-# if we do, then we can add in softmax and temperature
 def scoreActions(state):
   return sess.run(all_scores, ct.feedCType(ssbm.GameMemory, 'get_action/state', state))
+
+def getActionProbs(state):
+  return sess.run(action_probs, ct.feedCType(ssbm.GameMemory, 'get_action/state', state))
 
 # see https://docs.google.com/spreadsheets/d/1JX2w-r2fuvWuNgGb6D3Cs4wHQKLFegZe2jhbBuIhCG8/edit#gid=13
 dyingActions = set(range(0xA))
@@ -153,23 +159,30 @@ def train(filename, steps=1):
       gs = sess.run([gv[0] for gv in grads_and_vars], feed_dict)
       vs = sess.run([gv[1] for gv in grads_and_vars], feed_dict)
       #   loss = sess.run(qLoss, feed_dict)
-      act_qs = sess.run(qs, feed_dict)
-      act_qs = list(map(util.compose(np.sort, np.abs), act_qs))
+      #act_qs = sess.run(qs, feed_dict)
+      #act_qs = list(map(util.compose(np.sort, np.abs), act_qs))
 
       #t = sess.run(temperature)
       #print("Temperature: ", t)
-      for i, act in enumerate(act_qs):
-        print("act_%d"%i, act)
-      print("grad/param(action)", np.mean(np.abs(gs[0] / vs[0])))
+      #for i, act in enumerate(act_qs):
+      #  print("act_%d"%i, act)
+      #print("grad/param(action)", np.mean(np.abs(gs[0] / vs[0])))
       #print("grad/param(stage)", np.mean(np.abs(gs[2] / vs[2])))
-      for i in range(len(layers)):
-        j = 2 * (i+1)
-        print("grad/param(q%d)" % (i+1), np.mean(np.abs(gs[j] / vs[j])))
+      
+      print("param avg and max")
+      for v in vs:
+        abs_v = np.abs(v)
+        print(v.shape, np.mean(abs_v), np.max(abs_v))
+
+      print("grad/param avg and max")
+      for g, v in zip(gs, vs):
+        ratios = np.abs(g / v)
+        print(np.mean(ratios), np.max(ratios))
       #print("grad", np.mean(np.abs(gs[4])))
       #print("param", np.mean(np.abs(vs[0])))
 
       # if step_index == 10:
-      import pdb; pdb.set_trace()
+      import ipdb; ipdb.set_trace()
 
     # print(sum(gvs))
     #sess.run([train_q, trainActor], feed_dict)

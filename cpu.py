@@ -31,10 +31,6 @@ class CPU:
             else:
                 setattr(self, k, v)
 
-        if self.tag is not None:
-            import random
-            random.seed(self.tag)
-
         if self.dump:
             self.dump_dir = "saves/" + self.name + "/experience/"
             os.makedirs(self.dump_dir, exist_ok=True)
@@ -57,7 +53,7 @@ class CPU:
         self.write_locations(self.dolphin_dir)
 
         self.fox = fox.Fox()
-        self.agent = agent.Agent(name=self.name, reload_every=60*self.dump_seconds//self.act_every)
+        self.agent = agent.Agent(name=self.name, reload_every=60*self.dump_seconds//self.act_every, seed=self.tag)
         self.mm = menu_manager.MenuManager()
 
         try:

@@ -1,7 +1,7 @@
 from ctypes import *
 from enum import IntEnum
 from itertools import product
-import random
+from numpy import random
 import tensorflow as tf
 
 def copy(src, dst):

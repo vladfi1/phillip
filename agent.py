@@ -9,7 +9,7 @@ def flip(p):
 
 class Agent:
     def __init__(self, graph_path='models/simpleDQN.pb', reload_every=60*60,
-        name='simpleDQN'):
+        name='simpleDQN', seed=None):
         self.graph_path = graph_path
         #self.sess = None
         #self.load_graph()
@@ -18,6 +18,9 @@ class Agent:
         self.counter = 0
         self.simple_controller = ssbm.SimpleControllerState()
         RL.restore(self.name)
+        
+        if seed is not None:
+            random.seed(seed)
 
     def load_graph(self):
         print("loading ", self.graph_path)
@@ -33,7 +36,7 @@ class Agent:
         # TODO: precompute which ops are necessary
         self.ops = set([op.name + ':0' for op in self.sess.graph.get_operations()])
 
-    def get_action(self, state):
+    def epsilon_greedy(self, state):
         scores = RL.scoreActions(state)
         self.scores = scores
 
@@ -44,9 +47,18 @@ class Agent:
         self.epsilon = 0.02
 
         if flip(self.epsilon):
-          self.simple_controller = ssbm.SimpleControllerState.randomValue()
+            self.simple_controller = ssbm.SimpleControllerState.randomValue()
         else:
-          self.simple_controller = best_action
+            self.simple_controller = best_action
+
+    def get_action(self, state):
+        if flip(0.02):
+            self.probs = None
+        else:
+            self.probs = RL.getActionProbs(state)
+            # numpy does weird things to ctypes?
+        index = random.choice(range(len(ssbm.simpleControllerStates)), p=self.probs)
+        self.simple_controller = ssbm.simpleControllerStates[index]
 
     def act(self, state, pad):
         self.counter += 1
@@ -61,7 +73,8 @@ class Agent:
         if self.counter % 60 == 0:
             print("Frame %d of recording." % self.counter)
             print(state.players[1])
-            print("Scores", self.scores)
+            print("Scores", RL.scoreActions(state))
+            print("Temp", RL.getTemperature())
+            print("Probs", RL.getActionProbs(state))
             print(self.simple_controller)
-            print("epsilon: ", self.epsilon)
         pad.send_controller(self.simple_controller.realController())
