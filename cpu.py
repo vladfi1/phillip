@@ -159,39 +159,32 @@ class CPU:
         # menu = Menu(self.state.menu)
         # print(menu)
         if self.state.menu == Menu.Game.value:
-<<<<<<< d64b3473526b26a4f18333a99ee0f0f92d4137eb
             if self.state.frame >= self.last_acted_frame + self.act_every:
                 self.agent.act(self.state, self.pad)
                 if self.dump:
                     self.dump_state()
                 self.last_acted_frame = self.state.frame
-=======
-            # import pdb; pdb.set_trace()
-            self.agent.act(self.state, self.pad)
-            if self.dump:
-                self.dump_state()
->>>>>>> actor-critic model that probably works
             #self.fox.advance(self.state, self.pad)
 
-        elif self.state.menu in [menu.value for menu in [Menu.Characters, Menu.Stages]]:
-            # D_DOWN should be hotkeyed to loading an in-game state
-
-            # self.pad.send_controller(ssbm.NeutralControllerState)
-
-            if self.toggle:
-              self.pad.press_button(pad.Button.D_DOWN)
-              self.toggle = False
-            else:
-              self.pad.release_button(pad.Button.D_DOWN)
-              self.toggle = True
-
-        elif self.state.menu in [menu.value for menu in [Menu.PostGame]]:
-            if self.toggle:
-              self.pad.press_button(pad.Button.START)
-              self.toggle = False
-            else:
-              self.pad.release_button(pad.Button.START)
-              self.toggle = True
+        # elif self.state.menu in [menu.value for menu in [Menu.Characters, Menu.Stages]]:
+        #     # D_DOWN should be hotkeyed to loading an in-game state
+        #
+        #     # self.pad.send_controller(ssbm.NeutralControllerState)
+        #
+        #     if self.toggle:
+        #       self.pad.press_button(pad.Button.D_DOWN)
+        #       self.toggle = False
+        #     else:
+        #       self.pad.release_button(pad.Button.D_DOWN)
+        #       self.toggle = True
+        #
+        # elif self.state.menu in [menu.value for menu in [Menu.PostGame]]:
+        #     if self.toggle:
+        #       self.pad.press_button(pad.Button.START)
+        #       self.toggle = False
+        #     else:
+        #       self.pad.release_button(pad.Button.START)
+        #       self.toggle = True
 
         elif self.state.menu in [menu.value for menu in [Menu.Characters, Menu.Stages, Menu.PostGame]]:
             # wait for the movie to get us into the game
