@@ -35,6 +35,8 @@ def sweep(data_dir='experience/'):
             print("Step", i)
             print("Experience " + filename)
             rewards.append(RL.train(filename))
+            # os.remove(filename)
+
             i += 1
         else:
             print("Not training on file:", f)

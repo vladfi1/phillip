@@ -51,14 +51,22 @@ class ActorCritic:
     vLoss = tf.reduce_mean(vLosses)
 
     action_probs = self.getActionDist(states)
-    log_action_probs = tf.log(action_probs)
-    advantages = tf.stop_gradient(vOuts - rewards) # this way is victory
-    # advantages = tf.stop_gradient(rewards - vOuts) # this way is death
-
+    epsilon = 1e-5
+    log_action_probs = tf.log(action_probs + epsilon)
+    # advantages = tf.stop_gradient(vOuts - rewards) # this way is victory
+    advantages = tf.stop_gradient(rewards - vOuts) # this way is death
+    
 
     # n_examples = rewards.get_shape()[0].value
     # import ipdb; ipdb.set_trace()
+
+
+    # correct
     sum_log_action_probs = tf.reduce_sum(actions * log_action_probs, 1)
+
+    # functional
+    # sum_log_action_probs = tf.reduce_sum(actions * action_probs, 1)
+
     self.aLosses = sum_log_action_probs * advantages
     aLoss = tf.reduce_mean(self.aLosses)
 

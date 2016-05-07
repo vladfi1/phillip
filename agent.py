@@ -75,6 +75,7 @@ class Agent:
             print("Frame %d of recording." % self.counter)
             print(state.players[1])
             print("Action scores", self.scores)
+            print("State", state)
             print("State value", state_value)
             print(self.simple_controller)
             # print("epsilon: ", self.epsilon)

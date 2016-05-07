@@ -36,19 +36,6 @@ class PlayerMemory(Structure):
   __hash__ = hashStruct
   __eq__ = eqStruct
 
-class GameMemory(Structure):
-  _fields_ = [
-    ('players', PlayerMemory * 4),
-
-    ('frame', c_uint),
-    ('menu', c_uint),
-    ('stage', c_uint)
-  ]
-
-  __repr__ = toString
-  __hash__ = hashStruct
-  __eq__ = eqStruct
-
 class Stick(Structure):
   _fields_ = [
     ('x', c_float),
@@ -105,6 +92,21 @@ class RealControllerState(Structure):
 
     self.stick_MAIN.reset()
     self.stick_C.reset()
+
+class GameMemory(Structure):
+  _fields_ = [
+    ('players', PlayerMemory * 4),
+
+    ('frame', c_uint),
+    ('menu', c_uint),
+    ('stage', c_uint),
+    ('controller', RealControllerState)
+  ]
+
+  __repr__ = toString
+  __hash__ = hashStruct
+  __eq__ = eqStruct
+
 
 class SimpleButton(IntEnum):
   NONE = 0

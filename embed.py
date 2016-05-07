@@ -72,15 +72,6 @@ def embedStage(stage):
   return stageHelper(one_hot(maxStage)(stage))
 """
 
-gameEmbedding = [
-  ('players', embedArray(embedPlayer, [0, 1])),
-
-  #('frame', c_uint),
-  # ('stage', embedStage)
-]
-
-embedGame = embedStruct(gameEmbedding)
-
 stickEmbedding = [
   ('x', embedFloat),
   ('y', embedFloat)
@@ -115,4 +106,14 @@ simpleControllerEmbedding = [
 
 embedSimpleController = embedStruct(simpleControllerEmbedding)
 
-#embedded_controls = embedController(train_controls)
+# embedded_controls = embedController(last_controller)
+
+gameEmbedding = [
+  ('players', embedArray(embedPlayer, [0, 1])),
+  ('controller', embedController),
+
+  #('frame', c_uint),
+  # ('stage', embedStage)
+]
+
+embedGame = embedStruct(gameEmbedding)

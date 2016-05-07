@@ -46,7 +46,7 @@ global_step = tf.Variable(0, name='global_step', trainable=False)
 with tf.name_scope('train_q'):
   qLoss = model.getLoss(embedded_states, embedded_controls, rewards)
 
-  opt = tf.train.AdamOptimizer(10.0 ** -5)
+  opt = tf.train.AdamOptimizer(10.0 ** -4)
   # train_q = opt.minimize(qLoss, global_step=global_step)
   # opt = tf.train.GradientDescentOptimizer(0.0)
   grads_and_vars = opt.compute_gradients(qLoss)

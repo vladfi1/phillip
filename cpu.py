@@ -9,7 +9,7 @@ import time
 import fox
 import agent
 import util
-from ctype_util import copy
+from ctype_util import copy, clone
 import RL
 
 default_args = dict(
@@ -20,7 +20,7 @@ default_args = dict(
     dump_max = 1000,
     act_every = 5,
     # TODO This might not always be accurate.
-    dolphin_dir = '~/.local/share/dolphin-emu',
+    dolphin_dir = '~/.local/share/dolphin-emu/',
 )
 
 class CPU:
@@ -64,8 +64,10 @@ class CPU:
             print('Creating MemoryWatcher.')
             self.mw = memory_watcher.MemoryWatcher(self.dolphin_dir + '/MemoryWatcher/MemoryWatcher')
             print('Creating Pad. Open dolphin now.')
+            print(self.dolphin_dir)
             os.makedirs(self.dolphin_dir + 'Pipes/', exist_ok=True)
             self.pad = pad.Pad(self.dolphin_dir + 'Pipes/phillip1')
+            print("Made a pad")
             self.initialized = True
         except KeyboardInterrupt:
             self.initialized = False
@@ -117,7 +119,7 @@ class CPU:
 
         if self.dump_frame == self.dump_size:
             if self.dump_count == 0:
-                dump_path = self.dump_dir + "dead"
+                dump_path = self.dump_dir + ".dead"
             else:
                 dump_path = self.dump_dir + self.dump_tag + str(self.dump_count % self.dump_max)
             print("Dumping to ", dump_path)
@@ -136,6 +138,10 @@ class CPU:
     def advance_frame(self):
         last_frame = self.state.frame
         if self.update_state():
+            copy(
+                self.state.controller,
+                clone(self.agent.simple_controller.realController()))
+
             if self.state.frame > last_frame:
                 skipped_frames = self.state.frame - last_frame - 1
                 if skipped_frames > 0:
@@ -166,25 +172,25 @@ class CPU:
                 self.last_acted_frame = self.state.frame
             #self.fox.advance(self.state, self.pad)
 
-        # elif self.state.menu in [menu.value for menu in [Menu.Characters, Menu.Stages]]:
-        #     # D_DOWN should be hotkeyed to loading an in-game state
-        #
-        #     # self.pad.send_controller(ssbm.NeutralControllerState)
-        #
-        #     if self.toggle:
-        #       self.pad.press_button(pad.Button.D_DOWN)
-        #       self.toggle = False
-        #     else:
-        #       self.pad.release_button(pad.Button.D_DOWN)
-        #       self.toggle = True
-        #
-        # elif self.state.menu in [menu.value for menu in [Menu.PostGame]]:
-        #     if self.toggle:
-        #       self.pad.press_button(pad.Button.START)
-        #       self.toggle = False
-        #     else:
-        #       self.pad.release_button(pad.Button.START)
-        #       self.toggle = True
+        elif self.state.menu in [menu.value for menu in [Menu.Characters, Menu.Stages]]:
+            # D_DOWN should be hotkeyed to loading an in-game state
+
+            # self.pad.send_controller(ssbm.NeutralControllerState)
+
+            if self.toggle:
+              self.pad.press_button(pad.Button.D_DOWN)
+              self.toggle = False
+            else:
+              self.pad.release_button(pad.Button.D_DOWN)
+              self.toggle = True
+
+        elif self.state.menu in [menu.value for menu in [Menu.PostGame]]:
+            if self.toggle:
+              self.pad.press_button(pad.Button.START)
+              self.toggle = False
+            else:
+              self.pad.release_button(pad.Button.START)
+              self.toggle = True
 
         elif self.state.menu in [menu.value for menu in [Menu.Characters, Menu.Stages, Menu.PostGame]]:
             # wait for the movie to get us into the game
