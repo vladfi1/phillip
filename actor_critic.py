@@ -61,4 +61,4 @@ class ActorCritic:
     aLosses = actions * action_probs * tf.reshape(advantages, [-1, 1])
     aLoss = tf.reduce_mean(aLosses)
 
-    return vLoss + aLoss
+    return vLoss + 10 * aLoss

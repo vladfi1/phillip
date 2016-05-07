@@ -71,9 +71,11 @@ class Agent:
 
         self.get_action(state)
         if self.counter % 60 == 0:
+            state_value = RL.scoreStates(state)
             print("Frame %d of recording." % self.counter)
             print(state.players[1])
-            print("Scores", self.scores)
+            print("Action scores", self.scores)
+            print("State value", state_value)
             print(self.simple_controller)
-            print("epsilon: ", self.epsilon)
+            # print("epsilon: ", self.epsilon)
         pad.send_controller(self.simple_controller.realController())
