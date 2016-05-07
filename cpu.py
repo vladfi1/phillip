@@ -20,7 +20,7 @@ default_args = dict(
     dump_max = 1000,
     act_every = 5,
     # TODO This might not always be accurate.
-    dolphin_dir = '~/.local/share/dolphin-emu',
+    dolphin_dir = '~/.local/share/dolphin-emu/',
 )
 
 class CPU:
