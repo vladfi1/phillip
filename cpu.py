@@ -129,13 +129,10 @@ class CPU:
                 f.write(str(sum(rewards) / len(rewards)) + "\n")
                 f.flush()
 
-
     def advance_frame(self):
         last_frame = self.state.frame
         if self.update_state():
-            if self.first_frame:
-                self.first_frame = False
-            elif self.state.frame > last_frame:
+            if self.state.frame > last_frame:
                 skipped_frames = self.state.frame - last_frame - 1
                 if skipped_frames > 0:
                     self.skip_frames += skipped_frames
@@ -143,11 +140,9 @@ class CPU:
                 self.total_frames += self.state.frame - last_frame
                 last_frame = self.state.frame
 
-                if self.state.frame - self.last_acted_frame >= self.act_every:
-                    start = time.time()
-                    self.make_action()
-                    self.thinking_time += time.time() - start
-                    self.last_acted_frame = self.state.frame
+                start = time.time()
+                self.make_action()
+                self.thinking_time += time.time() - start
 
     def update_state(self):
         res = next(self.mw)
@@ -160,9 +155,11 @@ class CPU:
         # menu = Menu(self.state.menu)
         # print(menu)
         if self.state.menu == Menu.Game.value:
-            self.agent.act(self.state, self.pad)
-            if self.dump:
-                self.dump_state()
+            if self.state.frame >= self.last_acted_frame + self.act_every:
+                self.agent.act(self.state, self.pad)
+                if self.dump:
+                    self.dump_state()
+                self.last_acted_frame = self.state.frame
             #self.fox.advance(self.state, self.pad)
 
         # elif self.state.menu in [menu.value for menu in [Menu.Characters, Menu.Stages]]:
