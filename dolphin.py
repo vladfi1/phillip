@@ -44,7 +44,7 @@ with open('Dolphin.ini', 'r') as f:
 import shutil
 import os
 
-def setupUser(user, gfx):
+def setupUser(user, gfx="Null", cpu_thread=False, **unused):
   configDir = user + 'Config/'
   os.makedirs(configDir, exist_ok=True)
 
@@ -52,7 +52,7 @@ def setupUser(user, gfx):
     f.write(generateGCPadNew())
 
   with open(configDir + 'Dolphin.ini', 'w') as f:
-    f.write(dolphinConfig.format(user=user, gfx=gfx))
+    f.write(dolphinConfig.format(user=user, gfx=gfx, cpu_thread=cpu_thread))
 
   gcDir = user + 'GC/'
   os.makedirs(gcDir, exist_ok=True)
@@ -61,11 +61,9 @@ def setupUser(user, gfx):
 
 import subprocess
 
-def runDolphin(exe='dolphin-emu-nogui', user='dolphin-test/', iso="SSBM.iso", movie=None, setup=True, gfx=None):
+def runDolphin(exe='dolphin-emu-nogui', user='dolphin-test/', iso="SSBM.iso", movie=None, setup=True, **kwargs):
   if setup:
-    if gfx is None:
-      gfx = "Null"
-    setupUser(user, gfx)
+    setupUser(user, **kwargs)
   args = [exe, "--user", user, "--exec", iso]
   if movie is not None:
     args += ["--movie", movie]
@@ -75,14 +73,16 @@ if __name__ == "__main__":
   from argparse import ArgumentParser
   parser = ArgumentParser()
 
+  parser.add_argument("--iso", default="SSBM.iso", help="path to game iso")
   parser.add_argument("--prefix", default="parallel/")
   parser.add_argument("--count", type=int, default=1)
   parser.add_argument("--movie", type=str)
   parser.add_argument("--gfx", type=str, default="Null", help="graphics backend")
+  parser.add_argument("--cpu_thread", action="store_true", help="dual core")
 
   args = parser.parse_args()
 
-  processes = [runDolphin(user=args.prefix + "%d/" % i, movie=args.movie, gfx=args.gfx) for i in range(args.count)]
+  processes = [runDolphin(user=args.prefix + "%d/" % i, **args.__dict__) for i in range(args.count)]
 
   try:
     for p in processes:

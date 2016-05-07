@@ -47,7 +47,7 @@ class CPU:
 
         self.reward_logfile = 'saves/' + self.name + '/rewards.log'
         self.first_frame = True
-        self.last_acted_frame = 0
+        self.action_counter = 0
         self.toggle = False
 
         self.dolphin_dir = os.path.expanduser(self.dolphin_dir)
@@ -166,11 +166,11 @@ class CPU:
         # menu = Menu(self.state.menu)
         # print(menu)
         if self.state.menu == Menu.Game.value:
-            if self.state.frame >= self.last_acted_frame + self.act_every:
+            if self.action_counter % self.act_every == 0:
                 self.agent.act(self.state, self.pad)
                 if self.dump:
                     self.dump_state()
-                self.last_acted_frame = self.state.frame
+            self.action_counter += 1
             #self.fox.advance(self.state, self.pad)
 
         elif self.state.menu in [menu.value for menu in [Menu.Characters, Menu.Stages]]:

@@ -138,7 +138,7 @@ def playerAddresses(player_id, addresses=None):
     add_data_address('140', 'in_air', intHandler)
 
     add_data_address('E0', 'speed_air_x_self', floatHandler)
-    add_data_address('E4', 'speed_air_y_self', floatHandler)
+    add_data_address('E4', 'speed_y_self', floatHandler)
     add_data_address('EC', 'speed_x_attack', floatHandler)
     add_data_address('F0', 'speed_y_attack', floatHandler)
     add_data_address('14C', 'speed_ground_x_self', floatHandler)
