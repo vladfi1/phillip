@@ -58,7 +58,8 @@ class ActorCritic:
 
     # n_examples = rewards.get_shape()[0].value
     # import ipdb; ipdb.set_trace()
-    aLosses = actions * action_probs * tf.reshape(advantages, [-1, 1])
-    aLoss = tf.reduce_mean(aLosses)
+    sum_log_action_probs = tf.reduce_sum(actions * log_action_probs, 1)
+    self.aLosses = sum_log_action_probs * advantages
+    aLoss = tf.reduce_mean(self.aLosses)
 
-    return vLoss + 10 * aLoss
+    return vLoss + aLoss

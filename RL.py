@@ -186,6 +186,7 @@ def train(filename, steps=1):
     #sess.run(trainActor, feed_dict)
   #print(sess.run([qLoss, actorQ], feed_dict))
   print("qLoss", sess.run(qLoss, feed_dict))
+  # print("aLosses", sess.run(model.aLosses[1], feed_dict))
   return sum(r)
 
 def save(name):
