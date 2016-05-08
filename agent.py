@@ -1,7 +1,7 @@
 import tensorflow as tf
 import ssbm
 import tf_lib as tfl
-from numpy import random
+from numpy import random, exp
 import RL
 
 def flip(p):
@@ -18,7 +18,7 @@ class Agent:
         self.counter = 0
         self.simple_controller = ssbm.SimpleControllerState()
         RL.restore(self.name)
-        
+
         if seed is not None:
             random.seed(seed)
 
@@ -51,14 +51,12 @@ class Agent:
         else:
             self.simple_controller = best_action
 
-    def get_action(self, state):
-        if flip(0.02):
-            self.probs = None
-        else:
-            self.probs = RL.getActionProbs(state)
-            # numpy does weird things to ctypes?
-        index = random.choice(range(len(ssbm.simpleControllerStates)), p=self.probs)
-        self.simple_controller = ssbm.simpleControllerStates[index]
+    def thompson(self, state):
+        self.dists = list(zip(*RL.getActionDists(state)))
+
+        samples = [random.normal(m, exp(v/2.0)) for m, v in self.dists]
+
+        self.simple_controller = max(zip(samples, ssbm.simpleControllerStates), key=lambda x: x[0])[1]
 
     def act(self, state, pad):
         self.counter += 1
@@ -69,12 +67,10 @@ class Agent:
             RL.restore(self.name)
             self.counter = 0
 
-        self.get_action(state)
+        self.thompson(state)
         if self.counter % 60 == 0:
             print("Frame %d of recording." % self.counter)
             print(state.players[1])
-            print("Scores", RL.scoreActions(state))
-            print("Temp", RL.getTemperature())
-            print("Probs", RL.getActionProbs(state))
+            print("Dists", self.dists)
             print(self.simple_controller)
         pad.send_controller(self.simple_controller.realController())

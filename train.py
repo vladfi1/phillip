@@ -15,12 +15,11 @@ parser.add_argument("--name", default='simpleDQN',
 args = parser.parse_args()
 
 experience_dir = 'saves/' + args.name + '/experience/'
-if not os.path.exists(experience_dir):
-    os.makedirs(experience_dir)
+os.makedirs(experience_dir, exist_ok=True)
 
 if args.init:
-  RL.init()
-  RL.save(args.name)
+    RL.init()
+    RL.save(args.name)
 else:
     RL.restore(args.name)
 

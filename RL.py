@@ -43,7 +43,7 @@ global_step = tf.Variable(0, name='global_step', trainable=False)
 
 with tf.name_scope('train_q'):
   embedded_input = tf.concat(1, [embedded_states, embedded_controls])
-  qLoss = model.getQLoss(embedded_input, rewards)
+  qLoss = model.getNLLQLoss(embedded_input, rewards)
 
   opt = tf.train.AdamOptimizer(10.0 ** -6)
   # train_q = opt.minimize(qLoss, global_step=global_step)
@@ -74,8 +74,8 @@ with tf.name_scope('get_action'):
   embedded_actions = embed.embedSimpleController(all_actions)
 
   embedded_input = tf.concat(1, [tiled, embedded_actions])
-  all_scores = model.getQValues(embedded_input)[-1]
-  action_probs = tf.squeeze(tf.nn.softmax(tf.expand_dims(all_scores / temperature, 0)))
+  mu, log_sigma2 = model.getQValues(embedded_input)
+  action_probs = tf.squeeze(tf.nn.softmax(tf.expand_dims(mu / temperature, 0)))
 
 sess = tf.Session()
 
@@ -92,10 +92,13 @@ def predictQ(states, controls):
   return sess.run(qOut, feedStateActions(states, controls))
 
 def scoreActions(state):
-  return sess.run(all_scores, ct.feedCType(ssbm.GameMemory, 'get_action/state', state))
+  return sess.run(mu, ct.feedCType(ssbm.GameMemory, 'get_action/state', state))
 
 def getActionProbs(state):
   return sess.run(action_probs, ct.feedCType(ssbm.GameMemory, 'get_action/state', state))
+
+def getActionDists(state):
+  return sess.run([mu, log_sigma2], ct.feedCType(ssbm.GameMemory, 'get_action/state', state))
 
 # see https://docs.google.com/spreadsheets/d/1JX2w-r2fuvWuNgGb6D3Cs4wHQKLFegZe2jhbBuIhCG8/edit#gid=13
 dyingActions = set(range(0xA))
@@ -168,7 +171,7 @@ def train(filename, steps=1):
       #  print("act_%d"%i, act)
       #print("grad/param(action)", np.mean(np.abs(gs[0] / vs[0])))
       #print("grad/param(stage)", np.mean(np.abs(gs[2] / vs[2])))
-      
+
       print("param avg and max")
       for v in vs:
         abs_v = np.abs(v)
