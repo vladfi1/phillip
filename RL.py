@@ -40,11 +40,12 @@ def feedStateActions(states, actions, feed_dict = None):
 
 # pre-computed long-term rewards
 rewards = tf.placeholder(tf.float32, [None], name='rewards')
+returns = tf.placeholder(tf.float32, [None], name='returns')
 
 global_step = tf.Variable(0, name='global_step', trainable=False)
 
 with tf.name_scope('train_q'):
-  qLoss = model.getLoss(embedded_states, embedded_controls, rewards)
+  qLoss = model.getLoss(embedded_states, embedded_controls, returns, rewards)
 
   opt = tf.train.AdamOptimizer(10.0 ** -4)
   # train_q = opt.minimize(qLoss, global_step=global_step)
@@ -85,8 +86,8 @@ saver = tf.train.Saver(tf.all_variables())
 #  feed_dict = tfl.feedCType(ssbm.GameMemory, 'predict/state', state)
 #  return sess.run('predict/action:0', feed_dict)
 
-def predictQ(states, controls):
-  return sess.run(qOut, feedStateActions(states, controls))
+# def predictQ(states, controls):
+  # return sess.run(qOut, feedStateActions(states, controls))
 
 # TODO: do this within the tf model?
 # if we do, then we can add in softmax and temperature
@@ -107,11 +108,15 @@ def isDying(player):
 def processDeaths(deaths):
   return util.zipWith(lambda prev, next: (not prev) and next, [False] + deaths[:-1] , deaths)
 
-# from player 2's perspective
-def computeRewards(states, reward_halflife = 2.0):
-  # reward_halflife is measured in seconds
+def getDiscoutFactor(reward_halflife = 2.0):
   fps = 60.0 / 5.0
-  discount = 0.5 ** ( 1.0 / (fps*reward_halflife) )
+  return 0.5 ** ( 1.0 / (fps*reward_halflife) )
+
+discount_factor = getDiscoutFactor()
+
+# from player 2's perspective
+def computeRewards(states):
+  # reward_halflife is measured in seconds
 
   kills = [isDying(state.players[0]) for state in states]
   deaths = [isDying(state.players[1]) for state in states]
@@ -139,19 +144,22 @@ def computeRewards(states, reward_halflife = 2.0):
   lastQ = scoreStates(states[-1])
   print("lastQ", lastQ)
 
-  discounted_rewards = util.scanr(lambda r1, r2: r1 + discount * r2, lastQ, final_scores)[:-1]
+  discounted_rewards = util.scanr(
+    lambda r1, r2: r1 + discount_factor * r2,
+    lastQ,
+    final_scores)[:-1]
 
   # import ipdb; ipdb.set_trace()
 
   print("discounted_rewards for current memory: ", discounted_rewards[:10])
-  return discounted_rewards
+  return (discounted_rewards, final_scores)
 
 debug = False
 
 def train(filename, steps=1):
   states, controls = zip(*ssbm.readStateActions(filename))
-  r = computeRewards(states)
-  feed_dict = {rewards : r}
+  ret, rew = computeRewards(states)
+  feed_dict = {rewards : rew, returns : ret}
   feedStateActions(states[:-1], controls[:-1], feed_dict)
 
   # FIXME: we feed the inputs in on each iteration, which might be inefficient.
@@ -177,9 +185,11 @@ def train(filename, steps=1):
 
       # if step_index == 10:
       import pdb; pdb.set_trace()
+    # import ipdb; ipdb.set_trace()
 
     # print(sum(gvs))
     #sess.run([train_q, trainActor], feed_dict)
+
     sess.run(train_q, feed_dict)
 
     # sess.run(trainQ, feed_dict)
@@ -187,7 +197,7 @@ def train(filename, steps=1):
   #print(sess.run([qLoss, actorQ], feed_dict))
   print("qLoss", sess.run(qLoss, feed_dict))
   # print("aLosses", sess.run(model.aLosses[1], feed_dict))
-  return sum(r)
+  return sum(ret)
 
 def save(name):
   save_dir = "saves/%s/" % name

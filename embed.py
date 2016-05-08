@@ -41,7 +41,7 @@ playerEmbedding = [
   ("in_air", castFloat),
   ('speed_air_x_self',  embedFloat),
   ('speed_ground_x_self', embedFloat),
-  ('speed_y_self', embedFloat),
+  ('speed_y_self', util.compose(rescale(0.4), embedFloat)),
   ('speed_x_attack', embedFloat),
   ('speed_y_attack', embedFloat)
 ]

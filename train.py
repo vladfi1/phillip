@@ -30,7 +30,7 @@ def sweep(data_dir='experience/'):
     i = 0
     rewards = []
     for f in os.listdir(data_dir):
-        if not f.startswith("."):
+        if not f.startswith(".") and f[-1].isdigit():
             filename = data_dir + f
             print("Step", i)
             print("Experience " + filename)

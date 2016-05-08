@@ -128,7 +128,7 @@ class CPU:
             self.dump_count += 1
             self.dump_frame = 0
 
-            rewards = RL.computeRewards([memory[0]
+            returns, rewards = RL.computeRewards([memory[0]
                 for memory in self.dump_state_actions])
 
             with open(self.reward_logfile, 'a') as f:
