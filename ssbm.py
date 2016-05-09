@@ -152,35 +152,30 @@ class SimpleControllerState(Structure):
 
 simpleControllerStates = SimpleControllerState.allValues()
 
+@pretty_struct
+class SimpleStateAction(Structure):
+  _fields = [
+    ('state', GameMemory),
+    ('action', SimpleControllerState),
+  ]
+
 intStruct = struct.Struct('i')
 
 def readInt(f):
   return intStruct.unpack(f.read(4))[0]
 
-def writeStateActions(filename, data):
+def writeStateActions(filename, state_actions):
   with open(filename, 'wb') as f:
-    f.write(intStruct.pack(len(data)))
+    f.write(intStruct.pack(len(state_actions)))
+    f.write(state_actions)
 
-    for state, control in data:
-      f.write(state)
-      f.write(control)
-
-def readStateActions(filename, stateActions = None):
-  if stateActions is None:
-    stateActions = []
-
+def readStateActions(filename):
   with open(filename, 'rb') as f:
     size = readInt(f)
-
-    for i in range(size):
-      state = GameMemory()
-      f.readinto(state)
-
-      control = SimpleControllerState()
-      f.readinto(control)
-
-      stateActions.append((state, control))
-
+    state_actions = (size * SimpleStateAction)()
+    f.readinto(state_actions)
+    
     assert(len(f.read()) == 0)
+    
+    return state_actions
 
-  return stateActions

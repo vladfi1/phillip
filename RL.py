@@ -154,10 +154,13 @@ def computeRewards(states, reward_halflife = 2.0):
 debug = False
 
 def train(filename, steps=1):
-  states, controls = zip(*ssbm.readStateActions(filename))
+  state_actions = ssbm.readStateActions(filename)
+  states = list(map(lambda x: x.state, state_actions))
+  actions = list(map(lambda x: x.action, state_actions))
+  
   r = computeRewards(states)
   feed_dict = {rewards : r}
-  feedStateActions(states[:-1], controls[:-1], feed_dict)
+  feedStateActions(states[:-1], actions[:-1], feed_dict)
 
   # FIXME: we feed the inputs in on each iteration, which might be inefficient.
   for step_index in range(steps):

@@ -36,7 +36,7 @@ class CPU:
             os.makedirs(self.dump_dir, exist_ok=True)
             self.dump_tag = "" if self.tag is None else str(self.tag) + "-"
             self.dump_size = 60 * self.dump_seconds // self.act_every
-            self.dump_state_actions = [(ssbm.GameMemory(), ssbm.SimpleControllerState()) for i in range(self.dump_size)]
+            self.dump_state_actions = (self.dump_size * ssbm.SimpleStateAction)()
 
             self.dump_frame = 0
             self.dump_count = 0
@@ -105,9 +105,9 @@ class CPU:
             f.write('\n'.join(self.sm.locations()))
 
     def dump_state(self):
-        state, action = self.dump_state_actions[self.dump_frame]
-        copy(self.state, state)
-        copy(self.agent.simple_controller, action)
+        state_action = self.dump_state_actions[self.dump_frame]
+        state_action.state = self.state
+        state_action.action = self.agent.simple_controller
 
         self.dump_frame += 1
 
@@ -118,7 +118,7 @@ class CPU:
             self.dump_count += 1
             self.dump_frame = 0
 
-            rewards = RL.computeRewards([memory[0]
+            rewards = RL.computeRewards([memory.state
                 for memory in self.dump_state_actions])
 
             with open(self.reward_logfile, 'a') as f:
