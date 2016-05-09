@@ -176,9 +176,10 @@ def train(filename, steps=1):
       #print("grad/param(stage)", np.mean(np.abs(gs[2] / vs[2])))
 
       print("param avg and max")
-      for v in vs:
+      for g, v in zip(gs, vs):
         abs_v = np.abs(v)
-        print(v.shape, np.mean(abs_v), np.max(abs_v))
+        abs_g = np.abs(g)
+        print(v.shape, np.mean(abs_v), np.max(abs_v), np.mean(abs_g), np.max(abs_g))
 
       print("grad/param avg and max")
       for g, v in zip(gs, vs):
