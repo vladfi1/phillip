@@ -77,7 +77,10 @@ with tf.name_scope('get_action'):
   mu, log_sigma2 = model.getQValues(embedded_input)
   action_probs = tf.squeeze(tf.nn.softmax(tf.expand_dims(mu / temperature, 0)))
 
-sess = tf.Session()
+#sess = tf.Session()
+sess = tf.Session(config=tf.ConfigProto(inter_op_parallelism_threads=1,
+                                        intra_op_parallelism_threads=1,
+                                        use_per_session_threads=True))
 
 #summaryWriter = tf.train.SummaryWriter('logs/', sess.graph)
 #summaryWriter.flush()
