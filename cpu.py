@@ -60,8 +60,8 @@ class CPU:
             print('Creating MemoryWatcher.')
             self.mw = memory_watcher.MemoryWatcher(self.dolphin_dir + '/MemoryWatcher/MemoryWatcher')
             print('Creating Pad. Open dolphin now.')
-            os.makedirs(self.dolphin_dir + 'Pipes/', exist_ok=True)
-            self.pad = pad.Pad(self.dolphin_dir + 'Pipes/phillip1')
+            os.makedirs(self.dolphin_dir + '/Pipes/', exist_ok=True)
+            self.pad = pad.Pad(self.dolphin_dir + '/Pipes/phillip1')
             self.initialized = True
         except KeyboardInterrupt:
             self.initialized = False
