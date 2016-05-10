@@ -16,6 +16,7 @@ with tf.name_scope('input'):
   # player 2's controls
   #input_controls = ct.inputCType(ssbm.SimpleControllerState, [None], "controls")
   input_controls = tf.placeholder(tf.int32, [None], "controls")
+  experience_length = tf.shape(input_controls)
 
 embedded_states = embed.embedGame(input_states)
 state_size = embedded_states.get_shape()[-1].value
@@ -39,9 +40,8 @@ def feedStateActions(states, actions, feed_dict = None):
   feed_dict[input_controls] = actions
   return feed_dict
 
-# pre-computed long-term rewards
+# instantaneous rewards for all but the first state
 rewards = tf.placeholder(tf.float32, [None], name='rewards')
-experience_length = tf.shape(rewards)
 
 global_step = tf.Variable(0, name='global_step', trainable=False)
 
@@ -61,7 +61,7 @@ with tf.name_scope('train_q'):
 
   targets = tf.slice(maxQs, [n], train_length)
   for i in reversed(range(n)):
-    targets = tf.slice(rewards, [i+1], train_length) + discount * targets
+    targets = tf.slice(rewards, [i], train_length) + discount * targets
 
   #qLoss = model.getNLLQLoss(embedded_input, rewards)
   trainQs = tf.slice(realQs, [0], train_length)
