@@ -94,6 +94,8 @@ with tf.name_scope('get_action'):
 
   mu, log_sigma2 = model.getQDists(embedded_state)
   action_probs = tf.squeeze(tf.nn.softmax(mu / temperature))
+  mu = tf.squeeze(mu)
+  log_sigma2 = tf.squeeze(log_sigma2)
 
 #sess = tf.Session()
 # don't eat up cpu cores
