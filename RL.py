@@ -8,6 +8,7 @@ import ctype_util as ct
 import numpy as np
 import embed
 from dqn import DQN
+from config import *
 
 #----- set up inputs and model -----------
 with tf.name_scope('input'):
@@ -49,7 +50,6 @@ n = 5
 train_length = experience_length - n
 
 reward_halflife = 2.0 # seconds
-act_every = 5 # needs to match agent
 fps = 60.0 / act_every
 discount = 0.5 ** ( 1.0 / (fps*reward_halflife) )
 

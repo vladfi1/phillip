@@ -11,6 +11,7 @@ import agent
 import util
 from ctype_util import copy
 import RL
+from config import *
 
 default_args = dict(
     name='simpleDQN',
@@ -18,7 +19,6 @@ default_args = dict(
     dump = True,
     dump_seconds = 60,
     dump_max = 1000,
-    act_every = 5,
     # TODO This might not always be accurate.
     dolphin_dir = '~/.local/share/dolphin-emu/',
 )
@@ -35,7 +35,7 @@ class CPU:
             self.dump_dir = "saves/" + self.name + "/experience/"
             os.makedirs(self.dump_dir, exist_ok=True)
             self.dump_tag = "" if self.tag is None else str(self.tag) + "-"
-            self.dump_size = 60 * self.dump_seconds // self.act_every
+            self.dump_size = 60 * self.dump_seconds // act_every
             self.dump_state_actions = (self.dump_size * ssbm.SimpleStateAction)()
 
             self.dump_frame = 0
@@ -53,7 +53,7 @@ class CPU:
         self.write_locations(self.dolphin_dir)
 
         self.fox = fox.Fox()
-        self.agent = agent.Agent(name=self.name, reload_every=60*self.dump_seconds//self.act_every, seed=self.tag)
+        self.agent = agent.Agent(name=self.name, reload_every=60*self.dump_seconds//act_every, seed=self.tag)
         self.mm = menu_manager.MenuManager()
 
         try:
@@ -151,7 +151,7 @@ class CPU:
         # menu = Menu(self.state.menu)
         # print(menu)
         if self.state.menu == Menu.Game.value:
-            if self.action_counter % self.act_every == 0:
+            if self.action_counter % act_every == 0:
                 self.agent.act(self.state, self.pad)
                 if self.dump:
                     self.dump_state()
