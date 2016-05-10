@@ -11,8 +11,8 @@ class DQN:
     self.layers = [tfl.makeAffineLayer(prev, next, tfl.leaky_relu)
       for prev, next in zip(layer_sizes[:-1], layer_sizes[1:])]
 
-    mu = util.compose(tf.squeeze, tfl.makeAffineLayer(layer_sizes[-1], 1))
-    log_sigma2 = util.compose(tf.squeeze, tfl.makeAffineLayer(layer_sizes[-1], 1))
+    mu = tfl.makeAffineLayer(layer_sizes[-1], action_size)
+    log_sigma2 = tfl.makeAffineLayer(layer_sizes[-1], action_size)
     self.layers.append(lambda x: (mu(x), log_sigma2(x)))
 
   def getQLayers(self, state):
@@ -23,11 +23,14 @@ class DQN:
 
     return outputs
 
-  def getQValues(self, state):
+  def getQDists(self, state):
     return self.getQLayers(state)[-1]
 
+  def getQValues(self, state):
+    return self.getQDists(state)[0]
+
   def getSquaredQLoss(self, states, rewards):
-    mu, _ = self.getQValues(states)
+    qs = self.getQValues(states)
 
     qLosses = tf.squared_difference(mu, rewards)
     qLoss = tf.reduce_mean(qLosses)

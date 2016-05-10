@@ -38,7 +38,6 @@ class Agent:
 
     def epsilon_greedy(self, state):
         scores = RL.scoreActions(state)
-        self.scores = scores
 
         score, best_action = max(zip(scores, ssbm.simpleControllerStates), key=lambda x: x[0])
         #print(score, best_action)
@@ -47,9 +46,20 @@ class Agent:
         self.epsilon = 0.02
 
         if flip(self.epsilon):
-            self.simple_controller = ssbm.SimpleControllerState.randomValue()
+            index = random.choice(range(len(scores)))
+            self.simple_controller = ssbm.SimpleControllerState.fromIndex(index)
         else:
             self.simple_controller = best_action
+
+        if self.counter % 60 == 0:
+            print(state.players[1])
+            print("Scores", scores)
+            print("Epsilon", self.epsilon)
+            print(self.simple_controller)
+
+    def softmax(self, state):
+        probs = RL.getActionProbs(state)
+        pass # TODO implement
 
     def thompson(self, state):
         self.dists = list(zip(*RL.getActionDists(state)))
@@ -57,6 +67,11 @@ class Agent:
         samples = [random.normal(m, exp(v/2.0)) for m, v in self.dists]
 
         self.simple_controller = max(zip(samples, ssbm.simpleControllerStates), key=lambda x: x[0])[1]
+
+        if self.counter % 60 == 0:
+            print(state.players[1])
+            print("Dists", self.dists)
+            print(self.simple_controller)
 
     def act(self, state, pad):
         self.counter += 1
@@ -67,10 +82,7 @@ class Agent:
             RL.restore(self.name)
             self.counter = 0
 
-        self.thompson(state)
-        if self.counter % 60 == 0:
-            print("Frame %d of recording." % self.counter)
-            print(state.players[1])
-            print("Dists", self.dists)
-            print(self.simple_controller)
+        #self.thompson(state)
+        self.epsilon_greedy(state)
+
         pad.send_controller(self.simple_controller.realController())

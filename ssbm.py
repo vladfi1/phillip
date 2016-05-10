@@ -150,13 +150,18 @@ class SimpleControllerState(Structure):
     controller.stick_MAIN = SimpleStick(self.stick_MAIN).stick
     return controller
 
+  def fromIndex(index):
+    return simpleControllerStates[index]
+
 simpleControllerStates = SimpleControllerState.allValues()
+for i, c in enumerate(simpleControllerStates):
+  c.index = i
 
 @pretty_struct
 class SimpleStateAction(Structure):
   _fields = [
     ('state', GameMemory),
-    ('action', SimpleControllerState),
+    ('action', c_uint),
   ]
 
 intStruct = struct.Struct('i')
@@ -174,8 +179,7 @@ def readStateActions(filename):
     size = readInt(f)
     state_actions = (size * SimpleStateAction)()
     f.readinto(state_actions)
-    
-    assert(len(f.read()) == 0)
-    
-    return state_actions
 
+    assert(len(f.read()) == 0)
+
+    return state_actions
