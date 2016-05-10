@@ -16,6 +16,7 @@ default_args = dict(
     name='simpleDQN',
     tag=None,
     dump = True,
+    # dump_seconds = 5,
     dump_seconds = 60,
     dump_max = 1000,
     act_every = 5,

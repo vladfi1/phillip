@@ -14,6 +14,9 @@ parser.add_argument("--nodump", dest='dump', action="store_false",
 parser.add_argument("--dump_max", type=int,
                    help="caps number of experiences")
 
+parser.add_argument("--dump_seconds", type=int,
+                   help="how many seconds of experience in each file")
+
 parser.add_argument("--dolphin_dir", type=str,
                    help="dolphin user directory")
 

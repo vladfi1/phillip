@@ -26,10 +26,12 @@ class ActorCritic:
     self.action_size = action_size
 
     shared_layer_sizes = [state_size, 128, 128]
-    self.shared_layers = [tfl.makeAffineLayer(prev, next, tfl.leaky_relu)
-      for prev, next in zip(shared_layer_sizes[:-1], shared_layer_sizes[1:])]
+    self.shared_layers = []
+    # self.shared_layers = [tfl.makeAffineLayer(prev, next, tfl.leaky_relu)
+    #   for prev, next in zip(shared_layer_sizes[:-1], shared_layer_sizes[1:])]
 
-    self.actor = [
+    self.actor = [tfl.makeAffineLayer(prev, next, tfl.leaky_relu)
+      for prev, next in zip(shared_layer_sizes[:-1], shared_layer_sizes[1:])] + [
         tfl.makeAffineLayer(shared_layer_sizes[-1], action_size, tfl.leaky_relu),
         tfl.makeSplitLayer([5, 2]),
         [
@@ -38,7 +40,7 @@ class ActorCritic:
         ]
       ]
 
-    self.critic = [util.compose(
+    self.critic = [tfl.makeAffineLayer(prev, next, tfl.leaky_relu) for prev, next in zip(shared_layer_sizes[:-1], shared_layer_sizes[1:])] + [util.compose(
         tf.squeeze,
         tfl.makeAffineLayer(shared_layer_sizes[-1], 1))]
 
@@ -70,6 +72,8 @@ class ActorCritic:
     # padded_vOuts = tf.concat(0,[vOuts, last_v])
     # padded_vOuts = tf.stop_gradient(padded_vOuts)
 
+    entropy = - tf.reduce_sum(action_probs * log_action_probs, 1)/2
+
 
     vOut_next = tf.pad(vOuts[1:], [[0, 1]], "SYMMETRIC")
     # vOuts = tf.Print(vOuts, [vOuts], message="vOuts")
@@ -79,13 +83,13 @@ class ActorCritic:
     one_step_advantages = (rewards
                            + discount_factor * vOut_next
                            - vOuts)
-
+    one_step_advantages = tf.stop_gradient(one_step_advantages)
 
     sum_log_action_probs = tf.reduce_sum(actions * log_action_probs, 1)
 
 
-    self.aLosses = sum_log_action_probs * one_step_advantages
+    self.aLosses = sum_log_action_probs * one_step_advantages - 0.01 * entropy
     aLoss = tf.reduce_mean(self.aLosses)
 
-    # aLoss = - aLoss # this gradient is in the direction of increasing reward
-    return vLoss + aLoss
+    aLoss = - aLoss # this gradient is in the direction of increasing reward
+    return (vLoss, aLoss)

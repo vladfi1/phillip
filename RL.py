@@ -45,9 +45,11 @@ returns = tf.placeholder(tf.float32, [None], name='returns')
 global_step = tf.Variable(0, name='global_step', trainable=False)
 
 with tf.name_scope('train_q'):
-  qLoss = model.getLoss(embedded_states, embedded_controls, returns, rewards)
+  vLoss, aLoss = model.getLoss(embedded_states, embedded_controls, returns, rewards)
+  qLoss = vLoss + aLoss
 
-  opt = tf.train.AdamOptimizer(10.0 ** -4)
+  # opt = tf.train.AdamOptimizer(10.0 ** -5)
+  opt = tf.train.RMSPropOptimizer(10.0 ** -5)
   # train_q = opt.minimize(qLoss, global_step=global_step)
   # opt = tf.train.GradientDescentOptimizer(0.0)
   grads_and_vars = opt.compute_gradients(qLoss)
@@ -195,7 +197,9 @@ def train(filename, steps=1):
     # sess.run(trainQ, feed_dict)
     #sess.run(trainActor, feed_dict)
   #print(sess.run([qLoss, actorQ], feed_dict))
-  print("qLoss", sess.run(qLoss, feed_dict))
+  print("Loss", sess.run(qLoss, feed_dict))
+  print("vLoss", sess.run(vLoss, feed_dict))
+  print("aLoss", sess.run(aLoss, feed_dict))
   # print("aLosses", sess.run(model.aLosses[1], feed_dict))
   return sum(ret)
 
