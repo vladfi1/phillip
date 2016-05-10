@@ -1,5 +1,6 @@
 import RL
 import os
+import time
 
 from argparse import ArgumentParser
 parser = ArgumentParser()
@@ -28,6 +29,7 @@ RL.debug = args.debug
 def sweep(data_dir='experience/'):
     i = 0
     rewards = []
+    start_time = time.time()
     for f in os.listdir(data_dir):
         if not f.startswith("."):
             filename = data_dir + f
@@ -38,6 +40,9 @@ def sweep(data_dir='experience/'):
         else:
             print("Not training on file:", f)
         print("")
+    if i > 0:
+        total_time = time.time() - start_time
+        print("Time/experience", total_time / i)
     RL.save(args.name)
     #RL.writeGraph()
     # import pdb; pdb.set_trace()
