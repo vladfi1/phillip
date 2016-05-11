@@ -46,10 +46,12 @@ playerEmbedding = [
   ('speed_y_attack', embedFloat)
 ]
 
-# TODO: give the tensors some names/scopes
 def embedStruct(embedding):
   def f(struct):
-    embed = [op(struct[field]) for field, op in embedding]
+    embed = []
+    for field, op in embedding:
+      with tf.name_scope(field):
+        embed.append(op(struct[field]))
     return tf.concat(1, embed)
   return f
 
@@ -114,5 +116,7 @@ simpleControllerEmbedding = [
 ]
 
 embedSimpleController = embedStruct(simpleControllerEmbedding)
-
 #embedded_controls = embedController(train_controls)
+
+action_size = len(ssbm.simpleControllerStates)
+embedAction = tfl.one_hot(action_size)

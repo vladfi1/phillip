@@ -12,33 +12,38 @@ from config import *
 
 #----- set up inputs and model -----------
 with tf.name_scope('input'):
-  input_states = ct.inputCType(ssbm.GameMemory, [None], "states")
+  current_states = ct.inputCType(ssbm.GameMemory, [None], "states")
 
   # player 2's controls
   #input_controls = ct.inputCType(ssbm.SimpleControllerState, [None], "controls")
-  input_controls = tf.placeholder(tf.int32, [None], "controls")
-  experience_length = tf.shape(input_controls)
+  prev_controls = ct.inputCType(ssbm.RealControllerState, [None], "prev_controls")
 
-embedded_states = embed.embedGame(input_states)
-state_size = embedded_states.get_shape()[-1].value
+  current_actions = tf.placeholder(tf.int32, [None], "current_actions")
+  experience_length = tf.shape(current_actions)
 
-control_size = len(ssbm.simpleControllerStates)
-embedded_controls = tfl.one_hot(control_size)(input_controls)
-#embedded_controls = embed.embedSimpleController(input_controls)
-#control_size = embedded_controls.get_shape()[-1].value
-#assert(control_size == 7)
+embedded_states = embed.embedGame(current_states)
+#state_size = embedded_states.get_shape()[-1].value
 
+embedded_prev_controls = embed.embedController(prev_controls)
+#control_size = embedded_prev_controls.get_shape()[-1].value
 
-model = DQN(state_size, control_size)
+embedded_current_actions = embed.embedAction(current_actions)
+
+combined = tf.concat(1, [embedded_states, embedded_prev_controls])
+
+model = DQN(combined.get_shape()[-1].value, embed.action_size)
 #---------------------------------------
 
 
 def feedStateActions(states, actions, feed_dict = None):
   if feed_dict is None:
     feed_dict = {}
-  ct.feedCTypes(ssbm.GameMemory, 'input/states', states, feed_dict)
+  ct.feedCTypes(ssbm.GameMemory, 'input/states', states[1:], feed_dict)
   #ct.feedCTypes(ssbm.SimpleControllerState, 'input/controls', actions, feed_dict)
-  feed_dict[input_controls] = actions
+  toRealController = lambda a: ssbm.simpleControllerStates[a].realController()
+  realControllers = list(map(toRealController, actions[:-1]))
+  ct.feedCTypes(ssbm.RealControllerState, 'input/prev_controls', realControllers, feed_dict)
+  feed_dict[current_actions] = actions[1:]
   return feed_dict
 
 # instantaneous rewards for all but the first state
@@ -47,24 +52,24 @@ rewards = tf.placeholder(tf.float32, [None], name='rewards')
 global_step = tf.Variable(0, name='global_step', trainable=False)
 
 n = 5
-train_length = experience_length - n
 
 reward_halflife = 2.0 # seconds
 fps = 60.0 / act_every
 discount = 0.5 ** ( 1.0 / (fps*reward_halflife) )
 
 with tf.name_scope('train_q'):
-  #embedded_input = tf.concat(1, [embedded_states, embedded_controls])
-  qValues = model.getQValues(embedded_states)
-  realQs = tf.reduce_sum(tf.mul(qValues, embedded_controls), 1)
-  maxQs = tf.stop_gradient(tf.reduce_max(qValues, 1))
+  train_length = experience_length - n
+
+  qMeans, qLogVariances = model.getQDists(combined)
+  realQs = tf.reduce_sum(tf.mul(qMeans, embedded_current_actions), 1)
+  maxQs = tf.stop_gradient(tf.reduce_max(qMeans, 1))
 
   targets = tf.slice(maxQs, [n], train_length)
   for i in reversed(range(n)):
-    targets = tf.slice(rewards, [i], train_length) + discount * targets
+    targets = tf.slice(rewards, [i+1], train_length) + discount * targets
 
-  #qLoss = model.getNLLQLoss(embedded_input, rewards)
   trainQs = tf.slice(realQs, [0], train_length)
+  #qLoss = model.getNLLQLoss(embedded_input, rewards)
   qLosses = tf.squared_difference(trainQs, targets)
   qLoss = tf.reduce_mean(qLosses)
 
@@ -88,14 +93,7 @@ def getTemperature():
   return sess.run(temperature)
 
 with tf.name_scope('get_action'):
-  actor_state = ct.inputCType(ssbm.GameMemory, [], 'state')
-  reshaped = util.deepMap(lambda t: tf.reshape(t, [1]), actor_state)
-  embedded_state = embed.embedGame(reshaped)
-
-  mu, log_sigma2 = model.getQDists(embedded_state)
-  action_probs = tf.squeeze(tf.nn.softmax(mu / temperature))
-  mu = tf.squeeze(mu)
-  log_sigma2 = tf.squeeze(log_sigma2)
+  action_probs = tf.nn.softmax(qMeans / temperature)
 
 #sess = tf.Session()
 # don't eat up cpu cores
@@ -108,14 +106,26 @@ sess = tf.Session(config=tf.ConfigProto(inter_op_parallelism_threads=1,
 
 saver = tf.train.Saver(tf.all_variables())
 
-def scoreActions(state):
-  return sess.run(mu, ct.feedCType(ssbm.GameMemory, 'get_action/state', state))
+def feedStateAction(state, prev_action, feed_dict = None):
+  if feed_dict is None:
+    feed_dict = {}
+  ct.feedCTypes(ssbm.GameMemory, 'input/states', [state], feed_dict)
+  realController = ssbm.simpleControllerStates[prev_action].realController()
+  ct.feedCTypes(ssbm.RealControllerState, 'input/prev_controls', [realController], feed_dict)
+  return feed_dict
 
-def getActionProbs(state):
-  return sess.run(action_probs, ct.feedCType(ssbm.GameMemory, 'get_action/state', state))
+def scoreActions(state, prev_action):
+  feed_dict = feedStateAction(state, prev_action)
+  return sess.run(qMeans, feed_dict)[0]
 
-def getActionDists(state):
-  return sess.run([mu, log_sigma2], ct.feedCType(ssbm.GameMemory, 'get_action/state', state))
+def getActionProbs(state, prev_action):
+  feed_dict = feedStateAction(state, prev_action)
+  return sess.run(action_probs, feed_dict)[0]
+
+def getActionDists(state, prev_action):
+  feed_dict = feedStateAction(state, prev_action)
+  mu, log_sigma2 = sess.run([qMeans, qLogVariances], feed_dict)
+  return (mu[0], log_sigma2[0])
 
 # see https://docs.google.com/spreadsheets/d/1JX2w-r2fuvWuNgGb6D3Cs4wHQKLFegZe2jhbBuIhCG8/edit#gid=13
 dyingActions = set(range(0xA))
@@ -142,10 +152,6 @@ def computeRewards(states):
 
   damage_dealt = [max(states[i+1].players[0].percent - states[i].players[0].percent, 0) for i in range(len(states)-1)]
   damage_taken = [max(states[i+1].players[1].percent - states[i].players[1].percent, 0) for i in range(len(states)-1)]
-
-
-
-  # damage_dealt = util.zipWith(lambda prev, next: max(next.players[0].percent - prev.players[0].percent, 0), states[:-1], states[1:])
 
   scores = util.zipWith(lambda k, d: k - d, kills[1:], deaths[1:])
   final_scores = util.zipWith(lambda score, dealt, taken: score + (dealt - taken) / 100, scores, damage_dealt, damage_taken)

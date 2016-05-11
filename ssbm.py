@@ -156,6 +156,7 @@ class SimpleControllerState(Structure):
     return simpleControllerStates[index]
 
 simpleControllerStates = SimpleControllerState.allValues()
+
 for i, c in enumerate(simpleControllerStates):
   c.index = i
 
