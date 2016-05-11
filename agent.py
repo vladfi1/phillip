@@ -59,7 +59,13 @@ class Agent:
 
     def softmax(self, state):
         probs = RL.getActionProbs(state)
-        pass # TODO implement
+        index = random.choice(range(len(probs)), p=probs)
+        self.simple_controller = ssbm.SimpleControllerState.fromIndex(index)
+
+        if self.counter % 60 == 0:
+            print(state.players[1])
+            print("Probs", probs)
+            print(self.simple_controller)
 
     def thompson(self, state):
         self.dists = list(zip(*RL.getActionDists(state)))
@@ -83,6 +89,7 @@ class Agent:
             self.counter = 0
 
         #self.thompson(state)
-        self.epsilon_greedy(state)
+        #self.epsilon_greedy(state)
+        self.softmax(state)
 
         pad.send_controller(self.simple_controller.realController())
