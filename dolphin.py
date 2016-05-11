@@ -19,8 +19,8 @@ C-Stick/Up = `Axis C Y +`
 C-Stick/Down = `Axis C Y -`
 C-Stick/Left = `Axis C X -`
 C-Stick/Right = `Axis C X +`
-Triggers/L-Analog = `Axis L -+`
-Triggers/R-Analog = `Axis R -+`
+#Triggers/L-Analog = `Axis L -+`
+#Triggers/R-Analog = `Axis R -+`
 """
 
 def generatePipeConfig(player, count):
