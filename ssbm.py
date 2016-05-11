@@ -2,6 +2,8 @@ from ctypes import *
 from ctype_util import *
 from enum import IntEnum
 import struct
+import tempfile
+import os
 
 class PlayerMemory(Structure):
   _fields_ = [
@@ -170,9 +172,11 @@ def readInt(f):
   return intStruct.unpack(f.read(4))[0]
 
 def writeStateActions(filename, state_actions):
-  with open(filename, 'wb') as f:
-    f.write(intStruct.pack(len(state_actions)))
-    f.write(state_actions)
+  with tempfile.NamedTemporaryFile(dir=os.path.dirname(filename), delete=False) as tf:
+    tf.write(intStruct.pack(len(state_actions)))
+    tf.write(state_actions)
+    tempname = tf.name
+  os.rename(tempname, filename)
 
 def readStateActions(filename):
   with open(filename, 'rb') as f:
@@ -180,6 +184,7 @@ def readStateActions(filename):
     state_actions = (size * SimpleStateAction)()
     f.readinto(state_actions)
 
-    assert(len(f.read()) == 0)
+    if len(f.read()) > 0:
+      raise Exception(filename + " too long!")
 
     return state_actions
