@@ -31,7 +31,7 @@ def sweep(data_dir='experience/'):
     rewards = []
     start_time = time.time()
     for f in os.listdir(data_dir):
-        if not f.startswith("."):
+        if not (f.startswith(".") or f.startswith("tmp")): # .DS_Store, temp files
             filename = data_dir + f
             print("Step", i)
             print("Experience " + filename)
