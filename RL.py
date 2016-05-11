@@ -97,9 +97,14 @@ with tf.name_scope('get_action'):
 
 #sess = tf.Session()
 # don't eat up cpu cores
-sess = tf.Session(config=tf.ConfigProto(inter_op_parallelism_threads=1,
-                                        intra_op_parallelism_threads=1,
-                                        use_per_session_threads=True))
+sess = tf.Session(
+  config=tf.ConfigProto(
+    inter_op_parallelism_threads=1,
+    intra_op_parallelism_threads=1,
+    use_per_session_threads=True,
+    gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.3)
+  )
+)
 
 #summaryWriter = tf.train.SummaryWriter('logs/', sess.graph)
 #summaryWriter.flush()
