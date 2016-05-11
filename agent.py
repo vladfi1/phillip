@@ -43,7 +43,7 @@ class Agent:
         #print(score, best_action)
 
         #self.epsilon = RL.getEpsilon()
-        self.epsilon = 0.02
+        self.epsilon = 0.05
 
         if flip(self.epsilon):
             index = random.choice(range(len(scores)))

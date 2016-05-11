@@ -68,7 +68,7 @@ with tf.name_scope('train_q'):
   qLosses = tf.squared_difference(trainQs, targets)
   qLoss = tf.reduce_mean(qLosses)
 
-  opt = tf.train.AdamOptimizer(10.0 ** -6)
+  opt = tf.train.AdamOptimizer(10.0 ** -4)
   # train_q = opt.minimize(qLoss, global_step=global_step)
   # opt = tf.train.GradientDescentOptimizer(0.0)
   grads_and_vars = opt.compute_gradients(qLoss)
