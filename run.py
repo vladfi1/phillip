@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from dolphin import runDolphin
 from argparse import ArgumentParser
 parser = ArgumentParser()
 
@@ -19,6 +20,8 @@ parser.add_argument("--dolphin_dir", type=str,
 
 parser.add_argument("--parallel", type=int, help="spawn parallel cpus")
 
+parser.add_argument("--dolphin", action="store_true", help="run dolphin")
+parser.add_argument("--movie", type=str, help="movie to play on dolphin startup")
 args = parser.parse_args()
 
 def runCPU(args):
@@ -33,14 +36,19 @@ else:
   for i in range(args.parallel):
     d = args.__dict__.copy()
     d['tag'] = i
-    d['dolphin_dir'] = 'parallel/%d/' % i
-    p = Process(target=runCPU, args=[d])
-    p.start()
-    processes.append(p)
+    user = 'parallel/%d/' % i
+    d['dolphin_dir'] = user
+    runner = Process(target=runCPU, args=[d])
+    runner.start()
+
+    dolphin = runDolphin(user=user, count=args.parallel, movie=args.movie)
+    processes.append((runner, dolphin))
 
   try:
-    for p in processes:
-      p.join()
+    for r, d in processes:
+      r.join()
+      d.wait()
   except KeyboardInterrupt:
-    for p in processes:
+    for p, d in processes:
       p.terminate()
+      d.terminate()
