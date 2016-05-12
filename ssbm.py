@@ -104,6 +104,10 @@ class GameMemory(Structure):
 class SimpleButton(IntEnum):
   NONE = 0
   A = 1
+  B = 2
+  Z = 3
+  Y = 4
+  L = 5
 
 class SimpleStick(IntEnum):
   NEUTRAL = 0
@@ -139,7 +143,8 @@ class SimpleControllerState(Structure):
 
   def realController(self):
     controller = RealControllerState()
-    controller.button_A = self.button == SimpleButton.A
+    if self.button is not SimpleButton.NONE:
+      setattr(controller, "button_%s" % SimpleButton(self.button).name, True)
     #controller.button_B = self.button == SimpleButton.B
 
     controller.stick_MAIN = SimpleStick(self.stick_MAIN).stick
