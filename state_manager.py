@@ -53,6 +53,7 @@ class Handler:
     def __call__(self, obj, value):
         fields.setPath(obj, self.path, self.handler(value))
 
+# TODO: use numbers instead of strings to hash addresses
 def add_address(x, y):
     """Returns a string representation of the sum of the two parameters.
 
@@ -76,7 +77,7 @@ def playerAddresses(player_id, addresses=None):
     player_path = ['players', player_id]
 
     def playerHandler(field, handler):
-        return Handler(player_path + [field], handler)
+        return Handler(player_path + field.split('/'), handler)
 
     cursor_x_address = add_address('81118DEC', -0xB80 * player_id)
     cursor_y_address = add_address('81118DF0', -0xB80 * player_id)
@@ -87,6 +88,25 @@ def playerAddresses(player_id, addresses=None):
     type_handler = playerHandler('type', byteHandler) #, PlayerType, PlayerType.Unselected)
     character_handler = playerHandler('character', IntHandler(8, byte_mask)) #, Character, Character.Unselected)
     addresses[type_address] = [type_handler, character_handler]
+    
+    button_address = add_address('0x804C1FAC', 0x44 * player_id)
+    button_locs = dict(
+        Z = 4,
+        L = 5,
+        R = 6,
+        A = 8,
+        B = 9,
+        X = 10,
+        Y = 11
+    ).items()
+    addresses[button_address] = [playerHandler('controller/button_%s' % b, IntHandler(mask=1<<i)) for b, i in button_locs]
+
+    stick_address = 0x804C1FCC
+    for stick in ['MAIN', 'C']:
+        for axis in ['x', 'y']:
+            address = "{0:08X}".format(stick_address + 0x44 * player_id)
+            addresses[address] = playerHandler("controller/stick_%s/%s" % (stick, axis), floatHandler)
+            stick_address += 4
 
     static_pointer = 0x80453080 + 0xE90 * player_id
 
@@ -107,6 +127,24 @@ def playerAddresses(player_id, addresses=None):
     add_static_address(0x14, 'y', floatHandler)
     add_static_address(0x18, 'z', floatHandler)
 
+    """ TODO: figure out why these don't work
+    #add_static_address(0x688, 'controller/stick_MAIN/x', floatHandler)
+    #add_static_address(0x68C, 'controller/stick_MAIN/y', floatHandler)
+
+    add_static_address(0x698, 'controller/stick_C/x', floatHandler)
+    add_static_address(0x69C, 'controller/stick_C/y', floatHandler)
+
+    add_static_address(0x6BC, 'controller/button_Z', IntHandler(mask=1<<4))
+    add_static_address(0x6BC, 'controller/button_L', IntHandler(mask=1<<5))
+    add_static_address(0x6BC, 'controller/button_R', IntHandler(mask=1<<6))
+
+    add_static_address(0x6BC, 'controller/button_A', IntHandler(mask=1<<8))
+    add_static_address(0x6BC, 'controller/button_B', IntHandler(mask=1<<9))
+
+    add_static_address(0x6BC, 'controller/button_X', IntHandler(mask=1<<10))
+    add_static_address(0x6BC, 'controller/button_Y', IntHandler(mask=1<<11))
+    """
+
     # hitbox positions
     # add_static_address(0x18B4, 'x', floatHandler)
     # add_static_address(0x18B8, 'y', floatHandler)
@@ -122,7 +160,7 @@ def playerAddresses(player_id, addresses=None):
       else:
         addresses[address].append(handle)
 
-    add_data_address('70', 'action_state', intHandler)#, wrapper=ActionState, default=ActionState.Unselected)
+    add_data_address('70', 'action_state', intHandler)
     add_data_address('20CC', 'action_counter', shortHandler)
     add_data_address('8F4', 'action_frame', floatHandler)
 

@@ -5,8 +5,61 @@ import struct
 import tempfile
 import os
 
+@pretty_struct
+class Stick(Structure):
+  _fields = [
+    ('x', c_float),
+    ('y', c_float),
+  ]
+
+  def __init__(self, x=0.5, y=0.5):
+    self.x = x
+    self.y = y
+
+  def reset(self):
+    self.x = 0.5
+    self.y = 0.5
+
+@pretty_struct
+class RealControllerState(Structure):
+  _fields = [
+    ('button_A', c_bool),
+    ('button_B', c_bool),
+    ('button_X', c_bool),
+    ('button_Y', c_bool),
+    ('button_Z', c_bool),
+    ('button_L', c_bool),
+    ('button_R', c_bool),
+    ('button_START', c_bool),
+
+    ('trigger_L', c_float),
+    ('trigger_R', c_float),
+
+    ('stick_MAIN', Stick),
+    ('stick_C', Stick),
+  ]
+
+  def __init__(self):
+    self.reset()
+
+  def reset(self):
+    "Resets controller to neutral position."
+    self.button_A = False
+    self.button_B = False
+    self.button_X = False
+    self.button_Y = False
+    self.button_L = False
+    self.button_R = False
+
+    self.analog_L = 0.0
+    self.analog_R = 0.0
+
+    self.stick_MAIN.reset()
+    self.stick_C.reset()
+
+@pretty_struct
 class PlayerMemory(Structure):
-  _fields_ = [
+  _fields = [
     ('percent', c_uint),
     ('stock', c_uint),
     # True is right, false is left
@@ -32,81 +85,21 @@ class PlayerMemory(Structure):
 
     ('cursor_x', c_float),
     ('cursor_y', c_float),
+
+    # NOTE: the sticks here are [-1, 1],
+    # not [0, 1] like in pad.py
+    ('controller', RealControllerState)
   ]
 
-  __repr__ = toString
-  __hash__ = hashStruct
-  __eq__ = eqStruct
-
+@pretty_struct
 class GameMemory(Structure):
-  _fields_ = [
+  _fields = [
     ('players', PlayerMemory * 4),
 
     ('frame', c_uint),
     ('menu', c_uint),
     ('stage', c_uint)
   ]
-
-  __repr__ = toString
-  __hash__ = hashStruct
-  __eq__ = eqStruct
-
-class Stick(Structure):
-  _fields_ = [
-    ('x', c_float),
-    ('y', c_float),
-  ]
-
-  def __init__(self, x=0.5, y=0.5):
-    self.x = x
-    self.y = y
-
-  __repr__ = toString
-  __hash__ = hashStruct
-  __eq__ = eqStruct
-
-  def reset(self):
-    self.x = 0.5
-    self.y = 0.5
-
-
-class RealControllerState(Structure):
-  _fields_ = [
-    ('button_A', c_bool),
-    ('button_B', c_bool),
-    ('button_X', c_bool),
-    ('button_Y', c_bool),
-    ('button_L', c_bool),
-    ('button_R', c_bool),
-
-    ('trigger_L', c_float),
-    ('trigger_R', c_float),
-
-    ('stick_MAIN', Stick),
-    ('stick_C', Stick),
-  ]
-
-  __repr__ = toString
-  __hash__ = hashStruct
-  __eq__ = eqStruct
-
-  def __init__(self):
-    self.reset()
-
-  def reset(self):
-    "Resets controller to neutral position."
-    self.button_A = False
-    self.button_B = False
-    self.button_X = False
-    self.button_Y = False
-    self.button_L = False
-    self.button_R = False
-
-    self.analog_L = -1.0
-    self.analog_R = -1.0
-
-    self.stick_MAIN.reset()
-    self.stick_C.reset()
 
 class SimpleButton(IntEnum):
   NONE = 0
