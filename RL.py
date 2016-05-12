@@ -54,7 +54,7 @@ discount = 0.5 ** ( 1.0 / (fps*reward_halflife) )
 
 train_length = experience_length - n
 
-qMeans, qLogVariances = model.getQDists(embedded_states)
+qMeans, qLogVariances, actor = model.getQDists(embedded_states)
 realQs = tf.reduce_sum(tf.mul(qMeans, embedded_actions), 1)
 maxQs = tf.reduce_max(qMeans, 1)
 
@@ -72,12 +72,32 @@ trainQs = tf.slice(realQs, [0], train_length)
 qLosses = tf.squared_difference(trainQs, targets)
 qLoss = tf.reduce_mean(qLosses)
 
+#with tf.name_scope('actor'):
+actor_probs = tf.nn.softmax(actor)
+actorQs = tf.reduce_sum(tf.mul(actor_probs, realQs), 1)
+
+targets = tf.slice(actorQs, [n], train_length)
+for i in reversed(range(n)):
+  targets = tf.slice(rewards, [i], train_length) + discount * targets
+targets = tf.stop_gradient(targets)
+
+advantages = targets - tf.slice(actorQs, [0], train_length)
+vLoss = tf.reduce_mean(tf.square(advantages))
+
+log_actor_probs = tf.nn.log_softmax(actor)
+log_actor_probs = tf.slice(log_actor_probs, [0], train_length)
+aLoss = tf.reduce_mean(log_actor_probs * tf.stop_gradient(advantages))
+
+acLoss = vLoss - aLoss
+
+
 opt = tf.train.AdamOptimizer(10.0 ** -4)
 # train_q = opt.minimize(qLoss, global_step=global_step)
 # opt = tf.train.GradientDescentOptimizer(0.0)
 grads_and_vars = opt.compute_gradients(qLoss)
 grads_and_vars = [(g, v) for g, v in grads_and_vars if g is not None]
 train_q = opt.apply_gradients(grads_and_vars, global_step=global_step)
+
 
 # don't eat up cpu cores
 # or gpu memory
