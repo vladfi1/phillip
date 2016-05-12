@@ -88,7 +88,7 @@ def playerAddresses(player_id, addresses=None):
     type_handler = playerHandler('type', byteHandler) #, PlayerType, PlayerType.Unselected)
     character_handler = playerHandler('character', IntHandler(8, byte_mask)) #, Character, Character.Unselected)
     addresses[type_address] = [type_handler, character_handler]
-    
+
     button_address = add_address('0x804C1FAC', 0x44 * player_id)
     button_locs = dict(
         Z = 4,
@@ -97,7 +97,8 @@ def playerAddresses(player_id, addresses=None):
         A = 8,
         B = 9,
         X = 10,
-        Y = 11
+        Y = 11,
+        START = 12
     ).items()
     addresses[button_address] = [playerHandler('controller/button_%s' % b, IntHandler(mask=1<<i)) for b, i in button_locs]
 
