@@ -3,10 +3,42 @@ import tf_lib as tfl
 import util
 import ssbm
 
-
-embedFloat = lambda t: tf.reshape(t, [-1, 1])
+embedFloat = lambda t: tf.expand_dims(t, 1)
 
 castFloat = lambda t: embedFloat(tf.cast(t, tf.float32))
+
+def embedStruct(embedding):
+  def f(struct):
+    embed = []
+    for field, op in embedding:
+      with tf.name_scope(field):
+        embed.append(op(struct[field]))
+    return tf.concat(1, embed)
+  return f
+
+stickEmbedding = [
+  ('x', embedFloat),
+  ('y', embedFloat)
+]
+
+embedStick = embedStruct(stickEmbedding)
+
+controllerEmbedding = [
+  ('button_A', castFloat),
+  #('button_B', castFloat),
+  #('button_X', castFloat),
+  #('button_Y', castFloat),
+  #('button_L', castFloat),
+  #('button_R', castFloat),
+
+  #('trigger_L', embedFloat),
+  #('trigger_R', embedFloat),
+
+  ('stick_MAIN', embedStick),
+  #('stick_C', embedStick),
+]
+
+embedController = embedStruct(controllerEmbedding)
 
 maxAction = 512 # altf4 says 0x017E
 actionSpace = 32
@@ -43,24 +75,23 @@ playerEmbedding = [
   ('speed_ground_x_self', embedFloat),
   ('speed_y_self', embedFloat),
   ('speed_x_attack', embedFloat),
-  ('speed_y_attack', embedFloat)
-]
+  ('speed_y_attack', embedFloat),
 
-def embedStruct(embedding):
-  def f(struct):
-    embed = []
-    for field, op in embedding:
-      with tf.name_scope(field):
-        embed.append(op(struct[field]))
-    return tf.concat(1, embed)
-  return f
+  ('controller', embedController)
+]
 
 embedPlayer = embedStruct(playerEmbedding)
 
-def embedArray(embed, indices=None):
+def embedArray(op, indices=None):
 
   def f(array):
-    return tf.concat(1, [embed(array[i]) for i in indices])
+    #if indices is None:
+    #  indices = range(len(array))
+    embed = []
+    for i in indices:
+      with tf.name_scope(str(i)):
+        embed.append(op(array[i]))
+    return tf.concat(1, embed)
   return f
 
 """
@@ -82,30 +113,6 @@ gameEmbedding = [
 ]
 
 embedGame = embedStruct(gameEmbedding)
-
-stickEmbedding = [
-  ('x', embedFloat),
-  ('y', embedFloat)
-]
-
-embedStick = embedStruct(stickEmbedding)
-
-controllerEmbedding = [
-  ('button_A', castFloat),
-  ('button_B', castFloat),
-  ('button_X', castFloat),
-  ('button_Y', castFloat),
-  ('button_L', castFloat),
-  ('button_R', castFloat),
-
-  ('trigger_L', embedFloat),
-  ('trigger_R', embedFloat),
-
-  ('stick_MAIN', embedStick),
-  ('stick_C', embedStick),
-]
-
-embedController = embedStruct(controllerEmbedding)
 
 def embedEnum(enum):
   return tfl.one_hot(len(enum))
