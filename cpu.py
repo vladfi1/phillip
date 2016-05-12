@@ -179,6 +179,7 @@ class CPU:
         #       self.toggle = True
 
         elif self.state.menu in [menu.value for menu in [Menu.Characters, Menu.Stages, Menu.PostGame]]:
+            # print(self.state.players[0].controller)
             # wait for the movie to get us into the game
             pass
         else:

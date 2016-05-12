@@ -37,7 +37,7 @@ class Agent:
         self.ops = set([op.name + ':0' for op in self.sess.graph.get_operations()])
 
     def epsilon_greedy(self, state):
-        scores = RL.scoreActions(state, self.simple_controller.index)
+        scores = RL.scoreActions(state)
 
         score, best_action = max(zip(scores, ssbm.simpleControllerStates), key=lambda x: x[0])
         #print(score, best_action)
@@ -58,7 +58,7 @@ class Agent:
             print(self.simple_controller)
 
     def softmax(self, state):
-        probs = RL.getActionProbs(state, self.simple_controller.index)
+        probs = RL.getActionProbs(state)
         index = random.choice(range(len(probs)), p=probs)
         self.simple_controller = ssbm.SimpleControllerState.fromIndex(index)
 
@@ -89,7 +89,7 @@ class Agent:
             self.counter = 0
 
         #self.thompson(state)
-        self.epsilon_greedy(state)
-        #self.softmax(state)
+        #self.epsilon_greedy(state)
+        self.softmax(state)
 
         pad.send_controller(self.simple_controller.realController())

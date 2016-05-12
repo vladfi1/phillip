@@ -12,38 +12,25 @@ from config import *
 
 #----- set up inputs and model -----------
 with tf.name_scope('input'):
-  current_states = ct.inputCType(ssbm.GameMemory, [None], "states")
+  input_states = ct.inputCType(ssbm.GameMemory, [None], "states")
 
   # player 2's controls
-  #input_controls = ct.inputCType(ssbm.SimpleControllerState, [None], "controls")
-  prev_controls = ct.inputCType(ssbm.RealControllerState, [None], "prev_controls")
+  input_actions = tf.placeholder(tf.int32, [None], "actions")
+  experience_length = tf.shape(input_actions)
 
-  current_actions = tf.placeholder(tf.int32, [None], "current_actions")
-  experience_length = tf.shape(current_actions)
+embedded_states = embed.embedGame(input_states)
+state_size = embedded_states.get_shape()[-1].value
 
-embedded_states = embed.embedGame(current_states)
-#state_size = embedded_states.get_shape()[-1].value
+embedded_actions = embed.embedAction(input_actions)
 
-embedded_prev_controls = embed.embedController(prev_controls)
-#control_size = embedded_prev_controls.get_shape()[-1].value
-
-embedded_current_actions = embed.embedAction(current_actions)
-
-combined = tf.concat(1, [embedded_states, embedded_prev_controls])
-
-model = DQN(combined.get_shape()[-1].value, embed.action_size)
+model = DQN(state_size, embed.action_size)
 #---------------------------------------
-
 
 def feedStateActions(states, actions, feed_dict = None):
   if feed_dict is None:
     feed_dict = {}
-  ct.feedCTypes(ssbm.GameMemory, 'input/states', states[1:], feed_dict)
-  #ct.feedCTypes(ssbm.SimpleControllerState, 'input/controls', actions, feed_dict)
-  toRealController = lambda a: ssbm.simpleControllerStates[a].realController()
-  realControllers = list(map(toRealController, actions[:-1]))
-  ct.feedCTypes(ssbm.RealControllerState, 'input/prev_controls', realControllers, feed_dict)
-  feed_dict[current_actions] = actions[1:]
+  ct.feedCTypes(ssbm.GameMemory, 'input/states', states, feed_dict)
+  feed_dict[input_actions] = actions
   return feed_dict
 
 # instantaneous rewards for all but the first state
@@ -51,53 +38,49 @@ rewards = tf.placeholder(tf.float32, [None], name='rewards')
 
 global_step = tf.Variable(0, name='global_step', trainable=False)
 
+with tf.name_scope('temperature'):
+  #temperature = 0.05  * (0.5 ** (tf.cast(global_step, tf.float32) / 100000.0) + 0.1)
+  temperature = tf.constant(0.01)
+
+with tf.name_scope('epsilon'):
+  epsilon = tf.constant(0.02)
+  #epsilon = tf.maximum(0.05, 0.7 - tf.cast(global_step, tf.float32) / 5000000.0)
+
 n = 5
 
 reward_halflife = 2.0 # seconds
 fps = 60.0 / act_every
 discount = 0.5 ** ( 1.0 / (fps*reward_halflife) )
 
-with tf.name_scope('train_q'):
-  train_length = experience_length - n
+train_length = experience_length - n
 
-  qMeans, qLogVariances = model.getQDists(combined)
-  realQs = tf.reduce_sum(tf.mul(qMeans, embedded_current_actions), 1)
-  maxQs = tf.stop_gradient(tf.reduce_max(qMeans, 1))
+qMeans, qLogVariances = model.getQDists(embedded_states)
+realQs = tf.reduce_sum(tf.mul(qMeans, embedded_actions), 1)
+maxQs = tf.reduce_max(qMeans, 1)
 
-  targets = tf.slice(maxQs, [n], train_length)
-  for i in reversed(range(n)):
-    targets = tf.slice(rewards, [i+1], train_length) + discount * targets
+softmax_probs = tf.nn.softmax(qMeans / temperature)
+softmax_probs = (1 - epsilon) * softmax_probs + epsilon / embed.action_size
+expectedQs = tf.reduce_sum(tf.mul(softmax_probs, realQs), 1)
 
-  trainQs = tf.slice(realQs, [0], train_length)
-  #qLoss = model.getNLLQLoss(embedded_input, rewards)
-  qLosses = tf.squared_difference(trainQs, targets)
-  qLoss = tf.reduce_mean(qLosses)
+targets = tf.slice(maxQs, [n], train_length)
+for i in reversed(range(n)):
+  targets = tf.slice(rewards, [i], train_length) + discount * targets
+targets = tf.stop_gradient(targets)
 
-  opt = tf.train.AdamOptimizer(10.0 ** -4)
-  # train_q = opt.minimize(qLoss, global_step=global_step)
-  # opt = tf.train.GradientDescentOptimizer(0.0)
-  grads_and_vars = opt.compute_gradients(qLoss)
-  grads_and_vars = [(g, v) for g, v in grads_and_vars if g is not None]
-  train_q = opt.apply_gradients(grads_and_vars, global_step=global_step)
+trainQs = tf.slice(realQs, [0], train_length)
+#qLoss = model.getNLLQLoss(embedded_input, rewards)
+qLosses = tf.squared_difference(trainQs, targets)
+qLoss = tf.reduce_mean(qLosses)
 
-with tf.name_scope('epsilon'):
-  epsilon = tf.maximum(0.05, 0.7 - tf.cast(global_step, tf.float32) / 5000000.0)
+opt = tf.train.AdamOptimizer(10.0 ** -4)
+# train_q = opt.minimize(qLoss, global_step=global_step)
+# opt = tf.train.GradientDescentOptimizer(0.0)
+grads_and_vars = opt.compute_gradients(qLoss)
+grads_and_vars = [(g, v) for g, v in grads_and_vars if g is not None]
+train_q = opt.apply_gradients(grads_and_vars, global_step=global_step)
 
-def getEpsilon():
-  return sess.run(epsilon)
-
-with tf.name_scope('temperature'):
-  #temperature = 0.05  * (0.5 ** (tf.cast(global_step, tf.float32) / 100000.0) + 0.1)
-  temperature = tf.constant(0.01)
-
-def getTemperature():
-  return sess.run(temperature)
-
-with tf.name_scope('get_action'):
-  action_probs = tf.nn.softmax(qMeans / temperature)
-
-#sess = tf.Session()
 # don't eat up cpu cores
+# or gpu memory
 sess = tf.Session(
   config=tf.ConfigProto(
     inter_op_parallelism_threads=1,
@@ -112,24 +95,22 @@ sess = tf.Session(
 
 saver = tf.train.Saver(tf.all_variables())
 
-def feedStateAction(state, prev_action, feed_dict = None):
-  if feed_dict is None:
-    feed_dict = {}
-  ct.feedCTypes(ssbm.GameMemory, 'input/states', [state], feed_dict)
-  realController = ssbm.simpleControllerStates[prev_action].realController()
-  ct.feedCTypes(ssbm.RealControllerState, 'input/prev_controls', [realController], feed_dict)
-  return feed_dict
+def getEpsilon():
+  return sess.run(epsilon)
 
-def scoreActions(state, prev_action):
-  feed_dict = feedStateAction(state, prev_action)
+def getTemperature():
+  return sess.run(temperature)
+
+def scoreActions(state):
+  feed_dict = ct.feedCTypes(ssbm.GameMemory, 'input/states', [state])
   return sess.run(qMeans, feed_dict)[0]
 
-def getActionProbs(state, prev_action):
-  feed_dict = feedStateAction(state, prev_action)
-  return sess.run(action_probs, feed_dict)[0]
+def getActionProbs(state):
+  feed_dict = ct.feedCTypes(ssbm.GameMemory, 'input/states', [state])
+  return sess.run(softmax_probs, feed_dict)[0]
 
-def getActionDists(state, prev_action):
-  feed_dict = feedStateAction(state, prev_action)
+def getActionDists(state):
+  feed_dict = ct.feedCTypes(ssbm.GameMemory, 'input/states', [state])
   mu, log_sigma2 = sess.run([qMeans, qLogVariances], feed_dict)
   return (mu[0], log_sigma2[0])
 
