@@ -77,6 +77,7 @@ with tf.name_scope('train_q'):
   # train_q = opt.minimize(qLoss, global_step=global_step)
   # opt = tf.train.GradientDescentOptimizer(0.0)
   grads_and_vars = opt.compute_gradients(qLoss)
+  grads_and_vars = [(g, v) for g, v in grads_and_vars if g is not None]
   train_q = opt.apply_gradients(grads_and_vars, global_step=global_step)
 
 with tf.name_scope('epsilon'):
