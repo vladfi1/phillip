@@ -20,8 +20,11 @@ parser.add_argument("--dolphin_dir", type=str,
 
 parser.add_argument("--parallel", type=int, help="spawn parallel cpus")
 
-parser.add_argument("--dolphin", action="store_true", help="run dolphin")
+# some duplication going on here...
+#parser.add_argument("--dolphin", action="store_true", help="run dolphin")
 parser.add_argument("--movie", type=str, help="movie to play on dolphin startup")
+#parser.add_argument("--gfx", type=str, help="gfx backend")
+
 args = parser.parse_args()
 
 def runCPU(args):
@@ -31,12 +34,15 @@ def runCPU(args):
 if args.parallel is None:
   runCPU(args.__dict__)
 else:
+  prefix = args.dolphin_dir
+  if prefix is None:
+    prefix = 'parallel'
   from multiprocessing import Process
   processes = []
   for i in range(args.parallel):
     d = args.__dict__.copy()
     d['tag'] = i
-    user = 'parallel/%d/' % i
+    user = '%s/%d/' % (prefix, i)
     d['dolphin_dir'] = user
     runner = Process(target=runCPU, args=[d])
     runner.start()
