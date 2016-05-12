@@ -23,7 +23,8 @@ parser.add_argument("--parallel", type=int, help="spawn parallel cpus")
 # some duplication going on here...
 #parser.add_argument("--dolphin", action="store_true", help="run dolphin")
 parser.add_argument("--movie", type=str, help="movie to play on dolphin startup")
-#parser.add_argument("--gfx", type=str, help="gfx backend")
+parser.add_argument("--gfx", type=str, help="gfx backend")
+parser.add_argument("--exe", type=str, default="dolphin-emu-headless", help="dolphin executable")
 
 args = parser.parse_args()
 
@@ -47,7 +48,7 @@ else:
     runner = Process(target=runCPU, args=[d])
     runner.start()
 
-    dolphin = runDolphin(user=user, count=args.parallel, movie=args.movie)
+    dolphin = runDolphin(user=user, count=args.parallel, **args.__dict__)
     processes.append((runner, dolphin))
 
   try:
