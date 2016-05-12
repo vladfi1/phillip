@@ -43,7 +43,7 @@ class Agent:
         #print(score, best_action)
 
         #self.epsilon = RL.getEpsilon()
-        self.epsilon = 0.05
+        self.epsilon = 0.04
 
         if flip(self.epsilon):
             index = random.choice(range(len(scores)))
@@ -89,7 +89,7 @@ class Agent:
             self.counter = 0
 
         #self.thompson(state)
-        #self.epsilon_greedy(state)
-        self.softmax(state)
+        self.epsilon_greedy(state)
+        #self.softmax(state)
 
         pad.send_controller(self.simple_controller.realController())
