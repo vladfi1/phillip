@@ -170,33 +170,42 @@ def train(filename, steps=1):
       gs = sess.run([gv[0] for gv in grads_and_vars], feed_dict)
       vs = sess.run([gv[1] for gv in grads_and_vars], feed_dict)
       #   loss = sess.run(qLoss, feed_dict)
-      act_qs = sess.run(qs, feed_dict)
-      act_qs = list(map(util.compose(np.sort, np.abs), act_qs))
+      #act_qs = sess.run(qs, feed_dict)
+      #act_qs = list(map(util.compose(np.sort, np.abs), act_qs))
 
       #t = sess.run(temperature)
       #print("Temperature: ", t)
-      for i, act in enumerate(act_qs):
-        print("act_%d"%i, act)
-      print("grad/param(action)", np.mean(np.abs(gs[0] / vs[0])))
+      #for i, act in enumerate(act_qs):
+      #  print("act_%d"%i, act)
+      #print("grad/param(action)", np.mean(np.abs(gs[0] / vs[0])))
       #print("grad/param(stage)", np.mean(np.abs(gs[2] / vs[2])))
-      for i in range(len(layers)):
-        j = 2 * (i+1)
-        print("grad/param(q%d)" % (i+1), np.mean(np.abs(gs[j] / vs[j])))
+
+      print("param avg and max")
+      for g, v in zip(gs, vs):
+        abs_v = np.abs(v)
+        abs_g = np.abs(g)
+        print(v.shape, np.mean(abs_v), np.max(abs_v), np.mean(abs_g), np.max(abs_g))
+
+      print("grad/param avg and max")
+      for g, v in zip(gs, vs):
+        ratios = np.abs(g / v)
+        # print(np.mean(ratios), np.max(ratios))
+        print(np.sum(np.abs(g)) / np.sum(np.abs(v)))
       #print("grad", np.mean(np.abs(gs[4])))
       #print("param", np.mean(np.abs(vs[0])))
 
       # if step_index == 10:
-      import pdb; pdb.set_trace()
-    # import ipdb; ipdb.set_trace()
+      import ipdb; ipdb.set_trace()
 
     # print(sum(gvs))
     #sess.run([train_q, trainActor], feed_dict)
-
     sess.run(train_q, feed_dict)
 
     # sess.run(trainQ, feed_dict)
     #sess.run(trainActor, feed_dict)
   #print(sess.run([qLoss, actorQ], feed_dict))
+  # print("qLoss", sess.run(qLoss, feed_dict))
+
   print("Loss", sess.run(qLoss, feed_dict))
   print("vLoss", sess.run(vLoss, feed_dict))
   print("aLoss", sess.run(aLoss, feed_dict))

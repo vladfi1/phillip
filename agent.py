@@ -43,12 +43,15 @@ class Agent:
 
         if self.sample:
             # import ipdb; ipdb.set_trace()
-            scores = scores[0]
-            stick = random.choice([s for s in ssbm.SimpleStick], p=scores[:5])
-            button = random.choice([s for s in ssbm.SimpleButton], p=scores[5:])
-            self.simple_controller = ssbm.SimpleControllerState(
-                button=button,
-                stick_MAIN=stick)
+            if flip(self.epsilon):
+                self.simple_controller = ssbm.SimpleControllerState.randomValue()
+            else:
+                scores = scores[0]
+                stick = random.choice([s for s in ssbm.SimpleStick], p=scores[:5])
+                button = random.choice([s for s in ssbm.SimpleButton], p=scores[5:])
+                self.simple_controller = ssbm.SimpleControllerState(
+                    button=button,
+                    stick_MAIN=stick)
         else:
             scored_actions = zip(scores, ssbm.simpleControllerStates)
             score, best_action = max(

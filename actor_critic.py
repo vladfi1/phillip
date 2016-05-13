@@ -53,10 +53,21 @@ class ActorCritic:
     return getOutput(self.shared_layers + self.critic, state)
 
   def getLoss(self, states, actions, returns, rewards):
+    n = 5
+    experience_length = tf.shape(states)[0]
+    train_length = tf.expand_dims(experience_length - n, 0)
     vOuts = self.getValue(states)
 
-    vLosses = tf.squared_difference(vOuts, returns)
+    targets = tf.slice(vOuts, [n], train_length)
+    for i in reversed(range(n)):
+      targets = tf.slice(rewards, [i], train_length) + discount_factor * targets
+    targets = tf.stop_gradient(targets)
+
+    trainVs = tf.slice(vOuts, [0], train_length)
+    vLosses = tf.squared_difference(trainVs, targets)
     vLoss = tf.reduce_mean(vLosses)
+    # vLosses = tf.squared_difference(vOuts, returns)
+    # vLoss = tf.reduce_mean(vLosses)
 
     action_probs = self.getActionDist(states)
 
@@ -75,21 +86,30 @@ class ActorCritic:
     entropy = - tf.reduce_sum(action_probs * log_action_probs, 1)/2
 
 
-    vOut_next = tf.pad(vOuts[1:], [[0, 1]], "SYMMETRIC")
+    # vOut_next = tf.pad(vOuts[1:], [[0, 1]], "SYMMETRIC")
     # vOuts = tf.Print(vOuts, [vOuts], message="vOuts")
     # vOut_next = tf.Print(vOut_next, [vOut_next], message="vOut_next")
     # vOut_next = tf.Print(vOut_next, [vOut_next], message="vOut_next")
     # vOut_current = tf.slice(vOuts, [0], tf.shape(vOuts) - 1)
-    one_step_advantages = (rewards
-                           + discount_factor * vOut_next
-                           - vOuts)
-    one_step_advantages = tf.stop_gradient(one_step_advantages)
+    # one_step_advantages = (rewards
+                          #  + discount_factor * vOut_next
+                          #  - vOuts)
+    # vLosses = tf.square(one_step_advantages)
+    # vLoss = tf.reduce_mean(vLosses)
+    n_step_advantages = targets - trainVs
+    nograd_advantages = tf.stop_gradient(n_step_advantages)
 
-    sum_log_action_probs = tf.reduce_sum(actions * log_action_probs, 1)
+    # actions should be (concatenated) delta-mass distributions
+    sum_log_action_probs = tf.reduce_sum(actions * action_probs, 1)
+    # sum_log_action_probs = tf.reduce_sum(actions * log_action_probs, 1)
+    
+    train_sum_log_action_probs = tf.slice(sum_log_action_probs, [0], train_length)
 
-
-    self.aLosses = sum_log_action_probs * one_step_advantages - 0.01 * entropy
+    # log pi(a_t | s_t ; theta) (R - V(s_t ; theta_v))
+    self.aLosses = train_sum_log_action_probs * nograd_advantages # - 0.01 * entropy
     aLoss = tf.reduce_mean(self.aLosses)
 
-    aLoss = - aLoss # this gradient is in the direction of increasing reward
+    # aLoss increases with increased rewards
+    # negate it to find the quantity to minimize
+    # aLoss = - aLoss
     return (vLoss, aLoss)
