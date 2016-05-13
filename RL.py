@@ -132,8 +132,8 @@ def computeRewards(states):
 
   # print(states[random.randint(0, len(states))].players[0])
 
-  kills = map(float, processDeaths(kills))
-  deaths = map(float, processDeaths(deaths))
+  kills = list(map(float, processDeaths(kills)))
+  deaths = list(map(float, processDeaths(deaths)))
   # print("Deaths for current memory: ", sum(deaths))
   # print("Kills for current memory: ", sum(kills))
 
