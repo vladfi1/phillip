@@ -132,16 +132,16 @@ def computeRewards(states):
 
   # print(states[random.randint(0, len(states))].players[0])
 
-  kills = processDeaths(kills)
-  deaths = processDeaths(deaths)
+  kills = map(float, processDeaths(kills))
+  deaths = map(float, processDeaths(deaths))
   # print("Deaths for current memory: ", sum(deaths))
   # print("Kills for current memory: ", sum(kills))
 
   damage_dealt = [max(states[i+1].players[0].percent - states[i].players[0].percent, 0) for i in range(len(states)-1)]
   damage_taken = [max(states[i+1].players[1].percent - states[i].players[1].percent, 0) for i in range(len(states)-1)]
 
-  scores = util.zipWith(lambda k, d: k - d, kills[1:], deaths[1:])
-  final_scores = util.zipWith(lambda score, dealt, taken: score + (dealt - taken) / 100, scores, damage_dealt, damage_taken)
+  scores = util.zipWith(lambda k, d: k - 10.0 * d, kills[1:], deaths[1:])
+  final_scores = util.zipWith(lambda score, dealt, taken: score + (dealt - 10.0 * taken) / 100, scores, damage_dealt, damage_taken)
 
   print("Damage dealt: ", sum(damage_dealt))
   print("Damage taken: ", sum(damage_taken))
