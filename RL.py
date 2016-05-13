@@ -45,8 +45,8 @@ with tf.name_scope('temperature'):
   temperature = tf.constant(0.01)
 
 with tf.name_scope('epsilon'):
-  epsilon = tf.constant(0.02)
-  #epsilon = tf.maximum(0.05, 0.7 - tf.cast(global_step, tf.float32) / 5000000.0)
+  #epsilon = tf.constant(0.02)
+  epsilon = tf.maximum(0.05, 0.5 - tf.cast(global_step, tf.float32) / 500000.0)
 
 # TD(n)
 n = 5
@@ -202,7 +202,8 @@ def train(filename, steps=1):
     # sess.run(trainQ, feed_dict)
     #sess.run(trainActor, feed_dict)
   #print(sess.run([qLoss, actorQ], feed_dict))
-  q, a, e = sess.run([vLoss, actor_gain, actor_entropy], feed_dict)
+  g, q, a, e = sess.run([global_step, vLoss, actor_gain, actor_entropy], feed_dict)
+  print("global_step", g)
   print("vLoss", q)
   print("actor_gain", a)
   print("entropy", e)
