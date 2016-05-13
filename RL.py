@@ -223,11 +223,11 @@ def train(filename, steps=1):
     # sess.run(trainQ, feed_dict)
     #sess.run(trainActor, feed_dict)
   #print(sess.run([qLoss, actorQ], feed_dict))
-  q, a, e = sess.run([qLoss, actor_gain, entropy]  print("qLoss", , feed_dict))
+  q, a, e = sess.run([qLoss, actor_gain, entropy], feed_dict)
   print("qLoss", q)
   print("actor_gain", a)
   print("entropy", e)
-  
+
   return sum(r)
 
 def save(name):
