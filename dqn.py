@@ -13,9 +13,8 @@ class DQN:
 
     mu = tfl.makeAffineLayer(layer_sizes[-1], action_size)
     log_sigma2 = tfl.makeAffineLayer(layer_sizes[-1], action_size)
-    actor = tfl.makeAffineLayer(layer_sizes[-1], action_size)
 
-    self.layers.append(lambda x: (mu(x), log_sigma2(x), actor(x)))
+    self.layers.append(lambda x: (mu(x), log_sigma2(x)))
 
   def getQLayers(self, state):
     outputs = [state]

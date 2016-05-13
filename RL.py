@@ -8,6 +8,7 @@ import ctype_util as ct
 import numpy as np
 import embed
 from dqn import DQN
+from actor_critic import ActorCritic
 import config
 from operator import add, sub
 
@@ -24,7 +25,7 @@ state_size = embedded_states.get_shape()[-1].value
 
 embedded_actions = embed.embedAction(input_actions)
 
-model = DQN(state_size, embed.action_size)
+model = ActorCritic(state_size, embed.action_size)
 #---------------------------------------
 
 def feedStateActions(states, actions, feed_dict = None):
@@ -55,50 +56,28 @@ discount = 0.5 ** ( 1.0 / (config.fps*reward_halflife) )
 
 train_length = experience_length - n
 
-qMeans, qLogVariances, actor = model.getQDists(embedded_states)
-realQs = tfl.batch_dot(qMeans, embedded_actions)
-trainQs = tf.slice(realQs, [0], train_length)
+values, actor = model.getOutput(embedded_states)
+trainVs = tf.slice(values, [0], train_length)
 
-""" DQN
-maxQs = tf.reduce_max(qMeans, 1)
-
-softmax_probs = tf.nn.softmax(qMeans / temperature)
-softmax_probs = (1 - epsilon) * softmax_probs + epsilon / embed.action_size
-expectedQs = tf.reduce_sum(tf.mul(softmax_probs, qMeans), 1)
-
-targets = tf.slice(maxQs, [n], train_length)
-for i in reversed(range(n)):
-  targets = tf.slice(rewards, [i], train_length) + discount * targets
-targets = tf.stop_gradient(targets)
-
-#qLoss = model.getNLLQLoss(embedded_input, rewards)
-qLosses = tf.squared_difference(trainQs, targets)
-qLoss = tf.reduce_mean(qLosses)
-"""
-
-#with tf.name_scope('actor'):
 actor_probs = tf.nn.softmax(actor)
 actor_probs = (1 - epsilon) * actor_probs + epsilon / embed.action_size
-actorQs = tfl.batch_dot(tf.stop_gradient(actor_probs), qMeans)
 
 # smooth between TD(m) for m<=n?
-targets = tf.slice(actorQs, [n], train_length)
+targets = tf.slice(values, [n], train_length)
 for i in reversed(range(n)):
   targets = tf.slice(rewards, [i], train_length) + discount * targets
 targets = tf.stop_gradient(targets)
 
-qLoss = tf.reduce_mean(tf.squared_difference(trainQs, targets))
-
-advantages = targets - tf.slice(actorQs, [0], train_length)
-#vLoss = tf.reduce_mean(tf.square(advantages))
+advantages = targets - trainVs
+vLoss = tf.reduce_mean(tf.square(advantages))
 
 log_actor_probs = tf.log(actor_probs)
 actor_entropy = tf.reduce_mean(tfl.batch_dot(actor_probs, log_actor_probs))
 real_log_actor_probs = tfl.batch_dot(embedded_actions, tf.log(actor_probs))
-real_log_actor_probs = tf.slice(real_log_actor_probs, [0], train_length)
-actor_gain = tf.reduce_mean(tf.mul(log_actor_probs, tf.stop_gradient(advantages)))
+train_log_actor_probs = tf.slice(real_log_actor_probs, [0], train_length)
+actor_gain = tf.reduce_mean(tf.mul(train_log_actor_probs, tf.stop_gradient(advantages)))
 
-acLoss = qLoss - actor_gain# + actor_entropy
+acLoss = vLoss - actor_gain# + actor_entropy
 
 opt = tf.train.AdamOptimizer(10.0 ** -4)
 # train_q = opt.minimize(qLoss, global_step=global_step)
@@ -223,8 +202,8 @@ def train(filename, steps=1):
     # sess.run(trainQ, feed_dict)
     #sess.run(trainActor, feed_dict)
   #print(sess.run([qLoss, actorQ], feed_dict))
-  q, a, e = sess.run([qLoss, actor_gain, entropy], feed_dict)
-  print("qLoss", q)
+  q, a, e = sess.run([vLoss, actor_gain, actor_entropy], feed_dict)
+  print("vLoss", q)
   print("actor_gain", a)
   print("entropy", e)
 
