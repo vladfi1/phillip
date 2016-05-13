@@ -11,6 +11,9 @@ def leaky_relu(x, alpha=0.01):
 def product(xs):
   return functools.reduce(operator.mul, xs, 1.0)
 
+def batch_dot(xs, ys):
+  return tf.reduce_sum(tf.mul(xs, ys), 1)
+
 def weight_variable(shape):
     '''
     Generates a TensorFlow Tensor. This Tensor gets initialized with values sampled from the truncated normal
