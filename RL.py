@@ -46,7 +46,7 @@ with tf.name_scope('temperature'):
 
 with tf.name_scope('epsilon'):
   #epsilon = tf.constant(0.02)
-  epsilon = tf.maximum(0.05, 0.5 - tf.cast(global_step, tf.float32) / 500000.0)
+  epsilon = 0.04 + 0.5 * tf.exp(-tf.cast(global_step, tf.float32) / 50000.0)
 
 # TD(n)
 n = 5
