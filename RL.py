@@ -195,18 +195,12 @@ def train(filename, steps=1):
       # if step_index == 10:
       import ipdb; ipdb.set_trace()
 
-    # print(sum(gvs))
-    #sess.run([train_q, trainActor], feed_dict)
-    sess.run(train_q, feed_dict)
+    g, q, a, e, _ = sess.run([global_step, vLoss, actor_gain, actor_entropy, train_q], feed_dict)
 
-    # sess.run(trainQ, feed_dict)
-    #sess.run(trainActor, feed_dict)
-  #print(sess.run([qLoss, actorQ], feed_dict))
-  g, q, a, e = sess.run([global_step, vLoss, actor_gain, actor_entropy], feed_dict)
-  print("global_step", g)
-  print("vLoss", q)
-  print("actor_gain", a)
-  print("entropy", e)
+    print("global_step", g)
+    print("vLoss", q)
+    print("actor_gain", a)
+    print("entropy", e)
 
   return sum(r)
 
