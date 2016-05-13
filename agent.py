@@ -1,6 +1,7 @@
 import tensorflow as tf
 import ssbm
 import tf_lib as tfl
+import numpy as np
 from numpy import random, exp
 import RL
 
