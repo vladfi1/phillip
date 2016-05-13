@@ -8,16 +8,15 @@ import ctype_util as ct
 import numpy as np
 import embed
 from dqn import DQN
-from config import *
+import config
 from operator import add, sub
 
 #----- set up inputs and model -----------
 with tf.name_scope('input'):
-  input_states = ct.inputCType(ssbm.GameMemory, [None], "states")
+  input_states = ct.inputCType(ssbm.GameMemory, [config.experience_length], "states")
 
   # player 2's controls
-  input_actions = tf.placeholder(tf.int32, [None], "actions")
-  experience_length = tf.shape(input_actions)
+  input_actions = tf.placeholder(tf.int32, [config.experience_length], "actions")
 
 embedded_states = embed.embedGame(input_states)
 state_size = embedded_states.get_shape()[-1].value
@@ -35,7 +34,7 @@ def feedStateActions(states, actions, feed_dict = None):
   return feed_dict
 
 # instantaneous rewards for all but the first state
-rewards = tf.placeholder(tf.float32, [None], name='rewards')
+rewards = tf.placeholder(tf.float32, [config.experience_length-1], name='rewards')
 
 global_step = tf.Variable(0, name='global_step', trainable=False)
 
@@ -47,17 +46,17 @@ with tf.name_scope('epsilon'):
   epsilon = tf.constant(0.02)
   #epsilon = tf.maximum(0.05, 0.7 - tf.cast(global_step, tf.float32) / 5000000.0)
 
+# TD(n)
 n = 5
 
 reward_halflife = 2.0 # seconds
-fps = 60.0 / act_every
-discount = 0.5 ** ( 1.0 / (fps*reward_halflife) )
+discount = 0.5 ** ( 1.0 / (config.fps*reward_halflife) )
 
-train_length = experience_length - n
+train_length = config.experience_length - n
 
 qMeans, qLogVariances, actor = model.getQDists(embedded_states)
-realQs = tf.reduce_sum(tf.mul(qMeans, embedded_actions), 1)
-trainQs = tf.slice(realQs, [0], train_length)
+realQs = tfl.batch_dot(qMeans, embedded_actions)
+trainQs = tf.slice(realQs, [0], [train_length])
 
 """ DQN
 maxQs = tf.reduce_max(qMeans, 1)
@@ -79,21 +78,22 @@ qLoss = tf.reduce_mean(qLosses)
 #with tf.name_scope('actor'):
 actor_probs = tf.nn.softmax(actor)
 actor_probs = (1 - epsilon) * actor_probs + epsilon / embed.action_size
-actorQs = tf.reduce_sum(tf.mul(tf.stop_gradient(actor_probs), qMeans), 1)
+actorQs = tfl.batch_dot(tf.stop_gradient(actor_probs), qMeans)
 
-targets = tf.slice(actorQs, [n], train_length)
+# smooth between TD(m) for m<=n?
+targets = tf.slice(actorQs, [n], [train_length])
 for i in reversed(range(n)):
-  targets = tf.slice(rewards, [i], train_length) + discount * targets
+  targets = tf.slice(rewards, [i], [train_length]) + discount * targets
 targets = tf.stop_gradient(targets)
 
 qLoss = tf.reduce_mean(tf.squared_difference(trainQs, targets))
-advantages = targets - tf.slice(actorQs, [0], train_length)
+
+advantages = targets - tf.slice(actorQs, [0], [train_length])
 #vLoss = tf.reduce_mean(tf.square(advantages))
 
-log_actor_probs = tf.log(actor_probs)
-#log_actor_probs = tf.nn.log_softmax(actor)
-log_actor_probs = tf.slice(log_actor_probs, [0, 0], tf.concat(0, [train_length, tf.constant([-1])]))
-actor_gain = tf.reduce_mean(log_actor_probs * tf.stop_gradient(advantages))
+log_actor_probs = tfl.batch_dot(embedded_actions, tf.log(actor_probs))
+log_actor_probs = tf.slice(log_actor_probs, [0], [train_length])
+actor_gain = tf.reduce_mean(tf.mul(log_actor_probs, tf.stop_gradient(advantages)))
 
 acLoss = qLoss - actor_gain
 
