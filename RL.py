@@ -57,45 +57,51 @@ train_length = experience_length - n
 
 qMeans, qLogVariances, actor = model.getQDists(embedded_states)
 realQs = tf.reduce_sum(tf.mul(qMeans, embedded_actions), 1)
+trainQs = tf.slice(realQs, [0], train_length)
+
+""" DQN
 maxQs = tf.reduce_max(qMeans, 1)
 
 softmax_probs = tf.nn.softmax(qMeans / temperature)
 softmax_probs = (1 - epsilon) * softmax_probs + epsilon / embed.action_size
-expectedQs = tf.reduce_sum(tf.mul(softmax_probs, realQs), 1)
+expectedQs = tf.reduce_sum(tf.mul(softmax_probs, qMeans), 1)
 
 targets = tf.slice(maxQs, [n], train_length)
 for i in reversed(range(n)):
   targets = tf.slice(rewards, [i], train_length) + discount * targets
 targets = tf.stop_gradient(targets)
 
-trainQs = tf.slice(realQs, [0], train_length)
 #qLoss = model.getNLLQLoss(embedded_input, rewards)
 qLosses = tf.squared_difference(trainQs, targets)
 qLoss = tf.reduce_mean(qLosses)
+"""
 
 #with tf.name_scope('actor'):
 actor_probs = tf.nn.softmax(actor)
-actorQs = tf.reduce_sum(tf.mul(actor_probs, realQs), 1)
+actor_probs = (1 - epsilon) * actor_probs + epsilon / embed.action_size
+actorQs = tf.reduce_sum(tf.mul(tf.stop_gradient(actor_probs), qMeans), 1)
 
 targets = tf.slice(actorQs, [n], train_length)
 for i in reversed(range(n)):
   targets = tf.slice(rewards, [i], train_length) + discount * targets
 targets = tf.stop_gradient(targets)
 
+qLoss = tf.reduce_mean(tf.squared_difference(trainQs, targets))
 advantages = targets - tf.slice(actorQs, [0], train_length)
-vLoss = tf.reduce_mean(tf.square(advantages))
+#vLoss = tf.reduce_mean(tf.square(advantages))
 
-log_actor_probs = tf.nn.log_softmax(actor)
-log_actor_probs = tf.slice(log_actor_probs, [0], train_length)
-aLoss = tf.reduce_mean(log_actor_probs * tf.stop_gradient(advantages))
+log_actor_probs = tf.log(actor_probs)
+#log_actor_probs = tf.nn.log_softmax(actor)
+log_actor_probs = tf.slice(log_actor_probs, [0, 0], tf.concat(0, [train_length, tf.constant([-1])]))
+actor_gain = tf.reduce_mean(log_actor_probs * tf.stop_gradient(advantages))
 
-acLoss = vLoss - aLoss
-
+acLoss = qLoss - actor_gain
 
 opt = tf.train.AdamOptimizer(10.0 ** -4)
 # train_q = opt.minimize(qLoss, global_step=global_step)
 # opt = tf.train.GradientDescentOptimizer(0.0)
-grads_and_vars = opt.compute_gradients(qLoss)
+#grads_and_vars = opt.compute_gradients(qLoss)
+grads_and_vars = opt.compute_gradients(acLoss)
 grads_and_vars = [(g, v) for g, v in grads_and_vars if g is not None]
 train_q = opt.apply_gradients(grads_and_vars, global_step=global_step)
 
@@ -134,6 +140,10 @@ def getActionDists(state):
   feed_dict = ct.feedCTypes(ssbm.GameMemory, 'input/states', [state])
   mu, log_sigma2 = sess.run([qMeans, qLogVariances], feed_dict)
   return (mu[0], log_sigma2[0])
+
+def getActorProbs(state):
+  feed_dict = ct.feedCTypes(ssbm.GameMemory, 'input/states', [state])
+  return sess.run(actor_probs, feed_dict)[0]
 
 # see https://docs.google.com/spreadsheets/d/1JX2w-r2fuvWuNgGb6D3Cs4wHQKLFegZe2jhbBuIhCG8/edit#gid=13
 dyingActions = set(range(0xA))

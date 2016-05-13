@@ -79,6 +79,17 @@ class Agent:
             print("Dists", self.dists)
             print(self.simple_controller)
 
+    def actor(self, state):
+        probs = RL.getActorProbs(state)
+        probs /= np.sum(probs) # shouldn't be necessary?
+        index = random.choice(range(len(probs)), p=probs)
+        self.simple_controller = ssbm.SimpleControllerState.fromIndex(index)
+
+        if self.counter % 60 == 0:
+            print(state.players[1])
+            print("Probs", probs)
+            print(self.simple_controller)
+
     def act(self, state, pad):
         self.counter += 1
 
@@ -89,7 +100,8 @@ class Agent:
             self.counter = 0
 
         #self.thompson(state)
-        self.epsilon_greedy(state)
+        #self.epsilon_greedy(state)
         #self.softmax(state)
+        self.actor(state)
 
         pad.send_controller(self.simple_controller.realController())
