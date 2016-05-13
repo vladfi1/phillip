@@ -9,6 +9,7 @@ import numpy as np
 import embed
 from dqn import DQN
 from config import *
+from operator import add, sub
 
 #----- set up inputs and model -----------
 with tf.name_scope('input'):
@@ -143,31 +144,21 @@ def isDying(player):
 # players tend to be dead for many frames in a row
 # here we prune all but the first frame of the death
 def processDeaths(deaths):
-  return util.zipWith(lambda prev, next: (not prev) and next, [False] + deaths[:-1] , deaths)
+  return np.array(util.zipWith(lambda prev, next: float((not prev) and next), deaths, deaths[1:]))
+
+def processDamages(percents):
+  return np.array(util.zipWith(lambda prev, next: max(next-prev, 0), percents, percents[1:]))
 
 # from player 2's perspective
-def computeRewards(states):
-  kills = [isDying(state.players[0]) for state in states]
-  deaths = [isDying(state.players[1]) for state in states]
+def computeRewards(states, enemies=[0], allies=[1], damage_ratio=0.01):
+  players = enemies + allies
 
-  # print(states[random.randint(0, len(states))].players[0])
+  deaths = {p : processDeaths([isDying(s.players[p]) for s in states]) for p in players}
+  damages = {p : processDamages([s.players[p].percent for s in states]) for p in players}
 
-  kills = processDeaths(kills)
-  deaths = processDeaths(deaths)
-  # print("Deaths for current memory: ", sum(deaths))
-  # print("Kills for current memory: ", sum(kills))
+  losses = {p : deaths[p] + damage_ratio * damages[p] for p in players}
 
-  damage_dealt = [max(states[i+1].players[0].percent - states[i].players[0].percent, 0) for i in range(len(states)-1)]
-  damage_taken = [max(states[i+1].players[1].percent - states[i].players[1].percent, 0) for i in range(len(states)-1)]
-
-  scores = util.zipWith(lambda k, d: k - d, kills[1:], deaths[1:])
-  final_scores = util.zipWith(lambda score, dealt, taken: score + (dealt - taken) / 100, scores, damage_dealt, damage_taken)
-
-  print("Damage dealt: ", sum(damage_dealt))
-  print("Damage taken: ", sum(damage_taken))
-  print("Total score: ", sum(final_scores))
-
-  return final_scores
+  return sum(losses[p] for p in enemies) - sum(losses[p] for p in allies)
 
 debug = False
 
