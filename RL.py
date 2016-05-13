@@ -92,11 +92,13 @@ qLoss = tf.reduce_mean(tf.squared_difference(trainQs, targets))
 advantages = targets - tf.slice(actorQs, [0], train_length)
 #vLoss = tf.reduce_mean(tf.square(advantages))
 
-log_actor_probs = tfl.batch_dot(embedded_actions, tf.log(actor_probs))
-log_actor_probs = tf.slice(log_actor_probs, [0], train_length)
+log_actor_probs = tf.log(actor_probs)
+actor_entropy = tf.reduce_mean(tfl.batch_dot(actor_probs, log_actor_probs))
+real_log_actor_probs = tfl.batch_dot(embedded_actions, tf.log(actor_probs))
+real_log_actor_probs = tf.slice(real_log_actor_probs, [0], train_length)
 actor_gain = tf.reduce_mean(tf.mul(log_actor_probs, tf.stop_gradient(advantages)))
 
-acLoss = qLoss - actor_gain
+acLoss = qLoss - actor_gain# + actor_entropy
 
 opt = tf.train.AdamOptimizer(10.0 ** -4)
 # train_q = opt.minimize(qLoss, global_step=global_step)
@@ -221,7 +223,11 @@ def train(filename, steps=1):
     # sess.run(trainQ, feed_dict)
     #sess.run(trainActor, feed_dict)
   #print(sess.run([qLoss, actorQ], feed_dict))
-  print("qLoss", sess.run(qLoss, feed_dict))
+  q, a, e = sess.run([qLoss, actor_gain, entropy]  print("qLoss", , feed_dict))
+  print("qLoss", q)
+  print("actor_gain", a)
+  print("entropy", e)
+  
   return sum(r)
 
 def save(name):
