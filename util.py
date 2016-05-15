@@ -1,3 +1,5 @@
+from numpy import random
+
 def foldl(f, init, l):
   for x in l:
     init = f(init, x)
@@ -51,3 +53,5 @@ def deepMap(f, obj):
     return [deepMap(f, x) for x in obj]
   return f(obj)
 
+def flip(p):
+  return random.binomial(1, p)

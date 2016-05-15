@@ -1,22 +1,39 @@
 import tensorflow as tf
 import tf_lib as tfl
 import util
+from numpy import random
+import config
 
 class DQN:
-  def __init__(self, input_size, action_size):
-    self.input_size = input_size
+  def __init__(self, state_size, action_size, global_step):
     self.action_size = action_size
+    self.layer_sizes = [state_size, 128, 128]
+    self.layers = []
 
-    layer_sizes = [input_size, 128, 128]
-    self.layers = [tfl.makeAffineLayer(prev, next, tfl.leaky_relu)
-      for prev, next in zip(layer_sizes[:-1], layer_sizes[1:])]
+    for i in range(len(self.layer_sizes)-1):
+      prev_size = self.layer_sizes[i]
+      next_size = self.layer_sizes[i+1]
 
-    mu = tfl.makeAffineLayer(layer_sizes[-1], action_size)
-    log_sigma2 = tfl.makeAffineLayer(layer_sizes[-1], action_size)
+      with tf.variable_scope("layer_%d" % i):
+        self.layers.append(tfl.makeAffineLayer(prev_size, next_size, tfl.leaky_relu))
 
-    self.layers.append(lambda x: (mu(x), log_sigma2(x)))
+    with tf.variable_scope('mean'):
+      mean = tfl.makeAffineLayer(self.layer_sizes[-1], action_size)
 
-  def getQLayers(self, state):
+    with tf.variable_scope('log_variance'):
+      log_variance = tfl.makeAffineLayer(self.layer_sizes[-1], action_size)
+
+    self.layers.append(lambda x: (mean(x), log_variance(x)))
+
+    with tf.name_scope('epsilon'):
+      #epsilon = tf.constant(0.02)
+      self.epsilon = 0.04 + 0.5 * tf.exp(-tf.cast(global_step, tf.float32) / 50000.0)
+
+    with tf.name_scope('temperature'):
+      #temperature = 0.05  * (0.5 ** (tf.cast(global_step, tf.float32) / 100000.0) + 0.1)
+      self.temperature = tf.constant(0.01)
+
+  def getLayers(self, state):
     outputs = [state]
     for i, f in enumerate(self.layers):
       with tf.name_scope('q%d' % i):
@@ -25,20 +42,42 @@ class DQN:
     return outputs
 
   def getQDists(self, state):
-    return self.getQLayers(state)[-1]
+    return self.getLayers(state)[-1]
 
   def getQValues(self, state):
     return self.getQDists(state)[0]
 
-  def getSquaredQLoss(self, states, rewards):
-    qs = self.getQValues(states)
+  def getLoss(self, states, actions, rewards):
+    n = config.tdN
+    train_length = [config.experience_length - n]
 
-    qLosses = tf.squared_difference(mu, rewards)
+    qValues = self.getQValues(states)
+    maxQs = tf.reduce_max(qValues, 1)
+
+    # smooth between TD(m) for m<=n?
+    targets = tf.slice(maxQs, [n], train_length)
+    for i in reversed(range(n)):
+      targets = tf.slice(rewards, [i], train_length) + config.discount * targets
+    targets = tf.stop_gradient(targets)
+
+    realQs = tfl.batch_dot(actions, qValues)
+    trainQs = tf.slice(realQs, [0], train_length)
+
+    qLosses = tf.squared_difference(trainQs, targets)
     qLoss = tf.reduce_mean(qLosses)
-    return qLoss
+    return qLoss, [("qLoss", qLoss)]
 
   def getNLLQLoss(self, states, rewards):
     "Negative Log-Likelihood"
     mu, log_sigma2 = self.getQValues(states)
     nll = tf.squared_difference(mu, rewards) * tf.exp(-log_sigma2) + log_sigma2
     return tf.reduce_mean(nll)
+
+  def getPolicy(self, state):
+    return [self.epsilon, tf.argmax(self.getQValues(state), 1)]
+
+  def act(self, policy):
+    epsilon, [best_action] = policy
+    if util.flip(epsilon):
+      return random.choice(range(self.action_size))
+    return best_action

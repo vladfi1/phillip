@@ -5,10 +5,14 @@ import config
 from numpy import random
 
 class ActorCritic:
-  def __init__(self, state_size, action_size, epsilon):
+  def __init__(self, state_size, action_size, global_step):
     self.action_size = action_size
     self.layer_sizes = [state_size, 128, 128]
     self.layers = []
+
+    with tf.name_scope('epsilon'):
+      #epsilon = tf.constant(0.02)
+      self.epsilon = 0.04 + 0.5 * tf.exp(-tf.cast(global_step, tf.float32) / 50000.0)
 
     for i in range(len(self.layer_sizes)-1):
       prev_size = self.layer_sizes[i]
@@ -22,7 +26,7 @@ class ActorCritic:
 
     with tf.variable_scope('actor'):
       actor = tfl.makeAffineLayer(self.layer_sizes[-1], action_size)
-      smooth = lambda probs: (1.0 - epsilon) * probs + epsilon / action_size
+      smooth = lambda probs: (1.0 - self.epsilon) * probs + self.epsilon / action_size
       actor = util.compose(smooth, tf.nn.softmax, actor)
 
     self.layers.append(lambda x: (tf.squeeze(values(x)), actor(x)))
@@ -39,13 +43,7 @@ class ActorCritic:
     return self.getLayers(state)[-1]
 
   def getLoss(self, states, actions, rewards):
-    # TD(n)
-    n = 5
-
-    reward_halflife = 2.0 # seconds
-    discount = 0.5 ** ( 1.0 / (config.fps*reward_halflife) )
-
-    #experience_length = tf.shape(states)[0:1]
+    n = config.tdN
     train_length = [config.experience_length - n]
 
     values, actor_probs = self.getOutput(states)
@@ -54,7 +52,7 @@ class ActorCritic:
     # smooth between TD(m) for m<=n?
     targets = tf.slice(values, [n], train_length)
     for i in reversed(range(n)):
-      targets = tf.slice(rewards, [i], train_length) + discount * targets
+      targets = tf.slice(rewards, [i], train_length) + config.discount * targets
     targets = tf.stop_gradient(targets)
 
     advantages = targets - trainVs

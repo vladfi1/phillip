@@ -17,7 +17,7 @@ with tf.name_scope('input'):
 
   # player 2's controls
   input_actions = tf.placeholder(tf.int32, [None], "actions")
-  experience_length = tf.shape(input_actions)
+  #experience_length = tf.shape(input_actions)
 
 embedded_states = embed.embedGame(input_states)
 state_size = embedded_states.get_shape()[-1].value
@@ -37,24 +37,13 @@ rewards = tf.placeholder(tf.float32, [None], name='rewards')
 
 global_step = tf.Variable(0, name='global_step', trainable=False)
 
-with tf.name_scope('temperature'):
-  #temperature = 0.05  * (0.5 ** (tf.cast(global_step, tf.float32) / 100000.0) + 0.1)
-  temperature = tf.constant(0.01)
-
-def getTemperature():
-  return sess.run(temperature)
-
-with tf.name_scope('epsilon'):
-  #epsilon = tf.constant(0.02)
-  epsilon = 0.04 + 0.5 * tf.exp(-tf.cast(global_step, tf.float32) / 50000.0)
-
-def getEpsilon():
-  return sess.run(epsilon)
-
-model = ActorCritic(state_size, action_size, epsilon)
+#Model = DQN
+Model = ActorCritic
+model = Model(state_size, action_size, global_step)
 
 with tf.name_scope('train'):
   loss, stats = model.getLoss(embedded_states, embedded_actions, rewards)
+  stats.append(('global_step', global_step))
   stat_names, stat_tensors = zip(*stats)
 
   optimizer = tf.train.AdamOptimizer(10.0 ** -4)
