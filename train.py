@@ -11,7 +11,7 @@ parser.add_argument("-q", "--quiet", action="store_true",
 parser.add_argument("--init", action="store_true",
                    help="initialize variables")
 parser.add_argument("--path", help="where to import from and save to")
-parser.add_argument("--model", choices=["DQN", "ActorCritic"], help="which RL model to use")
+parser.add_argument("--model", choices=["DQN", "ActorCritic"], required=True, help="which RL model to use")
 
 args = parser.parse_args()
 
