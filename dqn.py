@@ -27,7 +27,7 @@ class DQN:
 
     with tf.name_scope('epsilon'):
       #epsilon = tf.constant(0.02)
-      self.epsilon = 0.04 + 0.5 * tf.exp(-tf.cast(global_step, tf.float32) / 50000.0)
+      self.epsilon = 0.04 + 0.9 * tf.exp(-tf.cast(global_step, tf.float32) / 50000.0)
 
     with tf.name_scope('temperature'):
       #temperature = 0.05  * (0.5 ** (tf.cast(global_step, tf.float32) / 100000.0) + 0.1)
