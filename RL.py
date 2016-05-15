@@ -12,7 +12,6 @@ from actor_critic import ActorCritic
 import config
 from operator import add, sub
 
-#----- set up inputs and model -----------
 with tf.name_scope('input'):
   input_states = ct.inputCType(ssbm.GameMemory, [None], "states")
 
@@ -24,9 +23,7 @@ embedded_states = embed.embedGame(input_states)
 state_size = embedded_states.get_shape()[-1].value
 
 embedded_actions = embed.embedAction(input_actions)
-
-model = ActorCritic(state_size, embed.action_size)
-#---------------------------------------
+action_size =  embedded_actions.get_shape()[-1].value
 
 def feedStateActions(states, actions, feed_dict = None):
   if feed_dict is None:
@@ -44,49 +41,34 @@ with tf.name_scope('temperature'):
   #temperature = 0.05  * (0.5 ** (tf.cast(global_step, tf.float32) / 100000.0) + 0.1)
   temperature = tf.constant(0.01)
 
+def getTemperature():
+  return sess.run(temperature)
+
 with tf.name_scope('epsilon'):
   #epsilon = tf.constant(0.02)
   epsilon = 0.04 + 0.5 * tf.exp(-tf.cast(global_step, tf.float32) / 50000.0)
 
-# TD(n)
-n = 5
+def getEpsilon():
+  return sess.run(epsilon)
 
-reward_halflife = 2.0 # seconds
-discount = 0.5 ** ( 1.0 / (config.fps*reward_halflife) )
+model = ActorCritic(state_size, action_size, epsilon)
 
-train_length = experience_length - n
+with tf.name_scope('train'):
+  loss, stats = model.getLoss(embedded_states, embedded_actions, rewards)
+  stat_names, stat_tensors = zip(*stats)
 
-values, actor = model.getOutput(embedded_states)
-trainVs = tf.slice(values, [0], train_length)
+  optimizer = tf.train.AdamOptimizer(10.0 ** -4)
+  # train_q = opt.minimize(qLoss, global_step=global_step)
+  # opt = tf.train.GradientDescentOptimizer(0.0)
+  #grads_and_vars = opt.compute_gradients(qLoss)
+  grads_and_vars = optimizer.compute_gradients(loss)
+  grads_and_vars = [(g, v) for g, v in grads_and_vars if g is not None]
+  trainer = optimizer.apply_gradients(grads_and_vars, global_step=global_step)
+  runOps = stat_tensors + (trainer,)
 
-actor_probs = tf.nn.softmax(actor)
-actor_probs = (1 - epsilon) * actor_probs + epsilon / embed.action_size
-
-# smooth between TD(m) for m<=n?
-targets = tf.slice(values, [n], train_length)
-for i in reversed(range(n)):
-  targets = tf.slice(rewards, [i], train_length) + discount * targets
-targets = tf.stop_gradient(targets)
-
-advantages = targets - trainVs
-vLoss = tf.reduce_mean(tf.square(advantages))
-
-log_actor_probs = tf.log(actor_probs)
-actor_entropy = tf.reduce_mean(tfl.batch_dot(actor_probs, log_actor_probs))
-real_log_actor_probs = tfl.batch_dot(embedded_actions, tf.log(actor_probs))
-train_log_actor_probs = tf.slice(real_log_actor_probs, [0], train_length)
-actor_gain = tf.reduce_mean(tf.mul(train_log_actor_probs, tf.stop_gradient(advantages)))
-
-acLoss = vLoss - actor_gain# + actor_entropy
-
-opt = tf.train.AdamOptimizer(10.0 ** -4)
-# train_q = opt.minimize(qLoss, global_step=global_step)
-# opt = tf.train.GradientDescentOptimizer(0.0)
-#grads_and_vars = opt.compute_gradients(qLoss)
-grads_and_vars = opt.compute_gradients(acLoss)
-grads_and_vars = [(g, v) for g, v in grads_and_vars if g is not None]
-train_q = opt.apply_gradients(grads_and_vars, global_step=global_step)
-
+with tf.name_scope('policy'):
+  # TODO: policy might share graph structure with loss
+  policy = model.getPolicy(embedded_states)
 
 # don't eat up cpu cores
 # or gpu memory
@@ -99,33 +81,14 @@ sess = tf.Session(
   )
 )
 
+def act(state):
+  feed_dict = ct.feedCTypes(ssbm.GameMemory, 'input/states', [state])
+  return model.act(sess.run(policy, feed_dict))
+
 #summaryWriter = tf.train.SummaryWriter('logs/', sess.graph)
 #summaryWriter.flush()
 
 saver = tf.train.Saver(tf.all_variables())
-
-def getEpsilon():
-  return sess.run(epsilon)
-
-def getTemperature():
-  return sess.run(temperature)
-
-def scoreActions(state):
-  feed_dict = ct.feedCTypes(ssbm.GameMemory, 'input/states', [state])
-  return sess.run(qMeans, feed_dict)[0]
-
-def getActionProbs(state):
-  feed_dict = ct.feedCTypes(ssbm.GameMemory, 'input/states', [state])
-  return sess.run(softmax_probs, feed_dict)[0]
-
-def getActionDists(state):
-  feed_dict = ct.feedCTypes(ssbm.GameMemory, 'input/states', [state])
-  mu, log_sigma2 = sess.run([qMeans, qLogVariances], feed_dict)
-  return (mu[0], log_sigma2[0])
-
-def getActorProbs(state):
-  feed_dict = ct.feedCTypes(ssbm.GameMemory, 'input/states', [state])
-  return sess.run(actor_probs, feed_dict)[0]
 
 # see https://docs.google.com/spreadsheets/d/1JX2w-r2fuvWuNgGb6D3Cs4wHQKLFegZe2jhbBuIhCG8/edit#gid=13
 dyingActions = set(range(0xA))
@@ -154,6 +117,36 @@ def computeRewards(states, enemies=[0], allies=[1], damage_ratio=0.01):
 
 debug = False
 
+def debugGrads():
+  gs = sess.run([gv[0] for gv in grads_and_vars], feed_dict)
+  vs = sess.run([gv[1] for gv in grads_and_vars], feed_dict)
+  #   loss = sess.run(qLoss, feed_dict)
+  #act_qs = sess.run(qs, feed_dict)
+  #act_qs = list(map(util.compose(np.sort, np.abs), act_qs))
+
+  #t = sess.run(temperature)
+  #print("Temperature: ", t)
+  #for i, act in enumerate(act_qs):
+  #  print("act_%d"%i, act)
+  #print("grad/param(action)", np.mean(np.abs(gs[0] / vs[0])))
+  #print("grad/param(stage)", np.mean(np.abs(gs[2] / vs[2])))
+
+  print("param avg and max")
+  for g, v in zip(gs, vs):
+    abs_v = np.abs(v)
+    abs_g = np.abs(g)
+    print(v.shape, np.mean(abs_v), np.max(abs_v), np.mean(abs_g), np.max(abs_g))
+
+  print("grad/param avg and max")
+  for g, v in zip(gs, vs):
+    ratios = np.abs(g / v)
+    print(np.mean(ratios), np.max(ratios))
+  #print("grad", np.mean(np.abs(gs[4])))
+  #print("param", np.mean(np.abs(vs[0])))
+
+  # if step_index == 10:
+  import ipdb; ipdb.set_trace()
+
 def train(filename, steps=1):
   state_actions = ssbm.readStateActions(filename)
   states = list(map(lambda x: x.state, state_actions))
@@ -166,41 +159,10 @@ def train(filename, steps=1):
   # FIXME: we feed the inputs in on each iteration, which might be inefficient.
   for step_index in range(steps):
     if debug:
-      gs = sess.run([gv[0] for gv in grads_and_vars], feed_dict)
-      vs = sess.run([gv[1] for gv in grads_and_vars], feed_dict)
-      #   loss = sess.run(qLoss, feed_dict)
-      #act_qs = sess.run(qs, feed_dict)
-      #act_qs = list(map(util.compose(np.sort, np.abs), act_qs))
+      debugGrads()
 
-      #t = sess.run(temperature)
-      #print("Temperature: ", t)
-      #for i, act in enumerate(act_qs):
-      #  print("act_%d"%i, act)
-      #print("grad/param(action)", np.mean(np.abs(gs[0] / vs[0])))
-      #print("grad/param(stage)", np.mean(np.abs(gs[2] / vs[2])))
-
-      print("param avg and max")
-      for g, v in zip(gs, vs):
-        abs_v = np.abs(v)
-        abs_g = np.abs(g)
-        print(v.shape, np.mean(abs_v), np.max(abs_v), np.mean(abs_g), np.max(abs_g))
-
-      print("grad/param avg and max")
-      for g, v in zip(gs, vs):
-        ratios = np.abs(g / v)
-        print(np.mean(ratios), np.max(ratios))
-      #print("grad", np.mean(np.abs(gs[4])))
-      #print("param", np.mean(np.abs(vs[0])))
-
-      # if step_index == 10:
-      import ipdb; ipdb.set_trace()
-
-    g, q, a, e, _ = sess.run([global_step, vLoss, actor_gain, actor_entropy, train_q], feed_dict)
-
-    print("global_step", g)
-    print("vLoss", q)
-    print("actor_gain", a)
-    print("entropy", e)
+    results = sess.run(runOps, feed_dict)[:-1]
+    util.zipWith(print, stat_names, results)
 
   return sum(r)
 
