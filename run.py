@@ -6,6 +6,8 @@ parser = ArgumentParser()
 
 parser.add_argument("--model", choices=["DQN", "ActorCritic"], required=True, help="which RL model to use")
 
+#parser.add_argument("--policy", choices=["eps-greedy", "softmax"
+
 parser.add_argument("--path", type=str,
                     help="where to import from and save to")
 

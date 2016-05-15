@@ -61,7 +61,7 @@ class Model:
       self.runOps = self.stat_tensors + (self.trainer,)
 
     with tf.name_scope('policy'):
-      # TODO: policy might share graph structure with loss
+      # TODO: policy might share graph structure with loss?
       self.policy = self.model.getPolicy(self.embedded_states)
 
     # don't eat up cpu cores
@@ -79,9 +79,9 @@ class Model:
     
     self.saver = tf.train.Saver(tf.all_variables())
 
-  def act(self, state):
+  def act(self, state, verbose=False):
     feed_dict = ct.feedCTypes(ssbm.GameMemory, 'input/states', [state])
-    return self.model.act(self.sess.run(self.policy, feed_dict))
+    return self.model.act(self.sess.run(self.policy, feed_dict), verbose)
 
   #summaryWriter = tf.train.SummaryWriter('logs/', sess.graph)
   #summaryWriter.flush()

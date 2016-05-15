@@ -31,7 +31,7 @@ class DQN:
 
     with tf.name_scope('temperature'):
       #temperature = 0.05  * (0.5 ** (tf.cast(global_step, tf.float32) / 100000.0) + 0.1)
-      self.temperature = tf.constant(0.01)
+      self.temperature = 0.01
 
   def getLayers(self, state):
     outputs = [state]
@@ -73,11 +73,19 @@ class DQN:
     nll = tf.squared_difference(mu, rewards) * tf.exp(-log_sigma2) + log_sigma2
     return tf.reduce_mean(nll)
 
-  def getPolicy(self, state):
-    return [self.epsilon, tf.argmax(self.getQValues(state), 1)]
+  def getPolicy(self, state, policy=None):
+    #return [self.epsilon, tf.argmax(self.getQValues(state), 1)]
+    qValues = self.getQValues(state)
+    action_probs = tf.nn.softmax(qValues / self.temperature)
+    action_probs = (1.0 - self.epsilon) * action_probs + self.epsilon / self.action_size
+    entropy = tf.reduce_sum(tf.log(action_probs) * action_probs, 1)
+    return [qValues, action_probs, entropy]
+  
+  def act(self, policy, verbose=False):
+    [qValues], [action_probs], [entropy] = policy
+    if verbose:
+      print("qValues", qValues)
+      print("action_probs", action_probs)
+      print("entropy", entropy)
+    return random.choice(range(self.action_size), p=action_probs)
 
-  def act(self, policy):
-    epsilon, [best_action] = policy
-    if util.flip(epsilon):
-      return random.choice(range(self.action_size))
-    return best_action
