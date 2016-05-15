@@ -3,8 +3,11 @@ from dolphin import runDolphin
 from argparse import ArgumentParser
 parser = ArgumentParser()
 
-parser.add_argument("--name", type=str,
-                    help="filename to import from and save to")
+
+parser.add_argument("--model", choices=["DQN", "ActorCritic"], required=True, help="which RL model to use")
+
+parser.add_argument("--path", type=str,
+                    help="where to import from and save to")
 
 parser.add_argument("--tag", type=str,
                     help="optional tag to mark experiences")
@@ -27,6 +30,9 @@ parser.add_argument("--gfx", type=str, help="gfx backend")
 parser.add_argument("--exe", type=str, default="dolphin-emu-headless", help="dolphin executable")
 
 args = parser.parse_args()
+
+if args.path is None:
+  args.path = "saves/%s/" % args.model
 
 def runCPU(args):
   from cpu import CPU

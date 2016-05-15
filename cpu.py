@@ -14,7 +14,8 @@ import RL
 from config import *
 
 default_args = dict(
-    name='simpleDQN',
+    model="DQN",
+    path=None,
     tag=None,
     dump = True,
     dump_seconds = 60,
@@ -24,7 +25,7 @@ default_args = dict(
 )
 
 class CPU:
-    def __init__(self, **args):
+    def __init__(self, model=None, **args):
         for k, v in default_args.items():
             if k in args and args[k] is not None:
                 setattr(self, k, args[k])
@@ -32,7 +33,7 @@ class CPU:
                 setattr(self, k, v)
 
         if self.dump:
-            self.dump_dir = "saves/" + self.name + "/experience/"
+            self.dump_dir = self.path + "/experience/"
             os.makedirs(self.dump_dir, exist_ok=True)
             self.dump_tag = "" if self.tag is None else str(self.tag) + "-"
             self.dump_size = 60 * self.dump_seconds // act_every
@@ -41,7 +42,7 @@ class CPU:
             self.dump_frame = 0
             self.dump_count = 0
 
-        self.reward_logfile = 'saves/' + self.name + '/rewards.log'
+        self.reward_logfile = self.path + '/rewards.log'
         self.first_frame = True
         self.action_counter = 0
         self.toggle = False
@@ -53,7 +54,7 @@ class CPU:
         self.write_locations(self.dolphin_dir)
 
         self.fox = fox.Fox()
-        self.agent = agent.Agent(name=self.name, reload_every=60*self.dump_seconds//act_every, seed=self.tag)
+        self.agent = agent.Agent(self.model, self.path, reload_every=60*self.dump_seconds//act_every, seed=self.tag)
         self.mm = menu_manager.MenuManager()
 
         try:

@@ -21,11 +21,10 @@ class Mode(Enum):
 models = {model.__name__ : model for model in [DQN, ActorCritic]}
 
 class Model:
-  def __init__(self, path=None, model="DQN", mode = Mode.TRAIN, debug = False, **kwargs):
+  def __init__(self, model="DQN", path=None, mode = Mode.TRAIN, debug = False, **kwargs):
     modelType = models[model]
     self.path = path
     
-    self.path = path
     # TODO: take into account mode
     with tf.name_scope('input'):
       self.input_states = ct.inputCType(ssbm.GameMemory, [None], "states")
@@ -82,13 +81,10 @@ class Model:
 
   def act(self, state):
     feed_dict = ct.feedCTypes(ssbm.GameMemory, 'input/states', [state])
-    return self.model.act(self.sess.run(policy, feed_dict))
+    return self.model.act(self.sess.run(self.policy, feed_dict))
 
   #summaryWriter = tf.train.SummaryWriter('logs/', sess.graph)
   #summaryWriter.flush()
-
-
-  debug = False
 
   def debugGrads():
     gs = sess.run([gv[0] for gv in grads_and_vars], feed_dict)
