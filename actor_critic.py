@@ -71,5 +71,5 @@ class ActorCritic:
   def getPolicy(self, state):
     return tf.squeeze(self.getOutput(state)[-1])
 
-  def act(self, policy):
+  def act(self, policy, verbose=False):
     return random.choice(range(self.action_size), p=policy)

@@ -22,6 +22,7 @@ models = {model.__name__ : model for model in [DQN, ActorCritic]}
 
 class Model:
   def __init__(self, model="DQN", path=None, mode = Mode.TRAIN, debug = False, **kwargs):
+    print("Creating model:", model)
     modelType = models[model]
     self.path = path
     

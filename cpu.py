@@ -54,7 +54,7 @@ class CPU:
         self.write_locations(self.dolphin_dir)
 
         self.fox = fox.Fox()
-        self.agent = agent.Agent(self.model, self.path, reload_every=60*self.dump_seconds//act_every, seed=self.tag)
+        self.agent = agent.Agent(model, self.path, reload_every=60*self.dump_seconds//act_every, seed=self.tag)
         self.mm = menu_manager.MenuManager()
 
         try:
