@@ -11,174 +11,145 @@ from dqn import DQN
 from actor_critic import ActorCritic
 import config
 from operator import add, sub
+from enum import Enum
+from reward import computeRewards
 
-with tf.name_scope('input'):
-  input_states = ct.inputCType(ssbm.GameMemory, [None], "states")
+class Mode(Enum):
+  TRAIN = 0
+  PLAY = 1
 
-  # player 2's controls
-  input_actions = tf.placeholder(tf.int32, [None], "actions")
-  #experience_length = tf.shape(input_actions)
+models = {model.__name__ : model for model in [DQN, ActorCritic]}
 
-embedded_states = embed.embedGame(input_states)
-state_size = embedded_states.get_shape()[-1].value
+class Model:
+  def __init__(self, path=None, model="DQN", mode = Mode.TRAIN, debug = False, **kwargs):
+    modelType = models[model]
+    self.path = path
+    
+    self.path = path
+    # TODO: take into account mode
+    with tf.name_scope('input'):
+      self.input_states = ct.inputCType(ssbm.GameMemory, [None], "states")
 
-embedded_actions = embed.embedAction(input_actions)
-action_size =  embedded_actions.get_shape()[-1].value
+      # player 2's controls
+      self.input_actions = tf.placeholder(tf.int32, [None], "actions")
+      #experience_length = tf.shape(input_actions)
 
-def feedStateActions(states, actions, feed_dict = None):
-  if feed_dict is None:
-    feed_dict = {}
-  ct.feedCTypes(ssbm.GameMemory, 'input/states', states, feed_dict)
-  feed_dict[input_actions] = actions
-  return feed_dict
+    self.embedded_states = embed.embedGame(self.input_states)
+    self.state_size = self.embedded_states.get_shape()[-1].value # TODO: precompute
 
-# instantaneous rewards for all but the first state
-rewards = tf.placeholder(tf.float32, [None], name='rewards')
+    self.embedded_actions = embed.embedAction(self.input_actions)
+    self.action_size = self.embedded_actions.get_shape()[-1].value
 
-global_step = tf.Variable(0, name='global_step', trainable=False)
+    # instantaneous rewards for all but the first state
+    self.rewards = tf.placeholder(tf.float32, [None], name='rewards')
 
-#Model = DQN
-Model = ActorCritic
-model = Model(state_size, action_size, global_step)
+    self.global_step = tf.Variable(0, name='global_step', trainable=False)
 
-with tf.name_scope('train'):
-  loss, stats = model.getLoss(embedded_states, embedded_actions, rewards)
-  stats.append(('global_step', global_step))
-  stat_names, stat_tensors = zip(*stats)
+    self.model = modelType(self.state_size, self.action_size, self.global_step)
 
-  optimizer = tf.train.AdamOptimizer(10.0 ** -4)
-  # train_q = opt.minimize(qLoss, global_step=global_step)
-  # opt = tf.train.GradientDescentOptimizer(0.0)
-  #grads_and_vars = opt.compute_gradients(qLoss)
-  grads_and_vars = optimizer.compute_gradients(loss)
-  grads_and_vars = [(g, v) for g, v in grads_and_vars if g is not None]
-  trainer = optimizer.apply_gradients(grads_and_vars, global_step=global_step)
-  runOps = stat_tensors + (trainer,)
+    with tf.name_scope('train'):
+      loss, stats = self.model.getLoss(self.embedded_states, self.embedded_actions, self.rewards)
+      stats.append(('global_step', self.global_step))
+      self.stat_names, self.stat_tensors = zip(*stats)
 
-with tf.name_scope('policy'):
-  # TODO: policy might share graph structure with loss
-  policy = model.getPolicy(embedded_states)
+      optimizer = tf.train.AdamOptimizer(10.0 ** -4)
+      # train_q = opt.minimize(qLoss, global_step=global_step)
+      # opt = tf.train.GradientDescentOptimizer(0.0)
+      #grads_and_vars = opt.compute_gradients(qLoss)
+      grads_and_vars = optimizer.compute_gradients(loss)
+      grads_and_vars = [(g, v) for g, v in grads_and_vars if g is not None]
+      self.trainer = optimizer.apply_gradients(grads_and_vars, global_step=self.global_step)
+      self.runOps = self.stat_tensors + (self.trainer,)
 
-# don't eat up cpu cores
-# or gpu memory
-sess = tf.Session(
-  config=tf.ConfigProto(
-    inter_op_parallelism_threads=1,
-    intra_op_parallelism_threads=1,
-    use_per_session_threads=True,
-    gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.3)
-  )
-)
+    with tf.name_scope('policy'):
+      # TODO: policy might share graph structure with loss
+      self.policy = self.model.getPolicy(self.embedded_states)
 
-def act(state):
-  feed_dict = ct.feedCTypes(ssbm.GameMemory, 'input/states', [state])
-  return model.act(sess.run(policy, feed_dict))
+    # don't eat up cpu cores
+    # or gpu memory
+    self.sess = tf.Session(
+      config=tf.ConfigProto(
+        inter_op_parallelism_threads=1,
+        intra_op_parallelism_threads=1,
+        use_per_session_threads=True,
+        gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.3)
+      )
+    )
+    
+    self.debug = debug
+    
+    self.saver = tf.train.Saver(tf.all_variables())
 
-#summaryWriter = tf.train.SummaryWriter('logs/', sess.graph)
-#summaryWriter.flush()
+  def act(self, state):
+    feed_dict = ct.feedCTypes(ssbm.GameMemory, 'input/states', [state])
+    return self.model.act(self.sess.run(policy, feed_dict))
 
-saver = tf.train.Saver(tf.all_variables())
+  #summaryWriter = tf.train.SummaryWriter('logs/', sess.graph)
+  #summaryWriter.flush()
 
-# see https://docs.google.com/spreadsheets/d/1JX2w-r2fuvWuNgGb6D3Cs4wHQKLFegZe2jhbBuIhCG8/edit#gid=13
-dyingActions = set(range(0xA))
 
-def isDying(player):
-  return player.action_state in dyingActions
+  debug = False
 
-# players tend to be dead for many frames in a row
-# here we prune all but the first frame of the death
-def processDeaths(deaths):
-  return np.array(util.zipWith(lambda prev, next: float((not prev) and next), deaths, deaths[1:]))
+  def debugGrads():
+    gs = sess.run([gv[0] for gv in grads_and_vars], feed_dict)
+    vs = sess.run([gv[1] for gv in grads_and_vars], feed_dict)
+    #   loss = sess.run(qLoss, feed_dict)
+    #act_qs = sess.run(qs, feed_dict)
+    #act_qs = list(map(util.compose(np.sort, np.abs), act_qs))
 
-def processDamages(percents):
-  return np.array(util.zipWith(lambda prev, next: max(next-prev, 0), percents, percents[1:]))
+    #t = sess.run(temperature)
+    #print("Temperature: ", t)
+    #for i, act in enumerate(act_qs):
+    #  print("act_%d"%i, act)
+    #print("grad/param(action)", np.mean(np.abs(gs[0] / vs[0])))
+    #print("grad/param(stage)", np.mean(np.abs(gs[2] / vs[2])))
 
-# from player 2's perspective
-def computeRewards(states, enemies=[0], allies=[1], damage_ratio=0.01):
-  players = enemies + allies
+    print("param avg and max")
+    for g, v in zip(gs, vs):
+      abs_v = np.abs(v)
+      abs_g = np.abs(g)
+      print(v.shape, np.mean(abs_v), np.max(abs_v), np.mean(abs_g), np.max(abs_g))
 
-  deaths = {p : processDeaths([isDying(s.players[p]) for s in states]) for p in players}
-  damages = {p : processDamages([s.players[p].percent for s in states]) for p in players}
+    print("grad/param avg and max")
+    for g, v in zip(gs, vs):
+      ratios = np.abs(g / v)
+      print(np.mean(ratios), np.max(ratios))
+    #print("grad", np.mean(np.abs(gs[4])))
+    #print("param", np.mean(np.abs(vs[0])))
 
-  losses = {p : deaths[p] + damage_ratio * damages[p] for p in players}
+    # if step_index == 10:
+    import ipdb; ipdb.set_trace()
 
-  return sum(losses[p] for p in enemies) - sum(losses[p] for p in allies)
+  def train(self, filename, steps=1):
+    state_actions = ssbm.readStateActions(filename)
+    states = list(map(lambda x: x.state, state_actions))
+    actions = list(map(lambda x: x.action, state_actions))
 
-debug = False
+    r = computeRewards(states)
+    feed_dict = {self.rewards : r}
+    ct.feedCTypes(ssbm.GameMemory, 'input/states', states, feed_dict)
+    feed_dict[self.input_actions] = actions
 
-def debugGrads():
-  gs = sess.run([gv[0] for gv in grads_and_vars], feed_dict)
-  vs = sess.run([gv[1] for gv in grads_and_vars], feed_dict)
-  #   loss = sess.run(qLoss, feed_dict)
-  #act_qs = sess.run(qs, feed_dict)
-  #act_qs = list(map(util.compose(np.sort, np.abs), act_qs))
+    # FIXME: we feed the inputs in on each iteration, which might be inefficient.
+    for step_index in range(steps):
+      if self.debug:
+        self.debugGrads()
+      
+      # last result is trainer
+      results = self.sess.run(self.runOps, feed_dict)[:-1]
+      util.zipWith(print, self.stat_names, results)
 
-  #t = sess.run(temperature)
-  #print("Temperature: ", t)
-  #for i, act in enumerate(act_qs):
-  #  print("act_%d"%i, act)
-  #print("grad/param(action)", np.mean(np.abs(gs[0] / vs[0])))
-  #print("grad/param(stage)", np.mean(np.abs(gs[2] / vs[2])))
+    return sum(r)
 
-  print("param avg and max")
-  for g, v in zip(gs, vs):
-    abs_v = np.abs(v)
-    abs_g = np.abs(g)
-    print(v.shape, np.mean(abs_v), np.max(abs_v), np.mean(abs_g), np.max(abs_g))
+  def save(self):
+    import os
+    os.makedirs(self.path, exist_ok=True)
+    print("Saving to", self.path)
+    self.saver.save(self.sess, self.path + "snapshot")
 
-  print("grad/param avg and max")
-  for g, v in zip(gs, vs):
-    ratios = np.abs(g / v)
-    print(np.mean(ratios), np.max(ratios))
-  #print("grad", np.mean(np.abs(gs[4])))
-  #print("param", np.mean(np.abs(vs[0])))
+  def restore(self):
+    self.saver.restore(self.sess, self.path + "snapshot")
 
-  # if step_index == 10:
-  import ipdb; ipdb.set_trace()
+  def init(self):
+    self.sess.run(tf.initialize_all_variables())
 
-def train(filename, steps=1):
-  state_actions = ssbm.readStateActions(filename)
-  states = list(map(lambda x: x.state, state_actions))
-  actions = list(map(lambda x: x.action, state_actions))
-
-  r = computeRewards(states)
-  feed_dict = {rewards : r}
-  feedStateActions(states, actions, feed_dict)
-
-  # FIXME: we feed the inputs in on each iteration, which might be inefficient.
-  for step_index in range(steps):
-    if debug:
-      debugGrads()
-
-    results = sess.run(runOps, feed_dict)[:-1]
-    util.zipWith(print, stat_names, results)
-
-  return sum(r)
-
-def save(name):
-  save_dir = "saves/%s/" % name
-  import os
-  os.makedirs(save_dir, exist_ok=True)
-  print("Saving to", save_dir)
-  saver.save(sess, save_dir + 'snapshot')
-
-def restore(name):
-  save_location = "saves/" + name + "/snapshot"
-  saver.restore(sess, save_location)
-
-def writeGraph():
-  import os
-  graph_def = tf.python.client.graph_util.convert_variables_to_constants(sess, sess.graph_def, ['predict/action'])
-  tf.train.write_graph(graph_def, 'models/', 'simpleDQN.pb.temp', as_text=False)
-  try:
-    os.remove('models/simpleDQN.pb')
-  except:
-      print("No previous model file.")
-  os.rename('models/simpleDQN.pb.temp', 'models/simpleDQN.pb')
-
-def init():
-  sess.run(tf.initialize_all_variables())
-#train('testRecord0')
-
-#saver.restore(sess, 'saves/simpleDQN')
-#writeGraph()

@@ -10,21 +10,25 @@ parser.add_argument("-q", "--quiet", action="store_true",
                    help="don't print status messages to stdout")
 parser.add_argument("--init", action="store_true",
                    help="initialize variables")
-parser.add_argument("--name", default='simpleDQN',
-                   help="filename to import from and save to")
+parser.add_argument("--path", help="where to import from and save to")
+parser.add_argument("--model", choices=["DQN", "ActorCritic"], help="which RL model to use")
 
 args = parser.parse_args()
 
-experience_dir = 'saves/' + args.name + '/experience/'
+if args.path is None:
+  args.path = "saves/%s/" % args.model
+
+experience_dir = args.path + 'experience/'
 os.makedirs(experience_dir, exist_ok=True)
 
-if args.init:
-    RL.init()
-    RL.save(args.name)
-else:
-    RL.restore(args.name)
+model = RL.Model(**args.__dict__)
 
-RL.debug = args.debug
+# do this in RL?
+if args.init:
+    model.init()
+    model.save()
+else:
+    model.restore()
 
 def sweep(data_dir='experience/'):
     i = 0
@@ -35,15 +39,15 @@ def sweep(data_dir='experience/'):
             filename = data_dir + f
             print("Step", i)
             print("Experience " + filename)
-            rewards.append(RL.train(filename))
+            rewards.append(model.train(filename))
             i += 1
         else:
             print("Not training on file:", f)
         print("")
     if i > 0:
         total_time = time.time() - start_time
-        print("Time/experience", total_time / i)
-    RL.save(args.name)
+        print("time/experience", total_time / i)
+    model.save()
     #RL.writeGraph()
     # import pdb; pdb.set_trace()
     mean_reward = sum(rewards) / len(rewards) if len(rewards) > 0 else 0
