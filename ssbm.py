@@ -213,6 +213,7 @@ def readStateActions_pickle(filename):
   with open(filename, 'rb') as f:
     return pickle.load(f)
 
+# TODO: replace pickle with hdf5
 def writeStateActions_HDF5(filename, state_actions):
   with tempfile.NamedTemporaryFile(dir=os.path.dirname(filename), delete=False) as tf:
     tf.write(intStruct.pack(len(state_actions)))
