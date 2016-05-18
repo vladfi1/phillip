@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import time
 from dolphin import runDolphin
 from argparse import ArgumentParser
 parser = ArgumentParser()
@@ -47,7 +48,9 @@ else:
   if prefix is None:
     prefix = 'parallel'
   from multiprocessing import Process
-  processes = []
+  cpus = []
+  dolphins = []
+  
   for i in range(args.parallel):
     d = args.__dict__.copy()
     d['tag'] = i
@@ -55,15 +58,23 @@ else:
     d['dolphin_dir'] = user
     runner = Process(target=runCPU, args=[d])
     runner.start()
+    cpus.append(runner)
 
-    dolphin = runDolphin(user=user, count=args.parallel, **args.__dict__)
-    processes.append((runner, dolphin))
+    dolphin = lambda: runDolphin(user=user, **args.__dict__)
+    dolphins.append(dolphin)
+  
+  # give the runners some time to create the dolphin user directories
+  time.sleep(2)
+  
+  # run the dolphins
+  dolphins = [f() for f in dolphins]
 
   try:
-    for r, d in processes:
-      r.join()
+    for c, d in zip(cpus, dolphins):
+      c.join()
       d.wait()
   except KeyboardInterrupt:
-    for p, d in processes:
-      p.terminate()
+    for c, d in zip(cpus, dolphins):
+      c.terminate()
       d.terminate()
+
