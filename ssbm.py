@@ -4,6 +4,9 @@ from enum import IntEnum
 import struct
 import tempfile
 import os
+#import h5py
+import pickle
+from reward import computeRewards
 
 @pretty_struct
 class Stick(Structure):
@@ -178,6 +181,46 @@ def writeStateActions(filename, state_actions):
   os.rename(tempname, filename)
 
 def readStateActions(filename):
+  with open(filename, 'rb') as f:
+    size = readInt(f)
+    state_actions = (size * SimpleStateAction)()
+    f.readinto(state_actions)
+
+    if len(f.read()) > 0:
+      raise Exception(filename + " too long!")
+
+    return state_actions
+  
+def feedStateActions(state_actions):
+  states = list(map(lambda x: x.state, state_actions))
+  actions = list(map(lambda x: x.action, state_actions))
+
+  r = computeRewards(states)
+  feed_dict = {'rewards:0' : r}
+  feedCTypes(GameMemory, 'input/states', states, feed_dict)
+  feed_dict['input/actions:0'] = actions
+  
+  return feed_dict
+  
+def writeStateActions_pickle(filename, state_actions):
+  with tempfile.NamedTemporaryFile(dir=os.path.dirname(filename), delete=False) as tf:
+    feed_dict = feedStateActions(state_actions)
+    pickle.dump(feed_dict, tf)
+    tempname = tf.name
+  os.rename(tempname, filename)
+
+def readStateActions_pickle(filename):
+  with open(filename, 'rb') as f:
+    return pickle.load(f)
+
+def writeStateActions_HDF5(filename, state_actions):
+  with tempfile.NamedTemporaryFile(dir=os.path.dirname(filename), delete=False) as tf:
+    tf.write(intStruct.pack(len(state_actions)))
+    tf.write(state_actions)
+    tempname = tf.name
+  os.rename(tempname, filename)
+
+def readStateActions_HDF5(filename):
   with open(filename, 'rb') as f:
     size = readInt(f)
     state_actions = (size * SimpleStateAction)()

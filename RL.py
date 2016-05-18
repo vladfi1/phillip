@@ -118,14 +118,9 @@ class Model:
     import ipdb; ipdb.set_trace()
 
   def train(self, filename, steps=1):
-    state_actions = ssbm.readStateActions(filename)
-    states = list(map(lambda x: x.state, state_actions))
-    actions = list(map(lambda x: x.action, state_actions))
-
-    r = computeRewards(states)
-    feed_dict = {self.rewards : r}
-    ct.feedCTypes(ssbm.GameMemory, 'input/states', states, feed_dict)
-    feed_dict[self.input_actions] = actions
+    #state_actions = ssbm.readStateActions(filename)
+    #feed_dict = feedStateActions(state_actions)
+    feed_dict = ssbm.readStateActions_pickle(filename)
 
     # FIXME: we feed the inputs in on each iteration, which might be inefficient.
     for step_index in range(steps):
@@ -136,7 +131,7 @@ class Model:
       results = self.sess.run(self.runOps, feed_dict)[:-1]
       util.zipWith(print, self.stat_names, results)
 
-    return sum(r)
+    return sum(feed_dict['rewards:0'])
 
   def save(self):
     import os
