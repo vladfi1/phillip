@@ -3,8 +3,12 @@ import time
 from dolphin import runDolphin
 from argparse import ArgumentParser
 from multiprocessing import Process
-from cpu import CPU
 import random
+import os
+
+# don't use gpu
+# TODO: set this in tensorflow
+os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
 parser = ArgumentParser()
 
@@ -40,6 +44,7 @@ args = parser.parse_args()
 if args.path is None:
   args.path = "saves/%s/" % args.model
 
+from cpu import CPU
 def runCPU(args):
   CPU(**args).run()
 
