@@ -129,8 +129,6 @@ class CPU:
             with open(self.reward_logfile, 'a') as f:
                 f.write(str(sum(rewards) / len(rewards)) + "\n")
                 f.flush()
-            
-            self.print_stats()
 
     def advance_frame(self):
         last_frame = self.state.frame
@@ -146,6 +144,9 @@ class CPU:
                 start = time.time()
                 self.make_action()
                 self.thinking_time += time.time() - start
+                
+                if self.state.frame % (15 * fps) == 0:
+                    self.print_stats()
 
     def update_state(self):
         res = next(self.mw)
