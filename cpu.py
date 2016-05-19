@@ -145,6 +145,9 @@ class CPU:
                 start = time.time()
                 self.make_action()
                 self.thinking_time += time.time() - start
+                
+                if self.state.frame % (15 * fps) == 0:
+                    self.print_stats()
 
     def update_state(self):
         res = next(self.mw)
