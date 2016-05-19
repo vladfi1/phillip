@@ -129,6 +129,8 @@ class CPU:
             with open(self.reward_logfile, 'a') as f:
                 f.write(str(sum(rewards) / len(rewards)) + "\n")
                 f.flush()
+            
+            self.print_stats()
 
     def advance_frame(self):
         last_frame = self.state.frame
