@@ -2,8 +2,10 @@
 import time
 from dolphin import runDolphin
 from argparse import ArgumentParser
-parser = ArgumentParser()
+from multiprocessing import Process
+from cpu import CPU
 
+parser = ArgumentParser()
 
 parser.add_argument("--model", choices=["DQN", "ActorCritic"], required=True, help="which RL model to use")
 
@@ -38,7 +40,6 @@ if args.path is None:
   args.path = "saves/%s/" % args.model
 
 def runCPU(args):
-  from cpu import CPU
   CPU(**args).run()
 
 if args.parallel is None:
@@ -47,27 +48,22 @@ else:
   prefix = args.dolphin_dir
   if prefix is None:
     prefix = 'parallel'
-  from multiprocessing import Process
-  cpus = []
-  dolphins = []
   
-  for i in range(args.parallel):
+  users = ['%s/%d/' % (prefix, i) for i in range(args.parallel)]
+  cpus = []
+  
+  for i, user in enumerate(users):
     d = args.__dict__.copy()
     d['tag'] = i
-    user = '%s/%d/' % (prefix, i)
     d['dolphin_dir'] = user
     runner = Process(target=runCPU, args=[d])
     runner.start()
     cpus.append(runner)
-
-    dolphin = lambda: runDolphin(user=user, **args.__dict__)
-    dolphins.append(dolphin)
   
   # give the runners some time to create the dolphin user directories
-  time.sleep(2)
+  time.sleep(5)
   
-  # run the dolphins
-  dolphins = [f() for f in dolphins]
+  dolphins = [runDolphin(user=u, **args.__dict__) for u in users]
 
   try:
     for c, d in zip(cpus, dolphins):
