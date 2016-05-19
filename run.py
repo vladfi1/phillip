@@ -6,6 +6,9 @@ from multiprocessing import Process
 import random
 import os
 
+time.sleep(15)
+
+
 # don't use gpu
 # TODO: set this in tensorflow
 os.environ["CUDA_VISIBLE_DEVICES"] = ""
@@ -54,12 +57,12 @@ else:
   prefix = args.dolphin_dir
   if prefix is None:
     prefix = 'parallel'
-  
+
   tags = [random.getrandbits(32) for _ in range(args.parallel)]
-  
+
   users = ['%s/%d/' % (prefix, t) for t in tags]
   cpus = []
-  
+
   for tag, user in zip(tags, users):
     d = args.__dict__.copy()
     d['tag'] = tag
@@ -67,10 +70,10 @@ else:
     runner = Process(target=runCPU, args=[d])
     runner.start()
     cpus.append(runner)
-  
+
   # give the runners some time to create the dolphin user directories
   time.sleep(5)
-  
+
   dolphins = [runDolphin(user=u, **args.__dict__) for u in users]
 
   try:
