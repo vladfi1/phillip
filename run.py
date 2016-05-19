@@ -4,6 +4,7 @@ from dolphin import runDolphin
 from argparse import ArgumentParser
 from multiprocessing import Process
 from cpu import CPU
+import random
 
 parser = ArgumentParser()
 
