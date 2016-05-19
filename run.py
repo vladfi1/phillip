@@ -50,12 +50,14 @@ else:
   if prefix is None:
     prefix = 'parallel'
   
-  users = ['%s/%d/' % (prefix, i) for i in range(args.parallel)]
+  tags = [random.getrandbits(32) for _ in range(args.parallel)]
+  
+  users = ['%s/%d/' % (prefix, t) for t in tags]
   cpus = []
   
-  for i, user in enumerate(users):
+  for tag, user in zip(tags, users):
     d = args.__dict__.copy()
-    d['tag'] = random.getrandbits(32)
+    d['tag'] = tag
     d['dolphin_dir'] = user
     runner = Process(target=runCPU, args=[d])
     runner.start()
