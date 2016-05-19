@@ -13,6 +13,7 @@ from ctype_util import copy
 import RL
 from config import *
 from numpy import random
+from reward import computeRewards
 
 default_args = dict(
     model="DQN",
@@ -23,6 +24,7 @@ default_args = dict(
     dump_max = 1000,
     # TODO This might not always be accurate.
     dolphin_dir = '~/.local/share/dolphin-emu/',
+    self_play = False,
 )
 
 class CPU:
@@ -123,8 +125,7 @@ class CPU:
             self.dump_count += 1
             self.dump_frame = 0
 
-            rewards = RL.computeRewards([memory.state
-                for memory in self.dump_state_actions])
+            rewards = computeRewards(self.dump_state_actions)
 
             with open(self.reward_logfile, 'a') as f:
                 f.write(str(sum(rewards) / len(rewards)) + "\n")

@@ -28,10 +28,10 @@ class Model:
     
     # TODO: take into account mode
     with tf.name_scope('input'):
-      self.input_states = ct.inputCType(ssbm.GameMemory, [None], "states")
+      self.input_states = ct.inputCType(ssbm.GameMemory, [None], "state")
 
       # player 2's controls
-      self.input_actions = tf.placeholder(tf.int32, [None], "actions")
+      self.input_actions = tf.placeholder(tf.int32, [None], "action")
       #experience_length = tf.shape(input_actions)
 
     self.embedded_states = embed.embedGame(self.input_states)
@@ -41,7 +41,13 @@ class Model:
     self.action_size = self.embedded_actions.get_shape()[-1].value
 
     # instantaneous rewards for all but the first state
-    self.rewards = tf.placeholder(tf.float32, [None], name='rewards')
+    self.rewards = tf.placeholder(tf.float32, [None], name='reward')
+    
+    self.train_dict = {
+      'state' : self.input_states,
+      'action' : self.input_actions,
+      'reward' : self.rewards
+    }
 
     self.global_step = tf.Variable(0, name='global_step', trainable=False)
 
@@ -81,7 +87,7 @@ class Model:
     self.saver = tf.train.Saver(tf.all_variables())
 
   def act(self, state, verbose=False):
-    feed_dict = ct.feedCTypes(ssbm.GameMemory, 'input/states', [state])
+    feed_dict = ct.feedCTypes(ssbm.GameMemory, 'input/state', [state])
     return self.model.act(self.sess.run(self.policy, feed_dict), verbose)
 
   #summaryWriter = tf.train.SummaryWriter('logs/', sess.graph)
@@ -120,7 +126,9 @@ class Model:
   def train(self, filename, steps=1):
     #state_actions = ssbm.readStateActions(filename)
     #feed_dict = feedStateActions(state_actions)
-    feed_dict = ssbm.readStateActions_pickle(filename)
+    experience = ssbm.readStateActions_pickle(filename)
+    
+    feed_dict = dict(util.deepValues(util.deepZip(self.train_dict, experience)))
 
     # FIXME: we feed the inputs in on each iteration, which might be inefficient.
     for step_index in range(steps):
@@ -131,7 +139,7 @@ class Model:
       results = self.sess.run(self.runOps, feed_dict)[:-1]
       util.zipWith(print, self.stat_names, results)
 
-    return sum(feed_dict['rewards:0'])
+    return sum(experience['reward'])
 
   def save(self):
     import os

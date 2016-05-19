@@ -136,3 +136,12 @@ def feedCTypes(ctype, name, values, feed_dict=None):
 
   return feed_dict
 
+def vectorizeCTypes(ctype, values):
+  if ctype in ctypes2TF:
+    return values
+  elif issubclass(ctype, Structure):
+    return {f : vectorizeCTypes(t, [getattr(v, f) for v in values]) for (f, t) in ctype._fields_}
+  else: # assume an array type
+    base_type = ctype._type_
+    return [vectorizeCTypes(base_type, [v[i] for v in values]) for i in range(ctype._length_)]
+

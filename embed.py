@@ -83,7 +83,6 @@ playerEmbedding = [
 embedPlayer = embedStruct(playerEmbedding)
 
 def embedArray(op, indices=None):
-
   def f(array):
     #if indices is None:
     #  indices = range(len(array))
@@ -93,6 +92,21 @@ def embedArray(op, indices=None):
         embed.append(op(array[i]))
     return tf.concat(1, embed)
   return f
+
+""" indices is a tensor
+def embedArray(op, indices=None):
+  def f(array):
+    embed = []
+    for i, a in enumerate(array):
+      with tf.name_scope(str(i)):
+        embed.append(op(a))
+    packed = tf.pack(embed)
+    gathered = tf.gather(indices, packed)
+    # can this be done with reshape?
+    unpacked = tf.unpack(gathered)
+    return tf.concat(1, unpacked)
+  return f
+"""
 
 """
 maxStage = 64 # overestimate
