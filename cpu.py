@@ -12,6 +12,7 @@ import util
 from ctype_util import copy
 import RL
 from config import *
+from numpy import random
 
 default_args = dict(
     model="DQN",
@@ -54,7 +55,9 @@ class CPU:
         self.write_locations(self.dolphin_dir)
 
         self.fox = fox.Fox()
-        self.agent = agent.Agent(model, self.path, reload_every=60*self.dump_seconds//act_every, seed=self.tag)
+        if self.tag is not None:
+            random.seed(self.tag)
+        self.agent = agent.Agent(model, self.path, reload_every=60*self.dump_seconds//act_every)
         self.mm = menu_manager.MenuManager()
 
         try:

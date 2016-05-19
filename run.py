@@ -54,7 +54,7 @@ else:
   
   for i, user in enumerate(users):
     d = args.__dict__.copy()
-    d['tag'] = i
+    d['tag'] = random.getrandbits(32)
     d['dolphin_dir'] = user
     runner = Process(target=runCPU, args=[d])
     runner.start()

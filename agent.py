@@ -9,15 +9,12 @@ def flip(p):
   return random.binomial(1, p)
 
 class Agent:
-  def __init__(self, model, path, reload_every=60*60, seed=None):
+  def __init__(self, model, path, reload_every=60*60):
     self.model = RL.Model(model, path)
     self.reload_every = reload_every
     self.counter = 0
     self.simple_controller = ssbm.simpleControllerStates[0]
     self.model.restore()
-
-    if seed is not None:
-      random.seed(seed)
 
   def act(self, state, pad):
     verbose = self.counter % 60 == 0
