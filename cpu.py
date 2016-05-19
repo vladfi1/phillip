@@ -13,9 +13,9 @@ from ctype_util import copy
 import RL
 from config import *
 from numpy import random
+from reward import computeRewards
 
 default_args = dict(
-    model="DQN",
     path=None,
     tag=None,
     dump = True,
@@ -23,10 +23,11 @@ default_args = dict(
     dump_max = 1000,
     # TODO This might not always be accurate.
     dolphin_dir = '~/.local/share/dolphin-emu/',
+    self_play = False,
 )
 
 class CPU:
-    def __init__(self, model=None, **args):
+    def __init__(self, model="DQN", **args):
         for k, v in default_args.items():
             if k in args and args[k] is not None:
                 setattr(self, k, args[k])
@@ -57,15 +58,27 @@ class CPU:
         self.fox = fox.Fox()
         if self.tag is not None:
             random.seed(self.tag)
-        self.agent = agent.Agent(model, self.path, reload_every=60*self.dump_seconds//act_every)
+        
+        self.cpus = [0, 1] if self.self_play else [1]
+        self.agents = []
+
+        reload_every = 60*self.dump_seconds//act_every
+        if self.self_play:
+            self.enemy = agent.Agent(self.model, self.path, reload_every=20*reload_every, swap=True)
+            self.agents.append(self.enemy)
+        self.agent = agent.Agent(self.model, self.path, reload_every=reload_every)
+        self.agents.append(self.agent)
+        
         self.mm = menu_manager.MenuManager()
 
         try:
             print('Creating MemoryWatcher.')
             self.mw = memory_watcher.MemoryWatcher(self.dolphin_dir + '/MemoryWatcher/MemoryWatcher')
-            print('Creating Pad. Open dolphin now.')
+            print('Creating Pads. Open dolphin now.')
             os.makedirs(self.dolphin_dir + '/Pipes/', exist_ok=True)
-            self.pad = pad.Pad(self.dolphin_dir + '/Pipes/phillip1')
+            
+            self.pads = [pad.Pad(self.dolphin_dir + '/Pipes/phillip%d' % i) for i in self.cpus]
+              
             self.initialized = True
         except KeyboardInterrupt:
             self.initialized = False
@@ -127,8 +140,7 @@ class CPU:
             self.dump_count += 1
             self.dump_frame = 0
 
-            rewards = RL.computeRewards([memory.state
-                for memory in self.dump_state_actions])
+            rewards = computeRewards(self.dump_state_actions)
 
             with open(self.reward_logfile, 'a') as f:
                 f.write(str(sum(rewards) / len(rewards)) + "\n")
@@ -164,7 +176,8 @@ class CPU:
         # print(menu)
         if self.state.menu == Menu.Game.value:
             if self.action_counter % act_every == 0:
-                self.agent.act(self.state, self.pad)
+                for agent, pad in zip(self.agents, self.pads):
+                    agent.act(self.state, pad)
                 if self.dump:
                     self.dump_state()
             self.action_counter += 1

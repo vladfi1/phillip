@@ -44,12 +44,12 @@ with open('Dolphin.ini', 'r') as f:
 import shutil
 import os
 
-def setupUser(user, gfx="Null", cpu_thread=False, **unused):
+def setupUser(user, gfx="Null", cpu_thread=False, cpus=[1], **unused):
   configDir = user + 'Config/'
   os.makedirs(configDir, exist_ok=True)
 
   with open(configDir + 'GCPadNew.ini', 'w') as f:
-    f.write(generateGCPadNew())
+    f.write(generateGCPadNew(cpus))
 
   with open(configDir + 'Dolphin.ini', 'w') as f:
     f.write(dolphinConfig.format(user=user, gfx=gfx, cpu_thread=cpu_thread))
@@ -61,9 +61,11 @@ def setupUser(user, gfx="Null", cpu_thread=False, **unused):
 
 import subprocess
 
-def runDolphin(exe='dolphin-emu-nogui', user='dolphin-test/', iso="SSBM.iso", movie=None, setup=True, **kwargs):
+def runDolphin(exe='dolphin-emu-nogui', user='dolphin-test/', iso="SSBM.iso", movie=None, setup=True, self_play=False, **kwargs):
+  cpus = [0, 1] if self_play else [1]
+  
   if setup:
-    setupUser(user, **kwargs)
+    setupUser(user, cpus=cpus, **kwargs)
   args = [exe, "--user", user, "--exec", iso]
   if movie is not None:
     args += ["--movie", movie]
@@ -79,6 +81,7 @@ if __name__ == "__main__":
   parser.add_argument("--movie", type=str)
   parser.add_argument("--gfx", type=str, default="Null", help="graphics backend")
   parser.add_argument("--cpu_thread", action="store_true", help="dual core")
+  parser.add_argument("--self_play", action="store_true", help="cpu trains against itself")
 
   args = parser.parse_args()
 

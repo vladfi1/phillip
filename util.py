@@ -53,5 +53,26 @@ def deepMap(f, obj):
     return [deepMap(f, x) for x in obj]
   return f(obj)
 
+def deepValues(obj):
+  if isinstance(obj, dict):
+    for v in obj.values():
+      yield from deepValues(v)
+  elif isinstance(obj, list):
+    for v in obj:
+      yield from deepValues(v)
+  else:
+    yield obj
+
+def deepZip(*objs):
+  if len(objs) == 0:
+    return []
+  
+  first = objs[0]
+  if isinstance(first, dict):
+    return {k : deepZip(*[obj[k] for obj in objs]) for k in first}
+  if isinstance(first, list):
+    return zipWith(deepZip, *objs)
+  return objs
+
 def flip(p):
   return random.binomial(1, p)

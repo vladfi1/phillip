@@ -190,22 +190,25 @@ def readStateActions(filename):
       raise Exception(filename + " too long!")
 
     return state_actions
-  
-def feedStateActions(state_actions):
-  states = list(map(lambda x: x.state, state_actions))
-  actions = list(map(lambda x: x.action, state_actions))
 
-  r = computeRewards(states)
-  feed_dict = {'rewards:0' : r}
-  feedCTypes(GameMemory, 'input/states', states, feed_dict)
-  feed_dict['input/actions:0'] = actions
+# prepares an experience for pickling
+def prepareStateActions(state_actions):
+  vectorized = vectorizeCTypes(SimpleStateAction, state_actions)
   
-  return feed_dict
+  #import ipdb; ipdb.set_trace()
+  
+  states = vectorized['state']
+
+  rewards = computeRewards(state_actions)
+  
+  vectorized['reward'] = rewards
+  
+  return vectorized
   
 def writeStateActions_pickle(filename, state_actions):
   with tempfile.NamedTemporaryFile(dir=os.path.dirname(filename), delete=False) as tf:
-    feed_dict = feedStateActions(state_actions)
-    pickle.dump(feed_dict, tf)
+    prepared = prepareStateActions(state_actions)
+    pickle.dump(prepared, tf)
     tempname = tf.name
   os.rename(tempname, filename)
 
