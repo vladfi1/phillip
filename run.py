@@ -31,7 +31,11 @@ parser.add_argument("--dump_max", type=int,
 parser.add_argument("--dolphin_dir", type=str,
                    help="dolphin user directory")
 
-parser.add_argument("--parallel", type=int, help="spawn parallel cpus")
+parser.add_argument("--dolphin", action="store_true", help="run dolphin")
+
+parser.add_argument("--parallel", type=int, help="spawn parallel cpus and dolphins")
+
+parser.add_argument("--self_play", action="store_true", help="train against ourselves")
 
 # some duplication going on here...
 #parser.add_argument("--dolphin", action="store_true", help="run dolphin")
