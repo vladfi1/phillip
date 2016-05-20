@@ -97,8 +97,8 @@ def makeAffineLayer(input_size, output_size, nl=None):
 
   return applyLayer
 
-def clamp(input, minimum, maximum):
-  return tf.minimum(tf.maximum(input, minimum), maximum)
+def clamp(x, minimum, maximum):
+  return tf.minimum(tf.maximum(x, minimum), maximum)
 
 def one_hot(size):
   """
