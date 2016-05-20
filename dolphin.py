@@ -82,6 +82,7 @@ if __name__ == "__main__":
   parser.add_argument("--gfx", type=str, default="Null", help="graphics backend")
   parser.add_argument("--cpu_thread", action="store_true", help="dual core")
   parser.add_argument("--self_play", action="store_true", help="cpu trains against itself")
+  parser.add_argument("--exe", type=str, default="dolphin-emu-nogui", help="dolphin executable")
 
   args = parser.parse_args()
 
