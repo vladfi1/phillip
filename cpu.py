@@ -64,7 +64,7 @@ class CPU:
 
         reload_every = 60*self.dump_seconds//act_every
         if self.self_play:
-            self.enemy = agent.Agent(self.model, self.path, reload_every=20*reload_every, swap=True)
+            self.enemy = agent.Agent(model, self.path, reload_every=20*reload_every, swap=True)
             self.agents.append(self.enemy)
         self.agent = agent.Agent(model, self.path, reload_every=reload_every)
         self.agents.append(self.agent)
@@ -77,7 +77,8 @@ class CPU:
             print('Creating Pads. Open dolphin now.')
             os.makedirs(self.dolphin_dir + '/Pipes/', exist_ok=True)
             
-            self.pads = [pad.Pad(self.dolphin_dir + '/Pipes/phillip%d' % i) for i in self.cpus]
+            paths = [self.dolphin_dir + '/Pipes/phillip%d' % i for i in self.cpus]
+            self.pads = pad.makePads(paths)
               
             self.initialized = True
         except KeyboardInterrupt:
