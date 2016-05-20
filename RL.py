@@ -21,70 +21,75 @@ class Mode(Enum):
 models = {model.__name__ : model for model in [DQN, ActorCritic]}
 
 class Model:
-  def __init__(self, model="DQN", path=None, mode = Mode.TRAIN, debug = False, **kwargs):
+  def __init__(self, model="DQN", path=None, mode = Mode.TRAIN, debug = False, swap=False, **kwargs):
     print("Creating model:", model)
     modelType = models[model]
     self.path = path
     
-    # TODO: take into account mode
-    with tf.name_scope('input'):
-      self.input_states = ct.inputCType(ssbm.GameMemory, [None], "state")
-
-      # player 2's controls
-      self.input_actions = tf.placeholder(tf.int32, [None], "action")
-      #experience_length = tf.shape(input_actions)
-
-    self.embedded_states = embed.embedGame(self.input_states)
-    self.state_size = self.embedded_states.get_shape()[-1].value # TODO: precompute
-
-    self.embedded_actions = embed.embedAction(self.input_actions)
-    self.action_size = self.embedded_actions.get_shape()[-1].value
-
-    # instantaneous rewards for all but the first state
-    self.rewards = tf.placeholder(tf.float32, [None], name='reward')
+    self.graph = tf.Graph()
     
-    self.train_dict = {
-      'state' : self.input_states,
-      'action' : self.input_actions,
-      'reward' : self.rewards
-    }
+    with self.graph.as_default():
+      
+      # TODO: take into account mode
+      with tf.name_scope('input'):
+        self.input_states = ct.inputCType(ssbm.GameMemory, [None], "state")
 
-    self.global_step = tf.Variable(0, name='global_step', trainable=False)
+        # player 2's controls
+        self.input_actions = tf.placeholder(tf.int32, [None], "action")
+        #experience_length = tf.shape(input_actions)
 
-    self.model = modelType(self.state_size, self.action_size, self.global_step)
+      self.embedded_states = embed.embedGame(self.input_states, swap)
+      self.state_size = self.embedded_states.get_shape()[-1].value # TODO: precompute
 
-    with tf.name_scope('train'):
-      loss, stats = self.model.getLoss(self.embedded_states, self.embedded_actions, self.rewards)
-      stats.append(('global_step', self.global_step))
-      self.stat_names, self.stat_tensors = zip(*stats)
+      self.embedded_actions = embed.embedAction(self.input_actions)
+      self.action_size = self.embedded_actions.get_shape()[-1].value
 
-      optimizer = tf.train.AdamOptimizer(10.0 ** -4)
-      # train_q = opt.minimize(qLoss, global_step=global_step)
-      # opt = tf.train.GradientDescentOptimizer(0.0)
-      #grads_and_vars = opt.compute_gradients(qLoss)
-      grads_and_vars = optimizer.compute_gradients(loss)
-      grads_and_vars = [(g, v) for g, v in grads_and_vars if g is not None]
-      self.trainer = optimizer.apply_gradients(grads_and_vars, global_step=self.global_step)
-      self.runOps = self.stat_tensors + (self.trainer,)
+      # instantaneous rewards for all but the first state
+      self.rewards = tf.placeholder(tf.float32, [None], name='reward')
+      
+      self.train_dict = {
+        'state' : self.input_states,
+        'action' : self.input_actions,
+        'reward' : self.rewards
+      }
 
-    with tf.name_scope('policy'):
-      # TODO: policy might share graph structure with loss?
-      self.policy = self.model.getPolicy(self.embedded_states)
+      self.global_step = tf.Variable(0, name='global_step', trainable=False)
 
-    # don't eat up cpu cores
-    # or gpu memory
-    self.sess = tf.Session(
-      config=tf.ConfigProto(
-        inter_op_parallelism_threads=1,
-        intra_op_parallelism_threads=1,
-        use_per_session_threads=True,
-        gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.3)
+      self.model = modelType(self.state_size, self.action_size, self.global_step)
+
+      with tf.name_scope('train'):
+        loss, stats = self.model.getLoss(self.embedded_states, self.embedded_actions, self.rewards)
+        stats.append(('global_step', self.global_step))
+        self.stat_names, self.stat_tensors = zip(*stats)
+
+        optimizer = tf.train.AdamOptimizer(10.0 ** -4)
+        # train_q = opt.minimize(qLoss, global_step=global_step)
+        # opt = tf.train.GradientDescentOptimizer(0.0)
+        #grads_and_vars = opt.compute_gradients(qLoss)
+        grads_and_vars = optimizer.compute_gradients(loss)
+        self.grads_and_vars = [(g, v) for g, v in grads_and_vars if g is not None]
+        self.trainer = optimizer.apply_gradients(grads_and_vars, global_step=self.global_step)
+        self.runOps = self.stat_tensors + (self.trainer,)
+
+      with tf.name_scope('policy'):
+        # TODO: policy might share graph structure with loss?
+        self.policy = self.model.getPolicy(self.embedded_states)
+
+      # don't eat up cpu cores
+      # or gpu memory
+      self.sess = tf.Session(
+        graph=self.graph,
+        config=tf.ConfigProto(
+          inter_op_parallelism_threads=1,
+          intra_op_parallelism_threads=1,
+          use_per_session_threads=True,
+          gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.3)
+        )
       )
-    )
-    
-    self.debug = debug
-    
-    self.saver = tf.train.Saver(tf.all_variables())
+      
+      self.debug = debug
+      
+      self.saver = tf.train.Saver(tf.all_variables())
 
   def act(self, state, verbose=False):
     feed_dict = ct.feedCTypes(ssbm.GameMemory, 'input/state', [state])
@@ -93,9 +98,9 @@ class Model:
   #summaryWriter = tf.train.SummaryWriter('logs/', sess.graph)
   #summaryWriter.flush()
 
-  def debugGrads():
-    gs = sess.run([gv[0] for gv in grads_and_vars], feed_dict)
-    vs = sess.run([gv[1] for gv in grads_and_vars], feed_dict)
+  def debugGrads(self, feed_dict):
+    gs = self.sess.run([gv[0] for gv in self.grads_and_vars], feed_dict)
+    vs = self.sess.run([gv[1] for gv in self.grads_and_vars], feed_dict)
     #   loss = sess.run(qLoss, feed_dict)
     #act_qs = sess.run(qs, feed_dict)
     #act_qs = list(map(util.compose(np.sort, np.abs), act_qs))
@@ -133,7 +138,7 @@ class Model:
     # FIXME: we feed the inputs in on each iteration, which might be inefficient.
     for step_index in range(steps):
       if self.debug:
-        self.debugGrads()
+        self.debugGrads(feed_dict)
       
       # last result is trainer
       results = self.sess.run(self.runOps, feed_dict)[:-1]
@@ -151,5 +156,6 @@ class Model:
     self.saver.restore(self.sess, self.path + "snapshot")
 
   def init(self):
-    self.sess.run(tf.initialize_all_variables())
+    with self.graph.as_default():
+      self.sess.run(tf.initialize_all_variables())
 
