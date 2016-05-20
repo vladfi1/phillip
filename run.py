@@ -82,7 +82,7 @@ def run():
       dolphin.terminate()
       cpu.terminate()
   else:
-    cpu.wait()
+    cpu.join()
 
 if args.parallel is None:
   run()
