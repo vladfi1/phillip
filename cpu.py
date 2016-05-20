@@ -66,7 +66,7 @@ class CPU:
         if self.self_play:
             self.enemy = agent.Agent(self.model, self.path, reload_every=20*reload_every, swap=True)
             self.agents.append(self.enemy)
-        self.agent = agent.Agent(self.model, self.path, reload_every=reload_every)
+        self.agent = agent.Agent(model, self.path, reload_every=reload_every)
         self.agents.append(self.agent)
         
         self.mm = menu_manager.MenuManager()
@@ -205,3 +205,7 @@ class CPU:
             pass
         else:
             print("Weird menu state", self.state.menu)
+
+def runCPU(**kwargs):
+  CPU(**kwargs).run()
+
