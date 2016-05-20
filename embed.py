@@ -40,18 +40,20 @@ controllerEmbedding = [
 
 embedController = embedStruct(controllerEmbedding)
 
-maxAction = 512 # altf4 says 0x017E
-actionSpace = 32
-
 maxCharacter = 32 # should be large enough?
 
 maxJumps = 8 # unused
+
+maxAction = 512 # altf4 says 0x017E
+"""
+actionSpace = 32
 
 with tf.variable_scope("embed_action"):
   actionHelper = tfl.makeAffineLayer(maxAction, actionSpace)
 
 def embedAction(t):
   return actionHelper(tfl.one_hot(maxAction)(t))
+"""
 
 def rescale(a):
   return lambda x: a * x
@@ -61,7 +63,7 @@ playerEmbedding = [
   ("facing", embedFloat),
   ("x", util.compose(rescale(0.1), embedFloat)),
   ("y", util.compose(rescale(0.1), embedFloat)),
-  ("action_state", embedAction),
+  ("action_state", tfl.one_hot(maxAction)),
   # ("action_counter", castFloat),
   ("action_frame", util.compose(rescale(0.02), castFloat)),
   # ("character", one_hot(maxCharacter)),
@@ -119,14 +121,17 @@ def embedStage(stage):
   return stageHelper(one_hot(maxStage)(stage))
 """
 
-gameEmbedding = [
-  ('players', embedArray(embedPlayer, [0, 1])),
+def gameEmbedding(swap):
+  players = [1, 0] if swap else [0, 1]
+  return [
+    ('players', embedArray(embedPlayer, players)),
 
-  #('frame', c_uint),
-  # ('stage', embedStage)
-]
+    #('frame', c_uint),
+    # ('stage', embedStage)
+  ]
 
-embedGame = embedStruct(gameEmbedding)
+def embedGame(game, swap=False):
+  return embedStruct(gameEmbedding(swap))(game)
 
 def embedEnum(enum):
   return tfl.one_hot(len(enum))
