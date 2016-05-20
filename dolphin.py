@@ -44,7 +44,7 @@ with open('Dolphin.ini', 'r') as f:
 import shutil
 import os
 
-def setupUser(user, gfx="Null", cpu_thread=False, cpus=[1], **unused):
+def setupUser(user, gfx="Null", cpu_thread=False, cpus=[1], dump_frames=False, **unused):
   configDir = user + 'Config/'
   os.makedirs(configDir, exist_ok=True)
 
@@ -52,7 +52,14 @@ def setupUser(user, gfx="Null", cpu_thread=False, cpus=[1], **unused):
     f.write(generateGCPadNew(cpus))
 
   with open(configDir + 'Dolphin.ini', 'w') as f:
-    f.write(dolphinConfig.format(user=user, gfx=gfx, cpu_thread=cpu_thread))
+    config_args = dict(
+      user=user,
+      gfx=gfx,
+      cpu_thread=cpu_thread,
+      dump_frames=dump_frames
+    )
+    print("dump_frames", dump_frames)
+    f.write(dolphinConfig.format(**config_args))
 
   gcDir = user + 'GC/'
   os.makedirs(gcDir, exist_ok=True)
@@ -61,7 +68,15 @@ def setupUser(user, gfx="Null", cpu_thread=False, cpus=[1], **unused):
 
 import subprocess
 
-def runDolphin(exe='dolphin-emu-nogui', user='dolphin-test/', iso="SSBM.iso", movie=None, setup=True, self_play=False, **kwargs):
+def runDolphin(
+  exe='dolphin-emu-nogui',
+  user='dolphin-test/',
+  iso="SSBM.iso",
+  movie=None,
+  setup=True,
+  self_play=False,
+  **kwargs):
+  
   cpus = [0, 1] if self_play else [1]
   
   if setup:
