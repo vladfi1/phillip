@@ -129,7 +129,11 @@ class CPU:
         self.dump_frame += 1
 
         if self.dump_frame == self.dump_size:
-            dump_path = self.dump_dir + self.dump_tag + str(self.dump_count % self.dump_max)
+            if self.dump_count == 0:
+            # if False:
+                dump_path = self.dump_dir + ".dead"
+            else:
+                dump_path = self.dump_dir + self.dump_tag + str(self.dump_count % self.dump_max)
             print("Dumping to ", dump_path)
             ssbm.writeStateActions#(dump_path, self.dump_state_actions)
             ssbm.writeStateActions_pickle(dump_path, self.dump_state_actions)
@@ -156,7 +160,7 @@ class CPU:
                 start = time.time()
                 self.make_action()
                 self.thinking_time += time.time() - start
-                
+
                 if self.state.frame % (15 * fps) == 0:
                     self.print_stats()
 
