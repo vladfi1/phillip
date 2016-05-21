@@ -38,6 +38,8 @@ def sweep(data_dir='experience/'):
     for f in os.listdir(data_dir):
         if not (f.startswith(".") or f.startswith("tmp")): # .DS_Store, temp files
             filename = data_dir + f
+            if not os.path.exists(filename):
+                continue
             print("Step", i)
             print("Experience " + filename)
             rewards.append(model.train(filename))
