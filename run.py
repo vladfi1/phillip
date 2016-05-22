@@ -41,7 +41,7 @@ parser.add_argument("--self_play", action="store_true", help="train against ours
 
 # some duplication going on here...
 parser.add_argument("--movie", type=str, help="movie to play on dolphin startup")
-parser.add_argument("--gfx", type=str, help="gfx backend")
+parser.add_argument("--gfx", type=str, default="Null", help="gfx backend")
 parser.add_argument("--exe", type=str, default="dolphin-emu-headless", help="dolphin executable")
 parser.add_argument("--dump_frames", action="store_true", help="dump frames from dolphin")
 
