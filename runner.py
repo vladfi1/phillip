@@ -11,24 +11,31 @@ if not os.path.exists("slurm_logs"):
 if not os.path.exists("slurm_scripts"):
     os.makedirs("slurm_scripts")
 
+model = 'DQN'
+movie = 'FalconFalcon'
+name = movie + '_' + model
 
 # Don't give it a save name - that gets generated for you
 trainer_jobs = [
         {
-            'model': 'ActorCritic',
+            'model': model,
             'init': True,
+            'name': name,
         },
     ]
+#trainer_jobs=[]
 
 agent_jobs = []
 
 n_agents = 50
 for _ in range(n_agents):
     exemplar = {
-            'model': 'ActorCritic',
-            'movie': 'Fox9Pika_Single.dtm',
+            'model': model,
+            'movie': movie + '.dtm',
             'dump_max': 10,
-            'parallel': 1,
+            'dolphin': True,
+            'self_play': True,
+            'name': name,
         }
     agent_jobs.append(exemplar)
 
@@ -84,7 +91,6 @@ for i, job in enumerate(trainer_jobs):
             os.system("sbatch --gres=gpu:1 slurm_scripts/" + jobname + ".slurm")
             # else:
             #     os.system("sbatch -N 1 -c 2 --mem=8000 --time=6-23:00:00 slurm_scripts/" + jobname + ".slurm &")
-
 
 for i, job in enumerate(agent_jobs):
     jobname = "agent_" + str(i)
