@@ -13,7 +13,8 @@ if not os.path.exists("slurm_scripts"):
 
 model = 'DQN'
 movie = 'FalconFalcon'
-name = movie + '_' + model
+learning_rate = 1e-5
+name = movie + '_' + model + '_' + str(learning_rate)
 
 # Don't give it a save name - that gets generated for you
 trainer_jobs = [
@@ -21,13 +22,14 @@ trainer_jobs = [
             'model': model,
             'init': True,
             'name': name,
+            'learning_rate': learning_rate,
         },
     ]
 #trainer_jobs=[]
 
 agent_jobs = []
 
-n_agents = 50
+n_agents = 0
 for _ in range(n_agents):
     exemplar = {
             'model': model,
