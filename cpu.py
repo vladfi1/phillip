@@ -19,7 +19,6 @@ default_args = dict(
     path=None,
     tag=None,
     dump = True,
-    dump_seconds = 60,
     dump_max = 10,
     # TODO This might not always be accurate.
     dolphin_dir = '~/.local/share/dolphin-emu/',
@@ -38,7 +37,7 @@ class CPU:
             self.dump_dir = self.path + "/experience/"
             os.makedirs(self.dump_dir, exist_ok=True)
             self.dump_tag = "" if self.tag is None else str(self.tag) + "-"
-            self.dump_size = 60 * self.dump_seconds // act_every
+            self.dump_size = experience_length
             self.dump_state_actions = (self.dump_size * ssbm.SimpleStateAction)()
 
             self.dump_frame = 0
@@ -62,9 +61,9 @@ class CPU:
         self.cpus = [0, 1] if self.self_play else [1]
         self.agents = []
 
-        reload_every = 60*self.dump_seconds//act_every
+        reload_every = experience_length
         if self.self_play:
-            self.enemy = agent.Agent(model, self.path, reload_every=20*reload_every, swap=True)
+            self.enemy = agent.Agent(model, self.path, reload_every=60*reload_every, swap=True)
             self.agents.append(self.enemy)
         self.agent = agent.Agent(model, self.path, reload_every=reload_every)
         self.agents.append(self.agent)
