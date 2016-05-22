@@ -21,7 +21,14 @@ class Mode(Enum):
 models = {model.__name__ : model for model in [DQN, ActorCritic]}
 
 class Model:
-  def __init__(self, model="DQN", path=None, mode = Mode.TRAIN, debug = False, swap=False, **kwargs):
+  def __init__(self,
+              model="DQN",
+              path=None,
+              mode = Mode.TRAIN,
+              debug = False,
+              swap=False,
+              learning_rate=1e-4,
+              **kwargs):
     print("Creating model:", model)
     modelType = models[model]
     self.path = path
@@ -62,7 +69,7 @@ class Model:
         stats.append(('global_step', self.global_step))
         self.stat_names, self.stat_tensors = zip(*stats)
 
-        optimizer = tf.train.AdamOptimizer(10.0 ** -4)
+        optimizer = tf.train.AdamOptimizer(learning_rate)
         # train_q = opt.minimize(qLoss, global_step=global_step)
         # opt = tf.train.GradientDescentOptimizer(0.0)
         #grads_and_vars = opt.compute_gradients(qLoss)
