@@ -19,6 +19,8 @@ parser.add_argument("--model", choices=["DQN", "ActorCritic"], required=True, he
 parser.add_argument("--path", type=str,
                     help="where to import from and save to")
 
+parser.add_argument("--name", type=str, help="sets path to saves/{name}")
+
 parser.add_argument("--tag", type=str,
                     help="optional tag to mark experiences")
 
@@ -45,8 +47,11 @@ parser.add_argument("--dump_frames", action="store_true", help="dump frames from
 
 args = parser.parse_args()
 
+if args.name is None:
+  args.name = args.model
+
 if args.path is None:
-  args.path = "saves/%s/" % args.model
+  args.path = "saves/%s/" % args.name
 
 if args.parallel:
   args.dolphin = True
