@@ -27,7 +27,7 @@ parser.add_argument("--tag", type=str,
 parser.add_argument("--nodump", dest='dump', action="store_false",
                     help="don't dump experiences to disk")
 
-parser.add_argument("--dump_max", type=int,
+parser.add_argument("--dump_max", type=int, default=10,
                    help="caps number of experiences")
 
 parser.add_argument("--dolphin_dir", type=str,

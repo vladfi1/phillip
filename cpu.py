@@ -20,7 +20,7 @@ default_args = dict(
     tag=None,
     dump = True,
     dump_seconds = 60,
-    dump_max = 1000,
+    dump_max = 10,
     # TODO This might not always be accurate.
     dolphin_dir = '~/.local/share/dolphin-emu/',
     self_play = False,
