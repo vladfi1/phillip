@@ -11,13 +11,17 @@ parser.add_argument("--init", action="store_true",
                    help="initialize variables")
 parser.add_argument("--path", help="where to import from and save to")
 parser.add_argument("--model", choices=["DQN", "ActorCritic"], required=True, help="which RL model to use")
+parser.add_argument("--name", type=str, help="sets path to saves/{name}")
 
 parser.add_argument("--learning_rate", type=float, default=1e-4, help="gradient descent learning rate")
 
 args = parser.parse_args()
 
+if args.name is None:
+  args.name = args.model
+
 if args.path is None:
-  args.path = "saves/%s/" % args.model
+  args.path = "saves/%s/" % args.name
 
 experience_dir = args.path + 'experience/'
 os.makedirs(experience_dir, exist_ok=True)
