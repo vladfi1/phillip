@@ -62,10 +62,10 @@ class Model:
 
       self.global_step = tf.Variable(0, name='global_step', trainable=False)
 
-      self.model = modelType(self.state_size, self.action_size, self.global_step)
+      self.model = modelType(self.state_size, self.action_size, self.global_step, **kwargs)
 
       with tf.name_scope('train'):
-        loss, stats = self.model.getLoss(self.embedded_states, self.embedded_actions, self.rewards)
+        loss, stats = self.model.getLoss(self.embedded_states, self.embedded_actions, self.rewards, **kwargs)
         stats.append(('global_step', self.global_step))
         self.stat_names, self.stat_tensors = zip(*stats)
 

@@ -5,7 +5,7 @@ from numpy import random
 import config
 
 class DQN:
-  def __init__(self, state_size, action_size, global_step):
+  def __init__(self, state_size, action_size, global_step, **kwargs):
     self.action_size = action_size
     self.layer_sizes = [state_size, 128, 128, action_size]
     self.layers = []
@@ -36,20 +36,20 @@ class DQN:
   def getQValues(self, state):
     return self.getLayers(state)[-1]
 
-  def getLoss(self, states, actions, rewards):
+  def getLoss(self, states, actions, rewards, sarsa=False, **kwargs):
     n = config.tdN
     train_length = [config.experience_length - n]
 
     qValues = self.getQValues(states)
+    realQs = tfl.batch_dot(actions, qValues)
     maxQs = tf.reduce_max(qValues, 1)
 
     # smooth between TD(m) for m<=n?
-    targets = tf.slice(maxQs, [n], train_length)
+    targets = tf.slice(realQs if sarsa else maxQs, [n], train_length)
     for i in reversed(range(n)):
       targets = tf.slice(rewards, [i], train_length) + config.discount * targets
     targets = tf.stop_gradient(targets)
 
-    realQs = tfl.batch_dot(actions, qValues)
     trainQs = tf.slice(realQs, [0], train_length)
 
     qLosses = tf.squared_difference(trainQs, targets)
