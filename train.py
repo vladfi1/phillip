@@ -16,7 +16,12 @@ parser.add_argument("--sarsa", action="store_true", help="learn Q values for the
 
 parser.add_argument("--learning_rate", type=float, default=1e-4, help="gradient descent learning rate")
 
+parser.add_argument("--nogpu", action="store_true", help="don't train on gpu")
+
 args = parser.parse_args()
+
+if args.nogpu:
+  os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
 if args.name is None:
   args.name = args.model
