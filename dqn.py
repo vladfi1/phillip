@@ -5,7 +5,7 @@ from numpy import random
 import config
 
 class DQN:
-  def __init__(self, state_size, action_size, global_step, **kwargs):
+  def __init__(self, state_size, action_size, global_step, epsilon=0.04, temperature=0.01, **kwargs):
     self.action_size = action_size
     self.layer_sizes = [state_size, 128, 128, action_size]
     self.layers = []
@@ -19,11 +19,11 @@ class DQN:
 
     with tf.name_scope('epsilon'):
       #epsilon = tf.constant(0.02)
-      self.epsilon = 0.04 + 0.9 * tf.exp(-tf.cast(global_step, tf.float32) / 50000.0)
+      self.epsilon = epsilon + 0.5 * tf.exp(-tf.cast(global_step, tf.float32) / 50000.0)
 
     with tf.name_scope('temperature'):
       #temperature = 0.05  * (0.5 ** (tf.cast(global_step, tf.float32) / 100000.0) + 0.1)
-      self.temperature = 0.01
+      self.temperature = temperature
 
   def getLayers(self, state):
     outputs = [state]

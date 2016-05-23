@@ -13,6 +13,8 @@ os.environ["CUDA_VISIBLE_DEVICES"] = ""
 parser = ArgumentParser()
 
 parser.add_argument("--model", choices=["DQN", "ActorCritic"], required=True, help="which RL model to use")
+parser.add_argument("--epsilon", type=float, default=0.04, help="probability of random action")
+parser.add_argument("--temperature", type=float, default=0.01, help="increases action randomness")
 
 #parser.add_argument("--policy", choices=["eps-greedy", "softmax"
 
