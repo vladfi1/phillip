@@ -28,7 +28,7 @@ experience_dir = args.path + 'experience/'
 os.makedirs(experience_dir, exist_ok=True)
 
 import RL
-model = RL.Model(**args.__dict__)
+model = RL.Model(mode=RL.Mode.TRAIN, **args.__dict__)
 
 # do this in RL?
 if args.init:

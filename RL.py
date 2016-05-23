@@ -82,16 +82,17 @@ class Model:
         # TODO: policy might share graph structure with loss?
         self.policy = self.model.getPolicy(self.embedded_states)
 
-      # don't eat up cpu cores
-      # or gpu memory
-      self.sess = tf.Session(
-        graph=self.graph,
-        config=tf.ConfigProto(
+      if mode == Mode.PLAY: # don't eat up cpu cores
+        configProto = tf.ConfigProto(
           inter_op_parallelism_threads=1,
           intra_op_parallelism_threads=1,
-          use_per_session_threads=True,
-          gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.3)
         )
+      else: # or gpu memory
+        configProto = tf.ConfigProto(gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.3))
+      
+      self.sess = tf.Session(
+        graph=self.graph,
+        config=configProto,
       )
       
       self.debug = debug
