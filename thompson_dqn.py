@@ -5,7 +5,7 @@ from numpy import random, exp, argmax
 import config
 
 class ThompsonDQN:
-  def __init__(self, state_size, action_size, global_step, rlConfig, **kwargs):
+  def __init__(self, state_size, action_size, global_step, rlConfig, epsilon=0.04, **kwargs):
     self.action_size = action_size
     self.layer_sizes = [state_size, 128, 128]
     self.layers = []
@@ -26,6 +26,7 @@ class ThompsonDQN:
     self.layers.append(lambda x: (mean(x), log_variance(x)))
     
     self.rlConfig = rlConfig
+    self.epsilon = epsilon
 
   def getLayers(self, state):
     outputs = [state]
@@ -74,6 +75,9 @@ class ThompsonDQN:
     return qDists
   
   def act(self, policy, verbose=False):
+    if util.flip(self.epsilon):
+      return random.randint(0, self.action_size)
+    
     [qDists] = policy
     if verbose:
       print("qDists", qDists)
