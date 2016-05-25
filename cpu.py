@@ -70,25 +70,25 @@ class CPU:
         
         self.mm = menu_manager.MenuManager()
 
-        try:
-            print('Creating MemoryWatcher.')
-            self.mw = memory_watcher.MemoryWatcher(self.dolphin_dir + '/MemoryWatcher/MemoryWatcher')
-            print('Creating Pads. Open dolphin now.')
-            os.makedirs(self.dolphin_dir + '/Pipes/', exist_ok=True)
-            
-            paths = [self.dolphin_dir + '/Pipes/phillip%d' % i for i in self.cpus]
-            self.pads = pad.makePads(paths)
-              
-            self.initialized = True
-        except KeyboardInterrupt:
-            self.initialized = False
+        print('Creating MemoryWatcher.')
+        self.mw = memory_watcher.MemoryWatcher(self.dolphin_dir + '/MemoryWatcher/MemoryWatcher')
+        
+        pipe_dir = self.dolphin_dir + '/Pipes/'
+        print('Creating Pads at %s. Open dolphin now.' % pipe_dir)
+        os.makedirs(self.dolphin_dir + '/Pipes/', exist_ok=True)
+        
+        paths = [pipe_dir + 'phillip%d' % i for i in self.cpus]
+        self.get_pads = pad.makePads(paths)
 
         self.init_stats()
 
-    def run(self, dolphin_process=None):
-        if not self.initialized:
-            print("CPU not initialized!")
+    def run(self, frames=None, dolphin_process=None):
+        try:
+            self.pads = self.get_pads()
+        except KeyboardInterrupt:
+            print("Pipes not initialized!")
             return
+            
         print('Starting run loop.')
         self.start_time = time.time()
         try:

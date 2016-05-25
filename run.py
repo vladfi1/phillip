@@ -62,7 +62,7 @@ prefix = args.dolphin_dir
 if prefix is None:
   prefix = 'dolphin'
 
-from cpu import runCPU
+from cpu import CPU
 
 def run():
   if args.dolphin_dir is None:
@@ -75,22 +75,16 @@ def run():
     d = args.__dict__
     user = args.dolphin_dir
   
-  cpu = Process(target=runCPU, kwargs=d)
-  cpu.start()
+  cpu = CPU(**d)
   
   if args.dolphin:
     # delay for a bit to let the cpu start up
     time.sleep(5)
     dolphin = runDolphin(user=user, **args.__dict__)
-    
-    try:
-      dolphin.wait()
-      cpu.terminate()
-    except KeyboardInterrupt:
-      dolphin.terminate()
-      cpu.terminate()
   else:
-    cpu.join()
+    dolphin = None
+  
+  cpu.run(dolphin_process=dolphin)
 
 if args.parallel is None:
   run()

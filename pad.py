@@ -39,10 +39,12 @@ def makePads(paths):
         threads[i] = Thread(target=makePad, args=[i])
         threads[i].start()
     
-    for p in threads:
-        p.join()
+    def wait():
+      for p in threads:
+          p.join()
+      return pads
     
-    return pads
+    return wait
 
 class Pad:
     """Writes out controller inputs."""
