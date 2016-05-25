@@ -10,12 +10,18 @@ parser.add_argument("-q", "--quiet", action="store_true",
 parser.add_argument("--init", action="store_true",
                    help="initialize variables")
 parser.add_argument("--path", help="where to import from and save to")
-parser.add_argument("--model", choices=["DQN", "ActorCritic"], required=True, help="which RL model to use")
 parser.add_argument("--name", type=str, help="sets path to saves/{name}")
+parser.add_argument("--model", choices=["DQN", "ActorCritic", "ThompsonDQN"], required=True, help="which RL model to use")
+parser.add_argument("--sarsa", action="store_true", help="learn Q values for the current policy, not the optimal policy")
 
 parser.add_argument("--learning_rate", type=float, default=1e-4, help="gradient descent learning rate")
 
+parser.add_argument("--nogpu", action="store_true", help="don't train on gpu")
+
 args = parser.parse_args()
+
+if args.nogpu:
+  os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
 if args.name is None:
   args.name = args.model
@@ -27,7 +33,7 @@ experience_dir = args.path + 'experience/'
 os.makedirs(experience_dir, exist_ok=True)
 
 import RL
-model = RL.Model(**args.__dict__)
+model = RL.Model(mode=RL.Mode.TRAIN, **args.__dict__)
 
 # do this in RL?
 if args.init:

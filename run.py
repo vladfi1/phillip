@@ -12,7 +12,9 @@ os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
 parser = ArgumentParser()
 
-parser.add_argument("--model", choices=["DQN", "ActorCritic"], required=True, help="which RL model to use")
+parser.add_argument("--model", choices=["DQN", "ActorCritic", "ThompsonDQN"], required=True, help="which RL model to use")
+parser.add_argument("--epsilon", type=float, default=0.04, help="probability of random action")
+parser.add_argument("--temperature", type=float, default=0.01, help="increases action randomness")
 
 #parser.add_argument("--policy", choices=["eps-greedy", "softmax"
 
@@ -27,7 +29,7 @@ parser.add_argument("--tag", type=str,
 parser.add_argument("--nodump", dest='dump', action="store_false",
                     help="don't dump experiences to disk")
 
-parser.add_argument("--dump_max", type=int,
+parser.add_argument("--dump_max", type=int, default=10,
                    help="caps number of experiences")
 
 parser.add_argument("--dolphin_dir", type=str,
@@ -41,7 +43,7 @@ parser.add_argument("--self_play", action="store_true", help="train against ours
 
 # some duplication going on here...
 parser.add_argument("--movie", type=str, help="movie to play on dolphin startup")
-parser.add_argument("--gfx", type=str, help="gfx backend")
+parser.add_argument("--gfx", type=str, default="Null", help="gfx backend")
 parser.add_argument("--exe", type=str, default="dolphin-emu-headless", help="dolphin executable")
 parser.add_argument("--dump_frames", action="store_true", help="dump frames from dolphin")
 

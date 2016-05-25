@@ -9,6 +9,7 @@ import numpy as np
 import embed
 from dqn import DQN
 from actor_critic import ActorCritic
+from thompson_dqn import ThompsonDQN
 import config
 from operator import add, sub
 from enum import Enum
@@ -18,7 +19,7 @@ class Mode(Enum):
   TRAIN = 0
   PLAY = 1
 
-models = {model.__name__ : model for model in [DQN, ActorCritic]}
+models = {model.__name__ : model for model in [DQN, ActorCritic, ThompsonDQN]}
 
 class Model:
   def __init__(self,
@@ -62,10 +63,10 @@ class Model:
 
       self.global_step = tf.Variable(0, name='global_step', trainable=False)
 
-      self.model = modelType(self.state_size, self.action_size, self.global_step)
+      self.model = modelType(self.state_size, self.action_size, self.global_step, **kwargs)
 
       with tf.name_scope('train'):
-        loss, stats = self.model.getLoss(self.embedded_states, self.embedded_actions, self.rewards)
+        loss, stats = self.model.getLoss(self.embedded_states, self.embedded_actions, self.rewards, **kwargs)
         stats.append(('global_step', self.global_step))
         self.stat_names, self.stat_tensors = zip(*stats)
 
@@ -82,16 +83,17 @@ class Model:
         # TODO: policy might share graph structure with loss?
         self.policy = self.model.getPolicy(self.embedded_states)
 
-      # don't eat up cpu cores
-      # or gpu memory
-      self.sess = tf.Session(
-        graph=self.graph,
-        config=tf.ConfigProto(
+      if mode == Mode.PLAY: # don't eat up cpu cores
+        configProto = tf.ConfigProto(
           inter_op_parallelism_threads=1,
           intra_op_parallelism_threads=1,
-          use_per_session_threads=True,
-          gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.3)
         )
+      else: # or gpu memory
+        configProto = tf.ConfigProto(gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.3))
+      
+      self.sess = tf.Session(
+        graph=self.graph,
+        config=configProto,
       )
       
       self.debug = debug

@@ -5,7 +5,7 @@ import config
 from numpy import random
 
 class ActorCritic:
-  def __init__(self, state_size, action_size, global_step):
+  def __init__(self, state_size, action_size, global_step, **kwargs):
     self.action_size = action_size
     self.layer_sizes = [state_size, 128, 128]
     self.layers = []
@@ -42,7 +42,7 @@ class ActorCritic:
   def getOutput(self, state):
     return self.getLayers(state)[-1]
 
-  def getLoss(self, states, actions, rewards):
+  def getLoss(self, states, actions, rewards, **kwargs):
     n = config.tdN
     train_length = [config.experience_length - n]
 
