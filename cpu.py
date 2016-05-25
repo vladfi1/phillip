@@ -23,13 +23,14 @@ default_args = dict(
     # TODO This might not always be accurate.
     dolphin_dir = '~/.local/share/dolphin-emu/',
     self_play = False,
+    model="DQN",
 )
 
 class CPU:
-    def __init__(self, model="DQN", **args):
+    def __init__(self, **kwargs):
         for k, v in default_args.items():
-            if k in args and args[k] is not None:
-                setattr(self, k, args[k])
+            if k in kwargs and kwargs[k] is not None:
+                setattr(self, k, kwargs[k])
             else:
                 setattr(self, k, v)
 
@@ -63,9 +64,9 @@ class CPU:
 
         reload_every = experience_length
         if self.self_play:
-            self.enemy = agent.Agent(model, self.path, reload_every=60*reload_every, swap=True)
+            self.enemy = agent.Agent(reload_every=60*reload_every, swap=True, **kwargs)
             self.agents.append(self.enemy)
-        self.agent = agent.Agent(model, self.path, reload_every=reload_every)
+        self.agent = agent.Agent(reload_every=reload_every, **kwargs)
         self.agents.append(self.agent)
         
         self.mm = menu_manager.MenuManager()
