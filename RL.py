@@ -64,24 +64,25 @@ class Model:
       self.global_step = tf.Variable(0, name='global_step', trainable=False)
 
       self.model = modelType(self.state_size, self.action_size, self.global_step, **kwargs)
+      
+      if mode == Mode.TRAIN:
+        with tf.name_scope('train'):
+          loss, stats = self.model.getLoss(self.embedded_states, self.embedded_actions, self.rewards, **kwargs)
+          stats.append(('global_step', self.global_step))
+          self.stat_names, self.stat_tensors = zip(*stats)
 
-      with tf.name_scope('train'):
-        loss, stats = self.model.getLoss(self.embedded_states, self.embedded_actions, self.rewards, **kwargs)
-        stats.append(('global_step', self.global_step))
-        self.stat_names, self.stat_tensors = zip(*stats)
-
-        optimizer = tf.train.AdamOptimizer(learning_rate)
-        # train_q = opt.minimize(qLoss, global_step=global_step)
-        # opt = tf.train.GradientDescentOptimizer(0.0)
-        #grads_and_vars = opt.compute_gradients(qLoss)
-        grads_and_vars = optimizer.compute_gradients(loss)
-        self.grads_and_vars = [(g, v) for g, v in grads_and_vars if g is not None]
-        self.trainer = optimizer.apply_gradients(grads_and_vars, global_step=self.global_step)
-        self.runOps = self.stat_tensors + (self.trainer,)
-
-      with tf.name_scope('policy'):
-        # TODO: policy might share graph structure with loss?
-        self.policy = self.model.getPolicy(self.embedded_states)
+          optimizer = tf.train.AdamOptimizer(learning_rate)
+          # train_q = opt.minimize(qLoss, global_step=global_step)
+          # opt = tf.train.GradientDescentOptimizer(0.0)
+          #grads_and_vars = opt.compute_gradients(qLoss)
+          grads_and_vars = optimizer.compute_gradients(loss)
+          self.grads_and_vars = [(g, v) for g, v in grads_and_vars if g is not None]
+          self.trainer = optimizer.apply_gradients(grads_and_vars, global_step=self.global_step)
+          self.runOps = self.stat_tensors + (self.trainer,)
+      else:
+        with tf.name_scope('policy'):
+          # TODO: policy might share graph structure with loss?
+          self.policy = self.model.getPolicy(self.embedded_states, **kwargs)
 
       if mode == Mode.PLAY: # don't eat up cpu cores
         configProto = tf.ConfigProto(

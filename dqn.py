@@ -56,7 +56,7 @@ class DQN:
     qLoss = tf.reduce_mean(qLosses)
     return qLoss, [("qLoss", qLoss)]
 
-  def getPolicy(self, state, policy=None):
+  def getPolicy(self, state, policy=None, **kwargs):
     #return [self.epsilon, tf.argmax(self.getQValues(state), 1)]
     qValues = self.getQValues(state)
     action_probs = tf.nn.softmax(qValues / self.temperature)
