@@ -21,6 +21,12 @@ class Mode(Enum):
 
 models = {model.__name__ : model for model in [DQN, ActorCritic, ThompsonDQN]}
 
+class RLConfig:
+  def __init__(self, tdN=5, reward_halflife = 2.0, **kwargs):
+    self.tdN = tdN
+    self.reward_halflife = reward_halflife
+    self.discount = 0.5 ** ( 1.0 / (config.fps*reward_halflife) )
+
 class Model:
   def __init__(self,
               model="DQN",
@@ -32,6 +38,7 @@ class Model:
               **kwargs):
     print("Creating model:", model)
     modelType = models[model]
+    
     self.path = path
     
     self.graph = tf.Graph()
@@ -63,7 +70,8 @@ class Model:
 
       self.global_step = tf.Variable(0, name='global_step', trainable=False)
 
-      self.model = modelType(self.state_size, self.action_size, self.global_step, **kwargs)
+      self.rlConfig = RLConfig(**kwargs)
+      self.model = modelType(self.state_size, self.action_size, self.global_step, self.rlConfig, **kwargs)
       
       if mode == Mode.TRAIN:
         with tf.name_scope('train'):

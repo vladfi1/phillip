@@ -18,6 +18,9 @@ parser.add_argument("--learning_rate", type=float, default=1e-4, help="gradient 
 
 parser.add_argument("--nogpu", action="store_true", help="don't train on gpu")
 
+parser.add_argument("--tdN", type=int, default=5, help="use n-step TD error")
+parser.add_argument("--reward_halflife", type=float, default=2.0, help="time to discount rewards by half, in seconds")
+
 args = parser.parse_args()
 
 if args.nogpu:

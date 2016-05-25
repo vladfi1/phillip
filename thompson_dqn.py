@@ -5,7 +5,7 @@ from numpy import random, exp, argmax
 import config
 
 class ThompsonDQN:
-  def __init__(self, state_size, action_size, global_step, **kwargs):
+  def __init__(self, state_size, action_size, global_step, rlConfig, **kwargs):
     self.action_size = action_size
     self.layer_sizes = [state_size, 128, 128]
     self.layers = []
@@ -24,6 +24,8 @@ class ThompsonDQN:
       log_variance = tfl.makeAffineLayer(self.layer_sizes[-1], action_size)
 
     self.layers.append(lambda x: (mean(x), log_variance(x)))
+    
+    self.rlConfig = rlConfig
 
   def getLayers(self, state):
     outputs = [state]
@@ -42,7 +44,7 @@ class ThompsonDQN:
   def getLoss(self, states, actions, rewards, sarsa=False, **kwargs):
     "Negative Log-Likelihood"
     
-    n = config.tdN
+    n = self.rlConfig.tdN
     train_length = [config.experience_length - n]
     
     qMeans, qLogVariances = self.getQDists(states)
@@ -53,7 +55,7 @@ class ThompsonDQN:
     # smooth between TD(m) for m<=n?
     targets = tf.slice(realQs if sarsa else maxQs, [n], train_length)
     for i in reversed(range(n)):
-      targets = tf.slice(rewards, [i], train_length) + config.discount * targets
+      targets = tf.slice(rewards, [i], train_length) + self.rlConfig.discount * targets
     targets = tf.stop_gradient(targets)
 
     trainQs = tf.slice(realQs, [0], train_length)
