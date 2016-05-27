@@ -78,6 +78,10 @@ class Model:
       if mode == Mode.TRAIN:
         with tf.name_scope('train'):
           loss, stats = self.model.getLoss(self.embedded_states, self.embedded_actions, self.rewards, **kwargs)
+          
+          loss_summary = tf.scalar_summary("loss", loss)
+          merged = tf.merge_all_summaries()
+          
           stats.append(('global_step', self.global_step))
           self.stat_names, self.stat_tensors = zip(*stats)
           
@@ -88,7 +92,9 @@ class Model:
           grads_and_vars = optimizer.compute_gradients(loss)
           self.grads_and_vars = [(g, v) for g, v in grads_and_vars if g is not None]
           self.trainer = optimizer.apply_gradients(grads_and_vars, global_step=self.global_step)
-          self.runOps = self.stat_tensors + (self.trainer,)
+          self.runOps = self.stat_tensors + (self.trainer,merged)
+          
+          self.writer = tf.train.SummaryWriter(path+'logs/', self.graph)
       else:
         with tf.name_scope('policy'):
           # TODO: policy might share graph structure with loss?
@@ -161,10 +167,14 @@ class Model:
       if self.debug:
         self.debugGrads(feed_dict)
       
-      # last result is trainer
-      results = self.sess.run(self.runOps, feed_dict)[:-1]
+      # last result is summary, second to last is trainer
+      results = self.sess.run(self.runOps, feed_dict)
       util.zipWith(print, self.stat_names, results)
-
+      
+      summary_str = results[-1]
+      global_step = results[-3]
+      self.writer.add_summary(summary_str, global_step)
+    
     return sum(experience['reward'])
 
   def save(self):
