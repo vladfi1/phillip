@@ -73,12 +73,14 @@ class Model:
       self.rlConfig = RLConfig(**kwargs)
       self.model = modelType(self.state_size, self.action_size, self.global_step, self.rlConfig, **kwargs)
       
+      self.variables = self.model.getVariables() + [self.global_step]
+      
       if mode == Mode.TRAIN:
         with tf.name_scope('train'):
           loss, stats = self.model.getLoss(self.embedded_states, self.embedded_actions, self.rewards, **kwargs)
           stats.append(('global_step', self.global_step))
           self.stat_names, self.stat_tensors = zip(*stats)
-
+          
           optimizer = tf.train.AdamOptimizer(learning_rate)
           # train_q = opt.minimize(qLoss, global_step=global_step)
           # opt = tf.train.GradientDescentOptimizer(0.0)
@@ -107,6 +109,7 @@ class Model:
       
       self.debug = debug
       
+      #self.saver = tf.train.Saver(self.variables)
       self.saver = tf.train.Saver(tf.all_variables())
 
   def act(self, state, verbose=False):
@@ -175,5 +178,6 @@ class Model:
 
   def init(self):
     with self.graph.as_default():
+      #self.sess.run(tf.initialize_variables(self.variables))
       self.sess.run(tf.initialize_all_variables())
 

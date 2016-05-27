@@ -8,60 +8,75 @@ class DQN:
   def __init__(self, state_size, action_size, global_step, rlConfig,
     epsilon=0.04, temperature=0.01, **kwargs):
     self.action_size = action_size
-    self.layer_sizes = [state_size, 128, 128, action_size]
-    self.layers = []
-
-    for i in range(len(self.layer_sizes)-1):
-      prev_size = self.layer_sizes[i]
-      next_size = self.layer_sizes[i+1]
-
+    self.layer_sizes = [128, 128]
+    
+    self.q_net = tfl.Sequential()
+    
+    prev_size = state_size
+    for i, size in enumerate(self.layer_sizes):
       with tf.variable_scope("layer_%d" % i):
-        self.layers.append(tfl.makeAffineLayer(prev_size, next_size, tfl.leaky_relu))
+        self.q_net.append(tfl.FCLayer(prev_size, size, tfl.leaky_relu))
+      prev_size = size
+    
+    with tf.variable_scope("q_out"):
+      # no non-linearity on output layer
+      self.q_net.append(tfl.FCLayer(prev_size, action_size))
     
     self.rlConfig = rlConfig
     
     with tf.name_scope('epsilon'):
       #epsilon = tf.constant(0.02)
-      self.epsilon = epsilon + 0.5 * tf.exp(-tf.cast(global_step, tf.float32) / 50000.0)
+      self.epsilon = epsilon + 0.5 * tf.exp(-tf.cast(global_step, tf.float32) / 10000.0)
 
     with tf.name_scope('temperature'):
       #temperature = 0.05  * (0.5 ** (tf.cast(global_step, tf.float32) / 100000.0) + 0.1)
       self.temperature = temperature
-
-  def getLayers(self, state):
-    outputs = [state]
-    for i, f in enumerate(self.layers):
-      with tf.name_scope('q%d' % i):
-        outputs.append(f(outputs[-1]))
-
-    return outputs
-
-  def getQValues(self, state):
-    return self.getLayers(state)[-1]
-
-  def getLoss(self, states, actions, rewards, sarsa=False, **kwargs):
+    
+    self.global_step = global_step
+  
+  def getVariables(self):
+    return self.q_net.getVariables()
+  
+  def getLoss(self, states, actions, rewards, sarsa=False, update_every=1000, **kwargs):
     n = self.rlConfig.tdN
     train_length = [config.experience_length - n]
 
-    qValues = self.getQValues(states)
-    realQs = tfl.batch_dot(actions, qValues)
-    maxQs = tf.reduce_max(qValues, 1)
+    trainQs = self.q_net(states)
+    trainQs = tfl.batch_dot(actions, trainQs)
+    trainQs = tf.slice(trainQs, [0], train_length)
+    
+    self.q_target = self.q_net.clone()
+    
+    targetQs = self.q_target(states)
+    realQs = tfl.batch_dot(actions, targetQs)
+    maxQs = tf.reduce_max(targetQs, 1)
+    targetQs = realQs if sarsa else maxQs
 
     # smooth between TD(m) for m<=n?
-    targets = tf.slice(realQs if sarsa else maxQs, [n], train_length)
+    targets = tf.slice(targetQs, [n], train_length)
     for i in reversed(range(n)):
       targets = tf.slice(rewards, [i], train_length) + self.rlConfig.discount * targets
+    # not necessary if we optimize only on q_net variables
+    # but this is easier :)
     targets = tf.stop_gradient(targets)
-
-    trainQs = tf.slice(realQs, [0], train_length)
 
     qLosses = tf.squared_difference(trainQs, targets)
     qLoss = tf.reduce_mean(qLosses)
-    return qLoss, [("qLoss", qLoss)]
-
+    
+    update_target = lambda: tf.group(*self.q_target.assign(self.q_net), name="update_target")
+    should_update = tf.equal(tf.mod(self.global_step, update_every), 0)
+    periodic_update = tf.case([(should_update, update_target)], default=lambda: tf.no_op())
+    
+    #return qLoss, [("qLoss", qLoss)], (1000, update_target)
+    return (
+      qLoss,
+      [("qLoss", qLoss), ("periodic_update", periodic_update)],
+      #tf.initialize_variables(self.q_target.getVariables())
+    )
+  
   def getPolicy(self, state, **kwargs):
     #return [self.epsilon, tf.argmax(self.getQValues(state), 1)]
-    qValues = self.getQValues(state)
+    qValues = self.q_net(state)
     action_probs = tf.nn.softmax(qValues / self.temperature)
     action_probs = (1.0 - self.epsilon) * action_probs + self.epsilon / self.action_size
     entropy = tf.reduce_sum(tf.log(action_probs) * action_probs, 1)

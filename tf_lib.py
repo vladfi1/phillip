@@ -4,6 +4,7 @@ import ctypes
 import math
 import functools
 import operator
+import itertools
 
 def leaky_relu(x, alpha=0.01):
   return tf.maximum(alpha * x, x)
@@ -24,7 +25,7 @@ def weight_variable(shape):
     #initial = tf.truncated_normal(shape, stddev=0.1)
     input_size = product(shape[:-1])
     initial = tf.truncated_normal(shape, stddev=1.0/math.sqrt(input_size))
-    return tf.Variable(initial)
+    return tf.Variable(initial, name='weight')
 
 def bias_variable(shape):
     '''
@@ -35,7 +36,7 @@ def bias_variable(shape):
     '''
     size = 1.0 / math.sqrt(product(shape))
     initial = tf.random_uniform(shape, -size, size)
-    return tf.Variable(initial)
+    return tf.Variable(initial, name='bias')
 
 def conv2d(x, W):
     '''
@@ -77,6 +78,66 @@ def convLayer(x, filter_size=5, filter_depth=64, pool_size=2):
                         padding = 'SAME')
 
   return pool
+
+def cloneVar(var):
+  return tf.Variable(var.initialized_value())
+
+class FCLayer:
+  def __init__(self, input_size=None, output_size=None, nl=None, clone=None):
+    if clone:
+      self.input_size = clone.input_size
+      self.output_size = clone.output_size
+      self.nl = clone.nl
+      
+      self.weight = cloneVar(clone.weight)
+      self.bias = cloneVar(clone.bias)
+    else:
+      self.input_size = input_size
+      self.output_size = output_size
+      self.nl = nl
+      
+      self.weight = weight_variable([input_size, output_size])
+      self.bias = bias_variable([output_size])
+  
+  def __call__(self, x):
+    y = tf.matmul(x, self.weight) + self.bias
+    return self.nl(y) if self.nl else y
+  
+  def clone(self):
+    return FCLayer(clone=self)
+  
+  def assign(self, other):
+    return [
+      self.weight.assign(other.weight),
+      self.bias.assign(other.bias),
+    ]
+  
+  def getVariables(self):
+    return [self.weight, self.bias]
+
+class Sequential:
+  def __init__(self, *layers):
+    self.layers = list(layers)
+  
+  def append(self, layer):
+    self.layers.append(layer)
+  
+  def __call__(self, x):
+    for f in self.layers:
+      x = f(x)
+    return x
+  
+  def clone(self):
+    layers = [layer.clone() for layer in self.layers]
+    return Sequential(*layers)
+  
+  def assign(self, other):
+    assignments = [l1.assign(l2) for l1, l2 in zip(self.layers, other.layers)]
+    return list(itertools.chain(*assignments))
+
+  def getVariables(self):
+    variables = [layer.getVariables() for layer in self.layers]
+    return list(itertools.chain(*variables))
 
 def affineLayer(x, output_size, nl=None):
   W = weight_variable([x.get_shape()[-1].value, output_size])
