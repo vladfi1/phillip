@@ -37,7 +37,7 @@ class DQN:
   def getVariables(self):
     return self.q_net.getVariables()
   
-  def getLoss(self, states, actions, rewards, sarsa=False, update_every=1000, **kwargs):
+  def getLoss(self, states, actions, rewards, sarsa=False, target_delay=1000, **kwargs):
     n = self.rlConfig.tdN
     train_length = [config.experience_length - n]
 
@@ -64,7 +64,7 @@ class DQN:
     qLoss = tf.reduce_mean(qLosses)
     
     update_target = lambda: tf.group(*self.q_target.assign(self.q_net), name="update_target")
-    should_update = tf.equal(tf.mod(self.global_step, update_every), 0)
+    should_update = tf.equal(tf.mod(self.global_step, target_delay), 0)
     periodic_update = tf.case([(should_update, update_target)], default=lambda: tf.no_op())
     
     #return qLoss, [("qLoss", qLoss)], (1000, update_target)

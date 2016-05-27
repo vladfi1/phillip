@@ -21,6 +21,8 @@ parser.add_argument("--nogpu", action="store_true", help="don't train on gpu")
 parser.add_argument("--tdN", type=int, default=5, help="use n-step TD error")
 parser.add_argument("--reward_halflife", type=float, default=2.0, help="time to discount rewards by half, in seconds")
 
+parser.add_argument("--target_delay", type=int, default=5000, help="update target network after this many experiences")
+
 args = parser.parse_args()
 
 if args.nogpu:
