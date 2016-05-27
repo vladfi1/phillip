@@ -12,9 +12,15 @@ if not os.path.exists("slurm_scripts"):
     os.makedirs("slurm_scripts")
 
 model = 'DQN'
-movie = 'FalconFalcon'
-learning_rate = 1e-5
-name = movie + '_' + model + '_' + str(learning_rate)
+movie = 'Falcon9Falcon'
+learning_rate = 1e-3
+tdN = 5
+sarsa = False
+name = model
+name += '_' + str(learning_rate)
+name += '_' + str(tdN)
+if sarsa:
+  name += '_sarsa'
 
 # Don't give it a save name - that gets generated for you
 trainer_jobs = [
@@ -23,9 +29,11 @@ trainer_jobs = [
             'init': True,
             'name': name,
             'learning_rate': learning_rate,
+            'tdN': tdN,
+            'sarsa': sarsa
         },
     ]
-#trainer_jobs=[]
+trainer_jobs=[]
 
 agent_jobs = []
 
@@ -34,9 +42,9 @@ for _ in range(n_agents):
     exemplar = {
             'model': model,
             'movie': movie + '.dtm',
-            'dump_max': 10,
+            'dump_max': 60,
             'dolphin': True,
-            'self_play': True,
+            'self_play': Falso,
             'name': name,
         }
     agent_jobs.append(exemplar)
