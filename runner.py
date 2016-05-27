@@ -37,14 +37,14 @@ trainer_jobs=[]
 
 agent_jobs = []
 
-n_agents = 0
+n_agents = 50
 for _ in range(n_agents):
     exemplar = {
             'model': model,
             'movie': movie + '.dtm',
             'dump_max': 60,
             'dolphin': True,
-            'self_play': Falso,
+            'self_play': False,
             'name': name,
         }
     agent_jobs.append(exemplar)
