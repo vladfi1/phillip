@@ -4,6 +4,7 @@ import sys
 dry_run = '--dry-run' in sys.argv
 local   = '--local' in sys.argv
 detach  = '--detach' in sys.argv
+agents = '--agents' in sys.argv
 
 if not os.path.exists("slurm_logs"):
     os.makedirs("slurm_logs")
@@ -11,33 +12,46 @@ if not os.path.exists("slurm_logs"):
 if not os.path.exists("slurm_scripts"):
     os.makedirs("slurm_scripts")
 
+train_params = dict(init=True)
+
 model = 'DQN'
-movie = 'Falcon9Falcon'
-learning_rate = 1e-3
-tdN = 5
-sarsa = False
 name = model
+train_params['model'] = model
+
+movie = 'Falcon9Falcon'
+#name += '_' + movie
+
+learning_rate = 1e-3
+train_params['learning_rate'] = learning_rate
 name += '_' + str(learning_rate)
+
+tdN = 5
+train_params['tdN'] = tdN
 name += '_' + str(tdN)
+
+sarsa = False
+#sarsa = True
+train_params['sarsa'] = sarsa
 if sarsa:
   name += '_sarsa'
 
-# Don't give it a save name - that gets generated for you
-trainer_jobs = [
-        {
-            'model': model,
-            'init': True,
-            'name': name,
-            'learning_rate': learning_rate,
-            'tdN': tdN,
-            'sarsa': sarsa
-        },
-    ]
-trainer_jobs=[]
+target_delay = None
+target_delay = 5000
+train_params['target_delay'] = target_delay
+if target_delay:
+  name += '_' + str(target_delay)
+
+train_params['name'] = name
+trainer_jobs = [train_params]
+if agents:
+  trainer_jobs=[]
+
 
 agent_jobs = []
 
 n_agents = 50
+if not agents:
+  n_agents = 0
 for _ in range(n_agents):
     exemplar = {
             'model': model,
