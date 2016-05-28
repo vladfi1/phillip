@@ -79,7 +79,9 @@ class Model:
         with tf.name_scope('train'):
           loss, stats = self.model.getLoss(self.embedded_states, self.embedded_actions, self.rewards, **kwargs)
           
-          loss_summary = tf.scalar_summary("loss", loss)
+          tf.scalar_summary("loss", loss)
+          for name, tensor in stats:
+            tf.scalar_summary(name, tensor)
           merged = tf.merge_all_summaries()
           
           stats.append(('global_step', self.global_step))
