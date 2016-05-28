@@ -22,7 +22,7 @@ default_args = dict(
     dump_max = 10,
     # TODO This might not always be accurate.
     dolphin_dir = '~/.local/share/dolphin-emu/',
-    self_play = False,
+    self_play = None,
     model="DQN",
 )
 
@@ -64,7 +64,7 @@ class CPU:
 
         reload_every = experience_length
         if self.self_play:
-            self.enemy = agent.Agent(reload_every=60*reload_every, swap=True, **kwargs)
+            self.enemy = agent.Agent(reload_every=self.self_play*reload_every, swap=True, **kwargs)
             self.agents.append(self.enemy)
         self.agent = agent.Agent(reload_every=reload_every, **kwargs)
         self.agents.append(self.agent)

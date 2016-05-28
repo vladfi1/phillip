@@ -39,7 +39,7 @@ parser.add_argument("--dolphin", action="store_true", help="run dolphin")
 parser.add_argument("--nosetup", dest="setup", action="store_false", help="don't setup dolphin directory")
 parser.add_argument("--parallel", type=int, help="spawn parallel cpus and dolphins")
 
-parser.add_argument("--self_play", action="store_true", help="train against ourselves")
+parser.add_argument("--self_play", type=int, help="train against ourselves, reloading every N experiences")
 
 # some duplication going on here...
 parser.add_argument("--movie", type=str, help="movie to play on dolphin startup")
