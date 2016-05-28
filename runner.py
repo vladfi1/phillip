@@ -14,7 +14,8 @@ if not os.path.exists("slurm_scripts"):
 
 train_params = dict(init=True)
 
-model = 'DQN'
+model = 'ActorCritic'
+#model = 'DQN'
 name = model
 train_params['model'] = model
 
@@ -29,23 +30,28 @@ tdN = 5
 train_params['tdN'] = tdN
 name += '_' + str(tdN)
 
-sarsa = False
-#sarsa = True
-train_params['sarsa'] = sarsa
-if sarsa:
-  name += '_sarsa'
+if model.endswith('DQN'):
+  sarsa = False
+  #sarsa = True
+  train_params['sarsa'] = sarsa
+  if sarsa:
+    name += '_sarsa'
 
-target_delay = None
-target_delay = 5000
-train_params['target_delay'] = target_delay
-if target_delay:
-  name += '_' + str(target_delay)
+  target_delay = None
+  target_delay = 5000
+  train_params['target_delay'] = target_delay
+  if target_delay:
+    name += '_' + str(target_delay)
+elif model == 'ActorCritic':
+  entropy_scale = 0.01
+  train_params['entropy_scale'] = entropy_scale
+  name += '_' + str(entropy_scale)
 
 train_params['name'] = name
+
 trainer_jobs = [train_params]
 if agents:
   trainer_jobs=[]
-
 
 agent_jobs = []
 

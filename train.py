@@ -23,6 +23,8 @@ parser.add_argument("--reward_halflife", type=float, default=2.0, help="time to 
 
 parser.add_argument("--target_delay", type=int, default=5000, help="update target network after this many experiences")
 
+parser.add_argument("--entropy_scale", type=float, default=1e-2, help="entropy regularization for actor-critic")
+
 args = parser.parse_args()
 
 if args.nogpu:
