@@ -73,7 +73,7 @@ class Model:
       self.rlConfig = RLConfig(**kwargs)
       self.model = modelType(self.state_size, self.action_size, self.global_step, self.rlConfig, **kwargs)
       
-      self.variables = self.model.getVariables() + [self.global_step]
+      #self.variables = self.model.getVariables() + [self.global_step]
       
       if mode == Mode.TRAIN:
         with tf.name_scope('train'):
