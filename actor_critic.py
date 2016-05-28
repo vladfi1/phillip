@@ -68,7 +68,7 @@ class ActorCritic:
 
     acLoss = vLoss - actor_gain + entropy_scale * actor_entropy
 
-    return acLoss, [('vLoss', vLoss), ('actor_gain', actor_gain), ('actor_entropy', actor_entropy)]
+    return acLoss, [('vLoss', vLoss), ('actor_gain', actor_gain), ('actor_entropy', -actor_entropy)]
 
   def getPolicy(self, state, **kwargs):
     return tf.squeeze(self.getOutput(state)[-1])
