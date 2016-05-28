@@ -44,7 +44,14 @@ with open('Dolphin.ini', 'r') as f:
 import shutil
 import os
 
-def setupUser(user, gfx="Null", cpu_thread=False, cpus=[1], dump_frames=False, **unused):
+def setupUser(user,
+  gfx="Null",
+  cpu_thread=False,
+  cpus=[1],
+  dump_frames=False,
+  audio="No audio backend",
+  speed=0,
+  **unused):
   configDir = user + 'Config/'
   os.makedirs(configDir, exist_ok=True)
 
@@ -56,7 +63,9 @@ def setupUser(user, gfx="Null", cpu_thread=False, cpus=[1], dump_frames=False, *
       user=user,
       gfx=gfx,
       cpu_thread=cpu_thread,
-      dump_frames=dump_frames
+      dump_frames=dump_frames,
+      audio=audio,
+      speed=speed
     )
     print("dump_frames", dump_frames)
     f.write(dolphinConfig.format(**config_args))
@@ -75,7 +84,16 @@ def runDolphin(
   movie=None,
   setup=True,
   self_play=False,
+  gui=False,
   **kwargs):
+  
+  if gui:
+    exe = 'dolphin-emu-nogui'
+    kwargs.update(
+      audio = 'ALSA',
+      speed = 1,
+      gfx = 'OGL',
+    )
   
   cpus = [0, 1] if self_play else [1]
   

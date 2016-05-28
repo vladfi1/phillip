@@ -45,6 +45,7 @@ parser.add_argument("--self_play", type=int, help="train against ourselves, relo
 parser.add_argument("--movie", type=str, help="movie to play on dolphin startup")
 parser.add_argument("--gfx", type=str, default="Null", help="gfx backend")
 parser.add_argument("--exe", type=str, default="dolphin-emu-headless", help="dolphin executable")
+parser.add_argument("--gui", action="store_true", help="run dolphin with audio and graphics")
 parser.add_argument("--dump_frames", action="store_true", help="dump frames from dolphin")
 
 args = parser.parse_args()
@@ -55,7 +56,7 @@ if args.name is None:
 if args.path is None:
   args.path = "saves/%s/" % args.name
 
-if args.parallel:
+if args.parallel or args.gui:
   args.dolphin = True
 
 prefix = args.dolphin_dir
