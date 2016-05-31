@@ -1,4 +1,6 @@
 from numpy import random
+import functools
+import operator
 
 def foldl(f, init, l):
   for x in l:
@@ -46,6 +48,8 @@ def compose(*fs):
     return x
   return composed
 
+
+
 def deepMap(f, obj):
   if isinstance(obj, dict):
     return {k : deepMap(f, v) for k, v in obj.items()}
@@ -76,3 +80,7 @@ def deepZip(*objs):
 
 def flip(p):
   return random.binomial(1, p)
+
+def product(xs):
+  return functools.reduce(operator.mul, xs, 1.0)
+
