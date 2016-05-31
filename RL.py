@@ -44,39 +44,38 @@ class Model:
     self.graph = tf.Graph()
     
     with self.graph.as_default():
-      
-      # TODO: take into account mode
-      with tf.name_scope('input'):
-        self.input_states = ct.inputCType(ssbm.GameMemory, [None], "state")
-
-        # player 2's controls
-        self.input_actions = tf.placeholder(tf.int32, [None], "action")
-        #experience_length = tf.shape(input_actions)
-
-      self.embedded_states = embed.embedGame(self.input_states, swap)
-      self.state_size = self.embedded_states.get_shape()[-1].value # TODO: precompute
-
-      self.embedded_actions = embed.embedAction(self.input_actions)
-      self.action_size = self.embedded_actions.get_shape()[-1].value
-
-      # instantaneous rewards for all but the first state
-      self.rewards = tf.placeholder(tf.float32, [None], name='reward')
-      
-      self.train_dict = {
-        'state' : self.input_states,
-        'action' : self.input_actions,
-        'reward' : self.rewards
-      }
-
       self.global_step = tf.Variable(0, name='global_step', trainable=False)
 
       self.rlConfig = RLConfig(**kwargs)
-      self.model = modelType(self.state_size, self.action_size, self.global_step, self.rlConfig, **kwargs)
+      self.model = modelType(embed.state_size, embed.action_size, self.global_step, self.rlConfig, **kwargs)
       
       #self.variables = self.model.getVariables() + [self.global_step]
       
       if mode == Mode.TRAIN:
         with tf.name_scope('train'):
+          with tf.name_scope('input'):
+            self.input_states = ct.inputCType(ssbm.GameMemory, [None, None], "state")
+
+            # player 2's controls
+            self.input_actions = tf.placeholder(tf.int32, [None, None], "action")
+            #experience_length = tf.shape(input_actions)
+          
+          embedGame = embed.embedGameSwapped if swap else embed.embedGame
+          self.embedded_states = embedGame(self.input_states)
+          self.state_size = self.embedded_states.get_shape()[-1].value # TODO: precompute
+
+          self.embedded_actions = embed.embedAction(self.input_actions)
+          self.action_size = self.embedded_actions.get_shape()[-1].value
+
+          # instantaneous rewards for all but the first state
+          self.rewards = tf.placeholder(tf.float32, [None, None], name='reward')
+          
+          self.train_dict = {
+            'state' : self.input_states,
+            'action' : self.input_actions,
+            'reward' : self.rewards
+          }
+
           loss, stats = self.model.getLoss(self.embedded_states, self.embedded_actions, self.rewards, **kwargs)
           
           tf.scalar_summary("loss", loss)
@@ -99,8 +98,10 @@ class Model:
           self.writer = tf.train.SummaryWriter(path+'logs/', self.graph)
       else:
         with tf.name_scope('policy'):
-          # TODO: policy might share graph structure with loss?
-          self.policy = self.model.getPolicy(self.embedded_states, **kwargs)
+          with tf.name_scope('input'):
+            self.input_state = ct.inputCType(ssbm.GameMemory, [], "state")
+          self.embedded_state = embed.embedGame(self.input_state)
+          self.policy = self.model.getPolicy(self.embedded_state, **kwargs)
 
       if mode == Mode.PLAY: # don't eat up cpu cores
         configProto = tf.ConfigProto(
@@ -121,7 +122,7 @@ class Model:
       self.saver = tf.train.Saver(tf.all_variables())
 
   def act(self, state, verbose=False):
-    feed_dict = ct.feedCTypes(ssbm.GameMemory, 'input/state', [state])
+    feed_dict = dict(util.deepValues(util.deepZip(self.input_state, ct.toDict(state))))
     return self.model.act(self.sess.run(self.policy, feed_dict), verbose)
 
   #summaryWriter = tf.train.SummaryWriter('logs/', sess.graph)
@@ -157,12 +158,14 @@ class Model:
     # if step_index == 10:
     import ipdb; ipdb.set_trace()
 
-  def train(self, filename, steps=1):
+  def train(self, filenames, steps=1):
     #state_actions = ssbm.readStateActions(filename)
     #feed_dict = feedStateActions(state_actions)
-    experience = ssbm.readStateActions_pickle(filename)
+    experiences = [ssbm.readStateActions_pickle(f) for f in filenames]
+    experiences = util.deepZip(*experiences)
+    experiences = util.deepMap(np.array, experiences)
     
-    feed_dict = dict(util.deepValues(util.deepZip(self.train_dict, experience)))
+    feed_dict = dict(util.deepValues(util.deepZip(self.train_dict, experiences)))
 
     # FIXME: we feed the inputs in on each iteration, which might be inefficient.
     for step_index in range(steps):
@@ -177,7 +180,7 @@ class Model:
       global_step = results[-3]
       self.writer.add_summary(summary_str, global_step)
     
-    return sum(experience['reward'])
+    return np.sum(experiences['reward'])
 
   def save(self):
     import os
