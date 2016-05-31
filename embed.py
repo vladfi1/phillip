@@ -3,28 +3,91 @@ import tf_lib as tfl
 import util
 import ssbm
 
-embedFloat = lambda t: tf.expand_dims(t, 1)
+floatType = tf.float32
 
-castFloat = lambda t: embedFloat(tf.cast(t, tf.float32))
+class FloatEmbedding:
+  def __init__(self, scale=None, bias=None):
+    self.scale = scale
+    self.bias = bias
+    self.size = 1
+  
+  def __call__(self, t):
+    if t.dtype is not floatType:
+      t = tf.cast(t, floatType)
+    
+    if self.bias:
+      t += self.bias
+    
+    if self.scale:
+      t *= self.scale
+    
+    rank = len(t.get_shape())
+    return tf.expand_dims(t, rank)
 
-def embedStruct(embedding):
-  def f(struct):
+embedFloat = FloatEmbedding()
+
+class OneHotEmbedding:
+  def __init__(self, size):
+    self.size = size
+  
+  def __call__(self, t):
+    t = tf.cast(t, tf.int64)
+    return tf.one_hot(t, self.size, 1.0, 0.0)
+
+class StructEmbedding:
+  def __init__(self, embedding):
+    self.embedding = embedding
+    
+    self.size = 0
+    for _, op in embedding:
+      self.size += op.size
+  
+  def __call__(self, struct):
     embed = []
-    for field, op in embedding:
+    rank = None
+    for field, op in self.embedding:
       with tf.name_scope(field):
-        embed.append(op(struct[field]))
-    return tf.concat(1, embed)
-  return f
+        t = op(struct[field])
+        r = len(t.get_shape())
+        if rank is None:
+          rank = r
+        else:
+          assert(r == rank)
+        
+        embed.append(t)
+    return tf.concat(rank-1, embed)
+
+class ArrayEmbedding:
+  def __init__(self, op, permutation):
+    self.op = op
+    self.permutation = permutation
+    self.size = len(permutation) * op.size
+  
+  def __call__(self, array):
+    embed = []
+    rank = None
+    for i in self.permutation:
+      with tf.name_scope(str(i)):
+        t = self.op(array[i])
+        r = len(t.get_shape())
+        if rank is None:
+          rank = r
+        else:
+          assert(r == rank)
+      
+        embed.append(t)
+    return tf.concat(rank-1, embed)
 
 stickEmbedding = [
   ('x', embedFloat),
   ('y', embedFloat)
 ]
 
-embedStick = embedStruct(stickEmbedding)
+embedStick = StructEmbedding(stickEmbedding)
 
+# TODO: embed entire controller
 controllerEmbedding = [
-  ('button_A', castFloat),
+  ('button_A', embedFloat),
   #('button_B', castFloat),
   #('button_X', castFloat),
   #('button_Y', castFloat),
@@ -38,13 +101,15 @@ controllerEmbedding = [
   #('stick_C', embedStick),
 ]
 
-embedController = embedStruct(controllerEmbedding)
+embedController = StructEmbedding(controllerEmbedding)
 
 maxCharacter = 32 # should be large enough?
 
 maxJumps = 8 # unused
 
 maxAction = 512 # altf4 says 0x017E
+embedAction = OneHotEmbedding(maxAction)
+
 """
 actionSpace = 32
 
@@ -55,25 +120,22 @@ def embedAction(t):
   return actionHelper(tfl.one_hot(maxAction)(t))
 """
 
-def rescale(a):
-  return lambda x: a * x
-
 playerEmbedding = [
-  ("percent", util.compose(rescale(0.01), castFloat)),
+  ("percent", FloatEmbedding(scale=0.01)),
   ("facing", embedFloat),
-  ("x", util.compose(rescale(0.1), embedFloat)),
-  ("y", util.compose(rescale(0.1), embedFloat)),
-  ("action_state", tfl.one_hot(maxAction)),
+  ("x", FloatEmbedding(scale=0.1)),
+  ("y", FloatEmbedding(scale=0.1)),
+  ("action_state", embedAction),
   # ("action_counter", castFloat),
-  ("action_frame", util.compose(rescale(0.02), castFloat)),
+  ("action_frame", FloatEmbedding(scale=0.02)),
   # ("character", one_hot(maxCharacter)),
-  ("invulnerable", castFloat),
-  ("hitlag_frames_left", castFloat),
-  ("hitstun_frames_left", castFloat),
-  ("jumps_used", castFloat),
-  ("charging_smash", castFloat),
-  ("in_air", castFloat),
-  ('speed_air_x_self',  embedFloat),
+  ("invulnerable", embedFloat),
+  ("hitlag_frames_left", embedFloat),
+  ("hitstun_frames_left", embedFloat),
+  ("jumps_used", embedFloat),
+  ("charging_smash", embedFloat),
+  ("in_air", embedFloat),
+  ('speed_air_x_self', embedFloat),
   ('speed_ground_x_self', embedFloat),
   ('speed_y_self', embedFloat),
   ('speed_x_attack', embedFloat),
@@ -82,33 +144,7 @@ playerEmbedding = [
   ('controller', embedController)
 ]
 
-embedPlayer = embedStruct(playerEmbedding)
-
-def embedArray(op, indices=None):
-  def f(array):
-    #if indices is None:
-    #  indices = range(len(array))
-    embed = []
-    for i in indices:
-      with tf.name_scope(str(i)):
-        embed.append(op(array[i]))
-    return tf.concat(1, embed)
-  return f
-
-""" indices is a tensor
-def embedArray(op, indices=None):
-  def f(array):
-    embed = []
-    for i, a in enumerate(array):
-      with tf.name_scope(str(i)):
-        embed.append(op(a))
-    packed = tf.pack(embed)
-    gathered = tf.gather(indices, packed)
-    # can this be done with reshape?
-    unpacked = tf.unpack(gathered)
-    return tf.concat(1, unpacked)
-  return f
-"""
+embedPlayer = StructEmbedding(playerEmbedding)
 
 """
 maxStage = 64 # overestimate
@@ -121,28 +157,30 @@ def embedStage(stage):
   return stageHelper(one_hot(maxStage)(stage))
 """
 
-def gameEmbedding(swap):
-  players = [1, 0] if swap else [0, 1]
+def gameEmbedding(enemy=0, self=1):
+  players = [enemy, self]
   return [
-    ('players', embedArray(embedPlayer, players)),
+    ('players', ArrayEmbedding(embedPlayer, players)),
 
     #('frame', c_uint),
     # ('stage', embedStage)
   ]
 
-def embedGame(game, swap=False):
-  return embedStruct(gameEmbedding(swap))(game)
+embedGame = StructEmbedding(gameEmbedding())
+state_size = embedGame.size
+embedGameSwapped = StructEmbedding(gameEmbedding(1, 0))
 
 def embedEnum(enum):
-  return tfl.one_hot(len(enum))
+  return OneHotEmbedding(len(enum))
 
 simpleControllerEmbedding = [
   ('button', embedEnum(ssbm.SimpleButton)),
   ('stick_MAIN', embedEnum(ssbm.SimpleStick)),
 ]
 
-embedSimpleController = embedStruct(simpleControllerEmbedding)
+embedSimpleController = StructEmbedding(simpleControllerEmbedding)
 #embedded_controls = embedController(train_controls)
 
 action_size = len(ssbm.simpleControllerStates)
-embedAction = tfl.one_hot(action_size)
+embedAction = OneHotEmbedding(action_size)
+
