@@ -48,6 +48,8 @@ if args.init:
 else:
   model.restore()
 
+import numpy as np
+
 def sweep(data_dir='experience/'):
   i = 0
   start_time = time.time()
@@ -55,6 +57,7 @@ def sweep(data_dir='experience/'):
   # .DS_Store, temp files
   keep = lambda f: not (f.startswith(".") or f.startswith("tmp"))
   files = list(filter(keep, files))
+  np.random.shuffle(files)
   
   batches = [files[i:i+args.batch_size] for i in range(0, len(files), args.batch_size)]
   
