@@ -110,7 +110,9 @@ class Model:
           intra_op_parallelism_threads=1,
         )
       else: # or gpu memory
-        configProto = tf.ConfigProto(gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.3))
+        configProto = tf.ConfigProto(
+          #gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.3),
+        )
       
       self.sess = tf.Session(
         graph=self.graph,
