@@ -88,17 +88,17 @@ embedStick = StructEmbedding(stickEmbedding)
 # TODO: embed entire controller
 controllerEmbedding = [
   ('button_A', embedFloat),
-  #('button_B', castFloat),
-  #('button_X', castFloat),
-  #('button_Y', castFloat),
-  #('button_L', castFloat),
-  #('button_R', castFloat),
+  ('button_B', embedFloat),
+  ('button_X', embedFloat),
+  ('button_Y', embedFloat),
+  ('button_L', embedFloat),
+  ('button_R', embedFloat),
 
   #('trigger_L', embedFloat),
   #('trigger_R', embedFloat),
 
   ('stick_MAIN', embedStick),
-  #('stick_C', embedStick),
+  ('stick_C', embedStick),
 ]
 
 embedController = StructEmbedding(controllerEmbedding)
@@ -126,7 +126,7 @@ playerEmbedding = [
   ("x", FloatEmbedding(scale=0.1)),
   ("y", FloatEmbedding(scale=0.1)),
   ("action_state", embedAction),
-  # ("action_counter", castFloat),
+  # ("action_counter", embedFloat),
   ("action_frame", FloatEmbedding(scale=0.02)),
   # ("character", one_hot(maxCharacter)),
   ("invulnerable", embedFloat),
