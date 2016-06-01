@@ -64,7 +64,7 @@ class ActorCritic:
     train_log_actor_probs = tf.slice(real_log_actor_probs, [0], train_length)
     actor_gain = tf.reduce_mean(tf.mul(train_log_actor_probs, tf.stop_gradient(advantages)))
 
-    acLoss = vLoss - actor_gain# + actor_entropy
+    acLoss = vLoss - actor_gain + 0.001 * actor_entropy
 
     return acLoss, [('vLoss', vLoss), ('actor_gain', actor_gain), ('actor_entropy', actor_entropy)]
 
