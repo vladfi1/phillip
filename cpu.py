@@ -79,7 +79,7 @@ class CPU:
         os.makedirs(self.dolphin_dir + '/Pipes/', exist_ok=True)
         
         paths = [pipe_dir + 'phillip%d' % i for i in self.cpus]
-        self.get_pads = pad.makePads(paths)
+        self.get_pads = util.async_map(pad.Pad, paths)
 
         self.init_stats()
 
@@ -136,7 +136,7 @@ class CPU:
             else:
                 dump_path = self.dump_dir + self.dump_tag + str(self.dump_count % self.dump_max)
             print("Dumping to ", dump_path)
-            ssbm.writeStateActions#(dump_path, self.dump_state_actions)
+            #ssbm.writeStateActions(dump_path, self.dump_state_actions)
             ssbm.writeStateActions_pickle(dump_path, self.dump_state_actions)
             self.dump_count += 1
             self.dump_frame = 0

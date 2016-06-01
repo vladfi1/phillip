@@ -27,25 +27,6 @@ class Stick(enum.Enum):
     MAIN = 0
     C = 1
 
-def makePads(paths):
-    n = len(paths)
-    pads = [None] * n
-    
-    def makePad(i):
-        pads[i] = Pad(paths[i])
-    
-    threads = [None] * n
-    for i in range(n):
-        threads[i] = Thread(target=makePad, args=[i])
-        threads[i].start()
-    
-    def wait():
-      for p in threads:
-          p.join()
-      return pads
-    
-    return wait
-
 class Pad:
     """Writes out controller inputs."""
     def __init__(self, path):
