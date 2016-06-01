@@ -12,7 +12,9 @@ if not os.path.exists("slurm_logs"):
 if not os.path.exists("slurm_scripts"):
     os.makedirs("slurm_scripts")
 
-train_params = dict(init=True)
+train_params = {
+  'init': True,
+}
 
 model = 'ActorCritic'
 #model = 'DQN'
@@ -22,13 +24,17 @@ train_params['model'] = model
 movie = 'Falcon9Falcon'
 #name += '_' + movie
 
-learning_rate = 1e-3
+learning_rate = 1e-4
 train_params['learning_rate'] = learning_rate
 name += '_' + str(learning_rate)
 
 tdN = 5
 train_params['tdN'] = tdN
 name += '_' + str(tdN)
+
+batch_size = 10
+train_params['batch_size'] = batch_size
+name += '_' + str(batch_size)
 
 if model.endswith('DQN'):
   sarsa = False
@@ -43,7 +49,7 @@ if model.endswith('DQN'):
   if target_delay:
     name += '_' + str(target_delay)
 elif model == 'ActorCritic':
-  entropy_scale = 0.01
+  entropy_scale = 0.005
   train_params['entropy_scale'] = entropy_scale
   name += '_' + str(entropy_scale)
 
@@ -62,7 +68,7 @@ for _ in range(n_agents):
     exemplar = {
             'model': model,
             'movie': movie + '.dtm',
-            'dump_max': 60,
+            'dump_max': 10,
             'dolphin': True,
             'self_play': False,
             'name': name,
