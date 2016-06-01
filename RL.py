@@ -164,7 +164,7 @@ class Model:
   def train(self, filenames, steps=1):
     #state_actions = ssbm.readStateActions(filename)
     #feed_dict = feedStateActions(state_actions)
-    experiences = [ssbm.readStateActions_pickle(f) for f in filenames]
+    experiences = util.async_map(ssbm.readStateActions_pickle, filenames)()
     experiences = util.deepZip(*experiences)
     experiences = util.deepMap(np.array, experiences)
     
