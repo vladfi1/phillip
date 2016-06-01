@@ -51,6 +51,8 @@ class Model:
       
       #self.variables = self.model.getVariables() + [self.global_step]
       
+      embedGame = embed.embedGameSwapped if swap else embed.embedGame
+      
       if mode == Mode.TRAIN:
         with tf.name_scope('train'):
           with tf.name_scope('input'):
@@ -60,7 +62,6 @@ class Model:
             self.input_actions = tf.placeholder(tf.int32, [None, None], "action")
             #experience_length = tf.shape(input_actions)
           
-          embedGame = embed.embedGameSwapped if swap else embed.embedGame
           self.embedded_states = embedGame(self.input_states)
           self.state_size = self.embedded_states.get_shape()[-1].value # TODO: precompute
 
@@ -100,7 +101,7 @@ class Model:
         with tf.name_scope('policy'):
           with tf.name_scope('input'):
             self.input_state = ct.inputCType(ssbm.GameMemory, [], "state")
-          self.embedded_state = embed.embedGame(self.input_state)
+          self.embedded_state = embedGame(self.input_state)
           self.policy = self.model.getPolicy(self.embedded_state, **kwargs)
 
       if mode == Mode.PLAY: # don't eat up cpu cores
