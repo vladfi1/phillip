@@ -1,4 +1,7 @@
 from numpy import random
+import functools
+import operator
+from threading import Thread
 
 def foldl(f, init, l):
   for x in l:
@@ -76,3 +79,25 @@ def deepZip(*objs):
 
 def flip(p):
   return random.binomial(1, p)
+
+def product(xs):
+  return functools.reduce(operator.mul, xs, 1.0)
+
+def async_map(f, xs):
+  n = len(xs)
+  ys = n * [None]
+  
+  def run(i):
+    ys[i] = f(xs[i])
+
+  threads = n * [None]
+  for i in range(n):
+    threads[i] = Thread(target=run, args=[i])
+    threads[i].start()
+  
+  def wait():
+    for p in threads:
+      p.join()
+    return ys
+  
+  return wait

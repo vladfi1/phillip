@@ -22,14 +22,15 @@ default_args = dict(
     dump_max = 10,
     # TODO This might not always be accurate.
     dolphin_dir = '~/.local/share/dolphin-emu/',
-    self_play = False,
+    self_play = None,
+    model="DQN",
 )
 
 class CPU:
-    def __init__(self, model="DQN", **args):
+    def __init__(self, **kwargs):
         for k, v in default_args.items():
-            if k in args and args[k] is not None:
-                setattr(self, k, args[k])
+            if k in kwargs and kwargs[k] is not None:
+                setattr(self, k, kwargs[k])
             else:
                 setattr(self, k, v)
 
@@ -63,32 +64,32 @@ class CPU:
 
         reload_every = experience_length
         if self.self_play:
-            self.enemy = agent.Agent(model, self.path, reload_every=60*reload_every, swap=True)
+            self.enemy = agent.Agent(reload_every=self.self_play*reload_every, swap=True, **kwargs)
             self.agents.append(self.enemy)
-        self.agent = agent.Agent(model, self.path, reload_every=reload_every)
+        self.agent = agent.Agent(reload_every=reload_every, **kwargs)
         self.agents.append(self.agent)
         
         self.mm = menu_manager.MenuManager()
 
-        try:
-            print('Creating MemoryWatcher.')
-            self.mw = memory_watcher.MemoryWatcher(self.dolphin_dir + '/MemoryWatcher/MemoryWatcher')
-            print('Creating Pads. Open dolphin now.')
-            os.makedirs(self.dolphin_dir + '/Pipes/', exist_ok=True)
-            
-            paths = [self.dolphin_dir + '/Pipes/phillip%d' % i for i in self.cpus]
-            self.pads = pad.makePads(paths)
-              
-            self.initialized = True
-        except KeyboardInterrupt:
-            self.initialized = False
+        print('Creating MemoryWatcher.')
+        self.mw = memory_watcher.MemoryWatcher(self.dolphin_dir + '/MemoryWatcher/MemoryWatcher')
+        
+        pipe_dir = self.dolphin_dir + '/Pipes/'
+        print('Creating Pads at %s. Open dolphin now.' % pipe_dir)
+        os.makedirs(self.dolphin_dir + '/Pipes/', exist_ok=True)
+        
+        paths = [pipe_dir + 'phillip%d' % i for i in self.cpus]
+        self.get_pads = util.async_map(pad.Pad, paths)
 
         self.init_stats()
 
-    def run(self, dolphin_process=None):
-        if not self.initialized:
-            print("CPU not initialized!")
+    def run(self, frames=None, dolphin_process=None):
+        try:
+            self.pads = self.get_pads()
+        except KeyboardInterrupt:
+            print("Pipes not initialized!")
             return
+            
         print('Starting run loop.')
         self.start_time = time.time()
         try:
@@ -135,7 +136,7 @@ class CPU:
             else:
                 dump_path = self.dump_dir + self.dump_tag + str(self.dump_count % self.dump_max)
             print("Dumping to ", dump_path)
-            ssbm.writeStateActions#(dump_path, self.dump_state_actions)
+            #ssbm.writeStateActions(dump_path, self.dump_state_actions)
             ssbm.writeStateActions_pickle(dump_path, self.dump_state_actions)
             self.dump_count += 1
             self.dump_frame = 0

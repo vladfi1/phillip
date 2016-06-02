@@ -1,6 +1,7 @@
 from ctypes import *
 from enum import IntEnum
 from itertools import product
+import numpy as np
 from numpy import random
 import tensorflow as tf
 
@@ -14,7 +15,6 @@ def toString(struct):
   fields = [field + "=" + str(getattr(struct, field)) for (field, _) in struct._fields_]
   return "%s{%s}" % (struct.__class__.__name__, ", ".join(fields))
 
-# TODO: add a named tuple/dict version
 def toTuple(value, ctype=None):
   if ctype is None:
     ctype = type(value)
@@ -24,6 +24,16 @@ def toTuple(value, ctype=None):
     return tuple(toTuple(getattr(value, f), t) for f, t in ctype._fields_)
   # an array type
   return tuple(toTuple(v, ctype._type_) for v in value)
+
+def toDict(value, ctype=None):
+  if ctype is None:
+    ctype = type(value)
+  if ctype in knownCTypes:
+    return value
+  if issubclass(ctype, Structure):
+    return {f: toDict(getattr(value, f), t) for f, t in ctype._fields_}
+  # an array type
+  return [toDict(v, ctype._type_) for v in value]
 
 def hashStruct(struct):
   return hash(toTuple(struct))
@@ -138,7 +148,7 @@ def feedCTypes(ctype, name, values, feed_dict=None):
 
 def vectorizeCTypes(ctype, values):
   if ctype in ctypes2TF:
-    return values
+    return np.array(values)
   elif issubclass(ctype, Structure):
     return {f : vectorizeCTypes(t, [getattr(v, f) for v in values]) for (f, t) in ctype._fields_}
   else: # assume an array type

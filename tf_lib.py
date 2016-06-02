@@ -2,17 +2,15 @@ import tensorflow as tf
 #import pdb
 import ctypes
 import math
-import functools
-import operator
+import itertools
+import util
 
 def leaky_relu(x, alpha=0.01):
   return tf.maximum(alpha * x, x)
 
-def product(xs):
-  return functools.reduce(operator.mul, xs, 1.0)
-
 def batch_dot(xs, ys):
-  return tf.reduce_sum(tf.mul(xs, ys), 1)
+  rank = len(xs.get_shape())
+  return tf.reduce_sum(tf.mul(xs, ys), rank-1)
 
 def weight_variable(shape):
     '''
@@ -22,9 +20,9 @@ def weight_variable(shape):
     :return: The initialized Tensor
     '''
     #initial = tf.truncated_normal(shape, stddev=0.1)
-    input_size = product(shape[:-1])
+    input_size = util.product(shape[:-1])
     initial = tf.truncated_normal(shape, stddev=1.0/math.sqrt(input_size))
-    return tf.Variable(initial)
+    return tf.Variable(initial, name='weight')
 
 def bias_variable(shape):
     '''
@@ -33,9 +31,9 @@ def bias_variable(shape):
     :param shape: The dimensions of the desired Tensor
     :return: The initialized Tensor
     '''
-    size = 1.0 / math.sqrt(product(shape))
+    size = 1.0 / math.sqrt(util.product(shape))
     initial = tf.random_uniform(shape, -size, size)
-    return tf.Variable(initial)
+    return tf.Variable(initial, name='bias')
 
 def conv2d(x, W):
     '''
@@ -78,11 +76,109 @@ def convLayer(x, filter_size=5, filter_depth=64, pool_size=2):
 
   return pool
 
+def matmul(x, m):
+  shape = tf.shape(v)
+  rank = shape.get_shape()[0].value
+  v = tf.expand_dims(v, rank)
+  
+  vm = tf.mul(v, m)
+  
+  return tf.reduce_sum(vm, rank-1)
+
+# I think this is the more efficient version?
+def matmul2(x, m, bias=None, nl=None):
+  [input_size, output_size] = m.get_shape().as_list()
+  
+  input_shape = tf.shape(x)
+  batch_rank = input_shape.get_shape()[0].value - 1
+  batch_shape = input_shape[:batch_rank]
+  output_shape = tf.concat(0, [batch_shape, [output_size]])
+  
+  x = tf.reshape(x, [-1, input_size])
+  y = tf.matmul(x, m)
+  
+  if bias is not None:
+    y += bias
+  
+  if nl is not None:
+    y = nl(y)
+  
+  y = tf.reshape(y, output_shape)
+  
+  return y
+
+def cloneVar(var):
+  return tf.Variable(var.initialized_value())
+
+class FCLayer:
+  def __init__(self, input_size=None, output_size=None, nl=None, clone=None):
+    if clone:
+      self.input_size = clone.input_size
+      self.output_size = clone.output_size
+      self.nl = clone.nl
+      
+      self.weight = cloneVar(clone.weight)
+      self.bias = cloneVar(clone.bias)
+    else:
+      self.input_size = input_size
+      self.output_size = output_size
+      self.nl = nl
+      
+      self.weight = weight_variable([input_size, output_size])
+      self.bias = bias_variable([output_size])
+  
+  def __call__(self, x):
+    y = matmul2(x, self.weight)
+    
+    # broadcasts correctly
+    y += self.bias
+    
+    if self.nl:
+      y = self.nl(y)
+    
+    return y
+  
+  def clone(self):
+    return FCLayer(clone=self)
+  
+  def assign(self, other):
+    return [
+      self.weight.assign(other.weight),
+      self.bias.assign(other.bias),
+    ]
+  
+  def getVariables(self):
+    return [self.weight, self.bias]
+
+class Sequential:
+  def __init__(self, *layers):
+    self.layers = list(layers)
+  
+  def append(self, layer):
+    self.layers.append(layer)
+  
+  def __call__(self, x):
+    for f in self.layers:
+      x = f(x)
+    return x
+  
+  def clone(self):
+    layers = [layer.clone() for layer in self.layers]
+    return Sequential(*layers)
+  
+  def assign(self, other):
+    assignments = [l1.assign(l2) for l1, l2 in zip(self.layers, other.layers)]
+    return list(itertools.chain(*assignments))
+
+  def getVariables(self):
+    variables = [layer.getVariables() for layer in self.layers]
+    return list(itertools.chain(*variables))
+
 def affineLayer(x, output_size, nl=None):
   W = weight_variable([x.get_shape()[-1].value, output_size])
   b = bias_variable([output_size])
 
-  fc = tf.matmul(x, W) + b
+  fc = matmul2(x, W) + b
 
   return nl(fc) if nl else fc
 
@@ -91,9 +187,7 @@ def makeAffineLayer(input_size, output_size, nl=None):
   b = bias_variable([output_size])
 
   def applyLayer(x):
-    fc = tf.matmul(x, W) + b
-
-    return nl(fc) if nl else fc
+    return matmul2(x, W, b, nl)
 
   return applyLayer
 

@@ -5,31 +5,33 @@ import config
 from numpy import random
 
 class ActorCritic:
-  def __init__(self, state_size, action_size, global_step, **kwargs):
+  def __init__(self, state_size, action_size, global_step, rlConfig, epsilon=0.04, **kwargs):
     self.action_size = action_size
-    self.layer_sizes = [state_size, 128, 128]
+    self.layer_sizes = [128, 128]
     self.layers = []
 
     with tf.name_scope('epsilon'):
       #epsilon = tf.constant(0.02)
-      self.epsilon = 0.04 + 0.5 * tf.exp(-tf.cast(global_step, tf.float32) / 50000.0)
+      self.epsilon = epsilon# + 0.5 * tf.exp(-tf.cast(global_step, tf.float32) / 50000.0)
 
-    for i in range(len(self.layer_sizes)-1):
-      prev_size = self.layer_sizes[i]
-      next_size = self.layer_sizes[i+1]
-
+    prev_size = state_size
+    for i, next_size in enumerate(self.layer_sizes):
       with tf.variable_scope("layer_%d" % i):
         self.layers.append(tfl.makeAffineLayer(prev_size, next_size, tfl.leaky_relu))
+      prev_size = next_size
 
     with tf.variable_scope('value'):
-      values = tfl.makeAffineLayer(self.layer_sizes[-1], 1)
+      v_out = tfl.makeAffineLayer(prev_size, 1)
+      v_out = util.compose(lambda x: tf.squeeze(x, [-1]), v_out)
 
     with tf.variable_scope('actor'):
-      actor = tfl.makeAffineLayer(self.layer_sizes[-1], action_size)
+      actor = tfl.makeAffineLayer(prev_size, action_size, tf.nn.softmax)
       smooth = lambda probs: (1.0 - self.epsilon) * probs + self.epsilon / action_size
-      actor = util.compose(smooth, tf.nn.softmax, actor)
+      actor = util.compose(smooth, actor)
 
-    self.layers.append(lambda x: (tf.squeeze(values(x)), actor(x)))
+    self.layers.append(lambda x: (v_out(x), actor(x)))
+
+    self.rlConfig = rlConfig
 
   def getLayers(self, state):
     outputs = [state]
@@ -42,17 +44,20 @@ class ActorCritic:
   def getOutput(self, state):
     return self.getLayers(state)[-1]
 
-  def getLoss(self, states, actions, rewards, **kwargs):
-    n = config.tdN
-    train_length = [config.experience_length - n]
+  def getLoss(self, states, actions, rewards, entropy_scale=0.01, **kwargs):
+    n = self.rlConfig.tdN
+    train_length = config.experience_length - n
 
     values, actor_probs = self.getOutput(states)
-    trainVs = tf.slice(values, [0], train_length)
+    trainVs = tf.slice(values, [0, 0], [-1, train_length])
+    #trainVs = values[:,:train_length]
 
     # smooth between TD(m) for m<=n?
-    targets = tf.slice(values, [n], train_length)
+    targets = tf.slice(values, [0, n], [-1, train_length])
+    #targets = values[:,n:]
     for i in reversed(range(n)):
-      targets = tf.slice(rewards, [i], train_length) + config.discount * targets
+      targets *= self.rlConfig.discount
+      targets += tf.slice(rewards, [0, i], [-1, train_length])
     targets = tf.stop_gradient(targets)
 
     advantages = targets - trainVs
@@ -61,15 +66,15 @@ class ActorCritic:
     log_actor_probs = tf.log(actor_probs)
     actor_entropy = tf.reduce_mean(tfl.batch_dot(actor_probs, log_actor_probs))
     real_log_actor_probs = tfl.batch_dot(actions, tf.log(actor_probs))
-    train_log_actor_probs = tf.slice(real_log_actor_probs, [0], train_length)
+    train_log_actor_probs = tf.slice(real_log_actor_probs, [0, 0], [-1, train_length])
     actor_gain = tf.reduce_mean(tf.mul(train_log_actor_probs, tf.stop_gradient(advantages)))
 
-    acLoss = vLoss - actor_gain + 0.001 * actor_entropy
+    acLoss = vLoss - actor_gain + entropy_scale * actor_entropy
 
-    return acLoss, [('vLoss', vLoss), ('actor_gain', actor_gain), ('actor_entropy', actor_entropy)]
+    return acLoss, [('vLoss', vLoss), ('actor_gain', actor_gain), ('actor_entropy', -actor_entropy)]
 
-  def getPolicy(self, state):
-    return tf.squeeze(self.getOutput(state)[-1])
+  def getPolicy(self, state, **kwargs):
+    return self.getOutput(state)[1]
 
   def act(self, policy, verbose=False):
     return random.choice(range(self.action_size), p=policy)

@@ -9,8 +9,8 @@ def flip(p):
   return random.binomial(1, p)
 
 class Agent:
-  def __init__(self, model, path, reload_every=60*60, swap=False):
-    self.model = RL.Model(model, path, swap=swap, mode=RL.Mode.PLAY)
+  def __init__(self, model=None, path=None, reload_every=60*60, swap=False, **kwargs):
+    self.model = RL.Model(model, path, swap=swap, mode=RL.Mode.PLAY, **kwargs)
     self.reload_every = reload_every
     self.counter = 0
     self.simple_controller = ssbm.simpleControllerStates[0]

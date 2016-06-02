@@ -39,13 +39,15 @@ parser.add_argument("--dolphin", action="store_true", help="run dolphin")
 parser.add_argument("--nosetup", dest="setup", action="store_false", help="don't setup dolphin directory")
 parser.add_argument("--parallel", type=int, help="spawn parallel cpus and dolphins")
 
-parser.add_argument("--self_play", action="store_true", help="train against ourselves")
+parser.add_argument("--self_play", type=int, help="train against ourselves, reloading every N experiences")
 
 # some duplication going on here...
 parser.add_argument("--movie", type=str, help="movie to play on dolphin startup")
 parser.add_argument("--gfx", type=str, default="Null", help="gfx backend")
 parser.add_argument("--exe", type=str, default="dolphin-emu-headless", help="dolphin executable")
+parser.add_argument("--gui", action="store_true", help="run dolphin with audio and graphics")
 parser.add_argument("--dump_frames", action="store_true", help="dump frames from dolphin")
+parser.add_argument("--iso", default="SSBM.iso", help="path to game iso")
 
 args = parser.parse_args()
 
@@ -55,14 +57,14 @@ if args.name is None:
 if args.path is None:
   args.path = "saves/%s/" % args.name
 
-if args.parallel:
+if args.parallel or args.gui:
   args.dolphin = True
 
 prefix = args.dolphin_dir
 if prefix is None:
   prefix = 'dolphin'
 
-from cpu import runCPU
+from cpu import CPU
 
 def run():
   if args.dolphin_dir is None:
@@ -75,22 +77,16 @@ def run():
     d = args.__dict__
     user = args.dolphin_dir
   
-  cpu = Process(target=runCPU, kwargs=d)
-  cpu.start()
+  cpu = CPU(**d)
   
   if args.dolphin:
     # delay for a bit to let the cpu start up
     time.sleep(5)
     dolphin = runDolphin(user=user, **args.__dict__)
-    
-    try:
-      dolphin.wait()
-      cpu.terminate()
-    except KeyboardInterrupt:
-      dolphin.terminate()
-      cpu.terminate()
   else:
-    cpu.join()
+    dolphin = None
+  
+  cpu.run(dolphin_process=dolphin)
 
 if args.parallel is None:
   run()
