@@ -13,7 +13,7 @@ class ActorCritic:
     with tf.name_scope('epsilon'):
       #epsilon = tf.constant(0.02)
       self.epsilon = epsilon# + 0.5 * tf.exp(-tf.cast(global_step, tf.float32) / 50000.0)
-    
+
     prev_size = state_size
     for i, next_size in enumerate(self.layer_sizes):
       with tf.variable_scope("layer_%d" % i):
@@ -30,7 +30,7 @@ class ActorCritic:
       actor = util.compose(smooth, actor)
 
     self.layers.append(lambda x: (v_out(x), actor(x)))
-    
+
     self.rlConfig = rlConfig
 
   def getLayers(self, state):

@@ -47,6 +47,7 @@ parser.add_argument("--gfx", type=str, default="Null", help="gfx backend")
 parser.add_argument("--exe", type=str, default="dolphin-emu-headless", help="dolphin executable")
 parser.add_argument("--gui", action="store_true", help="run dolphin with audio and graphics")
 parser.add_argument("--dump_frames", action="store_true", help="dump frames from dolphin")
+parser.add_argument("--iso", default="SSBM.iso", help="path to game iso")
 
 args = parser.parse_args()
 

@@ -12,6 +12,7 @@ if not os.path.exists("slurm_logs"):
 if not os.path.exists("slurm_scripts"):
     os.makedirs("slurm_scripts")
 
+
 train_params = {
   'init': True,
 }
