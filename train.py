@@ -59,7 +59,7 @@ def sweep(data_dir='experience/'):
   files = list(filter(keep, files))
   np.random.shuffle(files)
   
-  batches = [files[i:i+args.batch_size] for i in range(0, len(files), args.batch_size)]
+  batches = util.chunk(files, args.batch_size)
   
   for batch in batches:
     batch = [data_dir + f for f in batch]

@@ -101,3 +101,7 @@ def async_map(f, xs):
     return ys
   
   return wait
+
+def chunk(l, n):
+  return [l[i:i+n] for i in range(0, len(l), n)]
+
