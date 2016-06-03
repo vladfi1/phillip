@@ -149,28 +149,29 @@ class CPU:
 
     def advance_frame(self):
         last_frame = self.state.frame
-        if self.update_state():
-            if self.state.frame > last_frame:
-                skipped_frames = self.state.frame - last_frame - 1
-                if skipped_frames > 0:
-                    self.skip_frames += skipped_frames
-                    print("Skipped frames ", skipped_frames)
-                self.total_frames += self.state.frame - last_frame
-                last_frame = self.state.frame
+        
+        self.update_state()
+        if self.state.frame > last_frame:
+            skipped_frames = self.state.frame - last_frame - 1
+            if skipped_frames > 0:
+                self.skip_frames += skipped_frames
+                print("Skipped frames ", skipped_frames)
+            self.total_frames += self.state.frame - last_frame
+            last_frame = self.state.frame
 
-                start = time.time()
-                self.make_action()
-                self.thinking_time += time.time() - start
+            start = time.time()
+            self.make_action()
+            self.thinking_time += time.time() - start
 
-                if self.state.frame % (15 * fps) == 0:
-                    self.print_stats()
+            if self.state.frame % (15 * fps) == 0:
+                self.print_stats()
+        
+        self.mw.advance()
 
     def update_state(self):
-        res = next(self.mw)
-        if res is not None:
-            self.sm.handle(self.state, *res)
-            return True
-        return False
+        messages = self.mw.get_messages()
+        for message in messages:
+          self.sm.handle(self.state, *message)
 
     def make_action(self):
         # menu = Menu(self.state.menu)
