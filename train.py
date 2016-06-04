@@ -24,6 +24,7 @@ parser.add_argument("--target_delay", type=int, default=5000, help="update targe
 parser.add_argument("--entropy_scale", type=float, default=1e-2, help="entropy regularization for actor-critic")
 
 parser.add_argument("--batch_size", type=int, default=1, help="number of experiences to train on at a time")
+parser.add_argument("--batch_steps", type=int, default=1, help="number of gradient steps to take on each batch")
 
 args = parser.parse_args()
 
@@ -67,7 +68,7 @@ def sweep(data_dir='experience/'):
     batch = list(filter(os.path.exists, batch))
     print("Step", i)
     #print("Training on", batch)
-    model.train(batch, args.batch_size)
+    model.train(batch, args.batch_steps)
     i += len(batch)
   
   if i > 0:
