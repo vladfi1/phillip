@@ -84,17 +84,14 @@ class Model:
             tf.scalar_summary(name, tensor)
           merged = tf.merge_all_summaries()
           
-          stats.append(('global_step', self.global_step))
-          self.stat_names, self.stat_tensors = zip(*stats)
-          
           optimizer = tf.train.AdamOptimizer(learning_rate)
           # train_q = opt.minimize(qLoss, global_step=global_step)
           # opt = tf.train.GradientDescentOptimizer(0.0)
           #grads_and_vars = opt.compute_gradients(qLoss)
           grads_and_vars = optimizer.compute_gradients(loss)
           self.grads_and_vars = [(g, v) for g, v in grads_and_vars if g is not None]
-          self.trainer = optimizer.apply_gradients(grads_and_vars, global_step=self.global_step)
-          self.runOps = self.stat_tensors + (self.trainer,merged)
+          self.train_op = optimizer.apply_gradients(grads_and_vars, global_step=self.global_step)
+          self.run_dict = dict(summary=merged, global_step=self.global_step, train=self.train_op)
           
           self.writer = tf.train.SummaryWriter(path+'logs/', self.graph)
       else:
@@ -170,20 +167,16 @@ class Model:
     
     feed_dict = dict(util.deepValues(util.deepZip(self.train_dict, experiences)))
 
-    # FIXME: we feed the inputs in on each iteration, which might be inefficient.
-    for step_index in range(steps):
-      if self.debug:
-        self.debugGrads(feed_dict)
-      
-      # last result is summary, second to last is trainer
-      results = self.sess.run(self.runOps, feed_dict)
-      util.zipWith(print, self.stat_names, results)
-      
-      summary_str = results[-1]
-      global_step = results[-3]
-      self.writer.add_summary(summary_str, global_step)
+    if self.debug:
+      self.debugGrads(feed_dict)
     
-    return np.sum(experiences['reward'])
+    # TODO: figure out how to train multiple times in one run
+    for _ in range(steps):
+      results = tfl.run(self.sess, self.run_dict, feed_dict)
+      
+      summary_str = results['summary']
+      global_step = results['global_step']
+      self.writer.add_summary(summary_str, global_step)
 
   def save(self):
     import os

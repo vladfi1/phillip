@@ -67,7 +67,7 @@ def sweep(data_dir='experience/'):
     batch = list(filter(os.path.exists, batch))
     print("Step", i)
     #print("Training on", batch)
-    model.train(batch)
+    model.train(batch, args.batch_size)
     i += len(batch)
   
   if i > 0:
