@@ -25,7 +25,7 @@ train_params['model'] = model
 movie = 'Falcon9Falcon'
 #name += '_' + movie
 
-learning_rate = 1e-4
+learning_rate = 1e-3
 train_params['learning_rate'] = learning_rate
 name += '_' + str(learning_rate)
 
@@ -33,9 +33,13 @@ tdN = 5
 train_params['tdN'] = tdN
 name += '_' + str(tdN)
 
-batch_size = 10
+batch_size = 100
 train_params['batch_size'] = batch_size
 name += '_' + str(batch_size)
+
+batch_steps = 1
+train_params['batch_steps'] = batch_steps
+name += '_' + str(batch_steps)
 
 if model.endswith('DQN'):
   sarsa = False
