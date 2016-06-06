@@ -40,13 +40,13 @@ add_param('model', 'ActorCritic', both)
 add_param('epsilon', 0.02, both)
 
 train_settings = [
-  ('learning_rate', 0.001),
+  ('learning_rate', 0.0001),
   ('tdN', 5),
   ('batch_size', 10),
   ('batch_steps', 1),
   #('sarsa', True'),
   #('target_delay', 5000),
-  ('entropy_scale', 0.07),
+  ('entropy_scale', 0.007),
 ]
 
 for k, v in train_settings:
@@ -62,21 +62,22 @@ movie += '.dtm'
 
 add_param('self_play', self_play, ['agent'])
 add_param('movie', movie, ['agent'], False)
-add_param('dump_max', 10, ['agent'])
+add_param('dump_max', 2, ['agent'])
 
-agents = 10
+agents = 40
 add_param('agents', agents, [])
 
 #add_param('name', exp_name, both, False)
 add_param('path', "saves/%s/" % exp_name, both, False)
 
-def slurm_script(name, command, gpu=False):
+def slurm_script(name, command, cpus=2, gpu=False):
   slurmfile = 'slurm_scripts/' + name + '.slurm'
   with open(slurmfile, 'w') as f:
     f.write("#!/bin/bash\n")
     f.write("#SBATCH --job-name"+"=" + name + "\n")
     f.write("#SBATCH --output=slurm_logs/" + name + ".out\n")
     f.write("#SBATCH --error=slurm_logs/" + name + ".err\n")
+    f.write("#SBATCH -c%d\n" % cpus)
     if gpu:
       f.write("#SBATCH --gres=gpu:1\n")
     f.write(command)
@@ -102,7 +103,7 @@ else:
 train_name = "trainer_" + exp_name
 train_command = "python3 -u train.py" + job_flags['train']
 
-slurm_script(train_name, train_command)
+slurm_script(train_name, train_command, gpu=True)
 
 agent_command = "python3 -u run.py" + job_flags['agent']
 for i in range(agents):
