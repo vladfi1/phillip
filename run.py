@@ -4,11 +4,6 @@ from dolphin import runDolphin
 from argparse import ArgumentParser
 from multiprocessing import Process
 import random
-import os
-
-# don't use gpu
-# TODO: set this in tensorflow
-os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
 parser = ArgumentParser()
 
@@ -40,6 +35,8 @@ parser.add_argument("--nosetup", dest="setup", action="store_false", help="don't
 parser.add_argument("--parallel", type=int, help="spawn parallel cpus and dolphins")
 
 parser.add_argument("--self_play", type=int, help="train against ourselves, reloading every N experiences")
+
+parser.add_argument("--gpu", action="store_true", help="run on gpu")
 
 # some duplication going on here...
 parser.add_argument("--movie", type=str, help="movie to play on dolphin startup")

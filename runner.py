@@ -94,9 +94,8 @@ else:
 
   # init model for the first time
   if init:
-    os.environ["CUDA_VISIBLE_DEVICES"] = ""
     import RL
-    model = RL.Model(mode=RL.Mode.TRAIN, **job_dicts['train'])
+    model = RL.Model(mode=RL.Mode.TRAIN, gpu=False, **job_dicts['train'])
     model.init()
     model.save()
 

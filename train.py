@@ -14,7 +14,7 @@ parser.add_argument("--sarsa", action="store_true", help="learn Q values for the
 
 parser.add_argument("--learning_rate", type=float, default=1e-4, help="gradient descent learning rate")
 
-parser.add_argument("--nogpu", action="store_true", help="don't train on gpu")
+parser.add_argument("--nogpu", dest="gpu", action="store_false", help="don't train on gpu")
 
 parser.add_argument("--tdN", type=int, default=5, help="use n-step TD error")
 parser.add_argument("--reward_halflife", type=float, default=2.0, help="time to discount rewards by half, in seconds")
@@ -30,9 +30,6 @@ parser.add_argument("--epsilon", type=float, default=0.04, help="probability of 
 parser.add_argument("--temperature", type=float, default=0.01, help="increases action randomness")
 
 args = parser.parse_args()
-
-if args.nogpu:
-  os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
 if args.name is None:
   args.name = args.model

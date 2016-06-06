@@ -35,6 +35,7 @@ class Model:
               debug = False,
               swap=False,
               learning_rate=1e-4,
+              gpu=False,
               **kwargs):
     print("Creating model:", model)
     modelType = models[model]
@@ -43,7 +44,9 @@ class Model:
     
     self.graph = tf.Graph()
     
-    with self.graph.as_default():
+    device = '/gpu:0' if gpu else '/cpu:0'
+    
+    with self.graph.as_default(), tf.device(device):
       self.global_step = tf.Variable(0, name='global_step', trainable=False)
 
       self.rlConfig = RLConfig(**kwargs)
@@ -100,20 +103,24 @@ class Model:
             self.input_state = ct.inputCType(ssbm.GameMemory, [], "state")
           self.embedded_state = embedGame(self.input_state)
           self.policy = self.model.getPolicy(self.embedded_state, **kwargs)
-
+      
+      tf_config = dict(
+        allow_soft_placement=True
+      )
+      
       if mode == Mode.PLAY: # don't eat up cpu cores
-        configProto = tf.ConfigProto(
+        tf_config.update(
           inter_op_parallelism_threads=1,
           intra_op_parallelism_threads=1,
         )
-      else: # or gpu memory
-        configProto = tf.ConfigProto(
+      else:
+        tf_config.update(
           #gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.3),
         )
       
       self.sess = tf.Session(
         graph=self.graph,
-        config=configProto,
+        config=tf.ConfigProto(**tf_config),
       )
       
       self.debug = debug
