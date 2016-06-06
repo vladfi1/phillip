@@ -26,6 +26,9 @@ parser.add_argument("--entropy_scale", type=float, default=1e-2, help="entropy r
 parser.add_argument("--batch_size", type=int, default=1, help="number of experiences to train on at a time")
 parser.add_argument("--batch_steps", type=int, default=1, help="number of gradient steps to take on each batch")
 
+parser.add_argument("--epsilon", type=float, default=0.04, help="probability of random action")
+parser.add_argument("--temperature", type=float, default=0.01, help="increases action randomness")
+
 args = parser.parse_args()
 
 if args.nogpu:
