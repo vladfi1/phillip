@@ -2,8 +2,8 @@ import os
 import sys
 
 dry_run = '--dry-run' in sys.argv
-local   = '--local' in sys.argv
-detach  = '--detach' in sys.argv
+#local   = '--local' in sys.argv
+#detach  = '--detach' in sys.argv
 
 if not os.path.exists("slurm_logs"):
     os.makedirs("slurm_logs")
@@ -63,6 +63,9 @@ add_param('agents', agents, [])
 self_play = False
 add_param('self_play', self_play, ['agent'])
 
+add_param('experience_time', 30, ['agent'])
+add_param('act_every', 5, ['agent'])
+
 movie = 'FalconFalcon' if self_play else 'Falcon9Falcon'
 
 dual = True
@@ -95,7 +98,7 @@ def slurm_script(name, command, cpus=2, gpu=False):
     #os.system("sbatch -N 1 -c 2 --mem=8000 --time=6-23:00:00 slurm_scripts/" + jobname + ".slurm &")
 
 init = False
-#init = True
+init = True
 
 if dry_run:
   print("NOT starting jobs:")
@@ -112,7 +115,7 @@ else:
 train_name = "trainer_" + exp_name
 train_command = "python3 -u train.py" + job_flags['train']
 
-#slurm_script(train_name, train_command, gpu=True)
+slurm_script(train_name, train_command, gpu=True)
 
 #sys.exit()
 
