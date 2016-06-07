@@ -35,12 +35,11 @@ def add_param(param, value, jobs, name=True):
 
 both = ['train', 'agent']
 
-init = True
 add_param('model', 'ActorCritic', both)
 add_param('epsilon', 0.02, both)
 
 train_settings = [
-  ('learning_rate', 0.0001),
+  ('learning_rate', 0.001),
   ('tdN', 5),
   ('batch_size', 10),
   ('batch_steps', 1),
@@ -56,16 +55,23 @@ for k, v in train_settings:
 
 add_param('dolphin', True, ['agent'], False)
 
+add_param('dump_max', 20, ['agent'])
+
+agents = 25
+add_param('agents', agents, [])
+
 self_play = False
+add_param('self_play', self_play, ['agent'])
+
 movie = 'FalconFalcon' if self_play else 'Falcon9Falcon'
+
+dual = True
+add_param('dual', dual, [])
+if dual:
+  movie += '_dual'
 movie += '.dtm'
 
-add_param('self_play', self_play, ['agent'])
 add_param('movie', movie, ['agent'], False)
-add_param('dump_max', 2, ['agent'])
-
-agents = 40
-add_param('agents', agents, [])
 
 #add_param('name', exp_name, both, False)
 add_param('path', "saves/%s/" % exp_name, both, False)
@@ -74,7 +80,7 @@ def slurm_script(name, command, cpus=2, gpu=False):
   slurmfile = 'slurm_scripts/' + name + '.slurm'
   with open(slurmfile, 'w') as f:
     f.write("#!/bin/bash\n")
-    f.write("#SBATCH --job-name"+"=" + name + "\n")
+    f.write("#SBATCH --job-name=" + name + "\n")
     f.write("#SBATCH --output=slurm_logs/" + name + ".out\n")
     f.write("#SBATCH --error=slurm_logs/" + name + ".err\n")
     f.write("#SBATCH -c%d\n" % cpus)
@@ -87,6 +93,9 @@ def slurm_script(name, command, cpus=2, gpu=False):
   else:
     os.system("sbatch " + slurmfile)
     #os.system("sbatch -N 1 -c 2 --mem=8000 --time=6-23:00:00 slurm_scripts/" + jobname + ".slurm &")
+
+init = False
+#init = True
 
 if dry_run:
   print("NOT starting jobs:")
@@ -103,10 +112,13 @@ else:
 train_name = "trainer_" + exp_name
 train_command = "python3 -u train.py" + job_flags['train']
 
-slurm_script(train_name, train_command, gpu=True)
+#slurm_script(train_name, train_command, gpu=True)
+
+#sys.exit()
 
 agent_command = "python3 -u run.py" + job_flags['agent']
 for i in range(agents):
   agent_name = "agent_%d_%s" % (i, exp_name)
-  slurm_script(agent_name, agent_command)
+  cpus = 4 if dual else 2
+  slurm_script(agent_name, agent_command, cpus)
 
