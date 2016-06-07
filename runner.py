@@ -39,13 +39,14 @@ add_param('model', 'ActorCritic', both)
 add_param('epsilon', 0.02, both)
 
 train_settings = [
-  ('learning_rate', 0.001),
+  ('learning_rate', 0.0002),
   ('tdN', 5),
-  ('batch_size', 10),
-  ('batch_steps', 1),
+  ('batch_size', 40),
+  ('batch_steps', 5),
   #('sarsa', True'),
   #('target_delay', 5000),
   ('entropy_scale', 0.007),
+  ('policy_scale', 0.5),
 ]
 
 for k, v in train_settings:

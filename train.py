@@ -22,6 +22,7 @@ parser.add_argument("--reward_halflife", type=float, default=2.0, help="time to 
 parser.add_argument("--target_delay", type=int, default=5000, help="update target network after this many experiences")
 
 parser.add_argument("--entropy_scale", type=float, default=1e-2, help="entropy regularization for actor-critic")
+parser.add_argument("--policy_scale", type=float, default=1.0, help="scale the policy gradient for actor-critic")
 
 parser.add_argument("--batch_size", type=int, default=1, help="number of experiences to train on at a time")
 parser.add_argument("--batch_steps", type=int, default=1, help="number of gradient steps to take on each batch")

@@ -43,7 +43,7 @@ class ActorCritic:
   def getOutput(self, state):
     return self.getLayers(state)[-1]
 
-  def getLoss(self, states, actions, rewards, entropy_scale=0.01, **kwargs):
+  def getLoss(self, states, actions, rewards, entropy_scale=0.01, policy_scale=1.0, **kwargs):
     n = self.rlConfig.tdN
     
     state_shape = tf.shape(states)
@@ -73,7 +73,7 @@ class ActorCritic:
     train_log_actor_probs = tf.slice(real_log_actor_probs, [0, 0], [-1, train_length])
     actor_gain = tf.reduce_mean(tf.mul(train_log_actor_probs, tf.stop_gradient(advantages)))
 
-    acLoss = vLoss - actor_gain + entropy_scale * actor_entropy
+    acLoss = vLoss - policy_scale * (actor_gain + entropy_scale * actor_entropy)
 
     return acLoss, [('vLoss', vLoss), ('actor_gain', actor_gain), ('actor_entropy', -actor_entropy)]
 
