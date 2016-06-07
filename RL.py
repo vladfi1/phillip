@@ -45,6 +45,7 @@ class Model:
     self.graph = tf.Graph()
     
     device = '/gpu:0' if gpu else '/cpu:0'
+    print("Using device " + device)
     
     with self.graph.as_default(), tf.device(device):
       self.global_step = tf.Variable(0, name='global_step', trainable=False)
