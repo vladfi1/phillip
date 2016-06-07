@@ -144,7 +144,7 @@ class CPU:
             rewards = computeRewards(self.dump_state_actions)
 
             with open(self.reward_logfile, 'a') as f:
-                f.write(str(sum(rewards) / len(rewards)) + "\n")
+                f.write(str(time.time()) + " " + str(sum(rewards) / len(rewards)) + "\n")
                 f.flush()
 
     def advance_frame(self):
