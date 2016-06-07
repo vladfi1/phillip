@@ -10,7 +10,6 @@ import embed
 from dqn import DQN
 from actor_critic import ActorCritic
 from thompson_dqn import ThompsonDQN
-import config
 from operator import add, sub
 from enum import Enum
 from reward import computeRewards
@@ -25,7 +24,8 @@ class RLConfig:
   def __init__(self, tdN=5, reward_halflife = 2.0, **kwargs):
     self.tdN = tdN
     self.reward_halflife = reward_halflife
-    self.discount = 0.5 ** ( 1.0 / (config.fps*reward_halflife) )
+    # TODO: encode FPS in the experience
+    self.discount = 0.5 ** ( 1.0 / (60.0*reward_halflife) )
 
 class Model:
   def __init__(self,

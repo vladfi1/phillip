@@ -11,7 +11,6 @@ import agent
 import util
 from ctype_util import copy
 import RL
-from config import *
 from numpy import random
 from reward import computeRewards
 
@@ -24,6 +23,8 @@ default_args = dict(
     dolphin_dir = '~/.local/share/dolphin-emu/',
     self_play = None,
     model="DQN",
+    act_every=5,
+    experience_time=60,
 )
 
 class CPU:
@@ -34,11 +35,14 @@ class CPU:
             else:
                 setattr(self, k, v)
 
+        self.fps = 60 // self.act_every
+        self.experience_length = self.experience_time * self.fps
+        
         if self.dump:
             self.dump_dir = self.path + "/experience/"
             os.makedirs(self.dump_dir, exist_ok=True)
             self.dump_tag = "" if self.tag is None else str(self.tag) + "-"
-            self.dump_size = experience_length
+            self.dump_size = self.experience_length
             self.dump_state_actions = (self.dump_size * ssbm.SimpleStateAction)()
 
             self.dump_frame = 0
@@ -62,7 +66,7 @@ class CPU:
         self.cpus = [0, 1] if self.self_play else [1]
         self.agents = []
 
-        reload_every = experience_length
+        reload_every = self.experience_length
         if self.self_play:
             self.enemy = agent.Agent(reload_every=self.self_play*reload_every, swap=True, **kwargs)
             self.agents.append(self.enemy)
@@ -163,7 +167,7 @@ class CPU:
             self.make_action()
             self.thinking_time += time.time() - start
 
-            if self.state.frame % (15 * fps) == 0:
+            if self.state.frame % (15 * self.fps) == 0:
                 self.print_stats()
         
         self.mw.advance()
@@ -177,7 +181,7 @@ class CPU:
         # menu = Menu(self.state.menu)
         # print(menu)
         if self.state.menu == Menu.Game.value:
-            if self.action_counter % act_every == 0:
+            if self.action_counter % self.act_every == 0:
                 for agent, pad in zip(self.agents, self.pads):
                     agent.act(self.state, pad)
                 if self.dump:

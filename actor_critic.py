@@ -1,7 +1,6 @@
 import tensorflow as tf
 import tf_lib as tfl
 import util
-import config
 from numpy import random
 
 class ActorCritic:
@@ -46,7 +45,12 @@ class ActorCritic:
 
   def getLoss(self, states, actions, rewards, entropy_scale=0.01, **kwargs):
     n = self.rlConfig.tdN
-    train_length = config.experience_length - n
+    
+    state_shape = tf.shape(states)
+    state_rank = state_shape.get_shape()[0].value
+    experience_length = state_shape[state_rank-2]
+    
+    train_length = experience_length - n
 
     values, actor_probs = self.getOutput(states)
     trainVs = tf.slice(values, [0, 0], [-1, train_length])

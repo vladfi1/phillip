@@ -2,7 +2,6 @@ import tensorflow as tf
 import tf_lib as tfl
 import util
 from numpy import random, exp, argmax
-import config
 
 class ThompsonDQN:
   def __init__(self, state_size, action_size, global_step, rlConfig, epsilon=0.04, **kwargs):

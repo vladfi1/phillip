@@ -2,7 +2,6 @@ import tensorflow as tf
 import tf_lib as tfl
 import util
 from numpy import random
-import config
 
 class DQN:
   def __init__(self, state_size, action_size, global_step, rlConfig,

@@ -38,6 +38,9 @@ parser.add_argument("--self_play", type=int, help="train against ourselves, relo
 
 parser.add_argument("--gpu", action="store_true", help="run on gpu")
 
+parser.add_argument("--act_every", type=int, default=5, help="only take actions every ACT_EVERY frames")
+parser.add_argument("--experience_time", type=int, default=60, help="length of experiences, in seconds")
+
 # some duplication going on here...
 parser.add_argument("--movie", type=str, help="movie to play on dolphin startup")
 parser.add_argument("--gfx", type=str, default="Null", help="gfx backend")
