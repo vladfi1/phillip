@@ -25,7 +25,7 @@ class RLConfig:
     self.tdN = tdN
     self.reward_halflife = reward_halflife
     # TODO: encode FPS in the experience
-    self.discount = 0.5 ** ( 1.0 / (60.0*reward_halflife) )
+    self.discount = 0.5 ** ( 1.0 / (12.0*reward_halflife) )
 
 class Model:
   def __init__(self,
