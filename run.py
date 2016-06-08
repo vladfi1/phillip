@@ -7,7 +7,8 @@ import random
 
 parser = ArgumentParser()
 
-parser.add_argument("--model", choices=["DQN", "ActorCritic", "ThompsonDQN"], required=True, help="which RL model to use")
+import RL
+parser.add_argument("--model", choices=RL.models.keys(), required=True, help="which RL model to use")
 parser.add_argument("--epsilon", type=float, default=0.04, help="probability of random action")
 parser.add_argument("--temperature", type=float, default=0.01, help="increases action randomness")
 

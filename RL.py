@@ -9,6 +9,7 @@ import numpy as np
 import embed
 from dqn import DQN
 from actor_critic import ActorCritic
+from actor_critic_split import ActorCriticSplit
 from thompson_dqn import ThompsonDQN
 from operator import add, sub
 from enum import Enum
@@ -18,7 +19,7 @@ class Mode(Enum):
   TRAIN = 0
   PLAY = 1
 
-models = {model.__name__ : model for model in [DQN, ActorCritic, ThompsonDQN]}
+models = {model.__name__ : model for model in [DQN, ActorCritic, ActorCriticSplit, ThompsonDQN]}
 
 class RLConfig:
   def __init__(self, tdN=5, reward_halflife = 2.0, **kwargs):
