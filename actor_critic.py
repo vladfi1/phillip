@@ -68,14 +68,14 @@ class ActorCritic:
     vLoss = tf.reduce_mean(tf.square(advantages))
 
     log_actor_probs = tf.log(actor_probs)
-    actor_entropy = tf.reduce_mean(tfl.batch_dot(actor_probs, log_actor_probs))
+    actor_entropy = -tf.reduce_mean(tfl.batch_dot(actor_probs, log_actor_probs))
     real_log_actor_probs = tfl.batch_dot(actions, tf.log(actor_probs))
     train_log_actor_probs = tf.slice(real_log_actor_probs, [0, 0], [-1, train_length])
     actor_gain = tf.reduce_mean(tf.mul(train_log_actor_probs, tf.stop_gradient(advantages)))
 
     acLoss = vLoss - policy_scale * (actor_gain + entropy_scale * actor_entropy)
 
-    return acLoss, [('vLoss', vLoss), ('actor_gain', actor_gain), ('actor_entropy', -actor_entropy)]
+    return acLoss, [('vLoss', vLoss), ('actor_gain', actor_gain), ('actor_entropy', actor_entropy)]
 
   def getPolicy(self, state, **kwargs):
     return self.getOutput(state)[1]
