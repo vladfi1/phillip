@@ -105,3 +105,12 @@ def async_map(f, xs):
 def chunk(l, n):
   return [l[i:i+n] for i in range(0, len(l), n)]
 
+class MovingAverage:
+  def __init__(self, rate=0.99, initial=None):
+    self.rate = rate
+    self.avg = initial
+  
+  def append(val):
+    self.avg *= self.rate
+    self.avg += (1.0 - self.rate) * val
+
