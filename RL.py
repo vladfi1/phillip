@@ -37,6 +37,7 @@ class Model:
               swap=False,
               learning_rate=1e-4,
               gpu=False,
+              optimizer="Adam",
               **kwargs):
     print("Creating model:", model)
     modelType = models[model]
@@ -89,13 +90,13 @@ class Model:
             tf.scalar_summary(name, tensor)
           merged = tf.merge_all_summaries()
           
-          optimizer = tf.train.AdamOptimizer(learning_rate)
+          self.optimizer = getattr(tf.train, optimizer + "Optimizer")(learning_rate)
           # train_q = opt.minimize(qLoss, global_step=global_step)
           # opt = tf.train.GradientDescentOptimizer(0.0)
           #grads_and_vars = opt.compute_gradients(qLoss)
-          grads_and_vars = optimizer.compute_gradients(loss)
+          grads_and_vars = self.optimizer.compute_gradients(loss)
           self.grads_and_vars = [(g, v) for g, v in grads_and_vars if g is not None]
-          self.train_op = optimizer.apply_gradients(grads_and_vars, global_step=self.global_step)
+          self.train_op = self.optimizer.apply_gradients(grads_and_vars, global_step=self.global_step)
           self.run_dict = dict(summary=merged, global_step=self.global_step, train=self.train_op)
           
           self.writer = tf.train.SummaryWriter(path+'logs/', self.graph)

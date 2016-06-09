@@ -13,7 +13,8 @@ parser.add_argument("--name", type=str, help="sets path to saves/{name}")
 parser.add_argument("--model", choices=RL.models.keys(), required=True, help="which RL model to use")
 parser.add_argument("--sarsa", action="store_true", help="learn Q values for the current policy, not the optimal policy")
 
-parser.add_argument("--learning_rate", type=float, default=1e-4, help="gradient descent learning rate")
+parser.add_argument("--optimizer", type=str, default="GradientDescent", help="tf.train optimizer")
+parser.add_argument("--learning_rate", type=float, default=1e-4, help="optimizer learning rate")
 
 parser.add_argument("--nogpu", dest="gpu", action="store_false", help="don't train on gpu")
 

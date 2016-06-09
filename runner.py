@@ -39,14 +39,15 @@ add_param('model', 'ActorCriticSplit', both)
 add_param('epsilon', 0.02, both)
 
 train_settings = [
-  ('learning_rate', 0.001),
+  ('optimizer', 'Adam'),
+  ('learning_rate', 0.002),
   ('tdN', 5),
   ('batch_size', 100),
-  ('batch_steps', 2),
+  ('batch_steps', 4),
   #('sarsa', True'),
   #('target_delay', 5000),
-  ('entropy_scale', 0.005),
-  ('policy_scale', 0.1),
+  ('entropy_scale', 0.006),
+  ('policy_scale', 0.05),
 ]
 
 for k, v in train_settings:
@@ -58,7 +59,7 @@ add_param('dolphin', True, ['agent'], False)
 
 add_param('dump_max', 10, ['agent'])
 
-agents = 50
+agents = 48
 add_param('agents', agents, [])
 
 self_play = False
@@ -70,7 +71,7 @@ add_param('act_every', 5, ['agent'])
 movie = 'FalconFalcon' if self_play else 'Falcon9Falcon'
 
 dual = True
-dual = False
+#dual = False
 add_param('dual', dual, [])
 if dual:
   movie += '_dual'
@@ -89,6 +90,7 @@ def slurm_script(name, command, cpus=2, gpu=False):
     f.write("#SBATCH --output=slurm_logs/" + name + ".out\n")
     f.write("#SBATCH --error=slurm_logs/" + name + ".err\n")
     f.write("#SBATCH -c%d\n" % cpus)
+    f.write("#SBATCH --time=6-23\n")
     #f.write("#SBATCH --cpu_bind=verbose,cores\n")
     #f.write("#SBATCH --cpu_bind=threads\n")
     if gpu:
@@ -126,6 +128,7 @@ slurm_script(train_name, train_command, gpu=True)
 agent_command = "python3 -u run.py" + job_flags['agent']
 for i in range(agents):
   agent_name = "agent_%d_%s" % (i, exp_name)
-  cpus = 4 if dual else 2
+  cpus = 2
+  #if dual: cpus *= 2
   slurm_script(agent_name, agent_command, cpus)
 
