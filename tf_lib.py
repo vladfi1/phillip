@@ -9,8 +9,7 @@ def leaky_relu(x, alpha=0.01):
   return tf.maximum(alpha * x, x)
 
 def batch_dot(xs, ys):
-  rank = len(xs.get_shape())
-  return tf.reduce_sum(tf.mul(xs, ys), rank-1)
+  return tf.reduce_sum(tf.mul(xs, ys), -1)
 
 def weight_variable(shape):
     '''
@@ -90,8 +89,8 @@ def matmul2(x, m, bias=None, nl=None):
   [input_size, output_size] = m.get_shape().as_list()
   
   input_shape = tf.shape(x)
-  batch_rank = input_shape.get_shape()[0].value - 1
-  batch_shape = input_shape[:batch_rank]
+  batch_rank = tf.shape(input_shape) - 1
+  batch_shape = tf.slice(input_shape, [0], batch_rank)
   output_shape = tf.concat(0, [batch_shape, [output_size]])
   
   x = tf.reshape(x, [-1, input_size])
