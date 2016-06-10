@@ -40,8 +40,8 @@ class ActorCriticSplit:
     n = self.rlConfig.tdN
     
     state_shape = tf.shape(states)
-    state_rank = state_shape.get_shape()[0].value
-    experience_length = state_shape[state_rank-2]
+    state_rank = tf.shape(state_shape)[0]
+    experience_length = tf.gather(state_shape, state_rank-2)
     
     train_length = experience_length - n
 

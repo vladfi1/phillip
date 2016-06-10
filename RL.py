@@ -66,24 +66,32 @@ class Model:
 
             # player 2's controls
             self.input_actions = tf.placeholder(tf.int32, [None, None], "action")
-            #experience_length = tf.shape(input_actions)
+
+            # instantaneous rewards for all but the first state
+            self.input_rewards = tf.placeholder(tf.float32, [None, None], name='reward')
+          
+          data_names = ['state', 'action', 'reward']
+          
+          self.input_dict = {name : getattr(self, "input_%ss" % name) for name in data_names}
           
           self.embedded_states = embedGame(self.input_states)
-          self.state_size = self.embedded_states.get_shape()[-1].value # TODO: precompute
-
           self.embedded_actions = embed.embedAction(self.input_actions)
-          self.action_size = self.embedded_actions.get_shape()[-1].value
-
-          # instantaneous rewards for all but the first state
-          self.rewards = tf.placeholder(tf.float32, [None, None], name='reward')
+          self.embedded_rewards = self.input_rewards
           
-          self.train_dict = {
-            'state' : self.input_states,
-            'action' : self.input_actions,
-            'reward' : self.rewards
-          }
+          self.saved_data = [tf.get_session_handle(getattr(self, 'embedded_%ss' % name)) for name in data_names]
+          
+          self.placeholders = []
+          loaded_data = []
+          
+          for name in data_names:
+            placeholder, data = tf.get_session_tensor(tf.float32)
+            self.placeholders.append(placeholder)
+            #data = tf.reshape(data, tf.shape(getattr(self, 'embedded_%ss' % name)))
+            loaded_data.append(data)
+          
+          state_placeholder, saved_state = tf.get_session_tensor(tf.float32)
 
-          loss, stats = self.model.getLoss(self.embedded_states, self.embedded_actions, self.rewards, **kwargs)
+          loss, stats = self.model.getLoss(*loaded_data, **kwargs)
           
           tf.scalar_summary("loss", loss)
           for name, tensor in stats:
@@ -106,8 +114,8 @@ class Model:
             self.input_state = ct.inputCType(ssbm.GameMemory, [], "state")
           self.embedded_state = embedGame(self.input_state)
           self.policy = self.model.getPolicy(self.embedded_state, **kwargs)
-      
       tf_config = dict(
+      
         allow_soft_placement=True
       )
       
@@ -175,14 +183,18 @@ class Model:
     experiences = util.deepZip(*experiences)
     experiences = util.deepMap(np.array, experiences)
     
-    feed_dict = dict(util.deepValues(util.deepZip(self.train_dict, experiences)))
+    input_dict = dict(util.deepValues(util.deepZip(self.input_dict, experiences)))
+    
+    saved_data = self.sess.run(self.saved_data, input_dict)
+    handles = [t.handle for t in saved_data]
+    
+    saved_dict = dict(zip(self.placeholders, handles))
 
     if self.debug:
-      self.debugGrads(feed_dict)
+      self.debugGrads(saved_dict)
     
-    # TODO: figure out how to train multiple times in one run
     for _ in range(steps):
-      results = tfl.run(self.sess, self.run_dict, feed_dict)
+      results = tfl.run(self.sess, self.run_dict, saved_dict)
       
       summary_str = results['summary']
       global_step = results['global_step']
