@@ -88,8 +88,6 @@ class Model:
             self.placeholders.append(placeholder)
             #data = tf.reshape(data, tf.shape(getattr(self, 'embedded_%ss' % name)))
             loaded_data.append(data)
-          
-          state_placeholder, saved_state = tf.get_session_tensor(tf.float32)
 
           loss, stats = self.model.getLoss(*loaded_data, **kwargs)
           
