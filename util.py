@@ -114,3 +114,17 @@ class MovingAverage:
     self.avg *= self.rate
     self.avg += (1.0 - self.rate) * val
 
+class CircularQueue:
+  def __init__(self, size, init=None):
+    self.size = size
+    self.array = [init] * size
+    self.index = 0
+  
+  def push(self, obj):
+    self.array[self.index] = obj
+    self.index += 1
+    self.index %= self.size
+  
+  def peek(self):
+    return self.array[self.index]
+
