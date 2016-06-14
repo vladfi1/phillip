@@ -95,6 +95,8 @@ class Model:
           
           tf.scalar_summary("loss", loss)
           for name, tensor in stats:
+            if tensor.dtype is tf.bool:
+              tensor = tf.cast(tensor, tf.uint8)
             tf.scalar_summary(name, tensor)
           merged = tf.merge_all_summaries()
           

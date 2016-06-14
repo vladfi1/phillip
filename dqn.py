@@ -38,23 +38,28 @@ class DQN:
   
   def getLoss(self, states, actions, rewards, sarsa=False, target_delay=1000, **kwargs):
     n = self.rlConfig.tdN
-    train_length = [config.experience_length - n]
+    
+    state_shape = tf.shape(states)
+    state_rank = tf.shape(state_shape)[0]
+    experience_length = tf.gather(state_shape, state_rank-2)
+
+    train_length = experience_length - n
 
     trainQs = self.q_net(states)
     trainQs = tfl.batch_dot(actions, trainQs)
-    trainQs = tf.slice(trainQs, [0], train_length)
+    trainQs = tf.slice(trainQs, [0, 0], [-1, train_length])
     
     self.q_target = self.q_net.clone()
     
     targetQs = self.q_target(states)
     realQs = tfl.batch_dot(actions, targetQs)
-    maxQs = tf.reduce_max(targetQs, 1)
+    maxQs = tf.reduce_max(targetQs, -1)
     targetQs = realQs if sarsa else maxQs
 
     # smooth between TD(m) for m<=n?
-    targets = tf.slice(targetQs, [n], train_length)
+    targets = tf.slice(targetQs, [0, n], [-1, train_length])
     for i in reversed(range(n)):
-      targets = tf.slice(rewards, [i], train_length) + self.rlConfig.discount * targets
+      targets = tf.slice(rewards, [0, i], [-1, train_length]) + self.rlConfig.discount * targets
     # not necessary if we optimize only on q_net variables
     # but this is easier :)
     targets = tf.stop_gradient(targets)
@@ -75,10 +80,13 @@ class DQN:
   
   def getPolicy(self, state, **kwargs):
     #return [self.epsilon, tf.argmax(self.getQValues(state), 1)]
+    state = tf.expand_dims(state, 0)
     qValues = self.q_net(state)
     action_probs = tf.nn.softmax(qValues / self.temperature)
+    
+    
     action_probs = (1.0 - self.epsilon) * action_probs + self.epsilon / self.action_size
-    entropy = tf.reduce_sum(tf.log(action_probs) * action_probs, 1)
+    entropy = -tf.reduce_sum(tf.log(action_probs) * action_probs, -1)
     return [qValues, action_probs, entropy]
   
   def act(self, policy, verbose=False):

@@ -35,20 +35,31 @@ def add_param(param, value, jobs, name=True):
 
 both = ['train', 'agent']
 
-add_param('model', 'ActorCriticSplit', both)
+model = 'DQN'
+#model = 'ActorCriticSplit'
+add_param('model', model, both)
+#add_param('model', 'ActorCriticSplit', both)
 add_param('epsilon', 0.02, both)
 
 train_settings = [
   ('optimizer', 'Adam'),
-  ('learning_rate', 0.002),
+  ('learning_rate', 0.0001),
   ('tdN', 5),
-  ('batch_size', 100),
-  ('batch_steps', 4),
-  #('sarsa', True'),
-  #('target_delay', 5000),
-  ('entropy_scale', 0.006),
-  ('policy_scale', 0.05),
+  ('batch_size', 20),
+  ('batch_steps', 2),
 ]
+
+if model.count('DQN'):
+  train_settings += [
+    ('sarsa', True),
+    ('target_delay', 5000),
+  ]
+  add_param('temperature', 0.01, both)
+elif model.count('ActorCritic'):
+  train_settings += [
+    ('entropy_scale', 0.006),
+    ('policy_scale', 0.1),
+  ]
 
 for k, v in train_settings:
   add_param(k, v, ['train'])
@@ -57,12 +68,13 @@ for k, v in train_settings:
 
 add_param('dolphin', True, ['agent'], False)
 
-add_param('dump_max', 10, ['agent'])
+add_param('dump_max', 50, ['agent'])
 
 agents = 48
 add_param('agents', agents, [])
 
 self_play = False
+#self_play = 600
 add_param('self_play', self_play, ['agent'])
 
 add_param('experience_time', 60, ['agent'])
