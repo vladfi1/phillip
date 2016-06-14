@@ -75,6 +75,19 @@ def convLayer(x, filter_size=5, filter_depth=64, pool_size=2):
 
   return pool
 
+def softmax(x):
+  input_shape = tf.shape(x)
+  input_rank = tf.shape(input_shape)[0]
+  input_size = tf.gather(input_shape, input_rank-1)
+  output_shape = input_shape
+  
+  x = tf.reshape(x, [-1, input_size])
+
+  y = tf.nn.softmax(x)
+  y = tf.reshape(y, output_shape)
+  
+  return y
+
 def matmul(x, m):
   shape = tf.shape(v)
   rank = shape.get_shape()[0].value
@@ -127,15 +140,7 @@ class FCLayer:
       self.bias = bias_variable([output_size])
   
   def __call__(self, x):
-    y = matmul2(x, self.weight)
-    
-    # broadcasts correctly
-    y += self.bias
-    
-    if self.nl:
-      y = self.nl(y)
-    
-    return y
+    return matmul2(x, self.weight, self.bias, self.nl)
   
   def clone(self):
     return FCLayer(clone=self)
