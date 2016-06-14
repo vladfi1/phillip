@@ -4,28 +4,36 @@ import tf_lib as tfl
 import numpy as np
 from numpy import random, exp
 import RL
-
-def flip(p):
-  return random.binomial(1, p)
+import util
 
 class Agent:
-  def __init__(self, model=None, path=None, reload_every=60*60, swap=False, **kwargs):
+  def __init__(self,
+               model=None,
+               path=None,
+               reload_every=60*60,
+               swap=False,
+               delay=0,
+               **kwargs):
     self.model = RL.Model(model, path, swap=swap, mode=RL.Mode.PLAY, **kwargs)
     self.reload_every = reload_every
     self.counter = 0
-    self.simple_controller = ssbm.simpleControllerStates[0]
+    self.action = 0
+    self.queue = util.CircularQueue(delay+1, init=0)
     self.model.restore()
 
   def act(self, state, pad):
     verbose = self.counter % 60 == 0
-    action = self.model.act(state, verbose)
-    self.simple_controller = ssbm.SimpleControllerState.fromIndex(action)
+    
+    self.prev_action = self.action
+    self.action = self.model.act(state, verbose)
+    self.queue.push(self.action)
 
     if verbose:
       print(state.players[1])
-      print(self.simple_controller)
+      print(self.action)
 
-    pad.send_controller(self.simple_controller.realController())
+    controller = ssbm.simpleControllerStates[self.queue.peek()]
+    pad.send_controller(controller.realController())
 
     self.counter += 1
 

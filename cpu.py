@@ -129,7 +129,7 @@ class CPU:
     def dump_state(self):
         state_action = self.dump_state_actions[self.dump_frame]
         state_action.state = self.state
-        state_action.action = self.agent.simple_controller.index
+        state_action.action = self.agent.action
 
         self.dump_frame += 1
 
