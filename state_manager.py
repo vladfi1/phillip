@@ -165,7 +165,7 @@ def playerAddresses(player_id, addresses=None):
     add_data_address('20CC', 'action_counter', shortHandler)
     add_data_address('8F4', 'action_frame', floatHandler)
 
-    add_data_address('19EC', 'vulnerable', intHandler)
+    add_data_address('19EC', 'invulnerable', intHandler)
 
     add_data_address('19BC', 'hitlag_frames_left', floatHandler)
     add_data_address('23A0', 'hitstun_frames_left', floatHandler)
