@@ -34,7 +34,6 @@ class Model:
               path=None,
               mode = Mode.TRAIN,
               debug = False,
-              swap=False,
               learning_rate=1e-4,
               gpu=False,
               optimizer="Adam",
@@ -53,11 +52,13 @@ class Model:
       self.global_step = tf.Variable(0, name='global_step', trainable=False)
 
       self.rlConfig = RLConfig(**kwargs)
-      self.model = modelType(embed.state_size, embed.action_size, self.global_step, self.rlConfig, **kwargs)
       
+      embedGame = embed.GameEmbedding(**kwargs)
+      state_size = embedGame.size
+      
+      self.model = modelType(state_size, embed.action_size, self.global_step, self.rlConfig, **kwargs)
+
       #self.variables = self.model.getVariables() + [self.global_step]
-      
-      embedGame = embed.embedGameSwapped if swap else embed.embedGame
       
       if mode == Mode.TRAIN:
         with tf.name_scope('train'):

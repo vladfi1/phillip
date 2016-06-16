@@ -208,6 +208,9 @@ def one_hot(size):
       1.0,
       0.0)
 
+def rank(t):
+  return tf.shape(tf.shape(t))[0]
+
 def run(session, fetches, feed_dict):
     """Wrapper for making Session.run() more user friendly.
 

@@ -21,8 +21,7 @@ class FloatEmbedding:
     if self.scale:
       t *= self.scale
     
-    rank = len(t.get_shape())
-    return tf.expand_dims(t, rank)
+    return tf.expand_dims(t, -1)
 
 embedFloat = FloatEmbedding()
 
@@ -48,11 +47,8 @@ class StructEmbedding:
     for field, op in self.embedding:
       with tf.name_scope(field):
         t = op(struct[field])
-        r = len(t.get_shape())
         if rank is None:
-          rank = r
-        else:
-          assert(r == rank)
+          rank = tf.shape(tf.shape(t))[0]
         
         embed.append(t)
     return tf.concat(rank-1, embed)
@@ -103,49 +99,51 @@ controllerEmbedding = [
 
 embedController = StructEmbedding(controllerEmbedding)
 
-maxCharacter = 32 # should be large enough?
+maxAction = 0x017E
+numActions = 1 + maxAction
 
+class ActionEmbedding:
+  def __init__(self, action_space=32, **kwargs):
+    self.one_hot = OneHotEmbedding(numActions)
+    self.helper = tfl.FCLayer(numActions, action_space)
+    self.size = action_space
+  
+  def __call__(self, x):
+    return self.helper(self.one_hot(x))
+
+maxCharacter = 32 # should be large enough?
 maxJumps = 8 # unused
 
-maxAction = 512 # altf4 says 0x017E
-embedAction = OneHotEmbedding(maxAction)
+class PlayerEmbedding(StructEmbedding):
+  def __init__(self, **kwargs):
+    embedAction = ActionEmbedding(**kwargs)
 
-"""
-actionSpace = 32
+    playerEmbedding = [
+      ("percent", FloatEmbedding(scale=0.01)),
+      ("facing", embedFloat),
+      ("x", FloatEmbedding(scale=0.1)),
+      ("y", FloatEmbedding(scale=0.1)),
+      ("action_state", embedAction),
+      # ("action_counter", embedFloat),
+      ("action_frame", FloatEmbedding(scale=0.02)),
+      # ("character", one_hot(maxCharacter)),
+      ("invulnerable", embedFloat),
+      ("hitlag_frames_left", embedFloat),
+      ("hitstun_frames_left", embedFloat),
+      ("jumps_used", embedFloat),
+      ("charging_smash", embedFloat),
+      ("shield_size", embedFloat),
+      ("in_air", embedFloat),
+      ('speed_air_x_self', embedFloat),
+      ('speed_ground_x_self', embedFloat),
+      ('speed_y_self', embedFloat),
+      ('speed_x_attack', embedFloat),
+      ('speed_y_attack', embedFloat),
 
-with tf.variable_scope("embed_action"):
-  actionHelper = tfl.makeAffineLayer(maxAction, actionSpace)
-
-def embedAction(t):
-  return actionHelper(tfl.one_hot(maxAction)(t))
-"""
-
-playerEmbedding = [
-  ("percent", FloatEmbedding(scale=0.01)),
-  ("facing", embedFloat),
-  ("x", FloatEmbedding(scale=0.1)),
-  ("y", FloatEmbedding(scale=0.1)),
-  ("action_state", embedAction),
-  # ("action_counter", embedFloat),
-  ("action_frame", FloatEmbedding(scale=0.02)),
-  # ("character", one_hot(maxCharacter)),
-  ("invulnerable", embedFloat),
-  ("hitlag_frames_left", embedFloat),
-  ("hitstun_frames_left", embedFloat),
-  ("jumps_used", embedFloat),
-  ("charging_smash", embedFloat),
-  ("shield_size", embedFloat),
-  ("in_air", embedFloat),
-  ('speed_air_x_self', embedFloat),
-  ('speed_ground_x_self', embedFloat),
-  ('speed_y_self', embedFloat),
-  ('speed_x_attack', embedFloat),
-  ('speed_y_attack', embedFloat),
-
-  ('controller', embedController)
-]
-
-embedPlayer = StructEmbedding(playerEmbedding)
+      ('controller', embedController)
+    ]
+    
+    super(PlayerEmbedding, self).__init__(playerEmbedding)
 
 """
 maxStage = 64 # overestimate
@@ -158,18 +156,21 @@ def embedStage(stage):
   return stageHelper(one_hot(maxStage)(stage))
 """
 
-def gameEmbedding(enemy=0, self=1):
-  players = [enemy, self]
-  return [
-    ('players', ArrayEmbedding(embedPlayer, players)),
+class GameEmbedding(StructEmbedding):
+  def __init__(self, swap=False, **kwargs):
+    embedPlayer = PlayerEmbedding(**kwargs)
+    
+    players = [0, 1]
+    if swap: players.reverse()
+    
+    gameEmbedding = [
+      ('players', ArrayEmbedding(embedPlayer, players)),
 
-    #('frame', c_uint),
-    # ('stage', embedStage)
-  ]
-
-embedGame = StructEmbedding(gameEmbedding())
-state_size = embedGame.size
-embedGameSwapped = StructEmbedding(gameEmbedding(1, 0))
+      #('frame', c_uint),
+      # ('stage', embedStage)
+    ]
+    
+    super(GameEmbedding, self).__init__(gameEmbedding)
 
 def embedEnum(enum):
   return OneHotEmbedding(len(enum))
