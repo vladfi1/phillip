@@ -134,6 +134,7 @@ playerEmbedding = [
   ("hitstun_frames_left", embedFloat),
   ("jumps_used", embedFloat),
   ("charging_smash", embedFloat),
+  ("shield_size", embedFloat),
   ("in_air", embedFloat),
   ('speed_air_x_self', embedFloat),
   ('speed_ground_x_self', embedFloat),
