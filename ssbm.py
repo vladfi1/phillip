@@ -85,6 +85,7 @@ class PlayerMemory(Structure):
     ('speed_y_self', c_float),
     ('speed_x_attack', c_float),
     ('speed_y_attack', c_float),
+    ('shield_size', c_float),
 
     ('cursor_x', c_float),
     ('cursor_y', c_float),

@@ -172,6 +172,8 @@ def playerAddresses(player_id, addresses=None):
     # TODO: make this an actal int
     # 2 = charging, 3 = attacking, 0 = otherwise
     add_data_address('2174', 'charging_smash', IntHandler(mask=0x2))
+    
+    add_data_address('1A08', 'shield_size', floatHandler)
 
     add_data_address('19C8', 'jumps_used', byteHandler)
     add_data_address('140', 'in_air', intHandler)
