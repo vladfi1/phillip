@@ -140,7 +140,7 @@ class PlayerEmbedding(StructEmbedding):
       ('speed_x_attack', embedFloat),
       ('speed_y_attack', embedFloat),
 
-      ('controller', embedController)
+      #('controller', embedController)
     ]
     
     super(PlayerEmbedding, self).__init__(playerEmbedding)
