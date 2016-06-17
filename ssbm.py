@@ -166,6 +166,7 @@ for i, c in enumerate(simpleControllerStates):
 class SimpleStateAction(Structure):
   _fields = [
     ('state', GameMemory),
+    ('prev_action', c_uint),
     ('action', c_uint),
   ]
 
