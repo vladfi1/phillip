@@ -25,7 +25,7 @@ class Agent:
     verbose = self.counter % 60 == 0
     
     self.prev_action = self.action
-    self.action = self.model.act(state, verbose)
+    self.action = self.model.act(state, self.prev_action, verbose)
     self.queue.push(self.action)
 
     if verbose:

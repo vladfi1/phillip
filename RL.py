@@ -56,7 +56,7 @@ class Model:
       embedGame = embed.GameEmbedding(**kwargs)
       state_size = embedGame.size
       
-      self.model = modelType(state_size, embed.action_size, self.global_step, self.rlConfig, **kwargs)
+      self.model = modelType(state_size+embed.action_size, embed.action_size, self.global_step, self.rlConfig, **kwargs)
 
       #self.variables = self.model.getVariables() + [self.global_step]
       
@@ -115,10 +115,11 @@ class Model:
         with tf.name_scope('policy'):
           with tf.name_scope('input'):
             self.input_state = ct.inputCType(ssbm.GameMemory, [], "state")
-          self.embedded_state = embedGame(self.input_state)
+            self.input_prev_action = tf.placeholder(tf.int32, [], "prev_action")
+          self.embedded_state = tf.concat(0, [embedGame(self.input_state), embed.embedAction(self.input_prev_action)])
           self.policy = self.model.getPolicy(self.embedded_state, **kwargs)
-      tf_config = dict(
       
+      tf_config = dict(
         allow_soft_placement=True
       )
       
@@ -142,8 +143,9 @@ class Model:
       #self.saver = tf.train.Saver(self.variables)
       self.saver = tf.train.Saver(tf.all_variables())
 
-  def act(self, state, verbose=False):
+  def act(self, state, prev_action, verbose=False):
     feed_dict = dict(util.deepValues(util.deepZip(self.input_state, ct.toDict(state))))
+    feed_dict[self.input_prev_action] = prev_action
     return self.model.act(self.sess.run(self.policy, feed_dict), verbose)
 
   #summaryWriter = tf.train.SummaryWriter('logs/', sess.graph)
