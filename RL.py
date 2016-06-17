@@ -66,16 +66,18 @@ class Model:
             self.input_states = ct.inputCType(ssbm.GameMemory, [None, None], "state")
 
             # player 2's controls
+            self.input_prev_actions = tf.placeholder(tf.int32, [None, None], "prev_action")
             self.input_actions = tf.placeholder(tf.int32, [None, None], "action")
 
             # instantaneous rewards for all but the first state
             self.input_rewards = tf.placeholder(tf.float32, [None, None], name='reward')
           
           data_names = ['state', 'action', 'reward']
+          input_names = data_names + ['prev_action']
           
-          self.input_dict = {name : getattr(self, "input_%ss" % name) for name in data_names}
+          self.input_dict = {name : getattr(self, "input_%ss" % name) for name in input_names}
           
-          self.embedded_states = embedGame(self.input_states)
+          self.embedded_states = tf.concat(2, [embedGame(self.input_states), embed.embedAction(self.input_prev_actions)])
           self.embedded_actions = embed.embedAction(self.input_actions)
           self.embedded_rewards = self.input_rewards
           
