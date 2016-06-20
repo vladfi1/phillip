@@ -37,6 +37,7 @@ class Model:
               learning_rate=1e-4,
               gpu=False,
               optimizer="Adam",
+              delay=0,
               **kwargs):
     print("Creating model:", model)
     modelType = models[model]
@@ -56,7 +57,7 @@ class Model:
       embedGame = embed.GameEmbedding(**kwargs)
       state_size = embedGame.size
       
-      self.model = modelType(state_size+embed.action_size, embed.action_size, self.global_step, self.rlConfig, **kwargs)
+      self.model = modelType((1+delay) * (state_size+embed.action_size), embed.action_size, self.global_step, self.rlConfig, **kwargs)
 
       #self.variables = self.model.getVariables() + [self.global_step]
       
@@ -77,11 +78,23 @@ class Model:
           
           self.input_dict = {name : getattr(self, "input_%ss" % name) for name in input_names}
           
-          self.embedded_states = tf.concat(2, [embedGame(self.input_states), embed.embedAction(self.input_prev_actions)])
-          self.embedded_actions = embed.embedAction(self.input_actions)
-          self.embedded_rewards = self.input_rewards
+          states = embedGame(self.input_states)
+          experience_length = tf.shape(states)[1]
+          prev_actions = embed.embedAction(self.input_prev_actions)
           
-          self.saved_data = [tf.get_session_handle(getattr(self, 'embedded_%ss' % name)) for name in data_names]
+          states = tf.concat(2, [states, prev_actions])
+          
+          train_length = experience_length - delay
+          
+          history = [tf.slice(states, [0, i, 0], [-1, train_length, -1]) for i in range(delay+1)]
+          self.train_states = tf.concat(1, history)
+          
+          embedded_actions = embed.embedAction(self.input_actions)
+          self.train_actions = tf.slice(embedded_actions, [0, delay, 0], [-1, train_length, -1])
+          
+          self.train_rewards = tf.slice(self.input_rewards, [0, delay], [-1, -1])
+          
+          self.saved_data = [tf.get_session_handle(getattr(self, 'train_%ss' % name)) for name in data_names]
           
           self.placeholders = []
           loaded_data = []
