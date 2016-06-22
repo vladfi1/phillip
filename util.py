@@ -115,16 +115,29 @@ class MovingAverage:
     self.avg += (1.0 - self.rate) * val
 
 class CircularQueue:
-  def __init__(self, size, init=None):
-    self.size = size
-    self.array = [init] * size
+  def __init__(self, size=None, init=None, array=None):
+    if array:
+      self.size = len(array)
+      self.array = array
+    else:
+      self.size = size
+      self.array = [init] * size
     self.index = 0
   
   def push(self, obj):
     self.array[self.index] = obj
     self.index += 1
     self.index %= self.size
+    return self.array[self.index]
   
   def peek(self):
-    return self.array[self.index]
-
+    return self.array[index]
+  
+  def __getitem__(self, index):
+    if index < 0 or index >= self.size:
+      raise IndexError
+    
+    return self.array[(self.index + index) % self.size]
+  
+  def __len__(self):
+    return self.size

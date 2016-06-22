@@ -57,43 +57,33 @@ class Model:
       embedGame = embed.GameEmbedding(**kwargs)
       state_size = embedGame.size
       
-      self.model = modelType((1+delay) * (state_size+embed.action_size), embed.action_size, self.global_step, self.rlConfig, **kwargs)
+      history_size = (1+delay) * (state_size+embed.action_size)
+      self.model = modelType(history_size, embed.action_size, self.global_step, self.rlConfig, **kwargs)
 
       #self.variables = self.model.getVariables() + [self.global_step]
       
       if mode == Mode.TRAIN:
         with tf.name_scope('train'):
-          with tf.name_scope('input'):
-            self.input_states = ct.inputCType(ssbm.GameMemory, [None, None], "state")
-
-            # player 2's controls
-            self.input_prev_actions = tf.placeholder(tf.int32, [None, None], "prev_action")
-            self.input_actions = tf.placeholder(tf.int32, [None, None], "action")
-
-            # instantaneous rewards for all but the first state
-            self.input_rewards = tf.placeholder(tf.float32, [None, None], name='reward')
+          self.experience = ct.inputCType(ssbm.SimpleStateAction, [None, None], "experience")
+          # instantaneous rewards for all but the first state
+          self.experience['reward'] = tf.placeholder(tf.float32, [None, None], name='reward')
           
-          data_names = ['state', 'action', 'reward']
-          input_names = data_names + ['prev_action']
-          
-          self.input_dict = {name : getattr(self, "input_%ss" % name) for name in input_names}
-          
-          states = embedGame(self.input_states)
+          states = embedGame(self.experience['state'])
           experience_length = tf.shape(states)[1]
-          prev_actions = embed.embedAction(self.input_prev_actions)
-          
+          prev_actions = embed.embedAction(self.experience['prev_action'])
           states = tf.concat(2, [states, prev_actions])
           
           train_length = experience_length - delay
           
           history = [tf.slice(states, [0, i, 0], [-1, train_length, -1]) for i in range(delay+1)]
-          self.train_states = tf.concat(1, history)
+          self.train_states = tf.concat(2, history)
           
-          embedded_actions = embed.embedAction(self.input_actions)
-          self.train_actions = tf.slice(embedded_actions, [0, delay, 0], [-1, train_length, -1])
+          actions = embed.embedAction(self.experience['action'])
+          self.train_actions = tf.slice(actions, [0, delay, 0], [-1, train_length, -1])
           
-          self.train_rewards = tf.slice(self.input_rewards, [0, delay], [-1, -1])
+          self.train_rewards = tf.slice(self.experience['reward'], [0, delay], [-1, -1])
           
+          data_names = ['state', 'action', 'reward']
           self.saved_data = [tf.get_session_handle(getattr(self, 'train_%ss' % name)) for name in data_names]
           
           self.placeholders = []
@@ -126,11 +116,14 @@ class Model:
           self.writer = tf.train.SummaryWriter(path+'logs/', self.graph)
       else:
         with tf.name_scope('policy'):
-          with tf.name_scope('input'):
-            self.input_state = ct.inputCType(ssbm.GameMemory, [], "state")
-            self.input_prev_action = tf.placeholder(tf.int32, [], "prev_action")
-          self.embedded_state = tf.concat(0, [embedGame(self.input_state), embed.embedAction(self.input_prev_action)])
-          self.policy = self.model.getPolicy(self.embedded_state, **kwargs)
+          self.input = ct.inputCType(ssbm.SimpleStateAction, [delay+1], "input")
+          states = embedGame(self.input['state'])
+          prev_actions = embed.embedAction(self.input['prev_action'])
+          
+          history = tf.concat(1, [states, prev_actions])
+          history = tf.reshape(history, [history_size])
+          
+          self.policy = self.model.getPolicy(history, **kwargs)
       
       tf_config = dict(
         allow_soft_placement=True
@@ -156,9 +149,8 @@ class Model:
       #self.saver = tf.train.Saver(self.variables)
       self.saver = tf.train.Saver(tf.all_variables())
 
-  def act(self, state, prev_action, verbose=False):
-    feed_dict = dict(util.deepValues(util.deepZip(self.input_state, ct.toDict(state))))
-    feed_dict[self.input_prev_action] = prev_action
+  def act(self, history, verbose=False):
+    feed_dict = dict(util.deepValues(util.deepZip(self.input, ct.vectorizeCTypes(ssbm.SimpleStateAction, history))))
     return self.model.act(self.sess.run(self.policy, feed_dict), verbose)
 
   #summaryWriter = tf.train.SummaryWriter('logs/', sess.graph)
@@ -201,7 +193,7 @@ class Model:
     experiences = util.deepZip(*experiences)
     experiences = util.deepMap(np.array, experiences)
     
-    input_dict = dict(util.deepValues(util.deepZip(self.input_dict, experiences)))
+    input_dict = dict(util.deepValues(util.deepZip(self.experience, experiences)))
     
     saved_data = self.sess.run(self.saved_data, input_dict)
     handles = [t.handle for t in saved_data]

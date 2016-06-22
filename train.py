@@ -32,6 +32,8 @@ parser.add_argument("--batch_steps", type=int, default=1, help="number of gradie
 parser.add_argument("--epsilon", type=float, default=0.04, help="probability of random action")
 #parser.add_argument("--temperature", type=float, default=0.01, help="increases action randomness")
 
+parser.add_argument("--delay", type=int, default=0, help="delay actions by DELAY steps (multiplied by ACT_EVERY frames)")
+
 args = parser.parse_args()
 
 if args.name is None:
