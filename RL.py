@@ -83,6 +83,7 @@ class Model:
           
           self.train_rewards = tf.slice(self.experience['reward'], [0, delay], [-1, -1])
           
+          """
           data_names = ['state', 'action', 'reward']
           self.saved_data = [tf.get_session_handle(getattr(self, 'train_%ss' % name)) for name in data_names]
           
@@ -94,8 +95,11 @@ class Model:
             self.placeholders.append(placeholder)
             #data = tf.reshape(data, tf.shape(getattr(self, 'embedded_%ss' % name)))
             loaded_data.append(data)
-
+          
           loss, stats = self.model.getLoss(*loaded_data, **kwargs)
+          """
+          
+          loss, stats = self.model.getLoss(self.train_states, self.train_actions, self.train_rewards, **kwargs)
           
           tf.scalar_summary("loss", loss)
           for name, tensor in stats:
@@ -195,16 +199,18 @@ class Model:
     
     input_dict = dict(util.deepValues(util.deepZip(self.experience, experiences)))
     
+    """
     saved_data = self.sess.run(self.saved_data, input_dict)
     handles = [t.handle for t in saved_data]
     
     saved_dict = dict(zip(self.placeholders, handles))
+    """
 
     if self.debug:
-      self.debugGrads(saved_dict)
+      self.debugGrads(input_dict)
     
     for _ in range(steps):
-      results = tfl.run(self.sess, self.run_dict, saved_dict)
+      results = tfl.run(self.sess, self.run_dict, input_dict)
       
       summary_str = results['summary']
       global_step = results['global_step']
