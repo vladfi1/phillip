@@ -14,7 +14,7 @@ class Agent:
                swap=False,
                delay=0,
                **kwargs):
-    self.model = RL.Model(model, path, swap=swap, mode=RL.Mode.PLAY, **kwargs)
+    self.model = RL.Model(model, path, swap=swap, mode=RL.Mode.PLAY, delay=delay, **kwargs)
     self.reload_every = reload_every
     self.counter = 0
     self.action = 0
