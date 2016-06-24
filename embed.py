@@ -65,11 +65,9 @@ class ArrayEmbedding:
     for i in self.permutation:
       with tf.name_scope(str(i)):
         t = self.op(array[i])
-        r = len(t.get_shape())
         if rank is None:
-          rank = r
-        else:
-          assert(r == rank)
+          rank = tfl.rank(t)
+          #rank = len(t.get_shape())
       
         embed.append(t)
     return tf.concat(rank-1, embed)
@@ -102,21 +100,23 @@ embedController = StructEmbedding(controllerEmbedding)
 maxAction = 0x017E
 numActions = 1 + maxAction
 
-class ActionEmbedding:
-  def __init__(self, action_space=32, **kwargs):
-    self.one_hot = OneHotEmbedding(numActions)
-    self.helper = tfl.FCLayer(numActions, action_space)
-    self.size = action_space
+class FCEmbedding:
+  def __init__(self, wrapper, size):
+    self.wrapper = wrapper
+    self.fc = tfl.FCLayer(wrapper.size, size)
+    self.size = size
   
   def __call__(self, x):
-    return self.helper(self.one_hot(x))
+    return self.fc(self.wrapper(x))
 
 maxCharacter = 32 # should be large enough?
 maxJumps = 8 # unused
 
 class PlayerEmbedding(StructEmbedding):
-  def __init__(self, **kwargs):
-    embedAction = ActionEmbedding(**kwargs)
+  def __init__(self, action_space=32, **kwargs):
+    embedAction = OneHotEmbedding(numActions)
+    if action_space:
+      embedAction = FCEmbedding(embedAction, action_space)
 
     playerEmbedding = [
       ("percent", FloatEmbedding(scale=0.01)),
@@ -157,8 +157,10 @@ def embedStage(stage):
 """
 
 class GameEmbedding(StructEmbedding):
-  def __init__(self, swap=False, **kwargs):
+  def __init__(self, swap=False, player_space=64, **kwargs):
     embedPlayer = PlayerEmbedding(**kwargs)
+    if player_space:
+      embedPlayer = FCEmbedding(embedPlayer, player_space)
     
     players = [0, 1]
     if swap: players.reverse()
