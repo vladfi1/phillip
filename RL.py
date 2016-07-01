@@ -22,11 +22,11 @@ class Mode(Enum):
 models = {model.__name__ : model for model in [DQN, ActorCritic, ActorCriticSplit, ThompsonDQN]}
 
 class RLConfig:
-  def __init__(self, tdN=5, reward_halflife = 2.0, **kwargs):
+  def __init__(self, tdN=5, reward_halflife = 2.0, act_every=5, **kwargs):
     self.tdN = tdN
     self.reward_halflife = reward_halflife
-    # TODO: encode FPS in the experience
-    self.discount = 0.5 ** ( 1.0 / (12.0*reward_halflife) )
+    self.fps = 60 / act_every
+    self.discount = 0.5 ** ( 1.0 / (self.fps*reward_halflife) )
 
 class Model:
   def __init__(self,
