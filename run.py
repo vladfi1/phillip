@@ -14,6 +14,8 @@ parser.add_argument("--temperature", type=float, default=0.01, help="increases a
 
 #parser.add_argument("--policy", choices=["eps-greedy", "softmax"
 
+parser.add_argument("--nozmq", dest="zmq", action="store_false", help="run with normal memory watcher (compatible with regular dolphin)")
+
 parser.add_argument("--path", type=str,
                     help="where to import from and save to")
 
@@ -31,8 +33,6 @@ parser.add_argument("--dump_max", type=int, default=10,
 parser.add_argument("--dolphin_dir", type=str,
                    help="dolphin user directory")
 
-parser.add_argument("--dolphin", action="store_true", help="run dolphin")
-parser.add_argument("--nosetup", dest="setup", action="store_false", help="don't setup dolphin directory")
 parser.add_argument("--parallel", type=int, help="spawn parallel cpus and dolphins")
 
 parser.add_argument("--self_play", type=int, help="train against ourselves, reloading every N experiences")
@@ -44,6 +44,8 @@ parser.add_argument("--delay", type=int, default=0, help="delay actions by DELAY
 parser.add_argument("--experience_time", type=int, default=60, help="length of experiences, in seconds")
 
 # some duplication going on here...
+parser.add_argument("--dolphin", action="store_true", help="run dolphin")
+parser.add_argument("--nosetup", dest="setup", action="store_false", help="don't setup dolphin directory")
 parser.add_argument("--movie", type=str, help="movie to play on dolphin startup")
 parser.add_argument("--gfx", type=str, default="Null", help="gfx backend")
 parser.add_argument("--exe", type=str, default="dolphin-emu-headless", help="dolphin executable")

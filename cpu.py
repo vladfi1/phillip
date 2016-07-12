@@ -25,6 +25,7 @@ default_args = dict(
     model="DQN",
     act_every=5,
     experience_time=60,
+    zmq=False,
 )
 
 class CPU:
@@ -76,7 +77,10 @@ class CPU:
         self.mm = menu_manager.MenuManager()
 
         print('Creating MemoryWatcher.')
-        self.mw = memory_watcher.MemoryWatcher(self.dolphin_dir + '/MemoryWatcher/MemoryWatcher')
+        mwType = memory_watcher.MemoryWatcher
+        if self.zmq:
+          mwType = memory_watcher.MemoryWatcherZMQ
+        self.mw = mwType(self.dolphin_dir + '/MemoryWatcher/MemoryWatcher')
         
         pipe_dir = self.dolphin_dir + '/Pipes/'
         print('Creating Pads at %s. Open dolphin now.' % pipe_dir)
