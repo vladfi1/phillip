@@ -30,8 +30,6 @@ parser.add_argument("--nodump", dest='dump', action="store_false",
 parser.add_argument("--dump_max", type=int, default=10,
                    help="caps number of experiences")
 
-parser.add_argument("--dolphin_dir", type=str,
-                   help="dolphin user directory")
 
 parser.add_argument("--parallel", type=int, help="spawn parallel cpus and dolphins")
 
@@ -46,6 +44,7 @@ parser.add_argument("--experience_time", type=int, default=60, help="length of e
 
 # some duplication going on here...
 parser.add_argument("--dolphin", action="store_true", help="run dolphin")
+parser.add_argument("--dolphin_dir", type=str, help="dolphin user directory")
 parser.add_argument("--nosetup", dest="setup", action="store_false", help="don't setup dolphin directory")
 parser.add_argument("--movie", type=str, help="movie to play on dolphin startup")
 parser.add_argument("--gfx", type=str, default="Null", help="gfx backend")
