@@ -85,15 +85,18 @@ def runDolphin(
   setup=True,
   self_play=False,
   gui=False,
+  audio=False,
   **kwargs):
   
   if gui:
     exe = 'dolphin-emu-nogui'
     kwargs.update(
-      audio = 'ALSA',
       speed = 1,
       gfx = 'OGL',
     )
+    
+    if audio:
+      kwargs.update(audio = 'ALSA')
   
   cpus = [0, 1] if self_play else [1]
   
@@ -102,6 +105,7 @@ def runDolphin(
   args = [exe, "--user", user, "--exec", iso]
   if movie is not None:
     args += ["--movie", movie]
+  
   return subprocess.Popen(args)
 
 if __name__ == "__main__":
