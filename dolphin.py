@@ -85,7 +85,7 @@ def runDolphin(
   setup=True,
   self_play=False,
   gui=False,
-  audio=False,
+  mute=False,
   **kwargs):
   
   if gui:
@@ -95,7 +95,9 @@ def runDolphin(
       gfx = 'OGL',
     )
     
-    if audio:
+    if mute:
+      kwargs.update(audio = 'No audio backend')
+    else:
       kwargs.update(audio = 'ALSA')
   
   cpus = [0, 1] if self_play else [1]

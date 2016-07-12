@@ -37,7 +37,7 @@ class Model:
               learning_rate=1e-4,
               gpu=False,
               optimizer="Adam",
-              delay=0,
+              memory=0,
               **kwargs):
     print("Creating model:", model)
     modelType = models[model]
@@ -57,7 +57,7 @@ class Model:
       embedGame = embed.GameEmbedding(**kwargs)
       state_size = embedGame.size
       
-      history_size = (1+delay) * (state_size+embed.action_size)
+      history_size = (1+memory) * (state_size+embed.action_size)
       self.model = modelType(history_size, embed.action_size, self.global_step, self.rlConfig, **kwargs)
 
       #self.variables = self.model.getVariables() + [self.global_step]
@@ -73,15 +73,15 @@ class Model:
           prev_actions = embed.embedAction(self.experience['prev_action'])
           states = tf.concat(2, [states, prev_actions])
           
-          train_length = experience_length - delay
+          train_length = experience_length - memory
           
-          history = [tf.slice(states, [0, i, 0], [-1, train_length, -1]) for i in range(delay+1)]
+          history = [tf.slice(states, [0, i, 0], [-1, train_length, -1]) for i in range(memory+1)]
           self.train_states = tf.concat(2, history)
           
           actions = embed.embedAction(self.experience['action'])
-          self.train_actions = tf.slice(actions, [0, delay, 0], [-1, train_length, -1])
+          self.train_actions = tf.slice(actions, [0, memory, 0], [-1, train_length, -1])
           
-          self.train_rewards = tf.slice(self.experience['reward'], [0, delay], [-1, -1])
+          self.train_rewards = tf.slice(self.experience['reward'], [0, memory], [-1, -1])
           
           """
           data_names = ['state', 'action', 'reward']
@@ -120,7 +120,7 @@ class Model:
           self.writer = tf.train.SummaryWriter(path+'logs/', self.graph)
       else:
         with tf.name_scope('policy'):
-          self.input = ct.inputCType(ssbm.SimpleStateAction, [delay+1], "input")
+          self.input = ct.inputCType(ssbm.SimpleStateAction, [memory+1], "input")
           states = embedGame(self.input['state'])
           prev_actions = embed.embedAction(self.input['prev_action'])
           

@@ -9,7 +9,7 @@ parser = ArgumentParser()
 
 import RL
 parser.add_argument("--model", choices=RL.models.keys(), required=True, help="which RL model to use")
-parser.add_argument("--epsilon", type=float, default=0.04, help="probability of random action")
+parser.add_argument("--epsilon", type=float, default=0.02, help="probability of random action")
 parser.add_argument("--temperature", type=float, default=0.01, help="increases action randomness")
 
 #parser.add_argument("--policy", choices=["eps-greedy", "softmax"
@@ -41,6 +41,7 @@ parser.add_argument("--gpu", action="store_true", help="run on gpu")
 
 parser.add_argument("--act_every", type=int, default=5, help="only take actions every ACT_EVERY frames")
 parser.add_argument("--delay", type=int, default=0, help="delay actions by DELAY steps (multiplied by ACT_EVERY frames)")
+parser.add_argument("--memory", type=int, default=0, help="how many frames to remember")
 parser.add_argument("--experience_time", type=int, default=60, help="length of experiences, in seconds")
 
 # some duplication going on here...
@@ -50,6 +51,7 @@ parser.add_argument("--movie", type=str, help="movie to play on dolphin startup"
 parser.add_argument("--gfx", type=str, default="Null", help="gfx backend")
 parser.add_argument("--exe", type=str, default="dolphin-emu-headless", help="dolphin executable")
 parser.add_argument("--gui", action="store_true", help="run dolphin with audio and graphics")
+parser.add_argument("--mute", action="store_true", help="mute dolphin audio")
 parser.add_argument("--dump_frames", action="store_true", help="dump frames from dolphin")
 parser.add_argument("--iso", default="SSBM.iso", help="path to game iso")
 
