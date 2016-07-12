@@ -4,7 +4,7 @@ import state_manager
 import memory_watcher
 import menu_manager
 import os
-import pad
+from pad import Pad, Button
 import time
 import fox
 import agent
@@ -87,7 +87,7 @@ class CPU:
         os.makedirs(self.dolphin_dir + '/Pipes/', exist_ok=True)
         
         paths = [pipe_dir + 'phillip%d' % i for i in self.cpus]
-        self.get_pads = util.async_map(pad.Pad, paths)
+        self.get_pads = util.async_map(Pad, paths)
 
         self.init_stats()
 
@@ -206,15 +206,15 @@ class CPU:
         #       self.pad.release_button(pad.Button.D_DOWN)
         #       self.toggle = True
         #
-        # elif self.state.menu in [menu.value for menu in [Menu.PostGame]]:
-        #     if self.toggle:
-        #       self.pad.press_button(pad.Button.START)
-        #       self.toggle = False
-        #     else:
-        #       self.pad.release_button(pad.Button.START)
-        #       self.toggle = True
+        elif self.state.menu in [menu.value for menu in [Menu.PostGame]]:
+            if self.toggle:
+                self.pads[0].press_button(Button.START)
+                self.toggle = False
+            else:
+                self.pads[0].release_button(Button.START)
+                self.toggle = True
 
-        elif self.state.menu in [menu.value for menu in [Menu.Characters, Menu.Stages, Menu.PostGame]]:
+        elif self.state.menu in [menu.value for menu in [Menu.Characters, Menu.Stages]]:
             # print(self.state.players[0].controller)
             # wait for the movie to get us into the game
             pass
