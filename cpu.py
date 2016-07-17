@@ -194,10 +194,10 @@ class CPU:
             self.action_counter += 1
             #self.fox.advance(self.state, self.pad)
 
-        # elif self.state.menu in [menu.value for menu in [Menu.Characters, Menu.Stages]]:
+        elif self.state.menu in [menu.value for menu in [Menu.Characters, Menu.Stages]]:
             # D_DOWN should be hotkeyed to loading an in-game state
 
-            # self.pad.send_controller(ssbm.NeutralControllerState)
+            self.pads[0].send_controller(ssbm.NeutralControllerState)
 
         #     if self.toggle:
         #       self.pad.press_button(pad.Button.D_DOWN)
