@@ -10,6 +10,10 @@ def releaseButton(button):
 
 characters = dict(
   fox = (-23.5, 11.5),
+  falcon = (18, 18),
+  roy = (18, 5),
+  marth = (11, 5),
+  zelda = (11, 11),
 )
 
 class MenuManager:
