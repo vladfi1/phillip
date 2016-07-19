@@ -4,6 +4,7 @@ from dolphin import runDolphin
 from argparse import ArgumentParser
 from multiprocessing import Process
 import random
+import menu_manager
 
 parser = ArgumentParser()
 
@@ -41,6 +42,9 @@ parser.add_argument("--act_every", type=int, default=5, help="only take actions 
 parser.add_argument("--delay", type=int, default=0, help="delay actions by DELAY steps (multiplied by ACT_EVERY frames)")
 parser.add_argument("--memory", type=int, default=0, help="how many frames to remember")
 parser.add_argument("--experience_time", type=int, default=60, help="length of experiences, in seconds")
+
+for i in [1, 2]:
+  parser.add_argument("--p%d" % i, choices=menu_manager.characters.keys(), help="character for player %d" % i)
 
 # some duplication going on here...
 parser.add_argument("--dolphin", action="store_true", help="run dolphin")
@@ -86,7 +90,7 @@ def run():
   
   if args.dolphin:
     # delay for a bit to let the cpu start up
-    time.sleep(5)
+    time.sleep(3)
     dolphin = runDolphin(user=user, **args.__dict__)
   else:
     dolphin = None

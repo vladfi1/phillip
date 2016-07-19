@@ -2,7 +2,7 @@ import ssbm
 from state import *
 import state_manager
 import memory_watcher
-import menu_manager
+from menu_manager import *
 import os
 from pad import Pad, Button
 import time
@@ -26,6 +26,8 @@ default_args = dict(
     act_every=5,
     experience_time=60,
     zmq=False,
+    p1="marth",
+    p2="zelda"
 )
 
 class CPU:
@@ -57,6 +59,7 @@ class CPU:
         self.dolphin_dir = os.path.expanduser(self.dolphin_dir)
 
         self.state = ssbm.GameMemory()
+        # track players 1 and 2 (pids 0 and 1)
         self.sm = state_manager.StateManager([0, 1])
         self.write_locations(self.dolphin_dir)
 
@@ -74,7 +77,8 @@ class CPU:
         self.agent = agent.Agent(reload_every=reload_every, **kwargs)
         self.agents.append(self.agent)
         
-        self.mm = menu_manager.MenuManager()
+        self.characters = [self.p1, self.p2]
+        self.menu_managers = [MenuManager(characters[c], pid=i) for i, c in enumerate(self.characters)]
 
         print('Creating MemoryWatcher.')
         mwType = memory_watcher.MemoryWatcher
@@ -196,8 +200,10 @@ class CPU:
 
         elif self.state.menu in [menu.value for menu in [Menu.Characters, Menu.Stages]]:
             # D_DOWN should be hotkeyed to loading an in-game state
-
-            self.pads[0].send_controller(ssbm.NeutralControllerState)
+            
+            for mm, pad in zip(self.menu_managers, self.pads):
+                mm.move(self.state, pad)
+            #self.pads[0].send_controller(ssbm.NeutralControllerState)
 
         #     if self.toggle:
         #       self.pad.press_button(pad.Button.D_DOWN)
