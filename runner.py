@@ -11,7 +11,7 @@ if not os.path.exists("slurm_logs"):
 if not os.path.exists("slurm_scripts"):
     os.makedirs("slurm_scripts")
 
-exp_name = "exp"
+exp_name = "player"
 job_flags = dict(train="", agent="")
 job_dicts = dict(train={}, agent={})
 
@@ -36,28 +36,28 @@ def add_param(param, value, jobs, name=True):
 both = ['train', 'agent']
 
 model = 'DQN'
-#model = 'ActorCriticSplit'
+model = 'ActorCriticSplit'
 add_param('model', model, both)
 #add_param('model', 'ActorCriticSplit', both)
 add_param('epsilon', 0.02, both)
 
 train_settings = [
   ('optimizer', 'Adam'),
-  ('learning_rate', 0.0001),
+  ('learning_rate', 0.0004),
   ('tdN', 5),
-  ('batch_size', 20),
-  ('batch_steps', 2),
+  ('batch_size', 25),
+  ('batch_steps', 1),
 ]
 
 if model.count('DQN'):
   train_settings += [
     ('sarsa', True),
-    ('target_delay', 5000),
+    ('target_delay', 4000),
   ]
-  add_param('temperature', 0.01, both)
+  add_param('temperature', 0.002, ['agent'])
 elif model.count('ActorCritic'):
   train_settings += [
-    ('entropy_scale', 0.006),
+    ('entropy_scale', 0.004),
     ('policy_scale', 0.1),
   ]
 
@@ -68,17 +68,18 @@ for k, v in train_settings:
 
 add_param('dolphin', True, ['agent'], False)
 
-add_param('dump_max', 50, ['agent'])
+add_param('dump_max', 10, ['agent'])
 
-agents = 48
+agents = 144
 add_param('agents', agents, [])
 
 self_play = False
-#self_play = 600
+self_play = 720
 add_param('self_play', self_play, ['agent'])
 
 add_param('experience_time', 60, ['agent'])
-add_param('act_every', 5, ['agent'])
+add_param('act_every', 3, both)
+add_param('delay', 0, both)
 
 movie = 'FalconFalcon' if self_play else 'Falcon9Falcon'
 
@@ -94,11 +95,12 @@ add_param('movie', movie, ['agent'], False)
 #add_param('name', exp_name, both, False)
 add_param('path', "saves/%s/" % exp_name, both, False)
 
-def slurm_script(name, command, cpus=2, gpu=False):
+def slurm_script(name, command, cpus=2, gpu=False, log=False):
   slurmfile = 'slurm_scripts/' + name + '.slurm'
   with open(slurmfile, 'w') as f:
     f.write("#!/bin/bash\n")
     f.write("#SBATCH --job-name=" + name + "\n")
+    #if log:
     f.write("#SBATCH --output=slurm_logs/" + name + ".out\n")
     f.write("#SBATCH --error=slurm_logs/" + name + ".err\n")
     f.write("#SBATCH -c%d\n" % cpus)
@@ -116,7 +118,7 @@ def slurm_script(name, command, cpus=2, gpu=False):
     #os.system("sbatch -N 1 -c 2 --mem=8000 --time=6-23:00:00 slurm_scripts/" + jobname + ".slurm &")
 
 init = False
-init = True
+#init = True
 
 if dry_run:
   print("NOT starting jobs:")
