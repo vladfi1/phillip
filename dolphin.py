@@ -19,9 +19,9 @@ C-Stick/Up = `Axis C Y +`
 C-Stick/Down = `Axis C Y -`
 C-Stick/Left = `Axis C X -`
 C-Stick/Right = `Axis C X +`
+"""
 #Triggers/L-Analog = `Axis L -+`
 #Triggers/R-Analog = `Axis R -+`
-"""
 
 def generatePipeConfig(player, count):
   config = "[GCPad%d]\n" % (player+1)
@@ -70,10 +70,14 @@ def setupUser(user,
     print("dump_frames", dump_frames)
     f.write(dolphinConfig.format(**config_args))
 
-  gcDir = user + 'GC/'
-  os.makedirs(gcDir, exist_ok=True)
-  memcardName = 'MemoryCardA.USA.raw'
-  shutil.copyfile(memcardName, gcDir + memcardName)
+  # don't need memory card with netplay
+  #gcDir = user + 'GC/'
+  #os.makedirs(gcDir, exist_ok=True)
+  #memcardName = 'MemoryCardA.USA.raw'
+  #shutil.copyfile(memcardName, gcDir + memcardName)
+  
+  gameSettings = "GameSettings/"
+  shutil.copytree(gameSettings, user + gameSettings)
 
 import subprocess
 
@@ -85,15 +89,20 @@ def runDolphin(
   setup=True,
   self_play=False,
   gui=False,
+  mute=False,
   **kwargs):
   
   if gui:
     exe = 'dolphin-emu-nogui'
     kwargs.update(
-      audio = 'ALSA',
       speed = 1,
       gfx = 'OGL',
     )
+    
+    if mute:
+      kwargs.update(audio = 'No audio backend')
+    else:
+      kwargs.update(audio = 'ALSA')
   
   cpus = [0, 1] if self_play else [1]
   
@@ -102,6 +111,7 @@ def runDolphin(
   args = [exe, "--user", user, "--exec", iso]
   if movie is not None:
     args += ["--movie", movie]
+  
   return subprocess.Popen(args)
 
 if __name__ == "__main__":

@@ -106,7 +106,7 @@ def chunk(l, n):
   return [l[i:i+n] for i in range(0, len(l), n)]
 
 class MovingAverage:
-  def __init__(self, rate=0.99, initial=None):
+  def __init__(self, rate=0.99, initial=0):
     self.rate = rate
     self.avg = initial
   
@@ -126,12 +126,15 @@ class CircularQueue:
   
   def push(self, obj):
     self.array[self.index] = obj
-    self.index += 1
-    self.index %= self.size
+    self.increment()
     return self.array[self.index]
   
   def peek(self):
-    return self.array[index]
+    return self.array[self.index]
+  
+  def increment(self):
+    self.index += 1
+    self.index %= self.size
   
   def __getitem__(self, index):
     if index < 0 or index >= self.size:
@@ -141,3 +144,7 @@ class CircularQueue:
   
   def __len__(self):
     return self.size
+  
+  def as_list(self):
+    return self.array[self.index:] + self.array[:self.index]
+

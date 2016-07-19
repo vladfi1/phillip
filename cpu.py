@@ -2,9 +2,9 @@ import ssbm
 from state import *
 import state_manager
 import memory_watcher
-import menu_manager
+from menu_manager import *
 import os
-import pad
+from pad import Pad, Button
 import time
 import fox
 import agent
@@ -25,6 +25,9 @@ default_args = dict(
     model="DQN",
     act_every=5,
     experience_time=60,
+    zmq=False,
+    p1="marth",
+    p2="zelda"
 )
 
 class CPU:
@@ -56,6 +59,7 @@ class CPU:
         self.dolphin_dir = os.path.expanduser(self.dolphin_dir)
 
         self.state = ssbm.GameMemory()
+        # track players 1 and 2 (pids 0 and 1)
         self.sm = state_manager.StateManager([0, 1])
         self.write_locations(self.dolphin_dir)
 
@@ -73,17 +77,21 @@ class CPU:
         self.agent = agent.Agent(reload_every=reload_every, **kwargs)
         self.agents.append(self.agent)
         
-        self.mm = menu_manager.MenuManager()
+        self.characters = [self.p1, self.p2]
+        self.menu_managers = [MenuManager(characters[c], pid=i) for i, c in enumerate(self.characters)]
 
         print('Creating MemoryWatcher.')
-        self.mw = memory_watcher.MemoryWatcher(self.dolphin_dir + '/MemoryWatcher/MemoryWatcher')
+        mwType = memory_watcher.MemoryWatcher
+        if self.zmq:
+          mwType = memory_watcher.MemoryWatcherZMQ
+        self.mw = mwType(self.dolphin_dir + '/MemoryWatcher/MemoryWatcher')
         
         pipe_dir = self.dolphin_dir + '/Pipes/'
         print('Creating Pads at %s. Open dolphin now.' % pipe_dir)
         os.makedirs(self.dolphin_dir + '/Pipes/', exist_ok=True)
         
         paths = [pipe_dir + 'phillip%d' % i for i in self.cpus]
-        self.get_pads = util.async_map(pad.Pad, paths)
+        self.get_pads = util.async_map(Pad, paths)
 
         self.init_stats()
 
@@ -190,10 +198,12 @@ class CPU:
             self.action_counter += 1
             #self.fox.advance(self.state, self.pad)
 
-        # elif self.state.menu in [menu.value for menu in [Menu.Characters, Menu.Stages]]:
+        elif self.state.menu in [menu.value for menu in [Menu.Characters, Menu.Stages]]:
             # D_DOWN should be hotkeyed to loading an in-game state
-
-            # self.pad.send_controller(ssbm.NeutralControllerState)
+            
+            for mm, pad in zip(self.menu_managers, self.pads):
+                mm.move(self.state, pad)
+            #self.pads[0].send_controller(ssbm.NeutralControllerState)
 
         #     if self.toggle:
         #       self.pad.press_button(pad.Button.D_DOWN)
@@ -202,15 +212,15 @@ class CPU:
         #       self.pad.release_button(pad.Button.D_DOWN)
         #       self.toggle = True
         #
-        # elif self.state.menu in [menu.value for menu in [Menu.PostGame]]:
-        #     if self.toggle:
-        #       self.pad.press_button(pad.Button.START)
-        #       self.toggle = False
-        #     else:
-        #       self.pad.release_button(pad.Button.START)
-        #       self.toggle = True
+        elif self.state.menu in [menu.value for menu in [Menu.PostGame]]:
+            if self.toggle:
+                self.pads[0].press_button(Button.START)
+                self.toggle = False
+            else:
+                self.pads[0].release_button(Button.START)
+                self.toggle = True
 
-        elif self.state.menu in [menu.value for menu in [Menu.Characters, Menu.Stages, Menu.PostGame]]:
+        elif self.state.menu in [menu.value for menu in [Menu.Characters, Menu.Stages]]:
             # print(self.state.players[0].controller)
             # wait for the movie to get us into the game
             pass
