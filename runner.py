@@ -39,7 +39,7 @@ model = 'DQN'
 model = 'ActorCriticSplit'
 add_param('model', model, both)
 #add_param('model', 'ActorCriticSplit', both)
-add_param('epsilon', 0.02, both)
+add_param('epsilon', 0.02, both, False)
 
 train_settings = [
   ('optimizer', 'Adam'),
@@ -62,35 +62,38 @@ elif model.count('ActorCritic'):
   ]
 
 for k, v in train_settings:
-  add_param(k, v, ['train'])
+  add_param(k, v, ['train'], False)
 
 # agent settings
 
 add_param('dolphin', True, ['agent'], False)
 
-add_param('dump_max', 10, ['agent'])
+add_param('dump_max', 10, ['agent'], False)
 
-agents = 144
+# number of agents playing each matchup
+agents = 24
 add_param('agents', agents, [])
 
 self_play = False
 self_play = 720
-add_param('self_play', self_play, ['agent'])
+add_param('self_play', self_play, ['agent'], False)
 
-add_param('experience_time', 60, ['agent'])
+add_param('experience_time', 60, ['agent'], False)
 add_param('act_every', 3, both)
 add_param('delay', 0, both)
+add_param('memory', 0, ['agent'])
 
-movie = 'FalconFalcon' if self_play else 'Falcon9Falcon'
+#add_param('movie', movie, ['agent'], False)
+characters = [
+#  'fox',
+  'zelda',
+  'marth',
+#  'roy',
+#  'falcon',
+]
 
-dual = True
-#dual = False
-add_param('dual', dual, [])
-if dual:
-  movie += '_dual'
-movie += '.dtm'
-
-add_param('movie', movie, ['agent'], False)
+for c in characters:
+  exp_name += '_' + c
 
 #add_param('name', exp_name, both, False)
 add_param('path', "saves/%s/" % exp_name, both, False)
@@ -139,10 +142,14 @@ slurm_script(train_name, train_command, gpu=True)
 
 #sys.exit()
 
+agent_count = 0
 agent_command = "python3 -u run.py" + job_flags['agent']
-for i in range(agents):
-  agent_name = "agent_%d_%s" % (i, exp_name)
-  cpus = 2
-  #if dual: cpus *= 2
-  slurm_script(agent_name, agent_command, cpus)
+for c1 in characters:
+  for c2 in characters:
+    command = agent_command + " --p1 %s --p2 %s" % (c1, c2)
+
+    for _ in range(agents):
+      agent_name = "agent_%d_%s" % (agent_count, exp_name)
+      slurm_script(agent_name, command)
+      agent_count += 1
 
