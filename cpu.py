@@ -217,6 +217,7 @@ class CPU:
             #self.fox.advance(self.state, self.pad)
 
         elif self.state.menu in [menu.value for menu in [Menu.Characters, Menu.Stages]]:
+            # FIXME: this is very convoluted
             done = True
             for mm in self.menu_managers:
                 if not mm.reached:
