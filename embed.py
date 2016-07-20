@@ -126,7 +126,7 @@ class PlayerEmbedding(StructEmbedding):
       ("action_state", embedAction),
       # ("action_counter", embedFloat),
       ("action_frame", FloatEmbedding(scale=0.02)),
-      ("character", one_hot(maxCharacter)),
+      ("character", OneHotEmbedding(maxCharacter)),
       ("invulnerable", embedFloat),
       ("hitlag_frames_left", embedFloat),
       ("hitstun_frames_left", embedFloat),
