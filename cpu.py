@@ -4,7 +4,7 @@ import state_manager
 import memory_watcher
 from menu_manager import *
 import os
-from pad import Pad, Button
+from pad import *
 import time
 import fox
 import agent
@@ -13,6 +13,7 @@ from ctype_util import copy
 import RL
 from numpy import random
 from reward import computeRewards
+import movie
 
 default_args = dict(
     path=None,
@@ -27,7 +28,8 @@ default_args = dict(
     experience_time=60,
     zmq=False,
     p1="marth",
-    p2="zelda"
+    p2="zelda",
+    stage="battlefield",
 )
 
 class CPU:
@@ -77,8 +79,8 @@ class CPU:
         self.agent = agent.Agent(reload_every=reload_every, **kwargs)
         self.agents.append(self.agent)
         
-        self.characters = [self.p1, self.p2]
-        self.menu_managers = [MenuManager(characters[c], pid=i) for i, c in enumerate(self.characters)]
+        self.characters = [self.p1, self.p2] if self.self_play else [self.p2]
+        self.menu_managers = [MenuManager(characters[c], pid=i) for c, i in zip(self.characters, self.cpus)]
 
         print('Creating MemoryWatcher.')
         mwType = memory_watcher.MemoryWatcher
@@ -94,6 +96,9 @@ class CPU:
         self.get_pads = util.async_map(Pad, paths)
 
         self.init_stats()
+        
+        # sets the game mode and random stage
+        self.movie = movie.Movie(movie.endless_netplay_battlefield)
 
     def run(self, frames=None, dolphin_process=None):
         try:
@@ -101,7 +106,12 @@ class CPU:
         except KeyboardInterrupt:
             print("Pipes not initialized!")
             return
-            
+
+        for mm, pad in zip(self.menu_managers, self.pads):
+            mm.pad = pad
+        
+        self.settings_mm = MenuManager(settings, pid=self.cpus[0], pad=self.pads[0])
+        
         print('Starting run loop.')
         self.start_time = time.time()
         try:
@@ -185,7 +195,15 @@ class CPU:
         messages = self.mw.get_messages()
         for message in messages:
           self.sm.handle(self.state, *message)
-
+    
+    def spam(self, button):
+        if self.toggle:
+            self.pads[0].press_button(button)
+            self.toggle = False
+        else:
+            self.pads[0].release_button(button)
+            self.toggle = True
+    
     def make_action(self):
         # menu = Menu(self.state.menu)
         # print(menu)
@@ -199,31 +217,19 @@ class CPU:
             #self.fox.advance(self.state, self.pad)
 
         elif self.state.menu in [menu.value for menu in [Menu.Characters, Menu.Stages]]:
-            # D_DOWN should be hotkeyed to loading an in-game state
+            done = True
+            for mm in self.menu_managers:
+                if not mm.reached:
+                    done = False
+                mm.move(self.state)
             
-            for mm, pad in zip(self.menu_managers, self.pads):
-                mm.move(self.state, pad)
-            #self.pads[0].send_controller(ssbm.NeutralControllerState)
-
-        #     if self.toggle:
-        #       self.pad.press_button(pad.Button.D_DOWN)
-        #       self.toggle = False
-        #     else:
-        #       self.pad.release_button(pad.Button.D_DOWN)
-        #       self.toggle = True
-        #
-        elif self.state.menu in [menu.value for menu in [Menu.PostGame]]:
-            if self.toggle:
-                self.pads[0].press_button(Button.START)
-                self.toggle = False
-            else:
-                self.pads[0].release_button(Button.START)
-                self.toggle = True
-
-        elif self.state.menu in [menu.value for menu in [Menu.Characters, Menu.Stages]]:
-            # print(self.state.players[0].controller)
-            # wait for the movie to get us into the game
-            pass
+            if done:
+                if self.settings_mm.reached:
+                    self.movie.play(self.pads[0])
+                else:
+                    self.settings_mm.move(self.state)
+        elif self.state.menu == Menu.PostGame.value:
+            self.spam(Button.START)
         else:
             print("Weird menu state", self.state.menu)
 

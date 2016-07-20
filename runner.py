@@ -81,9 +81,11 @@ add_param('self_play', self_play, ['agent'], False)
 add_param('experience_time', 60, ['agent'], False)
 add_param('act_every', 3, both)
 add_param('delay', 0, both)
-add_param('memory', 0, ['agent'])
+add_param('memory', 0, both)
 
+#movie = 'movies/endless_netplay_battlefield_dual.dtm'
 #add_param('movie', movie, ['agent'], False)
+
 characters = [
 #  'fox',
   'zelda',
