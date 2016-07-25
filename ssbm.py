@@ -7,6 +7,8 @@ import os
 #import h5py
 import pickle
 from reward import computeRewards
+import numpy as np
+import itertools
 
 @pretty_struct
 class Stick(Structure):
@@ -113,22 +115,28 @@ class SimpleButton(IntEnum):
   Y = 4
   L = 5
 
-class SimpleStick(IntEnum):
-  NEUTRAL = 0
-  UP = 1
-  DOWN = 2
-  LEFT = 3
-  RIGHT = 4
+axis_granularity = 3
+axis_positions = np.linspace(0, 1, axis_granularity)
 
-SimpleStick.UP.stick = Stick(0.5, 1)
-SimpleStick.DOWN.stick = Stick(0.5, 0)
-SimpleStick.LEFT.stick = Stick(0, 0.5)
-SimpleStick.RIGHT.stick = Stick(1, 0.5)
-SimpleStick.NEUTRAL.stick = Stick(0.5, 0.5)
+@pretty_struct
+class SimpleStick(Structure):
+  _fields = [
+    ('x', c_uint),
+    ('y', c_uint)
+  ]
+  
+  def __init__(self, x, y):
+    self.x = x
+    self.y = y
+  
+  def reset(self):
+    self.x = axis_granularity // 2
+    self.y = self.x
+  
+  def realStick(self):
+    return Stick(axis_positions[self.x], axis_positions[self.y])
 
-NeutralControllerState = RealControllerState()
-NeutralControllerState.reset()
-# InitialControllerState = RealControllerState()
+simpleSticks = [SimpleStick(x, y) for x, y in itertools.product(range(axis_granularity), repeat=2)]
 
 @pretty_struct
 class SimpleControllerState(Structure):
@@ -136,28 +144,31 @@ class SimpleControllerState(Structure):
     ('button', SimpleButton),
     ('stick_MAIN', SimpleStick),
   ]
-
-  def __init__(self, button=SimpleButton.NONE, stick_MAIN=SimpleStick.NEUTRAL):
-    self.button = button
-    self.stick_MAIN = stick_MAIN
-
+  
+  def __init__(self, button=None, stick=None):
+    self.reset()
+    if button is not None:
+      self.button = button
+    if stick is not None:
+      self.stick_MAIN = stick
+  
   def reset(self):
     self.button = SimpleButton.NONE
-    self.main = SimpleStick.NEUTRAL
-
+    self.stick_MAIN.reset()
+  
   def realController(self):
     controller = RealControllerState()
     if self.button is not SimpleButton.NONE:
       setattr(controller, "button_%s" % SimpleButton(self.button).name, True)
-    #controller.button_B = self.button == SimpleButton.B
 
-    controller.stick_MAIN = SimpleStick(self.stick_MAIN).stick
+    controller.stick_MAIN = self.stick_MAIN.realStick()
     return controller
 
   def fromIndex(index):
     return simpleControllerStates[index]
 
-simpleControllerStates = SimpleControllerState.allValues()
+# simpleControllerStates = SimpleControllerState.allValues()
+simpleControllerStates = [SimpleControllerState(button, stick) for button in SimpleButton for stick in simpleSticks]
 
 for i, c in enumerate(simpleControllerStates):
   c.index = i

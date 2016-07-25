@@ -74,6 +74,7 @@ def allValues(ctype):
   
     return [make(vals) for vals in product(*values)]
   
+  # TODO: handle bounded ints via _fields
   # TODO: handle arrays
   raise TypeError("Unsupported type %s" % ctype)
 

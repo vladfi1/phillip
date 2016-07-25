@@ -177,13 +177,20 @@ class GameEmbedding(StructEmbedding):
 def embedEnum(enum):
   return OneHotEmbedding(len(enum))
 
-simpleControllerEmbedding = [
-  ('button', embedEnum(ssbm.SimpleButton)),
-  ('stick_MAIN', embedEnum(ssbm.SimpleStick)),
+simpleAxisEmbedding = OneHotEmbedding(ssbm.axis_granularity)
+
+simpleStickEmbedding = [
+  ('x', simpleAxisEmbedding),
+  ('y', simpleAxisEmbedding)
 ]
 
+simpleControllerEmbedding = [
+  ('button', embedEnum(ssbm.SimpleButton)),
+  ('stick_MAIN', StructEmbedding(simpleStickEmbedding)),
+]
+
+# NOTE: this is unused for now - we embed the previous action using a simple one-hot
 embedSimpleController = StructEmbedding(simpleControllerEmbedding)
-#embedded_controls = embedController(train_controls)
 
 action_size = len(ssbm.simpleControllerStates)
 embedAction = OneHotEmbedding(action_size)
