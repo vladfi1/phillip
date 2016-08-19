@@ -12,6 +12,7 @@ import ssbm
 import state_manager
 import memory_watcher
 from menu_manager import *
+from state import *
 import movie
 import util
 from pad import Pad
@@ -181,15 +182,13 @@ class SmashEnv(gym.Env):
     time.sleep(1) # give pads time to set up
     
     # TODO: add config options
-    self.dolphin_process = runDolphin(user=self.dolphin_dir, gui=True, movie='movies/netplay_test.dtm')
+    self.dolphin_process = runDolphin(user=self.dolphin_dir, gui=True, cpus=self.cpus, **kwargs)
     
     try:
       self.pads = self.get_pads()
     except KeyboardInterrupt:
       print("Pipes not initialized!")
       return
-    
-    self.update_state()
     
     self.menu_managers = [MenuManager(characters[c], pid=i, pad=p) for c, i, p in zip(self.characters, self.cpus, self.pads)]
     self.settings_mm = MenuManager(settings, pid=self.cpus[0], pad=self.pads[0])
@@ -201,6 +200,8 @@ class SmashEnv(gym.Env):
 
     # Just need to initialize the relevant attributes
     self._configure()
+    
+    self.setup()
 
   def write_locations(self):
     path = self.dolphin_dir + '/MemoryWatcher/'
@@ -209,69 +210,34 @@ class SmashEnv(gym.Env):
     with open(path + 'Locations.txt', 'w') as f:
       f.write('\n'.join(self.sm.locations()))
 
-  def advance_frame(self):
-    last_frame = self.state.frame
-    
-    self.update_state()
-    if self.state.frame > last_frame:
-      skipped_frames = self.state.frame - last_frame - 1
-      if skipped_frames > 0:
-        self.skip_frames += skipped_frames
-        print("Skipped frames ", skipped_frames)
-      self.total_frames += self.state.frame - last_frame
-      last_frame = self.state.frame
-
-      start = time.time()
-      self.make_action()
-      self.thinking_time += time.time() - start
-
-      if self.state.frame % (15 * self.fps) == 0:
-        self.print_stats()
-    
-    self.mw.advance()
-
   def update_state(self):
     messages = self.mw.get_messages()
     for message in messages:
       self.sm.handle(self.state, *message)
-  
-  def spam(self, button):
-    if self.toggle:
-      self.pads[0].press_button(button)
-      self.toggle = False
-    else:
-      self.pads[0].release_button(button)
-      self.toggle = True
-  
-  def make_action(self):
-    # menu = Menu(self.state.menu)
-    # print(menu)
-    if self.state.menu == Menu.Game.value:
-      if self.action_counter % self.act_every == 0:
-        for agent, pad in zip(self.agents, self.pads):
-          agent.act(self.state, pad)
-        if self.dump:
-          self.dump_state()
-      self.action_counter += 1
-      #self.fox.advance(self.state, self.pad)
 
-    elif self.state.menu in [menu.value for menu in [Menu.Characters, Menu.Stages]]:
-      # FIXME: this is very convoluted
-      done = True
-      for mm in self.menu_managers:
-        if not mm.reached:
-          done = False
-        mm.move(self.state)
+  def setup(self):
+    self.update_state()
+    
+    while self.state.menu in [menu.value for menu in [Menu.Characters, Menu.Stages]]:
+      self.mw.advance()
+      last_frame = self.state.frame
+      self.update_state()
       
-      if done:
-        if self.settings_mm.reached:
-          self.movie.play(self.pads[0])
-        else:
-          self.settings_mm.move(self.state)
-    elif self.state.menu == Menu.PostGame.value:
-      self.spam(Button.START)
-    else:
-      print("Weird menu state", self.state.menu)
+      if self.state.frame > last_frame:
+        # FIXME: this is very convoluted
+        done = True
+        for mm in self.menu_managers:
+          if not mm.reached:
+            done = False
+          mm.move(self.state)
+        
+        if done:
+          if self.settings_mm.reached:
+            self.movie.play(self.pads[0])
+          else:
+            self.settings_mm.move(self.state)
+    
+    assert(self.state.menu == Menu.Game.value)
 
   def _seed(self, seed=None):
     from gym.utils import seeding
