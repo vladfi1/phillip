@@ -185,7 +185,7 @@ def playerAddresses(player_id, addresses=None):
     add_data_address('14C', 'speed_ground_x_self', floatHandler)
 
     add_data_address('8C', 'facing', floatHandler) # 1 is right, -1 is left
-    add_data_address('1E4', 'speed_fastfall_self', floatHandler)
+    #add_data_address('1E4', 'speed_fastfall_self', floatHandler)
 
     return addresses
 
