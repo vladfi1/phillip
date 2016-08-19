@@ -4,10 +4,13 @@ def getField(obj, field):
     else:
         return obj[field]
 
-def setField(obj, field, val):
+def setField(obj, field, val, validate=True):
     if isinstance(field, str):
+        if validate:
+            if not hasattr(obj, field):
+                raise TypeError("%s object has no field %s" % (type(obj), field))
         setattr(obj, field, val)
-    else:
+    else: # assume an array
         obj[field] = val
 
 def getPath(obj, path):
