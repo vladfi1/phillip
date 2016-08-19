@@ -87,7 +87,7 @@ def playerAddresses(player_id, addresses=None):
     type_address = add_address('803F0E08', 0x24 * player_id)
     type_handler = playerHandler('type', byteHandler) #, PlayerType, PlayerType.Unselected)
     character_handler = playerHandler('character', IntHandler(8, byte_mask)) #, Character, Character.Unselected)
-    addresses[type_address] = [type_handler, character_handler]
+    addresses[type_address] = [character_handler]#, type_handler]
 
     button_address = add_address('0x804C1FAC', 0x44 * player_id)
     button_locs = dict(
