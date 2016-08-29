@@ -57,9 +57,9 @@ if model.count('DQN'):
   add_param('temperature', 0.002, ['agent'])
 elif model.count('ActorCritic'):
   train_settings += [
-    ('policy_scale', 0.1),
+    ('policy_scale', 0.01),
   ]
-  add_param('entropy_scale', 0.001, ['train'], True)
+  add_param('entropy_scale', 0.002, ['train'], True)
 
 for k, v in train_settings:
   add_param(k, v, ['train'], False)
@@ -87,8 +87,8 @@ add_param('memory', 0, both)
 #add_param('movie', movie, ['agent'], False)
 
 characters = [
-  'fox',
-  'zelda',
+#  'fox',
+#  'zelda',
   'marth',
 #  'roy',
   'falcon',
