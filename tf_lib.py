@@ -18,10 +18,16 @@ def weight_variable(shape):
     :param shape: The dimensions of the desired Tensor
     :return: The initialized Tensor
     '''
-    #initial = tf.truncated_normal(shape, stddev=0.1)
-    input_size = util.product(shape[:-1])
-    initial = tf.truncated_normal(shape, stddev=1.0/math.sqrt(input_size))
-    return tf.Variable(initial, name='weight')
+    #input_size = util.product(shape[:-1])
+    w = tf.Variable(tf.truncated_normal(shape, stddev=1.0), name='weight')
+    
+    norms = tf.sqrt(tf.reduce_sum(tf.square(w), list(range(len(shape)-1))))
+    w /= norms
+    
+    scale = tf.Variable(tf.truncated_normal(shape[-1:], stddev=1.0), name='scale')
+    
+    return scale * w
+    
 
 def bias_variable(shape):
     '''
