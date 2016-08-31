@@ -11,7 +11,7 @@ if not os.path.exists("slurm_logs"):
 if not os.path.exists("slurm_scripts"):
     os.makedirs("slurm_scripts")
 
-exp_name = "player"
+exp_name = "diagonal"
 job_flags = dict(train="", agent="")
 job_dicts = dict(train={}, agent={})
 
@@ -57,9 +57,9 @@ if model.count('DQN'):
   add_param('temperature', 0.002, ['agent'])
 elif model.count('ActorCritic'):
   train_settings += [
-    ('entropy_scale', 0.004),
-    ('policy_scale', 0.1),
+    ('policy_scale', 0.01),
   ]
+  add_param('entropy_scale', 0.002, ['train'], True)
 
 for k, v in train_settings:
   add_param(k, v, ['train'], False)
@@ -71,7 +71,7 @@ add_param('dolphin', True, ['agent'], False)
 add_param('dump_max', 10, ['agent'], False)
 
 # number of agents playing each matchup
-agents = 24
+agents = 20
 add_param('agents', agents, [])
 
 self_play = False
@@ -88,10 +88,10 @@ add_param('memory', 0, both)
 
 characters = [
 #  'fox',
-  'zelda',
+#  'zelda',
   'marth',
 #  'roy',
-#  'falcon',
+  'falcon',
 ]
 
 for c in characters:
@@ -113,7 +113,7 @@ def slurm_script(name, command, cpus=2, gpu=False, log=False):
     #f.write("#SBATCH --cpu_bind=verbose,cores\n")
     #f.write("#SBATCH --cpu_bind=threads\n")
     if gpu:
-      f.write("#SBATCH --gres=gpu:1\n")
+      f.write("#SBATCH --gres=gpu:titan-x:1\n")
     f.write(command)
 
   if dry_run:
@@ -123,7 +123,7 @@ def slurm_script(name, command, cpus=2, gpu=False, log=False):
     #os.system("sbatch -N 1 -c 2 --mem=8000 --time=6-23:00:00 slurm_scripts/" + jobname + ".slurm &")
 
 init = False
-#init = True
+init = True
 
 if dry_run:
   print("NOT starting jobs:")
