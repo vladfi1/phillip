@@ -87,6 +87,7 @@ def runDolphin(
   iso="SSBM.iso",
   movie=None,
   setup=True,
+  self_play=False,
   gui=False,
   mute=False,
   **kwargs):
@@ -103,8 +104,10 @@ def runDolphin(
     else:
       kwargs.update(audio = 'ALSA')
   
+  cpus = [0, 1] if self_play else [1]
+  
   if setup:
-    setupUser(user, **kwargs)
+    setupUser(user, cpus=cpus, **kwargs)
   args = [exe, "--user", user, "--exec", iso]
   if movie is not None:
     args += ["--movie", movie]
