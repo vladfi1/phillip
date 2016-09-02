@@ -26,7 +26,7 @@ Training is controlled by `train.py`. See also `runner.py` for training massivel
 
 ## Recordings
 
-I've been streaming practice play over at twitch.tv/xpilot. There you can find lots of recordings of the bot's evolution over time.
+I've been streaming practice play over at http://twitch.tv/x_pilot. There you can find lots of recordings of the bot's evolution over time.
 
 ##Credits
 
