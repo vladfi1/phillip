@@ -48,7 +48,9 @@ class StructEmbedding:
       with tf.name_scope(field):
         t = op(struct[field])
         if rank is None:
-          rank = tf.shape(tf.shape(t))[0]
+          rank = len(t.get_shape())
+        else:
+          assert(rank == len(t.get_shape()))
         
         embed.append(t)
     return tf.concat(rank-1, embed)
@@ -66,11 +68,23 @@ class ArrayEmbedding:
       with tf.name_scope(str(i)):
         t = self.op(array[i])
         if rank is None:
-          rank = tfl.rank(t)
-          #rank = len(t.get_shape())
-      
+          rank = len(t.get_shape())
+        else:
+          assert(rank == len(t.get_shape()))
+        
         embed.append(t)
     return tf.concat(rank-1, embed)
+
+class FCEmbedding:
+  def __init__(self, wrapper, size):
+    self.wrapper = wrapper
+    self.fc = tfl.FCLayer(wrapper.size, size, nl=tfl.leaky_relu)
+    self.size = size
+  
+  def __call__(self, x):
+    wrapped = self.wrapper(x)
+    y = self.fc(wrapped)
+    return y
 
 stickEmbedding = [
   ('x', embedFloat),
@@ -99,15 +113,6 @@ embedController = StructEmbedding(controllerEmbedding)
 
 maxAction = 0x017E
 numActions = 1 + maxAction
-
-class FCEmbedding:
-  def __init__(self, wrapper, size):
-    self.wrapper = wrapper
-    self.fc = tfl.FCLayer(wrapper.size, size)
-    self.size = size
-  
-  def __call__(self, x):
-    return self.fc(self.wrapper(x))
 
 maxCharacter = 32 # should be large enough?
 maxJumps = 8 # unused
