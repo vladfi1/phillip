@@ -33,8 +33,9 @@ parser.add_argument("--epsilon", type=float, default=0.04, help="probability of 
 #parser.add_argument("--temperature", type=float, default=0.01, help="increases action randomness")
 
 # duplicated?
-parser.add_argument("--act_every", type=int, default=5, help="only take actions every ACT_EVERY frames")
+parser.add_argument("--act_every", type=int, default=3, help="only take actions every ACT_EVERY frames")
 parser.add_argument("--memory", type=int, default=0, help="how many frames to remember")
+parser.add_argument("--experience_time", type=int, default=60, help="length of experiences, in seconds")
 
 args = parser.parse_args()
 

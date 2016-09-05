@@ -14,19 +14,21 @@ from thompson_dqn import ThompsonDQN
 from operator import add, sub
 from enum import Enum
 from reward import computeRewards
+from rac import RAC
 
 class Mode(Enum):
   TRAIN = 0
   PLAY = 1
 
-models = {model.__name__ : model for model in [DQN, ActorCritic, ActorCriticSplit, ThompsonDQN]}
+models = {model.__name__ : model for model in [DQN, ActorCritic, ActorCriticSplit, ThompsonDQN, RAC]}
 
 class RLConfig:
-  def __init__(self, tdN=5, reward_halflife = 2.0, act_every=5, **kwargs):
+  def __init__(self, tdN=5, reward_halflife = 2.0, act_every=3, experience_time=60, **kwargs):
     self.tdN = tdN
     self.reward_halflife = reward_halflife
-    self.fps = 60 / act_every
+    self.fps = 60 // act_every
     self.discount = 0.5 ** ( 1.0 / (self.fps*reward_halflife) )
+    self.experience_length = experience_time * self.fps
 
 class Model:
   def __init__(self,
@@ -64,16 +66,16 @@ class Model:
       
       if mode == Mode.TRAIN:
         with tf.name_scope('train'):
-          self.experience = ct.inputCType(ssbm.SimpleStateAction, [None, None], "experience")
+          self.experience = ct.inputCType(ssbm.SimpleStateAction, [None, self.rlConfig.experience_length], "experience")
           # instantaneous rewards for all but the first state
           self.experience['reward'] = tf.placeholder(tf.float32, [None, None], name='reward')
           
           states = embedGame(self.experience['state'])
-          experience_length = tf.shape(states)[1]
+          
           prev_actions = embed.embedAction(self.experience['prev_action'])
           states = tf.concat(2, [states, prev_actions])
           
-          train_length = experience_length - memory
+          train_length = self.rlConfig.experience_length - memory
           
           history = [tf.slice(states, [0, i, 0], [-1, train_length, -1]) for i in range(memory+1)]
           self.train_states = tf.concat(2, history)
