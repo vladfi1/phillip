@@ -94,7 +94,7 @@ def softmax(x):
   
   return y
 
-def matmul(x, m):
+def matmul(v, m):
   shape = tf.shape(v)
   rank = shape.get_shape()[0].value
   v = tf.expand_dims(v, rank)
@@ -108,12 +108,12 @@ def matmul2(x, m, bias=None, nl=None):
   [input_size, output_size] = m.get_shape().as_list()
   
   input_shape = tf.shape(x)
-  batch_rank = tf.shape(input_shape) - 1
-  batch_shape = tf.slice(input_shape, [0], batch_rank)
+  batch_rank = len(x.get_shape()) - 1
+  batch_shape = tf.slice(input_shape, [0], [batch_rank])
   output_shape = tf.concat(0, [batch_shape, [output_size]])
   
-  x = tf.reshape(x, [-1, input_size])
-  y = tf.matmul(x, m)
+  squashed = tf.reshape(x, [-1, input_size])
+  y = tf.matmul(squashed, m)
   
   if bias is not None:
     y += bias
@@ -122,6 +122,11 @@ def matmul2(x, m, bias=None, nl=None):
     y = nl(y)
   
   y = tf.reshape(y, output_shape)
+  
+  # fix shape inference
+  output_shape = x.get_shape().as_list()
+  output_shape[-1] = output_size
+  y.set_shape(output_shape)
   
   return y
 
