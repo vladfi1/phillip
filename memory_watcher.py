@@ -1,7 +1,7 @@
 import binascii
-import zmq
 import util
 import os
+import sys
 import socket
 
 def parseMessage(message):
@@ -16,6 +16,12 @@ def parseMessage(message):
 
 class MemoryWatcherZMQ:
   def __init__(self, path):
+    try:
+      import zmq
+    except ImportError as err:
+      print("ImportError: {0}".format(err))
+      sys.exit("Either install pyzmq or run with the --nozmq option")
+
     context = zmq.Context()
 
     self.socket = context.socket(zmq.REP)
