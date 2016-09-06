@@ -245,3 +245,32 @@ def run(session, fetches, feed_dict):
     else:
         return session.run(fetches, feed_dict)
 
+class GRUCell(tf.nn.rnn_cell.RNNCell):
+  def __init__(self, input_size, hidden_size, nl=tf.tanh, name=None):
+    with tf.variable_scope(name or type(self).__name__):
+      with tf.variable_scope("Gates"):
+        self.Wru = weight_variable([input_size + hidden_size, 2 * hidden_size])
+        self.bru = tf.Variable(tf.constant(1.0, shape=[2 * hidden_size]))
+      with tf.variable_scope("Candidate"):
+        self.Wc = weight_variable([input_size + hidden_size, hidden_size])
+        self.bc = bias_variable([hidden_size])
+    self.nl = nl
+    self._num_units = hidden_size
+
+  @property
+  def state_size(self):
+    return self._num_units
+
+  @property
+  def output_size(self):
+    return self._num_units  
+  
+  def __call__(self, inputs, state):
+    ru = tf.sigmoid(tf.matmul(tf.concat(1, [inputs, state]), self.Wru) + self.bru)
+    r, u = tf.split(1, 2, ru)
+    
+    c = self.nl(tf.matmul(tf.concat(1, [inputs, r * state]), self.Wc) + self.bc)
+    new_h = u * state + (1 - u) * c
+    
+    return new_h, new_h
+
