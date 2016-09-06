@@ -3,7 +3,7 @@ import tf_lib as tfl
 import util
 from numpy import random
 
-class RAC:
+class RecurrentActorCritic:
   def __init__(self, state_size, action_size, global_step, rlConfig, epsilon=0.02, **kwargs):
     self.action_size = action_size
     self.layer_sizes = [128, 128]

@@ -14,13 +14,13 @@ from thompson_dqn import ThompsonDQN
 from operator import add, sub
 from enum import Enum
 from reward import computeRewards
-from rac import RAC
+from rac import RecurrentActorCritic
 
 class Mode(Enum):
   TRAIN = 0
   PLAY = 1
 
-models = {model.__name__ : model for model in [DQN, ActorCritic, ActorCriticSplit, ThompsonDQN, RAC]}
+models = {model.__name__ : model for model in [DQN, ActorCritic, ActorCriticSplit, ThompsonDQN, RecurrentActorCritic]}
 
 class RLConfig:
   def __init__(self, tdN=5, reward_halflife = 2.0, act_every=3, experience_time=60, **kwargs):
