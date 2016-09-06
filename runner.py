@@ -37,13 +37,14 @@ both = ['train', 'agent']
 
 model = 'DQN'
 model = 'ActorCriticSplit'
+model = 'RAC'
 add_param('model', model, both)
 #add_param('model', 'ActorCriticSplit', both)
 add_param('epsilon', 0.02, both, False)
 
 train_settings = [
   ('optimizer', 'Adam'),
-  ('learning_rate', 0.0004),
+  ('learning_rate', 0.001),
   ('tdN', 5),
   ('batch_size', 25),
   ('batch_steps', 1),
@@ -56,10 +57,8 @@ if model.count('DQN'):
   ]
   add_param('temperature', 0.002, ['agent'])
 elif model.count('ActorCritic'):
-  train_settings += [
-    ('policy_scale', 0.01),
-  ]
-  add_param('entropy_scale', 0.002, ['train'], True)
+  add_param('policy_scale', 0.01, ['train'], True)
+  add_param('entropy_scale', 0.001, ['train'], True)
 
 for k, v in train_settings:
   add_param(k, v, ['train'], False)
@@ -75,10 +74,10 @@ agents = 20
 add_param('agents', agents, [])
 
 self_play = False
-self_play = 720
+self_play = 420
 add_param('self_play', self_play, ['agent'], False)
 
-add_param('experience_time', 60, ['agent'], False)
+add_param('experience_time', 10, both, False)
 add_param('act_every', 3, both)
 add_param('delay', 0, ['agent'])
 add_param('memory', 0, both)
@@ -87,7 +86,7 @@ add_param('memory', 0, both)
 #add_param('movie', movie, ['agent'], False)
 
 characters = [
-#  'fox',
+  'fox',
 #  'zelda',
   'marth',
 #  'roy',
