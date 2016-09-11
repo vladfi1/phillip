@@ -64,13 +64,13 @@ socket.bind("ipc://" + args.path + 'exp_sock')
 
 import numpy as np
 
-def sweep(iters=1, batch_size=1, **kwargs):
+def sweep():
   start_time = time.time()
   
-  for _ in range(iters):
+  for _ in range(args.iters):
     experiences = []
     
-    for _ in range(batch_size):
+    for _ in range(args.batch_size):
       experiences.append(socket.recv_pyobj())
     
     model.train(experiences, args.batch_steps)
@@ -81,5 +81,5 @@ def sweep(iters=1, batch_size=1, **kwargs):
   # import pdb; pdb.set_trace()
 
 while True:
-  sweep(**args.__dict__)
+  sweep()
 
