@@ -60,7 +60,7 @@ import zmq
 context = zmq.Context()
 
 socket = context.socket(zmq.PULL)
-socket.bind("ipc://" + args.path + 'exp_sock')
+socket.bind("ipc://sockets/" + util.hashString(args.name))
 
 import numpy as np
 
@@ -76,7 +76,7 @@ def sweep():
     model.train(experiences, args.batch_steps)
   
   total_time = time.time() - start_time
-  print("time/experience", total_time / (iters * batch_size))
+  print("time/experience", total_time / (args.iters * args.batch_size))
   model.save()
   # import pdb; pdb.set_trace()
 

@@ -17,8 +17,7 @@ parser.add_argument("--temperature", type=float, default=0.01, help="increases a
 
 parser.add_argument("--nozmq", dest="zmq", action="store_false", help="run with normal memory watcher (compatible with regular dolphin)")
 
-parser.add_argument("--path", type=str,
-                    help="where to import from and save to")
+parser.add_argument("--path", type=str, help="where to import from and save to")
 
 parser.add_argument("--name", type=str, help="sets path to saves/{name}")
 

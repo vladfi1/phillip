@@ -16,6 +16,7 @@ from reward import computeRewards
 import movie
 
 default_args = dict(
+    name=None,
     path=None,
     tag=None,
     dump = True,
@@ -48,11 +49,13 @@ class CPU:
             except ImportError as err:
               print("ImportError: {0}".format(err))
               sys.exit("Either install pyzmq or run with the --nodump option")
-
+            
+            self.dump_path = 'sockets/%d' % hash(self.path)
+            
             context = zmq.Context()
 
             self.socket = context.socket(zmq.PUSH)
-            self.socket.connect("ipc://" + self.path + '/exp_sock')
+            self.socket.connect("ipc://sockets/" + util.hashString(self.name))
             
             self.dump_size = self.experience_length
             self.dump_state_actions = (self.dump_size * ssbm.SimpleStateAction)()

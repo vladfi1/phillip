@@ -2,6 +2,7 @@ from numpy import random
 import functools
 import operator
 from threading import Thread
+import hashlib
 
 def foldl(f, init, l):
   for x in l:
@@ -147,4 +148,8 @@ class CircularQueue:
   
   def as_list(self):
     return self.array[self.index:] + self.array[:self.index]
+
+def hashString(s):
+  s = s.encode()
+  return hashlib.md5(s).hexdigest()
 
