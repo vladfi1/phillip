@@ -19,7 +19,6 @@ default_args = dict(
     path=None,
     tag=None,
     dump = True,
-    dump_max = 10,
     # TODO This might not always be accurate.
     dolphin_dir = '~/.local/share/dolphin-emu/',
     self_play = None,
@@ -44,12 +43,20 @@ class CPU:
         self.experience_length = self.experience_time * self.fps
         
         if self.dump:
-            self.dump_dir = self.path + "/experience/"
-            os.makedirs(self.dump_dir, exist_ok=True)
-            self.dump_tag = "" if self.tag is None else str(self.tag) + "-"
+            try:
+              import zmq
+            except ImportError as err:
+              print("ImportError: {0}".format(err))
+              sys.exit("Either install pyzmq or run with the --nodump option")
+
+            context = zmq.Context()
+
+            self.socket = context.socket(zmq.PUSH)
+            self.socket.connect("ipc://" + self.path + '/exp_sock')
+            
             self.dump_size = self.experience_length
             self.dump_state_actions = (self.dump_size * ssbm.SimpleStateAction)()
-
+  
             self.dump_frame = 0
             self.dump_count = 0
 
@@ -153,18 +160,19 @@ class CPU:
         self.dump_frame += 1
 
         if self.dump_frame == self.dump_size:
-            if self.dump_count == 0:
-            # if False:
-                dump_path = self.dump_dir + ".dead"
-            else:
-                dump_path = self.dump_dir + self.dump_tag + str(self.dump_count % self.dump_max)
-            print("Dumping to ", dump_path)
-            #ssbm.writeStateActions(dump_path, self.dump_state_actions)
-            ssbm.writeStateActions_pickle(dump_path, self.dump_state_actions)
             self.dump_count += 1
             self.dump_frame = 0
+            
+            if self.dump_count == 1:
+                return # FIXME
+            
+            print("Dumping")
+            
+            prepared = ssbm.prepareStateActions(self.dump_state_actions)
+            
+            self.socket.send_pyobj(prepared)
 
-            rewards = computeRewards(self.dump_state_actions)
+            rewards = prepared['reward']
 
             with open(self.reward_logfile, 'a') as f:
                 f.write(str(time.time()) + " " + str(sum(rewards) / len(rewards)) + "\n")

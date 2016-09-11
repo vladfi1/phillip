@@ -192,10 +192,10 @@ class Model:
     # if step_index == 10:
     import ipdb; ipdb.set_trace()
 
-  def train(self, filenames, steps=1):
+  def train(self, experiences, steps=1):
     #state_actions = ssbm.readStateActions(filename)
     #feed_dict = feedStateActions(state_actions)
-    experiences = util.async_map(ssbm.readStateActions_pickle, filenames)()
+    #experiences = util.async_map(ssbm.readStateActions_pickle, filenames)()
     experiences = util.deepZip(*experiences)
     experiences = util.deepMap(np.array, experiences)
     

@@ -22,15 +22,9 @@ parser.add_argument("--path", type=str,
 
 parser.add_argument("--name", type=str, help="sets path to saves/{name}")
 
-parser.add_argument("--tag", type=str,
-                    help="optional tag to mark experiences")
+parser.add_argument("--tag", type=int, help="optional tag to mark experiences")
 
-parser.add_argument("--nodump", dest='dump', action="store_false",
-                    help="don't dump experiences to disk")
-
-parser.add_argument("--dump_max", type=int, default=10,
-                   help="caps number of experiences")
-
+parser.add_argument("--nodump", dest='dump', action="store_false", help="don't dump experiences to disk")
 
 parser.add_argument("--parallel", type=int, help="spawn parallel cpus and dolphins")
 
@@ -38,7 +32,7 @@ parser.add_argument("--self_play", type=int, help="train against ourselves, relo
 
 parser.add_argument("--gpu", action="store_true", help="run on gpu")
 
-parser.add_argument("--act_every", type=int, default=5, help="only take actions every ACT_EVERY frames")
+parser.add_argument("--act_every", type=int, default=3, help="only take actions every ACT_EVERY frames")
 parser.add_argument("--delay", type=int, default=0, help="delay actions by DELAY steps (multiplied by ACT_EVERY frames)")
 parser.add_argument("--memory", type=int, default=0, help="how many frames to remember")
 parser.add_argument("--experience_time", type=int, default=60, help="length of experiences, in seconds")
@@ -78,7 +72,9 @@ from cpu import CPU
 
 def run():
   if args.dolphin_dir is None:
-    tag = random.getrandbits(32)
+    tag = args.tag
+    if tag is None:
+      tag = random.getrandbits(32)
     user = '%s/%d/' % (prefix, tag)
     d = args.__dict__.copy()
     d['tag'] = tag

@@ -26,7 +26,8 @@ parser.add_argument("--target_delay", type=int, default=5000, help="update targe
 parser.add_argument("--entropy_scale", type=float, default=1e-2, help="entropy regularization for actor-critic")
 parser.add_argument("--policy_scale", type=float, default=1.0, help="scale the policy gradient for actor-critic")
 
-parser.add_argument("--batch_size", type=int, default=1, help="number of experiences to train on at a time")
+parser.add_argument("--iters", type=int, default=1, help="number of iterations between saves")
+parser.add_argument("--batch_size", type=int, default=1, help="number of experiences to train on per iteration")
 parser.add_argument("--batch_steps", type=int, default=1, help="number of gradient steps to take on each batch")
 
 parser.add_argument("--epsilon", type=float, default=0.04, help="probability of random action")
@@ -45,9 +46,6 @@ if args.name is None:
 if args.path is None:
   args.path = "saves/%s/" % args.name
 
-experience_dir = args.path + 'experience/'
-os.makedirs(experience_dir, exist_ok=True)
-
 model = RL.Model(mode=RL.Mode.TRAIN, **args.__dict__)
 
 # do this in RL?
@@ -57,33 +55,31 @@ if args.init:
 else:
   model.restore()
 
+import zmq
+
+context = zmq.Context()
+
+socket = context.socket(zmq.PULL)
+socket.bind("ipc://" + args.path + 'exp_sock')
+
 import numpy as np
 
-def sweep(data_dir='experience/'):
-  i = 0
+def sweep(iters=1, batch_size=1, **kwargs):
   start_time = time.time()
-  files = os.listdir(data_dir)
-  # .DS_Store, temp files
-  keep = lambda f: not (f.startswith(".") or f.startswith("tmp"))
-  files = list(filter(keep, files))
-  np.random.shuffle(files)
   
-  batches = util.chunk(files, args.batch_size)
+  for _ in range(iters):
+    experiences = []
+    
+    for _ in range(batch_size):
+      experiences.append(socket.recv_pyobj())
+    
+    model.train(experiences, args.batch_steps)
   
-  for batch in batches:
-    batch = [data_dir + f for f in batch]
-    batch = list(filter(os.path.exists, batch))
-    print("Step", i)
-    #print("Training on", batch)
-    model.train(batch, args.batch_steps)
-    i += len(batch)
-  
-  if i > 0:
-    total_time = time.time() - start_time
-    print("time/experience", total_time / i)
+  total_time = time.time() - start_time
+  print("time/experience", total_time / (iters * batch_size))
   model.save()
-  #RL.writeGraph()
   # import pdb; pdb.set_trace()
 
 while True:
-  sweep(experience_dir)
+  sweep(**args.__dict__)
+
