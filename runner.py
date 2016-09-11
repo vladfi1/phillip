@@ -37,7 +37,7 @@ both = ['train', 'agent']
 
 model = 'DQN'
 model = 'ActorCriticSplit'
-model = 'RAC'
+model = 'RecurrentActorCritic'
 add_param('model', model, both)
 #add_param('model', 'ActorCriticSplit', both)
 add_param('epsilon', 0.02, both, False)
@@ -46,7 +46,8 @@ train_settings = [
   ('optimizer', 'Adam'),
   ('learning_rate', 0.001),
   ('tdN', 5),
-  ('batch_size', 25),
+  ('iters', 5),
+  ('batch_size', 5),
   ('batch_steps', 1),
 ]
 
@@ -57,8 +58,8 @@ if model.count('DQN'):
   ]
   add_param('temperature', 0.002, ['agent'])
 elif model.count('ActorCritic'):
-  add_param('policy_scale', 0.01, ['train'], True)
-  add_param('entropy_scale', 0.001, ['train'], True)
+  add_param('policy_scale', 0.05, ['train'], True)
+  add_param('entropy_scale', 0.0002, ['train'], True)
 
 for k, v in train_settings:
   add_param(k, v, ['train'], False)
@@ -67,10 +68,8 @@ for k, v in train_settings:
 
 add_param('dolphin', True, ['agent'], False)
 
-add_param('dump_max', 10, ['agent'], False)
-
 # number of agents playing each matchup
-agents = 20
+agents = 18
 add_param('agents', agents, [])
 
 self_play = False
@@ -80,7 +79,7 @@ add_param('self_play', self_play, ['agent'], False)
 add_param('experience_time', 10, both, False)
 add_param('act_every', 3, both)
 add_param('delay', 0, ['agent'])
-add_param('memory', 0, both)
+add_param('memory', 0, both, False)
 
 #movie = 'movies/endless_netplay_battlefield_dual.dtm'
 #add_param('movie', movie, ['agent'], False)
