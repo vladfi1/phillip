@@ -37,7 +37,7 @@ both = ['train', 'agent']
 
 model = 'DQN'
 model = 'ActorCriticSplit'
-model = 'RecurrentActorCritic'
+#model = 'RecurrentActorCritic'
 add_param('model', model, both)
 #add_param('model', 'ActorCriticSplit', both)
 add_param('epsilon', 0.02, both, False)
@@ -98,20 +98,23 @@ for c in characters:
 #add_param('name', exp_name, both, False)
 add_param('path', "saves/%s/" % exp_name, both, False)
 
-def slurm_script(name, command, cpus=2, gpu=False, log=False):
+def slurm_script(name, command, cpus=2, mem=1000, gpu=False, log=False, qos=None):
   slurmfile = 'slurm_scripts/' + name + '.slurm'
   with open(slurmfile, 'w') as f:
     f.write("#!/bin/bash\n")
-    f.write("#SBATCH --job-name=" + name + "\n")
+    f.write("#SBATCH --job-name " + name + "\n")
     #if log:
-    f.write("#SBATCH --output=slurm_logs/" + name + ".out\n")
-    f.write("#SBATCH --error=slurm_logs/" + name + ".err\n")
-    f.write("#SBATCH -c%d\n" % cpus)
-    f.write("#SBATCH --time=6-23\n")
+    f.write("#SBATCH --output slurm_logs/" + name + ".out\n")
+    f.write("#SBATCH --error slurm_logs/" + name + ".err\n")
+    f.write("#SBATCH -c %d\n" % cpus)
+    f.write("#SBATCH --mem %d\n" % mem)
+    f.write("#SBATCH --time 6-23\n")
     #f.write("#SBATCH --cpu_bind=verbose,cores\n")
     #f.write("#SBATCH --cpu_bind=threads\n")
     if gpu:
-      f.write("#SBATCH --gres=gpu:titan-x:1\n")
+      f.write("#SBATCH --gres gpu:titan-x:1\n")
+    if qos:
+      f.write("#SBATCH --qos %s\n" % qos)
     f.write(command)
 
   if dry_run:
@@ -138,7 +141,7 @@ else:
 train_name = "trainer_" + exp_name
 train_command = "python3 -u train.py" + job_flags['train']
 
-slurm_script(train_name, train_command, gpu=True)
+slurm_script(train_name, train_command, gpu=True, qos='tenenbaum')
 
 #sys.exit()
 
