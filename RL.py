@@ -119,6 +119,7 @@ class Model:
           self.train_op = self.optimizer.apply_gradients(grads_and_vars, global_step=self.global_step)
           self.run_dict = dict(summary=merged, global_step=self.global_step, train=self.train_op)
           
+          print("Creating summary writer.")
           self.writer = tf.train.SummaryWriter(path+'logs/', self.graph)
       else:
         with tf.name_scope('policy'):
@@ -153,6 +154,7 @@ class Model:
       self.debug = debug
       
       #self.saver = tf.train.Saver(self.variables)
+      print("Creating saver.")
       self.saver = tf.train.Saver(tf.all_variables())
 
   def act(self, history, verbose=False):
@@ -230,6 +232,7 @@ class Model:
     self.saver.save(self.sess, self.path + "snapshot")
 
   def restore(self):
+    print("Restoring from", self.path)
     self.saver.restore(self.sess, self.path + "snapshot")
 
   def init(self):

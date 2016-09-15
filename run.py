@@ -8,7 +8,10 @@ import menu_manager
 
 parser = ArgumentParser()
 
+print("Importing RL.")
 import RL
+print("Imported RL.")
+
 parser.add_argument("--model", choices=RL.models.keys(), required=True, help="which RL model to use")
 parser.add_argument("--epsilon", type=float, default=0.02, help="probability of random action")
 parser.add_argument("--temperature", type=float, default=0.01, help="increases action randomness")
@@ -82,15 +85,18 @@ def run():
     d = args.__dict__
     user = args.dolphin_dir
   
+  print("Creating cpu.")
   cpu = CPU(**d)
   
   if args.dolphin:
     # delay for a bit to let the cpu start up
-    time.sleep(3)
+    time.sleep(5)
+    print("Running dolphin.")
     dolphin = runDolphin(user=user, **args.__dict__)
   else:
     dolphin = None
   
+  print("Running cpu.")
   cpu.run(dolphin_process=dolphin)
 
 if args.parallel is None:
