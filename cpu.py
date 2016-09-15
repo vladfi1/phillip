@@ -55,7 +55,9 @@ class CPU:
             context = zmq.Context()
 
             self.socket = context.socket(zmq.PUSH)
-            self.socket.connect("ipc://sockets/" + util.hashString(self.name))
+            self.sock_addr = "ipc://sockets/" + util.hashString(self.name)
+            print("Connecting to " + self.sock_addr)
+            self.socket.connect(self.sock_addr)
             
             self.dump_size = self.experience_length
             self.dump_state_actions = (self.dump_size * ssbm.SimpleStateAction)()

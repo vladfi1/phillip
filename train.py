@@ -60,7 +60,9 @@ import zmq
 context = zmq.Context()
 
 socket = context.socket(zmq.PULL)
-socket.bind("ipc://sockets/" + util.hashString(args.name))
+sock_addr = "ipc://sockets/" + util.hashString(args.name)
+print("Binding to " + sock_addr)
+socket.bind(sock_addr)
 
 import numpy as np
 
