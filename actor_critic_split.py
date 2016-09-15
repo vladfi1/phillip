@@ -64,7 +64,7 @@ class ActorCriticSplit:
 
     log_actor_probs = tf.log(actor_probs)
     actor_entropy = -tf.reduce_mean(tfl.batch_dot(actor_probs, log_actor_probs))
-    real_log_actor_probs = tfl.batch_dot(actions, tf.log(actor_probs))
+    real_log_actor_probs = tfl.batch_dot(actions, log_actor_probs)
     train_log_actor_probs = tf.slice(real_log_actor_probs, [0, 0], [-1, train_length])
     actor_gain = tf.reduce_mean(tf.mul(train_log_actor_probs, tf.stop_gradient(advantages)))
 
