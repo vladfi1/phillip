@@ -18,7 +18,7 @@ short_mask = 0xFFFF
 int_mask = 0xFFFFFFFF
 
 @attr.s
-class IntHandler:
+class IntHandler(object):
     shift = attr.ib(default=0)
     mask = attr.ib(default=int_mask)
     wrapper = attr.ib(default=None)
@@ -35,7 +35,7 @@ shortHandler = IntHandler(shift=16, mask=short_mask)
 floatStruct = struct.Struct('>f')
 
 @attr.s
-class FloatHandler:
+class FloatHandler(object):
     wrapper = attr.ib(default=None)
     default = attr.ib(default=0.0)
 
@@ -46,7 +46,7 @@ class FloatHandler:
 floatHandler = FloatHandler()
 
 @attr.s
-class Handler:
+class Handler(object):
     path = attr.ib()
     handler = attr.ib()
 
@@ -189,7 +189,7 @@ def playerAddresses(player_id, addresses=None):
 
     return addresses
 
-class StateManager:
+class StateManager(object):
     def __init__(self, player_ids=range(4)):
         self.addresses = global_addresses.copy()
 

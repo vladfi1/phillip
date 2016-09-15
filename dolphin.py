@@ -43,6 +43,7 @@ with open('Dolphin.ini', 'r') as f:
 
 import shutil
 import os
+import util
 
 def setupUser(user,
   gfx="Null",
@@ -53,7 +54,7 @@ def setupUser(user,
   speed=0,
   **unused):
   configDir = user + 'Config/'
-  os.makedirs(configDir, exist_ok=True)
+  util.makedirs(configDir)
 
   with open(configDir + 'GCPadNew.ini', 'w') as f:
     f.write(generateGCPadNew(cpus))

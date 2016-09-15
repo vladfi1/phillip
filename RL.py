@@ -157,6 +157,11 @@ class Model:
 
   def act(self, history, verbose=False):
     feed_dict = dict(util.deepValues(util.deepZip(self.input, ct.vectorizeCTypes(ssbm.SimpleStateAction, history))))
+    if False:
+      for k, v in feed_dict.items():
+        print(k, v)
+        self.sess.run(k, {k:v})
+    
     return self.model.act(self.sess.run(self.policy, feed_dict), verbose)
 
   #summaryWriter = tf.train.SummaryWriter('logs/', sess.graph)
@@ -220,7 +225,7 @@ class Model:
 
   def save(self):
     import os
-    os.makedirs(self.path, exist_ok=True)
+    util.makedirs(self.path)
     print("Saving to", self.path)
     self.saver.save(self.sess, self.path + "snapshot")
 

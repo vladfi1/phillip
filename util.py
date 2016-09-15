@@ -3,6 +3,7 @@ import functools
 import operator
 from threading import Thread
 import hashlib
+import os
 
 def foldl(f, init, l):
   for x in l:
@@ -60,10 +61,12 @@ def deepMap(f, obj):
 def deepValues(obj):
   if isinstance(obj, dict):
     for v in obj.values():
-      yield from deepValues(v)
+      for x in deepValues(v):
+        yield x
   elif isinstance(obj, list):
     for v in obj:
-      yield from deepValues(v)
+      for x in deepValues(v):
+        yield x
   else:
     yield obj
 
@@ -152,4 +155,8 @@ class CircularQueue:
 def hashString(s):
   s = s.encode()
   return hashlib.md5(s).hexdigest()
+
+def makedirs(path):
+  if not os.path.exists(path):
+    os.makedirs(path)
 

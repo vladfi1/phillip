@@ -100,7 +100,7 @@ class CPU:
         
         pipe_dir = self.dolphin_dir + '/Pipes/'
         print('Creating Pads at %s. Open dolphin now.' % pipe_dir)
-        os.makedirs(self.dolphin_dir + '/Pipes/', exist_ok=True)
+        util.makedirs(self.dolphin_dir + '/Pipes/')
         
         paths = [pipe_dir + 'phillip%d' % i for i in self.cpus]
         self.get_pads = util.async_map(Pad, paths)
@@ -149,7 +149,7 @@ class CPU:
 
     def write_locations(self, dolphin_dir):
         path = dolphin_dir + '/MemoryWatcher/'
-        os.makedirs(path, exist_ok=True)
+        util.makedirs(path)
         print('Writing locations to:', path)
         with open(path + 'Locations.txt', 'w') as f:
             f.write('\n'.join(self.sm.locations()))

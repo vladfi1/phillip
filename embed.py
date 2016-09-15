@@ -5,7 +5,7 @@ import ssbm
 
 floatType = tf.float32
 
-class FloatEmbedding:
+class FloatEmbedding(object):
   def __init__(self, scale=None, bias=None):
     self.scale = scale
     self.bias = bias
@@ -25,7 +25,7 @@ class FloatEmbedding:
 
 embedFloat = FloatEmbedding()
 
-class OneHotEmbedding:
+class OneHotEmbedding(object):
   def __init__(self, size):
     self.size = size
   
@@ -33,7 +33,7 @@ class OneHotEmbedding:
     t = tf.cast(t, tf.int64)
     return tf.one_hot(t, self.size, 1.0, 0.0)
 
-class StructEmbedding:
+class StructEmbedding(object):
   def __init__(self, embedding):
     self.embedding = embedding
     
@@ -55,7 +55,7 @@ class StructEmbedding:
         embed.append(t)
     return tf.concat(rank-1, embed)
 
-class ArrayEmbedding:
+class ArrayEmbedding(object):
   def __init__(self, op, permutation):
     self.op = op
     self.permutation = permutation
@@ -75,7 +75,7 @@ class ArrayEmbedding:
         embed.append(t)
     return tf.concat(rank-1, embed)
 
-class FCEmbedding:
+class FCEmbedding(object):
   def __init__(self, wrapper, size):
     self.wrapper = wrapper
     self.fc = tfl.FCLayer(wrapper.size, size, nl=tfl.leaky_relu)
