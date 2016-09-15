@@ -46,8 +46,8 @@ train_settings = [
   ('optimizer', 'Adam'),
   ('learning_rate', 0.001),
   ('tdN', 5),
-  ('iters', 5),
-  ('batch_size', 5),
+  ('iters', 1),
+  ('batch_size', 10),
   ('batch_steps', 1),
 ]
 
@@ -69,7 +69,7 @@ for k, v in train_settings:
 add_param('dolphin', True, ['agent'], False)
 
 # number of agents playing each matchup
-agents = 18
+agents = 5
 add_param('agents', agents, [])
 
 self_play = False
@@ -98,14 +98,17 @@ for c in characters:
 #add_param('name', exp_name, both, False)
 add_param('path', "saves/%s/" % exp_name, both, False)
 
-def slurm_script(name, command, cpus=2, mem=1000, gpu=False, log=False, qos=None):
+def slurm_script(name, command, cpus=2, mem=1000, gpu=False, log=True, qos=None, array=None):
   slurmfile = 'slurm_scripts/' + name + '.slurm'
   with open(slurmfile, 'w') as f:
     f.write("#!/bin/bash\n")
     f.write("#SBATCH --job-name " + name + "\n")
-    #if log:
-    f.write("#SBATCH --output slurm_logs/" + name + ".out\n")
-    f.write("#SBATCH --error slurm_logs/" + name + ".err\n")
+    if log:
+      f.write("#SBATCH --output slurm_logs/" + name + "_%a.out\n")
+      f.write("#SBATCH --error slurm_logs/" + name + "_%a.err\n")
+    else:
+      f.write("#SBATCH --output /dev/null")
+      f.write("#SBATCH --error /dev/null")
     f.write("#SBATCH -c %d\n" % cpus)
     f.write("#SBATCH --mem %d\n" % mem)
     f.write("#SBATCH --time 6-23\n")
@@ -115,6 +118,8 @@ def slurm_script(name, command, cpus=2, mem=1000, gpu=False, log=False, qos=None
       f.write("#SBATCH --gres gpu:titan-x:1\n")
     if qos:
       f.write("#SBATCH --qos %s\n" % qos)
+    if array:
+      f.write("#SBATCH --array=1-%d\n" % array)
     f.write(command)
 
   if dry_run:
@@ -141,18 +146,15 @@ else:
 train_name = "trainer_" + exp_name
 train_command = "python3 -u train.py" + job_flags['train']
 
-slurm_script(train_name, train_command, gpu=True, qos='tenenbaum')
+slurm_script(train_name, train_command, gpu=True, qos='tenenbaum', mem=4096)
 
 #sys.exit()
 
-agent_count = 0
 agent_command = "python3 -u run.py" + job_flags['agent']
 for c1 in characters:
   for c2 in characters:
     command = agent_command + " --p1 %s --p2 %s" % (c1, c2)
 
-    for _ in range(agents):
-      agent_name = "agent_%d_%s" % (agent_count, exp_name)
-      slurm_script(agent_name, command)
-      agent_count += 1
+    agent_name = "agent_%s_%s_%s" % (c1, c2, exp_name)
+    slurm_script(agent_name, command, log=True, array=agents)
 
