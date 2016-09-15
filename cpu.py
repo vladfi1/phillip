@@ -55,7 +55,7 @@ class CPU:
             context = zmq.Context()
 
             self.socket = context.socket(zmq.PUSH)
-            self.sock_addr = "ipc://sockets/" + util.hashString(self.name)
+            self.sock_addr = util.sockAddr(self.name)
             print("Connecting to " + self.sock_addr)
             self.socket.connect(self.sock_addr)
             

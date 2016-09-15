@@ -95,8 +95,8 @@ characters = [
 for c in characters:
   exp_name += '_' + c
 
-#add_param('name', exp_name, both, False)
-add_param('path', "saves/%s/" % exp_name, both, False)
+add_param('name', exp_name, both, False)
+#add_param('path', "saves/%s/" % exp_name, both, False)
 
 def slurm_script(name, command, cpus=2, mem=1000, gpu=False, log=True, qos=None, array=None):
   slurmfile = 'slurm_scripts/' + name + '.slurm'
