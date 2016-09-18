@@ -4,15 +4,11 @@ import util
 from numpy import random
 
 class ActorCriticSplit:
-  def __init__(self, state_size, action_size, global_step, rlConfig, epsilon=0.04, **kwargs):
+  def __init__(self, state_size, action_size, global_step, rlConfig, **kwargs):
     self.action_size = action_size
     self.layer_sizes = [128, 128]
     self.layers = []
 
-    with tf.name_scope('epsilon'):
-      #epsilon = tf.constant(0.02)
-      self.epsilon = epsilon# + 0.5 * tf.exp(-tf.cast(global_step, tf.float32) / 50000.0)
-    
     self.actor = tfl.Sequential()
     self.critic = tfl.Sequential()
     
@@ -24,9 +20,7 @@ class ActorCriticSplit:
       prev_size = next_size
 
     with tf.variable_scope('actor'):
-      actor = tfl.makeAffineLayer(prev_size, action_size, tf.nn.softmax)
-      smooth = lambda probs: (1.0 - self.epsilon) * probs + self.epsilon / action_size
-      actor = util.compose(smooth, actor)
+      actor = tfl.makeAffineLayer(prev_size, action_size, tf.nn.log_softmax)
       self.actor.append(actor)
 
     with tf.variable_scope('critic'):
@@ -46,7 +40,8 @@ class ActorCriticSplit:
     train_length = experience_length - n
 
     values = self.critic(states)
-    actor_probs = self.actor(states)
+    log_actor_probs = self.actor(states)
+    actor_probs = tf.exp(log_actor_probs)
     
     trainVs = tf.slice(values, [0, 0], [-1, train_length])
     #trainVs = values[:,:train_length]
@@ -62,7 +57,6 @@ class ActorCriticSplit:
     advantages = targets - trainVs
     vLoss = tf.reduce_mean(tf.square(advantages))
 
-    log_actor_probs = tf.log(actor_probs)
     actor_entropy = -tf.reduce_mean(tfl.batch_dot(actor_probs, log_actor_probs))
     real_log_actor_probs = tfl.batch_dot(actions, log_actor_probs)
     train_log_actor_probs = tf.slice(real_log_actor_probs, [0, 0], [-1, train_length])
@@ -73,7 +67,7 @@ class ActorCriticSplit:
     return acLoss, [('vLoss', vLoss), ('actor_gain', actor_gain), ('actor_entropy', actor_entropy)]
 
   def getPolicy(self, state, **kwargs):
-    return self.actor(state)
+    return tf.exp(self.actor(state))
 
   def act(self, policy, verbose=False):
     return random.choice(range(self.action_size), p=policy)
