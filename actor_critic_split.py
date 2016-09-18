@@ -64,8 +64,8 @@ class ActorCriticSplit:
 
     acLoss = vLoss - policy_scale * (actor_gain + entropy_scale * actor_entropy)
 
-    return acLoss, [('vLoss', vLoss), ('actor_gain', actor_gain), ('actor_entropy', actor_entropy)]
-
+    return acLoss, [('vLoss', vLoss), ('actor_gain', actor_gain), ('actor_entropy', actor_entropy)], log_actor_probs
+  
   def getPolicy(self, state, **kwargs):
     return tf.exp(self.actor(state))
 

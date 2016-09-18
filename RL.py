@@ -101,23 +101,26 @@ class Model:
           loss, stats = self.model.getLoss(*loaded_data, **kwargs)
           """
           
-          loss, stats = self.model.getLoss(self.train_states, self.train_actions, self.train_rewards, **kwargs)
+          loss, stats, self.logprobs = self.model.getLoss(self.train_states, self.train_actions, self.train_rewards, **kwargs)
           
+          self.learning_rate = tf.Variable(learning_rate)
+
           tf.scalar_summary("loss", loss)
           for name, tensor in stats:
             if tensor.dtype is tf.bool:
               tensor = tf.cast(tensor, tf.uint8)
             tf.scalar_summary(name, tensor)
+          tf.scalar_summary('learning_rate', tf.log(self.learning_rate))
           merged = tf.merge_all_summaries()
           
-          self.optimizer = getattr(tf.train, optimizer + "Optimizer")(learning_rate)
+          self.optimizer = getattr(tf.train, optimizer + "Optimizer")(self.learning_rate)
           # train_q = opt.minimize(qLoss, global_step=global_step)
           # opt = tf.train.GradientDescentOptimizer(0.0)
           #grads_and_vars = opt.compute_gradients(qLoss)
           grads_and_vars = self.optimizer.compute_gradients(loss)
           self.grads_and_vars = [(g, v) for g, v in grads_and_vars if g is not None]
           self.train_op = self.optimizer.apply_gradients(grads_and_vars, global_step=self.global_step)
-          self.run_dict = dict(summary=merged, global_step=self.global_step, train=self.train_op)
+          self.run_dict = dict(summary=merged, global_step=self.global_step, train=self.train_op, old_logp=self.logprobs)
           
           print("Creating summary writer.")
           self.writer = tf.train.SummaryWriter(path+'logs/', self.graph)
@@ -199,7 +202,7 @@ class Model:
     # if step_index == 10:
     import ipdb; ipdb.set_trace()
 
-  def train(self, experiences, steps=1):
+  def train(self, experiences, steps=1, target_kl=1e-5):
     #state_actions = ssbm.readStateActions(filename)
     #feed_dict = feedStateActions(state_actions)
     #experiences = util.async_map(ssbm.readStateActions_pickle, filenames)()
@@ -220,6 +223,22 @@ class Model:
     
     for _ in range(steps):
       results = tfl.run(self.sess, self.run_dict, input_dict)
+      old_logp = results['old_logp']
+      new_logp = self.sess.run(self.logprobs, input_dict)
+      
+      kl = np.mean(np.sum((np.exp(new_logp) - np.exp(old_logp)) * (new_logp - old_logp), -1))
+      
+      min_rate = 1e-8
+      max_rate = 1e0
+      
+      if kl > target_kl * 2:
+        print("kl too high")
+        self.sess.run(tf.assign(self.learning_rate, tf.maximum(min_rate, self.learning_rate / 1.5)))
+      elif kl < target_kl / 2:
+        print("kl too low")
+        self.sess.run(tf.assign(self.learning_rate, tf.minimum(max_rate, self.learning_rate * 1.5)))
+      else:
+        print("kl just right!")
       
       summary_str = results['summary']
       global_step = results['global_step']
