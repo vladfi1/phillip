@@ -202,7 +202,7 @@ class Model:
     # if step_index == 10:
     import ipdb; ipdb.set_trace()
 
-  def train(self, experiences, steps=1, target_kl=1e-5):
+  def train(self, experiences, batch_steps=1, target_kl=None, **kwargs):
     #state_actions = ssbm.readStateActions(filename)
     #feed_dict = feedStateActions(state_actions)
     #experiences = util.async_map(ssbm.readStateActions_pickle, filenames)()
@@ -221,24 +221,26 @@ class Model:
     if self.debug:
       self.debugGrads(input_dict)
     
-    for _ in range(steps):
+    for _ in range(batch_steps):
       results = tfl.run(self.sess, self.run_dict, input_dict)
-      old_logp = results['old_logp']
-      new_logp = self.sess.run(self.logprobs, input_dict)
       
-      kl = np.mean(np.sum((np.exp(new_logp) - np.exp(old_logp)) * (new_logp - old_logp), -1))
-      
-      min_rate = 1e-8
-      max_rate = 1e0
-      
-      if kl > target_kl * 2:
-        print("kl too high")
-        self.sess.run(tf.assign(self.learning_rate, tf.maximum(min_rate, self.learning_rate / 1.5)))
-      elif kl < target_kl / 2:
-        print("kl too low")
-        self.sess.run(tf.assign(self.learning_rate, tf.minimum(max_rate, self.learning_rate * 1.5)))
-      else:
-        print("kl just right!")
+      if target_kl is not None:
+        old_logp = results['old_logp']
+        new_logp = self.sess.run(self.logprobs, input_dict)
+        
+        kl = np.mean(np.sum((np.exp(new_logp) - np.exp(old_logp)) * (new_logp - old_logp), -1))
+        
+        min_rate = 1e-8
+        max_rate = 1e0
+        
+        if kl > target_kl * 2:
+          print("kl too high")
+          self.sess.run(tf.assign(self.learning_rate, tf.maximum(min_rate, self.learning_rate / 1.5)))
+        elif kl < target_kl / 2:
+          print("kl too low")
+          self.sess.run(tf.assign(self.learning_rate, tf.minimum(max_rate, self.learning_rate * 1.5)))
+        else:
+          print("kl just right!")
       
       summary_str = results['summary']
       global_step = results['global_step']

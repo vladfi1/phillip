@@ -15,6 +15,7 @@ parser.add_argument("--sarsa", action="store_true", help="learn Q values for the
 
 parser.add_argument("--optimizer", type=str, default="GradientDescent", help="tf.train optimizer")
 parser.add_argument("--learning_rate", type=float, default=1e-4, help="optimizer learning rate")
+parser.add_argument("--target_kl", type=float, help="target kl divergence for policy gradient methods")
 
 parser.add_argument("--nogpu", dest="gpu", action="store_false", help="don't train on gpu")
 
@@ -75,7 +76,7 @@ def sweep():
     for _ in range(args.batch_size):
       experiences.append(socket.recv_pyobj())
     
-    model.train(experiences, args.batch_steps)
+    model.train(experiences, **args.__dict__)
   
   total_time = time.time() - start_time
   print("time, experiences", total_time, args.iters * args.batch_size)
