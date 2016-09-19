@@ -40,6 +40,7 @@ class Model:
               gpu=False,
               optimizer="Adam",
               memory=0,
+              name=None,
               **kwargs):
     print("Creating model:", model)
     modelType = models[model]
@@ -69,6 +70,7 @@ class Model:
           self.experience = ct.inputCType(ssbm.SimpleStateAction, [None, self.rlConfig.experience_length], "experience")
           # instantaneous rewards for all but the first state
           self.experience['reward'] = tf.placeholder(tf.float32, [None, None], name='reward')
+          mean_reward = tf.reduce_mean(self.experience['reward'])
           
           states = embedGame(self.experience['state'])
           
@@ -111,6 +113,7 @@ class Model:
               tensor = tf.cast(tensor, tf.uint8)
             tf.scalar_summary(name, tensor)
           tf.scalar_summary('learning_rate', tf.log(self.learning_rate))
+          tf.scalar_summary('reward', mean_reward)
           merged = tf.merge_all_summaries()
           
           self.optimizer = getattr(tf.train, optimizer + "Optimizer")(self.learning_rate)
@@ -123,7 +126,7 @@ class Model:
           self.run_dict = dict(summary=merged, global_step=self.global_step, train=self.train_op, old_logp=self.logprobs)
           
           print("Creating summary writer.")
-          self.writer = tf.train.SummaryWriter(path+'logs/', self.graph)
+          self.writer = tf.train.SummaryWriter('logs/' + name, self.graph)
       else:
         with tf.name_scope('policy'):
           self.input = ct.inputCType(ssbm.SimpleStateAction, [memory+1], "input")

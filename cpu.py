@@ -63,7 +63,6 @@ class CPU:
             self.dump_frame = 0
             self.dump_count = 0
 
-        self.reward_logfile = self.path + '/rewards.log'
         self.first_frame = True
         self.action_counter = 0
         self.toggle = False
@@ -174,12 +173,6 @@ class CPU:
             prepared = ssbm.prepareStateActions(self.dump_state_actions)
             
             self.socket.send_pyobj(prepared)
-
-            rewards = prepared['reward']
-
-            with open(self.reward_logfile, 'a') as f:
-                f.write(str(time.time()) + " " + str(sum(rewards) / len(rewards)) + "\n")
-                f.flush()
 
     def advance_frame(self):
         last_frame = self.state.frame
