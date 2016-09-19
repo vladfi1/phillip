@@ -61,7 +61,7 @@ import zmq
 context = zmq.Context()
 
 socket = context.socket(zmq.PULL)
-sock_addr = util.sockAddr(args.name)
+sock_addr = "tcp://ib0:%d" % util.port(args.name)
 print("Binding to " + sock_addr)
 socket.bind(sock_addr)
 

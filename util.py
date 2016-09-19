@@ -156,9 +156,8 @@ def hashString(s):
   s = s.encode()
   return hashlib.md5(s).hexdigest()
 
-def sockAddr(s):
-  port = 5536 + int(hashString(s), 16) % 60000
-  return "tcp://127.0.0.1:%d" % port
+def port(s):
+  return 5536 + int(hashString(s), 16) % 60000
 
 def makedirs(path):
   if not os.path.exists(path):

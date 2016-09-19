@@ -1,9 +1,14 @@
 import os
 import sys
+from argparse import ArgumentParser
 
-dry_run = '--dry-run' in sys.argv
-#local   = '--local' in sys.argv
-#detach  = '--detach' in sys.argv
+parser = ArgumentParser()
+
+parser.add_argument('--dry_run', action='store_true', help="don't start jobs")
+parser.add_argument('--init', action='store_true', help="initialize model")
+parser.add_argument('--trainer', type=str, help='trainer IP address')
+
+args = parser.parse_args()
 
 if not os.path.exists("slurm_logs"):
     os.makedirs("slurm_logs")
@@ -58,22 +63,24 @@ if model.count('DQN'):
   ]
   add_param('temperature', 0.002, ['agent'])
 elif model.count('ActorCritic'):
-  add_param('policy_scale', 0.05, ['train'], True)
-  add_param('entropy_scale', 0.0002, ['train'], True)
+  add_param('policy_scale', 5e-2, ['train'], True)
+  add_param('entropy_scale', 1e-3, ['train'], True)
+  add_param('target_kl', 5e-5, ['train'], True)
 
 for k, v in train_settings:
   add_param(k, v, ['train'], False)
 
 # agent settings
 
+add_param('dump', args.trainer, ['agent'], False)
 add_param('dolphin', True, ['agent'], False)
 
 # number of agents playing each matchup
-agents = 5
-add_param('agents', agents, [])
+agents = 9
+add_param('agents', agents, [], False)
 
 self_play = False
-self_play = 420
+self_play = 720
 add_param('self_play', self_play, ['agent'], False)
 
 add_param('experience_time', 10, both, False)
@@ -96,7 +103,7 @@ for c in characters:
   exp_name += '_' + c
 
 add_param('name', exp_name, both, False)
-#add_param('path', "saves/%s/" % exp_name, both, False)
+add_param('path', "saves/%s/" % exp_name, both, False)
 
 def slurm_script(name, command, cpus=2, mem=1000, gpu=False, log=True, qos=None, array=None):
   slurmfile = 'slurm_scripts/' + name + '.slurm'
@@ -122,39 +129,40 @@ def slurm_script(name, command, cpus=2, mem=1000, gpu=False, log=True, qos=None,
       f.write("#SBATCH --array=1-%d\n" % array)
     f.write(command)
 
-  if dry_run:
+  #command = "screen -S %s -dm srun --job-name %s --pty singularity exec -B $OM_USER/phillip -B $HOME/phillip/ -H ../home phillip.img gdb -ex r --args %s" % (name[:10], name, command)
+
+  if args.dry_run:
     print(command)
   else:
+    #os.system(command)
     os.system("sbatch " + slurmfile)
     #os.system("sbatch -N 1 -c 2 --mem=8000 --time=6-23:00:00 slurm_scripts/" + jobname + ".slurm &")
 
-init = False
-init = True
-
-if dry_run:
+if args.dry_run:
   print("NOT starting jobs:")
 else:
   print("Starting jobs:")
 
   # init model for the first time
-  if init:
+  if args.init:
     import RL
     model = RL.Model(mode=RL.Mode.TRAIN, gpu=False, **job_dicts['train'])
     model.init()
     model.save()
 
-train_name = "trainer_" + exp_name
-train_command = "python3 -u train.py" + job_flags['train']
+if args.trainer is None:
+  train_name = "trainer_" + exp_name
+  train_command = "python3 -u train.py" + job_flags['train']
 
-slurm_script(train_name, train_command, gpu=True, qos='tenenbaum', mem=4096)
+  slurm_script(train_name, train_command, gpu=True, qos='tenenbaum', mem=4096)
+else:
+  agent_count = 0
+  agent_command = "python3 -u run.py" + job_flags['agent']
+  for c1 in characters:
+    for c2 in characters:
+      command = agent_command + " --p1 %s --p2 %s" % (c1, c2)
 
-#sys.exit()
-
-agent_command = "python3 -u run.py" + job_flags['agent']
-for c1 in characters:
-  for c2 in characters:
-    command = agent_command + " --p1 %s --p2 %s" % (c1, c2)
-
-    agent_name = "agent_%s_%s_%s" % (c1, c2, exp_name)
-    slurm_script(agent_name, command, log=True, array=agents)
-
+      #for _ in range(agents):
+      agent_name = "agent_%d_%s" % (agent_count, exp_name)
+      slurm_script(agent_name, command, log=True, array=agents)
+      agent_count += 1

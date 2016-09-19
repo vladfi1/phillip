@@ -26,7 +26,7 @@ parser.add_argument("--name", type=str, help="sets path to saves/{name}")
 
 parser.add_argument("--tag", type=int, help="optional tag to mark experiences")
 
-parser.add_argument("--nodump", dest='dump', action="store_false", help="don't dump experiences to disk")
+parser.add_argument("--dump", type=str, help="ip address to send experiences to")
 
 parser.add_argument("--parallel", type=int, help="spawn parallel cpus and dolphins")
 

@@ -50,12 +50,10 @@ class CPU:
               print("ImportError: {0}".format(err))
               sys.exit("Either install pyzmq or run with the --nodump option")
             
-            self.dump_path = 'sockets/%d' % hash(self.path)
-            
             context = zmq.Context()
 
             self.socket = context.socket(zmq.PUSH)
-            self.sock_addr = util.sockAddr(self.name)
+            self.sock_addr = "tcp://172.16.24.%s:%d" % (self.dump, util.port(self.name))
             print("Connecting to " + self.sock_addr)
             self.socket.connect(self.sock_addr)
             
