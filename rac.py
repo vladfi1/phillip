@@ -4,14 +4,10 @@ import util
 from numpy import random
 
 class RecurrentActorCritic:
-  def __init__(self, state_size, action_size, global_step, rlConfig, epsilon=0.02, **kwargs):
+  def __init__(self, state_size, action_size, global_step, rlConfig, **kwargs):
     self.action_size = action_size
     self.layer_sizes = [128, 128]
     self.layers = []
-
-    with tf.name_scope('epsilon'):
-      #epsilon = tf.constant(0.02)
-      self.epsilon = epsilon# + 0.5 * tf.exp(-tf.cast(global_step, tf.float32) / 50000.0)
     
     prev_size = state_size
     cells = []
@@ -23,10 +19,7 @@ class RecurrentActorCritic:
     self.initial_state = tfl.bias_variable([self.rnn.state_size])
 
     with tf.variable_scope('actor'):
-      actor = tfl.makeAffineLayer(prev_size, action_size, tf.nn.softmax)
-      smooth = lambda probs: (1.0 - self.epsilon) * probs + self.epsilon / action_size
-      actor = util.compose(smooth, actor)
-      self.actor = actor
+      self.actor = tfl.makeAffineLayer(prev_size, action_size, tf.nn.log_softmax)
 
     with tf.variable_scope('critic'):
       v_out = tfl.makeAffineLayer(prev_size, 1)
@@ -49,7 +42,8 @@ class RecurrentActorCritic:
     outputs, hidden = tf.nn.dynamic_rnn(self.rnn, states, initial_state=initial_state)
 
     values = self.critic(outputs)
-    actor_probs = self.actor(outputs)
+    log_actor_probs = self.actor(outputs)
+    actor_probs = tf.exp(log_actor_probs)
     
     trainVs = tf.slice(values, [0, 0], [-1, train_length])
     #trainVs = values[:,:train_length]
@@ -65,7 +59,6 @@ class RecurrentActorCritic:
     advantages = targets - trainVs
     vLoss = tf.reduce_mean(tf.square(advantages))
 
-    log_actor_probs = tf.log(actor_probs)
     actor_entropy = -tf.reduce_mean(tfl.batch_dot(actor_probs, log_actor_probs))
     real_log_actor_probs = tfl.batch_dot(actions, log_actor_probs)
     train_log_actor_probs = tf.slice(real_log_actor_probs, [0, 0], [-1, train_length])
@@ -73,7 +66,7 @@ class RecurrentActorCritic:
 
     acLoss = vLoss - policy_scale * (actor_gain + entropy_scale * actor_entropy)
 
-    return acLoss, [('vLoss', vLoss), ('actor_gain', actor_gain), ('actor_entropy', actor_entropy)]
+    return acLoss, [('vLoss', vLoss), ('actor_gain', actor_gain), ('actor_entropy', actor_entropy)], log_actor_probs
 
   def getPolicy(self, state, **kwargs):
     state = tf.expand_dims(state, 0)
@@ -81,7 +74,7 @@ class RecurrentActorCritic:
     output, hidden = self.rnn(state, initial_state)
     output = tf.squeeze(output, [0])
     hidden = tf.squeeze(hidden, [0])
-    return self.actor(output), tf.assign(self.initial_state, hidden)
+    return tf.exp(self.actor(output)), tf.assign(self.initial_state, hidden)
 
   def act(self, policy, verbose=False):
     return random.choice(range(self.action_size), p=policy[0])
