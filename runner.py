@@ -49,7 +49,7 @@ add_param('epsilon', 0.02, both, False)
 
 train_settings = [
   ('optimizer', 'Adam'),
-  ('learning_rate', 0.001),
+  ('learning_rate', 0.0002),
   ('tdN', 5),
   ('iters', 1),
   ('batch_size', 10),
@@ -63,9 +63,9 @@ if model.count('DQN'):
   ]
   add_param('temperature', 0.002, ['agent'])
 elif model.count('ActorCritic'):
-  add_param('policy_scale', 5e-2, ['train'], True)
-  add_param('entropy_scale', 1e-3, ['train'], True)
-  add_param('target_kl', 5e-5, ['train'], True)
+  add_param('policy_scale', 0.02, ['train'], True)
+  add_param('entropy_scale', 1e-4, ['train'], True)
+  #add_param('target_kl', 5e-5, ['train'], True)
 
 for k, v in train_settings:
   add_param(k, v, ['train'], False)
@@ -80,7 +80,7 @@ agents = 9
 add_param('agents', agents, [], False)
 
 self_play = False
-self_play = 720
+self_play = 1200
 add_param('self_play', self_play, ['agent'], False)
 
 add_param('experience_time', 10, both, False)
