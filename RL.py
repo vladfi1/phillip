@@ -45,6 +45,7 @@ class Model:
     print("Creating model:", model)
     modelType = models[model]
     
+    self.name = name
     self.path = path
     
     self.graph = tf.Graph()
@@ -125,8 +126,8 @@ class Model:
           self.train_op = self.optimizer.apply_gradients(grads_and_vars, global_step=self.global_step)
           self.run_dict = dict(summary=merged, global_step=self.global_step, train=self.train_op, old_logp=self.logprobs)
           
-          print("Creating summary writer.")
-          self.writer = tf.train.SummaryWriter('logs/' + name, self.graph)
+          print("Creating summary writer at logs/%s." % self.name)
+          self.writer = tf.train.SummaryWriter('logs/' + self.name, self.graph)
       else:
         with tf.name_scope('policy'):
           self.input = ct.inputCType(ssbm.SimpleStateAction, [memory+1], "input")
