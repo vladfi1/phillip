@@ -237,12 +237,14 @@ class Model:
         min_rate = 1e-8
         max_rate = 1e0
         
+        policy_scale = self.model.policy_scale
+        
         if kl > target_kl * 2:
           print("kl too high")
-          self.sess.run(tf.assign(self.learning_rate, tf.maximum(min_rate, self.learning_rate / 1.5)))
+          self.sess.run(tf.assign(policy_scale, tf.maximum(min_rate, policy_scale / 1.5)))
         elif kl < target_kl / 2:
           print("kl too low")
-          self.sess.run(tf.assign(self.learning_rate, tf.minimum(max_rate, self.learning_rate * 1.5)))
+          self.sess.run(tf.assign(policy_scale, tf.minimum(max_rate, policy_scale * 1.5)))
         else:
           print("kl just right!")
       

@@ -14,7 +14,7 @@ parser.add_argument("--model", choices=RL.models.keys(), required=True, help="wh
 parser.add_argument("--sarsa", action="store_true", help="learn Q values for the current policy, not the optimal policy")
 
 parser.add_argument("--optimizer", type=str, default="GradientDescent", help="tf.train optimizer")
-parser.add_argument("--learning_rate", type=float, default=1e-4, help="optimizer learning rate")
+parser.add_argument("--learning_rate", type=float, default=1e-3, help="optimizer learning rate")
 parser.add_argument("--target_kl", type=float, help="target kl divergence for policy gradient methods")
 
 parser.add_argument("--nogpu", dest="gpu", action="store_false", help="don't train on gpu")

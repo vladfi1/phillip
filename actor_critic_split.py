@@ -61,10 +61,19 @@ class ActorCriticSplit:
     real_log_actor_probs = tfl.batch_dot(actions, log_actor_probs)
     train_log_actor_probs = tf.slice(real_log_actor_probs, [0, 0], [-1, train_length])
     actor_gain = tf.reduce_mean(tf.mul(train_log_actor_probs, tf.stop_gradient(advantages)))
+    
+    self.policy_scale = tf.Variable(policy_scale)
+    
+    acLoss = vLoss - self.policy_scale * (actor_gain + entropy_scale * actor_entropy)
+    
+    stats = [
+      ('vLoss', vLoss),
+      ('actor_gain', actor_gain),
+      ('actor_entropy', actor_entropy),
+      ('policy_scale', self.policy_scale)
+    ]
 
-    acLoss = vLoss - policy_scale * (actor_gain + entropy_scale * actor_entropy)
-
-    return acLoss, [('vLoss', vLoss), ('actor_gain', actor_gain), ('actor_entropy', actor_entropy)], log_actor_probs
+    return acLoss, stats, log_actor_probs
   
   def getPolicy(self, state, **kwargs):
     return tf.exp(self.actor(state))
