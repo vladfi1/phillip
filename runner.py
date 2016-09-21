@@ -65,12 +65,14 @@ if model.count('DQN'):
   ]
   add_param('temperature', 0.002, ['agent'])
 elif model.count('ActorCritic'):
-  add_param('policy_scale', 2e-3, ['train'], True)
-  add_param('entropy_scale', 2e-4, ['train'], True)
+  add_param('policy_scale', 2e-4, ['train'], True)
+  add_param('entropy_scale', 1e-4, ['train'], True)
   #add_param('target_kl', 5e-5, ['train'], True)
 
 for k, v in train_settings:
   add_param(k, v, ['train'], False)
+
+#add_param('action_space', 
 
 # agent settings
 
@@ -106,6 +108,12 @@ for c in characters:
 
 add_param('name', exp_name, both, False)
 add_param('path', "saves/%s/" % exp_name, both, False)
+
+if args.trainer:
+  dump = "172.16.24.%s" % args.trainer
+  add_param('dump', dump, ['agent'], False)
+else:
+  add_param('dump', "ib0", ['train'], False)
 
 def slurm_script(name, command, cpus=2, mem=1000, gpu=False, log=True, qos=None, array=None):
   slurmfile = 'slurm_scripts/' + name + '.slurm'
