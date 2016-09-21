@@ -47,12 +47,14 @@ add_param('model', model, both)
 #add_param('model', 'ActorCriticSplit', both)
 add_param('epsilon', 0.02, both, False)
 
+add_param('learning_rate', 0.0001, ['train'], True)
+
 train_settings = [
   ('optimizer', 'Adam'),
-  ('learning_rate', 0.0002),
+  #('learning_rate', 0.0002),
   ('tdN', 5),
-  ('iters', 1),
-  ('batch_size', 10),
+  ('iters', 2),
+  ('batch_size', 20),
   ('batch_steps', 1),
 ]
 
@@ -63,8 +65,8 @@ if model.count('DQN'):
   ]
   add_param('temperature', 0.002, ['agent'])
 elif model.count('ActorCritic'):
-  add_param('policy_scale', 0.02, ['train'], True)
-  add_param('entropy_scale', 1e-4, ['train'], True)
+  add_param('policy_scale', 2e-3, ['train'], True)
+  add_param('entropy_scale', 2e-4, ['train'], True)
   #add_param('target_kl', 5e-5, ['train'], True)
 
 for k, v in train_settings:
@@ -84,7 +86,7 @@ self_play = 1200
 add_param('self_play', self_play, ['agent'], False)
 
 add_param('experience_time', 10, both, False)
-add_param('act_every', 3, both)
+add_param('act_every', 3, both, False)
 add_param('delay', 0, ['agent'])
 add_param('memory', 0, both, False)
 
@@ -154,7 +156,7 @@ if args.trainer is None:
   train_name = "trainer_" + exp_name
   train_command = "python3 -u train.py" + job_flags['train']
 
-  slurm_script(train_name, train_command, gpu=True, qos='tenenbaum', mem=4096)
+  slurm_script(train_name, train_command, gpu=True, qos='tenenbaum', mem=16000)
 else:
   agent_count = 0
   agent_command = "python3 -u run.py" + job_flags['agent']
