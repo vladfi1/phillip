@@ -13,7 +13,7 @@ def log_sum_exp(xs):
   xs -= maxes
   return tf.squeeze(maxes, [-1]) + tf.log(tf.reduce_sum(tf.exp(xs), -1))
 
-def leaky_sofplus(alpha=0.01):
+def leaky_softplus(alpha=0.01):
   "Really just a special case of log_sum_exp."
   def f(x):
     ax = alpha * x

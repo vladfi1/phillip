@@ -78,7 +78,7 @@ class ArrayEmbedding(object):
 class FCEmbedding(object):
   def __init__(self, wrapper, size):
     self.wrapper = wrapper
-    self.fc = tfl.FCLayer(wrapper.size, size, nl=tfl.leaky_softplus)
+    self.fc = tfl.FCLayer(wrapper.size, size, nl=tfl.leaky_softplus())
     self.size = size
   
   def __call__(self, x):
