@@ -34,6 +34,8 @@ parser.add_argument("--batch_steps", type=int, default=1, help="number of gradie
 parser.add_argument("--epsilon", type=float, default=0.04, help="probability of random action")
 #parser.add_argument("--temperature", type=float, default=0.01, help="increases action randomness")
 
+parser.add_argument("--dump", type=str, default="127.0.0.1", help="interface to listen on for experience dumps")
+
 # duplicated?
 parser.add_argument("--act_every", type=int, default=3, help="only take actions every ACT_EVERY frames")
 parser.add_argument("--memory", type=int, default=0, help="how many frames to remember")
@@ -61,7 +63,7 @@ import zmq
 context = zmq.Context()
 
 socket = context.socket(zmq.PULL)
-sock_addr = "tcp://ib0:%d" % util.port(args.name)
+sock_addr = "tcp://%s:%d" % (args.dump, util.port(args.name))
 print("Binding to " + sock_addr)
 socket.bind(sock_addr)
 

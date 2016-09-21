@@ -53,7 +53,7 @@ class CPU:
             context = zmq.Context()
 
             self.socket = context.socket(zmq.PUSH)
-            self.sock_addr = "tcp://172.16.24.%s:%d" % (self.dump, util.port(self.name))
+            self.sock_addr = "tcp://%s:%d" % (self.dump, util.port(self.name))
             print("Connecting to " + self.sock_addr)
             self.socket.connect(self.sock_addr)
             
