@@ -78,7 +78,7 @@ class ArrayEmbedding(object):
 class FCEmbedding(object):
   def __init__(self, wrapper, size):
     self.wrapper = wrapper
-    self.fc = tfl.FCLayer(wrapper.size, size, nl=tfl.leaky_relu)
+    self.fc = tfl.FCLayer(wrapper.size, size, nl=tfl.leaky_softplus)
     self.size = size
   
   def __call__(self, x):
@@ -118,7 +118,7 @@ maxCharacter = 32 # should be large enough?
 maxJumps = 8 # unused
 
 class PlayerEmbedding(StructEmbedding):
-  def __init__(self, action_space=32, **kwargs):
+  def __init__(self, action_space=64, **kwargs):
     embedAction = OneHotEmbedding(numActions)
     if action_space:
       embedAction = FCEmbedding(embedAction, action_space)

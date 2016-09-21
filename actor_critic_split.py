@@ -16,7 +16,7 @@ class ActorCriticSplit:
     for i, next_size in enumerate(self.layer_sizes):
       for net in ['actor', 'critic']:
         with tf.variable_scope("%s/layer_%d" % (net, i)):
-          getattr(self, net).append(tfl.makeAffineLayer(prev_size, next_size, tfl.leaky_relu))
+          getattr(self, net).append(tfl.makeAffineLayer(prev_size, next_size, tfl.leaky_softplus))
       prev_size = next_size
 
     with tf.variable_scope('actor'):
