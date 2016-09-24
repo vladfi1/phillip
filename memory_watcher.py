@@ -1,8 +1,9 @@
 import binascii
-import util
+import zmq
 import os
-import sys
 import socket
+
+from gym.envs.dolphin import util
 
 def parseMessage(message):
   lines = message.splitlines()
@@ -16,12 +17,6 @@ def parseMessage(message):
 
 class MemoryWatcherZMQ:
   def __init__(self, path):
-    try:
-      import zmq
-    except ImportError as err:
-      print("ImportError: {0}".format(err))
-      sys.exit("Either install pyzmq or run with the --nozmq option")
-
     context = zmq.Context()
 
     self.socket = context.socket(zmq.REP)

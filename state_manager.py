@@ -1,7 +1,6 @@
 import struct
 import attr
-import ssbm
-import fields
+from gym.envs.dolphin import ssbm, fields
 
 def generic_wrapper(value, wrapper, default):
     if wrapper is not None:
@@ -18,7 +17,7 @@ short_mask = 0xFFFF
 int_mask = 0xFFFFFFFF
 
 @attr.s
-class IntHandler(object):
+class IntHandler:
     shift = attr.ib(default=0)
     mask = attr.ib(default=int_mask)
     wrapper = attr.ib(default=None)
@@ -35,7 +34,7 @@ shortHandler = IntHandler(shift=16, mask=short_mask)
 floatStruct = struct.Struct('>f')
 
 @attr.s
-class FloatHandler(object):
+class FloatHandler:
     wrapper = attr.ib(default=None)
     default = attr.ib(default=0.0)
 
@@ -46,7 +45,7 @@ class FloatHandler(object):
 floatHandler = FloatHandler()
 
 @attr.s
-class Handler(object):
+class Handler:
     path = attr.ib()
     handler = attr.ib()
 
@@ -189,7 +188,7 @@ def playerAddresses(player_id, addresses=None):
 
     return addresses
 
-class StateManager(object):
+class StateManager:
     def __init__(self, player_ids=range(4)):
         self.addresses = global_addresses.copy()
 

@@ -1,12 +1,7 @@
 from ctypes import *
-from ctype_util import *
+from gym.envs.dolphin.ctype_util import *
 from enum import IntEnum
-import struct
-import tempfile
 import os
-#import h5py
-import pickle
-from reward import computeRewards
 import numpy as np
 import itertools
 
@@ -180,70 +175,3 @@ class SimpleStateAction(Structure):
     ('prev_action', c_uint),
     ('action', c_uint),
   ]
-
-intStruct = struct.Struct('i')
-
-def readInt(f):
-  return intStruct.unpack(f.read(4))[0]
-
-def writeStateActions(filename, state_actions):
-  with tempfile.NamedTemporaryFile(dir=os.path.dirname(filename), delete=False) as tf:
-    tf.write(intStruct.pack(len(state_actions)))
-    tf.write(state_actions)
-    tempname = tf.name
-  os.rename(tempname, filename)
-
-def readStateActions(filename):
-  with open(filename, 'rb') as f:
-    size = readInt(f)
-    state_actions = (size * SimpleStateAction)()
-    f.readinto(state_actions)
-
-    if len(f.read()) > 0:
-      raise Exception(filename + " too long!")
-
-    return state_actions
-
-# prepares an experience for pickling
-def prepareStateActions(state_actions):
-  vectorized = vectorizeCTypes(SimpleStateAction, state_actions)
-  
-  #import ipdb; ipdb.set_trace()
-  
-  states = vectorized['state']
-
-  rewards = computeRewards(state_actions)
-  
-  vectorized['reward'] = rewards
-  
-  return vectorized
-  
-def writeStateActions_pickle(filename, state_actions):
-  with tempfile.NamedTemporaryFile(dir=os.path.dirname(filename), delete=False) as tf:
-    prepared = prepareStateActions(state_actions)
-    pickle.dump(prepared, tf)
-    tempname = tf.name
-  os.rename(tempname, filename)
-
-def readStateActions_pickle(filename):
-  with open(filename, 'rb') as f:
-    return pickle.load(f)
-
-# TODO: replace pickle with hdf5
-def writeStateActions_HDF5(filename, state_actions):
-  with tempfile.NamedTemporaryFile(dir=os.path.dirname(filename), delete=False) as tf:
-    tf.write(intStruct.pack(len(state_actions)))
-    tf.write(state_actions)
-    tempname = tf.name
-  os.rename(tempname, filename)
-
-def readStateActions_HDF5(filename):
-  with open(filename, 'rb') as f:
-    size = readInt(f)
-    state_actions = (size * SimpleStateAction)()
-    f.readinto(state_actions)
-
-    if len(f.read()) > 0:
-      raise Exception(filename + " too long!")
-
-    return state_actions
