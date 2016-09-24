@@ -1,4 +1,4 @@
-from gym.envs.dolphin.pad import *
+from .pad import *
 
 def pushButton(button):
   return lambda pad: pad.press_button(button)

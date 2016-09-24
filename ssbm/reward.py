@@ -1,5 +1,5 @@
 import numpy as np
-from gym.envs.dolphin import util
+from . import util
 
 # see https://docs.google.com/spreadsheets/d/1JX2w-r2fuvWuNgGb6D3Cs4wHQKLFegZe2jhbBuIhCG8/edit#gid=13
 dyingActions = set(range(0xA))

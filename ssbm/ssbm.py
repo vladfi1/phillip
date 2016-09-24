@@ -1,5 +1,5 @@
 from ctypes import *
-from gym.envs.dolphin.ctype_util import *
+from .ctype_util import *
 from enum import IntEnum
 import os
 import numpy as np

@@ -1,6 +1,6 @@
 import math
 
-from gym.envs.dolphin.pad import *
+from .pad import *
 
 characters = dict(
   fox = (-23.5, 11.5),

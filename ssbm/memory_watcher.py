@@ -3,7 +3,7 @@ import zmq
 import os
 import socket
 
-from gym.envs.dolphin import util
+from . import util
 
 def parseMessage(message):
   lines = message.splitlines()

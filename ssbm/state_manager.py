@@ -1,6 +1,6 @@
 import struct
 import attr
-from gym.envs.dolphin import ssbm, fields
+from . import ssbm, fields
 
 def generic_wrapper(value, wrapper, default):
     if wrapper is not None:
