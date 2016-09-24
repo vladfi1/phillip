@@ -234,17 +234,12 @@ class Model:
         
         kl = np.mean(np.sum((np.exp(new_logp) - np.exp(old_logp)) * (new_logp - old_logp), -1))
         
-        min_rate = 1e-8
-        max_rate = 1e0
-        
-        policy_scale = self.model.policy_scale
-        
         if kl > target_kl * 2:
           print("kl too high")
-          self.sess.run(tf.assign(policy_scale, tf.maximum(min_rate, policy_scale / 1.5)))
+          self.sess.run(self.model.decrease_policy_scale)
         elif kl < target_kl / 2:
           print("kl too low")
-          self.sess.run(tf.assign(policy_scale, tf.minimum(max_rate, policy_scale * 1.5)))
+          self.sess.run(self.model.increase_policy_scale)
         else:
           print("kl just right!")
       

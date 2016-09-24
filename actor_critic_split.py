@@ -64,13 +64,19 @@ class ActorCriticSplit:
     
     self.policy_scale = tf.Variable(policy_scale)
     
+    min_rate = 1e-8
+    max_rate = 1e2
+    
+    self.decrease_policy_scale = tf.assign(self.policy_scale, tf.maximum(min_rate, self.policy_scale / 1.5))
+    self.increase_policy_scale = tf.assign(self.policy_scale, tf.minimum(max_rate, self.policy_scale * 1.5))
+    
     acLoss = vLoss - self.policy_scale * (actor_gain + entropy_scale * actor_entropy)
     
     stats = [
       ('vLoss', vLoss),
       ('actor_gain', actor_gain),
       ('actor_entropy', actor_entropy),
-      ('policy_scale', self.policy_scale)
+      ('policy_scale', tf.log(self.policy_scale))
     ]
 
     return acLoss, stats, log_actor_probs
