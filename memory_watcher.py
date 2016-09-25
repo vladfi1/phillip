@@ -1,5 +1,4 @@
 import binascii
-import zmq
 import util
 import os
 import socket
@@ -16,6 +15,7 @@ def parseMessage(message):
 
 class MemoryWatcherZMQ:
   def __init__(self, path):
+    import zmq
     context = zmq.Context()
 
     self.socket = context.socket(zmq.REP)
