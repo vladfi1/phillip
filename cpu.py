@@ -28,8 +28,8 @@ default_args = dict(
     experience_time=60,
     zmq=False,
     p1="marth",
-    p2="zelda",
-    stage="battlefield",
+    p2="fox",
+    stage="final_destination",
 )
 
 class CPU:
@@ -107,7 +107,7 @@ class CPU:
         self.init_stats()
         
         # sets the game mode and random stage
-        self.movie = movie.Movie(movie.endless_netplay_battlefield)
+        self.movie = movie.Movie(movie.endless_netplay + movie.stages['self.stage'])
 
     def run(self, frames=None, dolphin_process=None):
         try:
