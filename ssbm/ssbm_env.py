@@ -100,14 +100,14 @@ maxCharacter = 32 # should be large enough?
 maxAction = 0x017E
 numActions = 1 + maxAction
 
-frameConv = RealConv(0, 100, 'frame')
+frameConv = RealConv(0, 300, 'frame')
 speedConv = RealConv(-20, 20, 'speed') # generally less than 1 in magnitude
 
 player_spec = [
   ('percent', RealConv(0, 200)),
   ('facing', RealConv(-1, 1)),
-  ('x', RealConv(-200, 200)),
-  ('y', RealConv(-200, 200)),
+  ('x', RealConv(-250, 250)),
+  ('y', RealConv(-200, 250)),
   ('action_state', DiscreteConv(numActions)),
   ('action_frame', frameConv),
   ('character', DiscreteConv(maxCharacter)),
@@ -145,11 +145,12 @@ gameConv1 = StructConv(gameSpec(swap=True))
 default_args = dict(
   tag=None,
   dolphin_dir = 'dolphin/',
-  self_play = True,
+  enemy = "agent",
+  agent = None,
   zmq=True,
   p1="marth",
   p2="fox",
-  stage="battlefield",
+  stage="final_destination",
   iso="SSBM.iso",
 )
 
@@ -160,7 +161,7 @@ class SmashEnv(gym.Env):
           setattr(self, k, kwargs[k])
       else:
           setattr(self, k, v)
-                
+    
     self.observation_space = gameConv.space
     self.action_space = controller_space
     self.realController = realController
@@ -180,11 +181,15 @@ class SmashEnv(gym.Env):
     self.sm = state_manager.StateManager([0, 1])
     self.write_locations()
     
-    self.cpus = [0, 1]# if self.self_play else [0]
-    self.characters = [self.p1, self.p2] if self.self_play else [self.p1]
+    if self.enemy == "human":
+      self.cpus = [0]
+      self.characters = [self.p1]
+    else:
+      self.cpus = [0, 1]
+      self.characters = [self.p1, self.p2]
 
     # sets the game mode and random stage
-    self.movie = movie.Movie(movie.endless_netplay_battlefield)
+    self.movie = movie.Movie(movie.endless_netplay + movie.stages[self.stage])
 
     print('Creating MemoryWatcher.')
     mwType = memory_watcher.MemoryWatcher
@@ -286,6 +291,10 @@ class SmashEnv(gym.Env):
     assert self.action_space.contains(action), "%r (%s) invalid" % (action, type(action))
     
     self.pads[0].send_controller(self.realController(action))
+    
+    if self.enemy == "agent" and self.agent:
+      enemy_action, _info = self.agent.act(gameConv1(self.state))
+      self.pads[1].send_controller(self.realController(enemy_action))
     
     self.mw.advance()
     self.update_state()
