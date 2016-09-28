@@ -5,6 +5,7 @@ from argparse import ArgumentParser
 from multiprocessing import Process
 import random
 import menu_manager
+from movie import stages
 
 parser = ArgumentParser()
 
@@ -41,6 +42,8 @@ parser.add_argument("--experience_time", type=int, default=60, help="length of e
 
 for i in [1, 2]:
   parser.add_argument("--p%d" % i, choices=menu_manager.characters.keys(), help="character for player %d" % i)
+
+parser.add_argument("--stage", choices=stages.keys(), help="stage to play on")
 
 # some duplication going on here...
 parser.add_argument("--dolphin", action="store_true", help="run dolphin")

@@ -107,7 +107,7 @@ class CPU:
         self.init_stats()
         
         # sets the game mode and random stage
-        self.movie = movie.Movie(movie.endless_netplay + movie.stages['self.stage'])
+        self.movie = movie.Movie(movie.endless_netplay + movie.stages[self.stage])
 
     def run(self, frames=None, dolphin_process=None):
         try:
