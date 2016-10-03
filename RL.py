@@ -15,12 +15,21 @@ from operator import add, sub
 from enum import Enum
 from reward import computeRewards
 from rac import RecurrentActorCritic
+from nac import NaturalActorCritic
 
 class Mode(Enum):
   TRAIN = 0
   PLAY = 1
 
-models = {model.__name__ : model for model in [DQN, ActorCritic, ActorCriticSplit, ThompsonDQN, RecurrentActorCritic]}
+models = [
+  DQN,
+  ActorCritic,
+  ActorCriticSplit,
+  ThompsonDQN,
+  RecurrentActorCritic,
+  NaturalActorCritic
+]
+models = {model.__name__ : model for model in models}
 
 class RLConfig:
   def __init__(self, tdN=5, reward_halflife = 2.0, act_every=3, experience_time=60, **kwargs):
@@ -104,27 +113,18 @@ class Model:
           loss, stats = self.model.getLoss(*loaded_data, **kwargs)
           """
           
-          loss, stats, self.logprobs = self.model.getLoss(self.train_states, self.train_actions, self.train_rewards, **kwargs)
-          
-          self.learning_rate = tf.Variable(learning_rate)
+          self.train_op, stats = self.model.train(self.train_states, self.train_actions, self.train_rewards)
 
-          tf.scalar_summary("loss", loss)
+          #tf.scalar_summary("loss", loss)
           for name, tensor in stats:
             if tensor.dtype is tf.bool:
               tensor = tf.cast(tensor, tf.uint8)
             tf.scalar_summary(name, tensor)
-          tf.scalar_summary('learning_rate', tf.log(self.learning_rate))
+          #tf.scalar_summary('learning_rate', tf.log(self.learning_rate))
           tf.scalar_summary('reward', mean_reward)
           merged = tf.merge_all_summaries()
           
-          self.optimizer = getattr(tf.train, optimizer + "Optimizer")(self.learning_rate)
-          # train_q = opt.minimize(qLoss, global_step=global_step)
-          # opt = tf.train.GradientDescentOptimizer(0.0)
-          #grads_and_vars = opt.compute_gradients(qLoss)
-          grads_and_vars = self.optimizer.compute_gradients(loss)
-          self.grads_and_vars = [(g, v) for g, v in grads_and_vars if g is not None]
-          self.train_op = self.optimizer.apply_gradients(grads_and_vars, global_step=self.global_step)
-          self.run_dict = dict(summary=merged, global_step=self.global_step, train=self.train_op, old_logp=self.logprobs)
+          self.run_dict = dict(summary=merged, global_step=self.global_step, train=self.train_op)
           
           print("Creating summary writer at logs/%s." % self.name)
           self.writer = tf.train.SummaryWriter('logs/' + self.name, self.graph)
@@ -206,7 +206,7 @@ class Model:
     # if step_index == 10:
     import ipdb; ipdb.set_trace()
 
-  def train(self, experiences, batch_steps=1, target_kl=None, **kwargs):
+  def train(self, experiences, batch_steps=1, **kwargs):
     #state_actions = ssbm.readStateActions(filename)
     #feed_dict = feedStateActions(state_actions)
     #experiences = util.async_map(ssbm.readStateActions_pickle, filenames)()
@@ -226,22 +226,7 @@ class Model:
       self.debugGrads(input_dict)
     
     for _ in range(batch_steps):
-      results = tfl.run(self.sess, self.run_dict, input_dict)
-      
-      if target_kl is not None:
-        old_logp = results['old_logp']
-        new_logp = self.sess.run(self.logprobs, input_dict)
-        
-        kl = np.mean(np.sum((np.exp(new_logp) - np.exp(old_logp)) * (new_logp - old_logp), -1))
-        
-        if kl > target_kl * 2:
-          print("kl too high")
-          self.sess.run(self.model.decrease_policy_scale)
-        elif kl < target_kl / 2:
-          print("kl too low")
-          self.sess.run(self.model.increase_policy_scale)
-        else:
-          print("kl just right!")
+      results = self.sess.run(self.run_dict, input_dict)
       
       summary_str = results['summary']
       global_step = results['global_step']

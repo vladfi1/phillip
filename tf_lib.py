@@ -3,7 +3,7 @@ import tensorflow as tf
 import ctypes
 import math
 import itertools
-import util
+#import util
 
 def leaky_relu(x, alpha=0.01):
   return tf.maximum(alpha * x, x)
@@ -24,7 +24,13 @@ def leaky_softplus(alpha=0.01):
 def batch_dot(xs, ys):
   return tf.reduce_sum(tf.mul(xs, ys), -1)
 
-def weight_variable(shape):
+def sym_kl(logp, logq):
+  return 0.5 * batch_dot(tf.exp(logp) - tf.exp(logq), logp - logq)
+
+def kl(logp, logq):
+  return batch_dot(tf.exp(logp), logp - logq)
+
+def scaled_weight_variable(shape):
     '''
     Generates a TensorFlow Tensor. This Tensor gets initialized with values sampled from the truncated normal
     distribution. Its purpose will be to store model parameters.
@@ -41,6 +47,13 @@ def weight_variable(shape):
     
     return scale * w
     
+def weight_variable(shape):
+    initial = tf.truncated_normal(shape, stddev=1.0)
+    
+    norms = tf.sqrt(tf.reduce_sum(tf.square(initial), list(range(len(shape)-1))))
+    initial /= norms
+    
+    return tf.Variable(initial, name='weight')
 
 def bias_variable(shape):
     '''
@@ -49,9 +62,7 @@ def bias_variable(shape):
     :param shape: The dimensions of the desired Tensor
     :return: The initialized Tensor
     '''
-    size = 1.0 / math.sqrt(util.product(shape))
-    initial = tf.random_uniform(shape, -size, size)
-    return tf.Variable(initial, name='bias')
+    return tf.Variable(0.1, name='bias')
 
 def conv2d(x, W):
     '''
@@ -165,7 +176,7 @@ class FCLayer:
   
   def __call__(self, x):
     return matmul2(x, self.weight, self.bias, self.nl)
-  
+    
   def clone(self):
     return FCLayer(clone=self)
   
