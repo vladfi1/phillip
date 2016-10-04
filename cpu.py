@@ -162,7 +162,7 @@ class CPU(Default):
             if self.dump_count == 1:
                 return # FIXME
             
-            print("Dumping")
+            print("Dumping", self.dump_count)
             
             prepared = ssbm.prepareStateActions(self.dump_state_actions)
             
@@ -184,7 +184,7 @@ class CPU(Default):
             self.make_action()
             self.thinking_time += time.time() - start
 
-            if self.state.frame % (15 * self.rlConfig.fps) == 0:
+            if self.state.frame % (15 * 60) == 0:
                 self.print_stats()
         
         self.mw.advance()

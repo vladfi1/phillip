@@ -55,9 +55,9 @@ def sweep():
     
     model.train(experiences, **args.__dict__)
   
+  model.save()
   total_time = time.time() - start_time
   print("time, experiences", total_time, args.iters * args.batch_size)
-  model.save()
   # import pdb; pdb.set_trace()
 
 while True:
