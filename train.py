@@ -44,7 +44,9 @@ socket.bind(sock_addr)
 
 import numpy as np
 
-def sweep():
+sweeps = 0
+
+while True:
   start_time = time.time()
   
   for _ in range(args.iters):
@@ -56,10 +58,8 @@ def sweep():
     model.train(experiences, **args.__dict__)
   
   model.save()
+  sweeps += 1
   total_time = time.time() - start_time
-  print("time, experiences", total_time, args.iters * args.batch_size)
-  # import pdb; pdb.set_trace()
-
-while True:
-  sweep()
+  
+  print(sweeps, total_time, args.iters * args.batch_size)
 
