@@ -14,34 +14,29 @@ import RL
 from numpy import random
 from reward import computeRewards
 import movie
+from default import *
 
-default_args = dict(
-    name=None,
-    path=None,
-    tag=None,
-    dump = True,
-    # TODO This might not always be accurate.
-    dolphin_dir = '~/.local/share/dolphin-emu/',
-    self_play = None,
-    model="DQN",
-    act_every=5,
-    experience_time=60,
-    zmq=False,
-    p1="marth",
-    p2="fox",
-    stage="final_destination",
-)
-
-class CPU:
+class CPU(Default):
+    options = [
+      Option('tag', type=int),
+      Option('dump', type=str, default=None, help="dump experiences to ip address via zmq"),
+      Option('user', type=str, help="dolphin user directory"),
+      Option('self_play', type=int, default=None, help="play against a copy that updates SELF_PLAY times slower"),
+      Option('zmq', type=bool, default=True, help="use zmq for memory watcher"),
+      Option('stage', type=str, default="final_destination", choices=movie.stages.keys(), help="which stage to play on")
+      #Option('p1', type=str, choices=characters.keys(), default="marth" help="character for player one"),
+      #Option('p2', type=str, choices=characters.keys(), default="fox" help="character for player two"),
+    ] + [Option('p%d' % i, type=str, choices=characters.keys(), default="falcon", help="character for player %d" % i) for i in [1, 2]]
+    
+    members = [
+      ('agent', agent.Agent)
+    ]
+    
     def __init__(self, **kwargs):
-        for k, v in default_args.items():
-            if k in kwargs and kwargs[k] is not None:
-                setattr(self, k, kwargs[k])
-            else:
-                setattr(self, k, v)
-
-        self.fps = 60 // self.act_every
-        self.experience_length = self.experience_time * self.fps
+        Default.__init__(self, **kwargs)
+        
+        self.model = self.agent.model
+        self.rlConfig = self.model.rlConfig
         
         if self.dump:
             try:
@@ -53,11 +48,11 @@ class CPU:
             context = zmq.Context()
 
             self.socket = context.socket(zmq.PUSH)
-            self.sock_addr = "tcp://%s:%d" % (self.dump, util.port(self.name))
+            self.sock_addr = "tcp://%s:%d" % (self.dump, util.port(self.model.name))
             print("Connecting to " + self.sock_addr)
             self.socket.connect(self.sock_addr)
             
-            self.dump_size = self.experience_length
+            self.dump_size = self.rlConfig.experience_length
             self.dump_state_actions = (self.dump_size * ssbm.SimpleStateAction)()
   
             self.dump_frame = 0
@@ -67,25 +62,24 @@ class CPU:
         self.action_counter = 0
         self.toggle = False
 
-        self.dolphin_dir = os.path.expanduser(self.dolphin_dir)
+        self.user = os.path.expanduser(self.user)
 
         self.state = ssbm.GameMemory()
         # track players 1 and 2 (pids 0 and 1)
         self.sm = state_manager.StateManager([0, 1])
-        self.write_locations(self.dolphin_dir)
+        self.write_locations()
 
-        self.fox = fox.Fox()
         if self.tag is not None:
             random.seed(self.tag)
         
         self.cpus = [0, 1] if self.self_play else [1]
         self.agents = []
 
-        reload_every = self.experience_length
+        reload_every = self.rlConfig.experience_length
+        self.agent.reload_every = reload_every
         if self.self_play:
             self.enemy = agent.Agent(reload_every=self.self_play*reload_every, swap=True, **kwargs)
             self.agents.append(self.enemy)
-        self.agent = agent.Agent(reload_every=reload_every, **kwargs)
         self.agents.append(self.agent)
         
         self.characters = [self.p1, self.p2] if self.self_play else [self.p2]
@@ -95,11 +89,11 @@ class CPU:
         mwType = memory_watcher.MemoryWatcher
         if self.zmq:
           mwType = memory_watcher.MemoryWatcherZMQ
-        self.mw = mwType(self.dolphin_dir + '/MemoryWatcher/MemoryWatcher')
+        self.mw = mwType(self.user + '/MemoryWatcher/MemoryWatcher')
         
-        pipe_dir = self.dolphin_dir + '/Pipes/'
+        pipe_dir = self.user + '/Pipes/'
         print('Creating Pads at %s. Open dolphin now.' % pipe_dir)
-        util.makedirs(self.dolphin_dir + '/Pipes/')
+        util.makedirs(self.user + '/Pipes/')
         
         paths = [pipe_dir + 'phillip%d' % i for i in self.cpus]
         self.get_pads = util.async_map(Pad, paths)
@@ -146,8 +140,8 @@ class CPU:
         print('Fraction Skipped: {:.6f}'.format(frac_skipped))
         print('Average Thinking Time (ms): {:.6f}'.format(frac_thinking))
 
-    def write_locations(self, dolphin_dir):
-        path = dolphin_dir + '/MemoryWatcher/'
+    def write_locations(self):
+        path = self.user + '/MemoryWatcher/'
         util.makedirs(path)
         print('Writing locations to:', path)
         with open(path + 'Locations.txt', 'w') as f:
@@ -190,7 +184,7 @@ class CPU:
             self.make_action()
             self.thinking_time += time.time() - start
 
-            if self.state.frame % (15 * self.fps) == 0:
+            if self.state.frame % (15 * self.rlConfig.fps) == 0:
                 self.print_stats()
         
         self.mw.advance()
@@ -212,7 +206,7 @@ class CPU:
         # menu = Menu(self.state.menu)
         # print(menu)
         if self.state.menu == Menu.Game.value:
-            if self.action_counter % self.act_every == 0:
+            if self.action_counter % self.rlConfig.act_every == 0:
                 for agent, pad in zip(self.agents, self.pads):
                     agent.act(self.state, pad)
                 if self.dump:

@@ -3,16 +3,19 @@ import tf_lib as tfl
 import util
 from numpy import random
 import natgrad
-from default import Default
+from default import *
 
 class NaturalActorCritic(Default):
   options = [
-    ('actor_layers', [128, 128]),
-    ('critic_layers', [128, 128]),
-    ('entropy_scale', 0.001),
-    ('policy_scale', 0.1),
-    ('learning_rate', 0.0005),
-    #('target_distance', 1e-5),
+    Option('actor_layers', type=int, nargs='+', default=[128, 128]),
+    Option('critic_layers', type=int, nargs='+', default=[128, 128]),
+    Option('entropy_scale', type=float, default=0.001),
+    Option('policy_scale', type=float, default=0.1),
+    Option('learning_rate', type=float, default=0.0005),
+  ]
+  
+  members = [
+    ('natgrad', natgrad.NaturalGradient)
   ]
   
   def __init__(self, state_size, action_size, global_step, rlConfig, **kwargs):
@@ -74,7 +77,7 @@ class NaturalActorCritic(Default):
     actor_gain = tf.reduce_mean(tf.mul(train_log_actor_probs, tf.stop_gradient(advantages)))
     
     acLoss = vLoss - self.policy_scale * (actor_gain + self.entropy_scale * actor_entropy)
-    acLoss *= self.learning_rate
+    acLoss *= -self.learning_rate
     
     params = tf.trainable_variables()
     pg = tf.gradients(acLoss, params)
@@ -89,7 +92,7 @@ class NaturalActorCritic(Default):
       pDist = tf.reduce_mean(tfl.kl(p1, p2))
       return vDist + self.policy_scale * pDist
     
-    ng = natgrad.natural_gradients(params, pg, predictions, metric)
+    ng = self.natgrad(params, pg, predictions, metric)
     
     train_op = tf.group(*[tf.assign_add(p, g) for p, g in zip(params, ng)])
     
@@ -99,8 +102,11 @@ class NaturalActorCritic(Default):
       ('actor_entropy', actor_entropy),
       #('policy_scale', tf.log(self.policy_scale))
     ]
+    
+    for name, tensor in stats:
+      tf.scalar_summary(name, tensor)
 
-    return train_op, stats
+    return train_op
   
   def getPolicy(self, state, **kwargs):
     return tf.exp(self.actor(state))

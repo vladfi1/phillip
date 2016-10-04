@@ -24,6 +24,9 @@ def leaky_softplus(alpha=0.01):
 def batch_dot(xs, ys):
   return tf.reduce_sum(tf.mul(xs, ys), -1)
 
+def dot(x, y):
+  return tf.reduce_sum(x * y)
+
 def sym_kl(logp, logq):
   return 0.5 * batch_dot(tf.exp(logp) - tf.exp(logq), logp - logq)
 

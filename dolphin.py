@@ -44,97 +44,92 @@ with open('Dolphin.ini', 'r') as f:
 import shutil
 import os
 import util
+from default import *
 
-def setupUser(user,
-  gfx="Null",
-  cpu_thread=False,
-  cpus=[1],
-  dump_frames=False,
-  audio="No audio backend",
-  speed=0,
-  **unused):
-  configDir = user + 'Config/'
-  util.makedirs(configDir)
-
-  with open(configDir + 'GCPadNew.ini', 'w') as f:
-    f.write(generateGCPadNew(cpus))
-
-  with open(configDir + 'Dolphin.ini', 'w') as f:
-    config_args = dict(
-      user=user,
-      gfx=gfx,
-      cpu_thread=cpu_thread,
-      dump_frames=dump_frames,
-      audio=audio,
-      speed=speed
-    )
-    print("dump_frames", dump_frames)
-    f.write(dolphinConfig.format(**config_args))
-
-  # don't need memory card with netplay
-  #gcDir = user + 'GC/'
-  #os.makedirs(gcDir, exist_ok=True)
-  #memcardName = 'MemoryCardA.USA.raw'
-  #shutil.copyfile(memcardName, gcDir + memcardName)
+class SetupUser(Default):
+  options = [
+    Option('gfx', type=str, default="Null", help="graphics backend"),
+    Option('cpu_thread', type=bool, default=True, help="Use separate gpu and cpu threads."),
+    Option('cpus', type=int, nargs='+', default=[1], help="Which players are cpu-controlled."),
+    Option('audio', type=str, default="No audio backend", help="audio backend"),
+    Option('speed', type=int, default=0, help='framerate - 100=normal, 0=unlimited'),
+    Option('dump_frames', type=bool, default=False, help="dump frames from dolphin to disk"),
+  ]
   
-  gameSettings = "GameSettings/"
-  shutil.copytree(gameSettings, user + gameSettings)
+  def __call__(self, user):
+    configDir = user + 'Config/'
+    util.makedirs(configDir)
+
+    with open(configDir + 'GCPadNew.ini', 'w') as f:
+      f.write(generateGCPadNew(self.cpus))
+
+    with open(configDir + 'Dolphin.ini', 'w') as f:
+      config_args = dict(
+        user=user,
+        gfx=self.gfx,
+        cpu_thread=self.cpu_thread,
+        dump_frames=self.dump_frames,
+        audio=self.audio,
+        speed=self.speed
+      )
+      f.write(dolphinConfig.format(**config_args))
+
+    # don't need memory card with netplay
+    #gcDir = user + 'GC/'
+    #os.makedirs(gcDir, exist_ok=True)
+    #memcardName = 'MemoryCardA.USA.raw'
+    #shutil.copyfile(memcardName, gcDir + memcardName)
+    
+    gameSettings = "GameSettings/"
+    shutil.copytree(gameSettings, user + gameSettings)
 
 import subprocess
 
-def runDolphin(
-  exe='dolphin-emu-nogui',
-  user='dolphin-test/',
-  iso="SSBM.iso",
-  movie=None,
-  setup=True,
-  self_play=False,
-  gui=False,
-  mute=False,
-  **kwargs):
+class DolphinRunner(Default):
+  options = [
+    Option('exe', type=str, default='dolphin-emu-headless', help="dolphin executable"),
+    Option('user', type=str, help="path to dolphin user directory"),
+    Option('iso', type=str, default="SSBM.iso", help="path to SSBM iso"),
+    Option('movie', type=str, help="path to dolphin movie file to play at startup"),
+    Option('setup', type=bool, default=True, help="setup custom dolphin directory"),
+    Option('self_play', type=bool, default=False, help="sets player 1 as a cpu in addition to player 2"),
+    Option('gui', action="store_true", default=False, help="run with graphics and sound at normal speed"),
+    Option('mute', action="store_true", default=False, help="mute game audio"),
+  ]
   
-  if gui:
-    exe = 'dolphin-emu-nogui'
-    kwargs.update(
-      speed = 1,
-      gfx = 'OGL',
-    )
+  members = [
+    ('setupUser', SetupUser)
+  ]
+  
+  def __init__(self, **kwargs):
+    Default.__init__(self, init_members=False, **kwargs)
     
-    if mute:
-      kwargs.update(audio = 'No audio backend')
-    else:
-      kwargs.update(audio = 'ALSA')
+    if self.user is None:
+      self.user = 'dolphin-test/'
+    
+    if self.gui:
+      self.exe = 'dolphin-emu-nogui'
+      kwargs.update(
+        speed = 1,
+        gfx = 'OGL',
+      )
+      
+      if self.mute:
+        kwargs.update(audio = 'No audio backend')
+      else:
+        kwargs.update(audio = 'ALSA')
+    
+    if self.self_play:
+      kwargs.update(cpus = [0, 1])
+      
+    if self.setup:
+      self._init_members(**kwargs)
+      self.setupUser(self.user)
   
-  cpus = [0, 1] if self_play else [1]
-  
-  if setup:
-    setupUser(user, cpus=cpus, **kwargs)
-  args = [exe, "--user", user, "--exec", iso]
-  if movie is not None:
-    args += ["--movie", movie]
-  
-  return subprocess.Popen(args)
+  def __call__(self):
+    args = [self.exe, "--user", self.user, "--exec", self.iso]
+    if self.movie is not None:
+      args += ["--movie", self.movie]
+    
+    return subprocess.Popen(args)
 
-if __name__ == "__main__":
-  from argparse import ArgumentParser
-  parser = ArgumentParser()
-
-  parser.add_argument("--iso", default="SSBM.iso", help="path to game iso")
-  parser.add_argument("--prefix", default="parallel/")
-  parser.add_argument("--count", type=int, default=1)
-  parser.add_argument("--movie", type=str)
-  parser.add_argument("--gfx", type=str, default="Null", help="graphics backend")
-  parser.add_argument("--cpu_thread", action="store_true", help="dual core")
-  parser.add_argument("--self_play", action="store_true", help="cpu trains against itself")
-  parser.add_argument("--exe", type=str, default="dolphin-emu-nogui", help="dolphin executable")
-
-  args = parser.parse_args()
-
-  processes = [runDolphin(user=args.prefix + "%d/" % i, **args.__dict__) for i in range(args.count)]
-
-  try:
-    for p in processes:
-      p.wait()
-  except KeyboardInterrupt:
-    for p in processes:
-      p.terminate()

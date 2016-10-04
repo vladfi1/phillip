@@ -2,6 +2,7 @@ import tensorflow as tf
 import tf_lib as tfl
 import util
 import ssbm
+from default import *
 
 floatType = tf.float32
 
@@ -117,11 +118,17 @@ numActions = 1 + maxAction
 maxCharacter = 32 # should be large enough?
 maxJumps = 8 # unused
 
-class PlayerEmbedding(StructEmbedding):
-  def __init__(self, action_space=64, **kwargs):
+class PlayerEmbedding(StructEmbedding, Default):
+  options = [
+    Option('action_space', type=int, default=64, help="embed actions in ACTION_SPACE dimensions")
+  ]
+  
+  def __init__(self, **kwargs):
+    Default.__init__(self, **kwargs)
+    
     embedAction = OneHotEmbedding(numActions)
-    if action_space:
-      embedAction = FCEmbedding(embedAction, action_space)
+    if self.action_space:
+      embedAction = FCEmbedding(embedAction, self.action_space)
 
     playerEmbedding = [
       ("percent", FloatEmbedding(scale=0.01)),
@@ -148,7 +155,7 @@ class PlayerEmbedding(StructEmbedding):
       #('controller', embedController)
     ]
     
-    super(PlayerEmbedding, self).__init__(playerEmbedding)
+    StructEmbedding.__init__(self, playerEmbedding)
 
 """
 maxStage = 64 # overestimate
@@ -161,23 +168,33 @@ def embedStage(stage):
   return stageHelper(one_hot(maxStage)(stage))
 """
 
-class GameEmbedding(StructEmbedding):
-  def __init__(self, swap=False, player_space=64, **kwargs):
-    embedPlayer = PlayerEmbedding(**kwargs)
-    if player_space:
-      embedPlayer = FCEmbedding(embedPlayer, player_space)
+class GameEmbedding(StructEmbedding, Default):
+  options = [
+    #Option('swap', type=bool, default=False, help="swap players 1 and 2"),
+    Option('player_space', type=int, default=64, help="embed players into PLAYER_SPACE dimensions"),
+  ]
+  
+  members = [
+    ('embedPlayer', PlayerEmbedding)
+  ]
+  
+  def __init__(self, swap=False, **kwargs):
+    Default.__init__(self, **kwargs)
+    
+    if self.player_space:
+      self.embedPlayer = FCEmbedding(self.embedPlayer, self.player_space)
     
     players = [0, 1]
     if swap: players.reverse()
     
     gameEmbedding = [
-      ('players', ArrayEmbedding(embedPlayer, players)),
+      ('players', ArrayEmbedding(self.embedPlayer, players)),
 
       #('frame', c_uint),
       #('stage', embedStage)
     ]
     
-    super(GameEmbedding, self).__init__(gameEmbedding)
+    StructEmbedding.__init__(self, gameEmbedding)
 
 def embedEnum(enum):
   return OneHotEmbedding(len(enum))

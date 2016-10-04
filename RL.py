@@ -7,6 +7,7 @@ import util
 import ctype_util as ct
 import numpy as np
 import embed
+from default import *
 from dqn import DQN
 from actor_critic import ActorCritic
 from actor_critic_split import ActorCriticSplit
@@ -22,55 +23,68 @@ class Mode(Enum):
   PLAY = 1
 
 models = [
-  DQN,
-  ActorCritic,
-  ActorCriticSplit,
-  ThompsonDQN,
-  RecurrentActorCritic,
+  #DQN,
+  #ActorCritic,
+  #ActorCriticSplit,
+  #ThompsonDQN,
+  #RecurrentActorCritic,
   NaturalActorCritic
 ]
 models = {model.__name__ : model for model in models}
 
-class RLConfig:
-  def __init__(self, tdN=5, reward_halflife = 2.0, act_every=3, experience_time=60, **kwargs):
-    self.tdN = tdN
-    self.reward_halflife = reward_halflife
-    self.fps = 60 // act_every
-    self.discount = 0.5 ** ( 1.0 / (self.fps*reward_halflife) )
-    self.experience_length = experience_time * self.fps
+class RLConfig(Default):
+  options = [
+    Option('tdN', type=int, default=5, help="use n-step TD error"),
+    Option('reward_halflife', type=float, default=2.0, help="time to discount rewards by half, in seconds"),
+    Option('act_every', type=int, default=3, help="Take an action every ACT_EVERY frames."),
+    Option('experience_time', type=int, default=60, help="Length of experiences, in seconds."),
+  ]
+  
+  def __init__(self, **kwargs):
+    super(RLConfig, self).__init__(**kwargs)
+    self.fps = 60 // self.act_every
+    self.discount = 0.5 ** ( 1.0 / (self.fps*self.reward_halflife) )
+    self.experience_length = self.experience_time * self.fps
 
-class Model:
-  def __init__(self,
-              model="DQN",
-              path=None,
-              mode = Mode.TRAIN,
-              debug = False,
-              learning_rate=1e-4,
-              gpu=False,
-              optimizer="Adam",
-              memory=0,
-              name=None,
-              **kwargs):
-    print("Creating model:", model)
-    modelType = models[model]
+class Model(Default):
+  options = [
+    Option('model', type=str, default="DQN", choices=models.keys()),
+    Option('path', type=str, help="path to saved model"),
+    Option('gpu', type=bool, default=False, help="train on gpu"),
+    Option('memory', type=int, default=0, help="number of frames to remember"),
+    Option('name', type=str)
+  ]
+  
+  members = [
+    ('rlConfig', RLConfig),
+    ('embedGame', embed.GameEmbedding),
+  ]
+  
+  def __init__(self, mode = Mode.TRAIN, debug = False, **kwargs):
+    Default.__init__(self, init_members=False, **kwargs)
     
-    self.name = name
-    self.path = path
+    if self.name is None:
+      self.name = self.model
+    
+    if self.path is None:
+      self.path = "saves/%s/" % self.name
+    
+    print("Creating model:", self.model)
+    modelType = models[self.model]
     
     self.graph = tf.Graph()
     
-    device = '/gpu:0' if gpu else '/cpu:0'
+    device = '/gpu:0' if self.gpu else '/cpu:0'
     print("Using device " + device)
     
     with self.graph.as_default(), tf.device(device):
+      self._init_members(**kwargs)
+      
       self.global_step = tf.Variable(0, name='global_step', trainable=False)
-
-      self.rlConfig = RLConfig(**kwargs)
       
-      embedGame = embed.GameEmbedding(**kwargs)
-      state_size = embedGame.size
+      state_size = self.embedGame.size
       
-      history_size = (1+memory) * (state_size+embed.action_size)
+      history_size = (1+self.memory) * (state_size+embed.action_size)
       self.model = modelType(history_size, embed.action_size, self.global_step, self.rlConfig, **kwargs)
 
       #self.variables = self.model.getVariables() + [self.global_step]
@@ -82,20 +96,20 @@ class Model:
           self.experience['reward'] = tf.placeholder(tf.float32, [None, None], name='reward')
           mean_reward = tf.reduce_mean(self.experience['reward'])
           
-          states = embedGame(self.experience['state'])
+          states = self.embedGame(self.experience['state'])
           
           prev_actions = embed.embedAction(self.experience['prev_action'])
           states = tf.concat(2, [states, prev_actions])
           
-          train_length = self.rlConfig.experience_length - memory
+          train_length = self.rlConfig.experience_length - self.memory
           
-          history = [tf.slice(states, [0, i, 0], [-1, train_length, -1]) for i in range(memory+1)]
+          history = [tf.slice(states, [0, i, 0], [-1, train_length, -1]) for i in range(self.memory+1)]
           self.train_states = tf.concat(2, history)
           
           actions = embed.embedAction(self.experience['action'])
-          self.train_actions = tf.slice(actions, [0, memory, 0], [-1, train_length, -1])
+          self.train_actions = tf.slice(actions, [0, self.memory, 0], [-1, train_length, -1])
           
-          self.train_rewards = tf.slice(self.experience['reward'], [0, memory], [-1, -1])
+          self.train_rewards = tf.slice(self.experience['reward'], [0, self.memory], [-1, -1])
           
           """
           data_names = ['state', 'action', 'reward']
@@ -113,25 +127,25 @@ class Model:
           loss, stats = self.model.getLoss(*loaded_data, **kwargs)
           """
           
-          self.train_op, stats = self.model.train(self.train_states, self.train_actions, self.train_rewards)
+          self.train_op = self.model.train(self.train_states, self.train_actions, self.train_rewards)
 
           #tf.scalar_summary("loss", loss)
-          for name, tensor in stats:
-            if tensor.dtype is tf.bool:
-              tensor = tf.cast(tensor, tf.uint8)
-            tf.scalar_summary(name, tensor)
           #tf.scalar_summary('learning_rate', tf.log(self.learning_rate))
           tf.scalar_summary('reward', mean_reward)
           merged = tf.merge_all_summaries()
           
-          self.run_dict = dict(summary=merged, global_step=self.global_step, train=self.train_op)
+          increment = tf.assign_add(self.global_step, 1)
+          
+          misc = tf.group(increment)
+          
+          self.run_dict = dict(summary=merged, global_step=self.global_step, train=self.train_op, misc=misc)
           
           print("Creating summary writer at logs/%s." % self.name)
           self.writer = tf.train.SummaryWriter('logs/' + self.name, self.graph)
       else:
         with tf.name_scope('policy'):
-          self.input = ct.inputCType(ssbm.SimpleStateAction, [memory+1], "input")
-          states = embedGame(self.input['state'])
+          self.input = ct.inputCType(ssbm.SimpleStateAction, [self.memory+1], "input")
+          states = self.embedGame(self.input['state'])
           prev_actions = embed.embedAction(self.input['prev_action'])
           
           history = tf.concat(1, [states, prev_actions])
