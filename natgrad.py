@@ -62,9 +62,9 @@ class NaturalGradient(Default):
       acceleration = .5 * tfl.dot(direction_natural, direction_flat)
       #acceleration = .5 * dot(direction_natural, fvp(direction_natural))
       
-      step_size = tf.sqrt(acceleration / self.target_distance)
+      step_size = tf.sqrt(self.target_distance / acceleration)
       #step_size = tf.minimum(1.0, step_size)
-      tf.scalar_summary('step_size', step_size)
+      tf.scalar_summary('step_size', tf.log(step_size))
       
       direction_natural *= step_size
     
