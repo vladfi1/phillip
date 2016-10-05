@@ -43,19 +43,19 @@ both = ['train', 'agent']
 model = 'DQN'
 model = 'ActorCriticSplit'
 #model = 'RecurrentActorCritic'
-add_param('model', model, both)
-#add_param('model', 'ActorCriticSplit', both)
-add_param('epsilon', 0.02, both, False)
+model = 'NaturalActorCritic'
 
-add_param('learning_rate', 0.0001, ['train'], True)
+add_param('model', model, both)
+#add_param('epsilon', 0.02, both, False)
 
 train_settings = [
-  ('optimizer', 'Adam'),
+  #('optimizer', 'Adam'),
   #('learning_rate', 0.0002),
-  ('tdN', 5),
-  ('iters', 2),
-  ('batch_size', 20),
+  ('tdN', 6),
+  ('iters', 1),
+  ('batch_size', 40),
   ('batch_steps', 1),
+  ('gpu', 1),
 ]
 
 if model.count('DQN'):
@@ -65,9 +65,16 @@ if model.count('DQN'):
   ]
   add_param('temperature', 0.002, ['agent'])
 elif model.count('ActorCritic'):
-  add_param('policy_scale', 2e-4, ['train'], True)
-  add_param('entropy_scale', 1e-4, ['train'], True)
-  #add_param('target_kl', 5e-5, ['train'], True)
+  add_param('policy_scale', 1e-1, ['train'], True)
+  add_param('entropy_scale', 1e-3, ['train'], True)
+  #add_param('target_kl', 1e-5, ['train'], True)
+
+if model.count('Natural'):
+  add_param('target_distance', 2e-5, ['train'], True)
+  add_param('cg_damping', 1e-5, ['train'], False)
+  #add_param('cg_iters', 10, ['train'], False)
+add_param('learning_rate', 1, ['train'], False)
+#add_param('learning_rate', 0.02, ['train'], True)
 
 for k, v in train_settings:
   add_param(k, v, ['train'], False)
@@ -79,12 +86,8 @@ for k, v in train_settings:
 add_param('dump', args.trainer, ['agent'], False)
 add_param('dolphin', True, ['agent'], False)
 
-# number of agents playing each matchup
-agents = 9
-add_param('agents', agents, [], False)
-
 self_play = False
-self_play = 1200
+self_play = 600
 add_param('self_play', self_play, ['agent'], False)
 
 add_param('experience_time', 10, both, False)
@@ -98,13 +101,20 @@ add_param('memory', 0, both, False)
 characters = [
   'fox',
 #  'zelda',
-  'marth',
+#  'marth',
 #  'roy',
-  'falcon',
+#  'falcon',
 ]
 
 for c in characters:
   exp_name += '_' + c
+
+# number of agents playing each matchup
+agents = 54
+agents //= len(characters) ** 2
+add_param('agents', agents, [], False)
+
+print("Launching %d agents." % (agents * len(characters) ** 2))
 
 add_param('name', exp_name, both, False)
 add_param('path', "saves/%s/" % exp_name, both, False)
@@ -128,11 +138,12 @@ def slurm_script(name, command, cpus=2, mem=1000, gpu=False, log=True, qos=None,
       f.write("#SBATCH --error /dev/null")
     f.write("#SBATCH -c %d\n" % cpus)
     f.write("#SBATCH --mem %d\n" % mem)
-    f.write("#SBATCH --time 6-23\n")
+    f.write("#SBATCH --time 7-0\n")
     #f.write("#SBATCH --cpu_bind=verbose,cores\n")
     #f.write("#SBATCH --cpu_bind=threads\n")
     if gpu:
-      f.write("#SBATCH --gres gpu:titan-x:1\n")
+      #f.write("#SBATCH --gres gpu:titan-x:1\n")
+      f.write("#SBATCH --gres gpu:1\n")
     if qos:
       f.write("#SBATCH --qos %s\n" % qos)
     if array:
@@ -156,15 +167,19 @@ else:
   # init model for the first time
   if args.init:
     import RL
-    model = RL.Model(mode=RL.Mode.TRAIN, gpu=False, **job_dicts['train'])
+    model = RL.Model(mode=RL.Mode.TRAIN, **job_dicts['train'])
     model.init()
     model.save()
 
 if args.trainer is None:
   train_name = "trainer_" + exp_name
   train_command = "python3 -u train.py" + job_flags['train']
-
-  slurm_script(train_name, train_command, gpu=True, qos='tenenbaum', mem=16000)
+  
+  slurm_script(train_name, train_command,
+    gpu=True,
+    qos='tenenbaum',
+    mem=8000
+  )
 else:
   agent_count = 0
   agent_command = "python3 -u run.py" + job_flags['agent']
