@@ -9,9 +9,11 @@ class NaturalActorCritic(Default):
   options = [
     Option('actor_layers', type=int, nargs='+', default=[128, 128]),
     Option('critic_layers', type=int, nargs='+', default=[128, 128]),
+
+    Option('learning_rate', type=float, default=0.0005),
     Option('entropy_scale', type=float, default=0.001),
     Option('policy_scale', type=float, default=0.1),
-    Option('learning_rate', type=float, default=0.0005),
+    Option('kl_scale', type=float, default=1.0),
   ]
   
   members = [
@@ -90,7 +92,7 @@ class NaturalActorCritic(Default):
       
       vDist = tf.reduce_mean(tf.squared_difference(v1, v2))
       pDist = tf.reduce_mean(tfl.kl(p1, p2))
-      return vDist + self.policy_scale * pDist
+      return vDist + self.kl_scale * pDist
     
     ng = self.natgrad(params, pg, predictions, metric)
     
