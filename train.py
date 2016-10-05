@@ -43,8 +43,22 @@ print("Binding to " + sock_addr)
 socket.bind(sock_addr)
 
 import numpy as np
+from collections import defaultdict
+from gc import get_objects
+
+def count_objects():
+  counts = defaultdict(int)
+  for obj in get_objects():
+    counts[type(obj)] += 1
+  return counts
+
+def diff_objects(after, before):
+  diff = {k: after[k] - before[k] for k in after}
+  return {k: i for k, i in diff.items() if i}
 
 sweeps = 0
+
+before = count_objects()
 
 while True:
   start_time = time.time()
@@ -61,5 +75,10 @@ while True:
   sweeps += 1
   total_time = time.time() - start_time
   
+  if True:
+    after = count_objects()
+    print(diff_objects(after, before))
+    before = after
+
   print(sweeps, total_time, args.iters * args.batch_size)
 
