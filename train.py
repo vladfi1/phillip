@@ -30,7 +30,7 @@ parser.add_argument("--batch_size", type=int, default=1, help="number of experie
 parser.add_argument("--batch_steps", type=int, default=1, help="number of gradient steps to take on each batch")
 
 parser.add_argument("--epsilon", type=float, default=0.04, help="probability of random action")
-#parser.add_argument("--temperature", type=float, default=0.01, help="increases action randomness")
+parser.add_argument("--temperature", type=float, default=0.01, help="increases action randomness")
 
 # duplicated?
 parser.add_argument("--act_every", type=int, default=5, help="only take actions every ACT_EVERY frames")
