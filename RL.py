@@ -33,7 +33,7 @@ models = [
 models = {model.__name__ : model for model in models}
 
 class RLConfig(Default):
-  options = [
+  _options = [
     Option('tdN', type=int, default=5, help="use n-step TD error"),
     Option('reward_halflife', type=float, default=2.0, help="time to discount rewards by half, in seconds"),
     Option('act_every', type=int, default=3, help="Take an action every ACT_EVERY frames."),
@@ -47,7 +47,7 @@ class RLConfig(Default):
     self.experience_length = self.experience_time * self.fps
 
 class Model(Default):
-  options = [
+  _options = [
     Option('model', type=str, default="DQN", choices=models.keys()),
     Option('path', type=str, help="path to saved model"),
     Option('gpu', type=bool, default=False, help="train on gpu"),
@@ -55,7 +55,7 @@ class Model(Default):
     Option('name', type=str)
   ]
   
-  members = [
+  _members = [
     ('rlConfig', RLConfig),
     ('embedGame', embed.GameEmbedding),
   ]
@@ -180,11 +180,6 @@ class Model(Default):
 
   def act(self, history, verbose=False):
     feed_dict = dict(util.deepValues(util.deepZip(self.input, ct.vectorizeCTypes(ssbm.SimpleStateAction, history))))
-    if False:
-      for k, v in feed_dict.items():
-        print(k, v)
-        self.sess.run(k, {k:v})
-    
     return self.model.act(self.sess.run(self.policy, feed_dict), verbose)
 
   #summaryWriter = tf.train.SummaryWriter('logs/', sess.graph)

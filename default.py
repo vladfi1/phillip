@@ -1,10 +1,15 @@
+import pickle
+
 class Default:
-  options = []
+  _options = []
   
-  members = []
+  _members = []
   
-  def __init__(self, init_members=True, **kwargs):
-    for opt in self.options:
+  def __init__(self, *args, init_members=True, **kwargs):
+    self._ezpickle_args = args
+    self._ezpickle_kwargs = kwargs
+    
+    for opt in self._options:
       value = None
       if opt.name in kwargs:
         value = kwargs[opt.name]
@@ -16,13 +21,13 @@ class Default:
       self._init_members(**kwargs)
   
   def _init_members(self, **kwargs):
-    for name, cls in self.members:
+    for name, cls in self._members:
       setattr(self, name, cls(**kwargs))
   
   def items(self):
-    for opt in self.options:
+    for opt in self._options:
       yield opt.name, getattr(self, opt.name)
-    for name, _ in self.members:
+    for name, _ in self._members:
       yield name, getattr(self, name)
   
   def label(self):
@@ -37,10 +42,24 @@ class Default:
   
   @classmethod
   def full_opts(cls):
-    yield from cls.options
-    for _, cls_ in cls.members:
+    yield from cls._options
+    for _, cls_ in cls._members:
       yield from cls_.full_opts()
-
+  
+  def __getstate__(self):
+    return {"_ezpickle_args" : self._ezpickle_args, "_ezpickle_kwargs": self._ezpickle_kwargs}
+  def __setstate__(self, d):
+    self.__init__(*d["_ezpickle_args"], **d["_ezpickle_kwargs"])
+  
+  def dump(self, f):
+    pickle.dump(self._ezpickle_kwargs)
+  
+  @classmethod
+  def load(cls, f, **override):
+    kwargs = pickle.load(f)
+    kwargs.update(**override)
+    return cls.__init__(**kwargs)
+  
 class Option:
   def __init__(self, name, **kwargs):
     self.name = name

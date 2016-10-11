@@ -119,7 +119,7 @@ maxCharacter = 32 # should be large enough?
 maxJumps = 8 # unused
 
 class PlayerEmbedding(StructEmbedding, Default):
-  options = [
+  _options = [
     Option('action_space', type=int, default=64, help="embed actions in ACTION_SPACE dimensions")
   ]
   
@@ -169,12 +169,12 @@ def embedStage(stage):
 """
 
 class GameEmbedding(StructEmbedding, Default):
-  options = [
+  _options = [
     #Option('swap', type=bool, default=False, help="swap players 1 and 2"),
     Option('player_space', type=int, default=64, help="embed players into PLAYER_SPACE dimensions"),
   ]
   
-  members = [
+  _members = [
     ('embedPlayer', PlayerEmbedding)
   ]
   

@@ -6,7 +6,7 @@ import natgrad
 from default import *
 
 class NaturalActorCritic(Default):
-  options = [
+  _options = [
     Option('actor_layers', type=int, nargs='+', default=[128, 128]),
     Option('critic_layers', type=int, nargs='+', default=[128, 128]),
 
@@ -16,7 +16,7 @@ class NaturalActorCritic(Default):
     Option('kl_scale', type=float, default=1.0),
   ]
   
-  members = [
+  _members = [
     ('natgrad', natgrad.NaturalGradient)
   ]
   

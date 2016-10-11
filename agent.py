@@ -8,14 +8,14 @@ import util
 from default import *
 
 class Agent(Default):
-  options = [
+  _options = [
     Option('delay', type=int, default=0, help="delay actions this many rounds"),
   ]
   
-  members = [
+  _members = [
     ('model', RL.Model)
   ]
-    
+  
   def __init__(self, reload_every=None, **kwargs):
     Default.__init__(self, mode=RL.Mode.PLAY, **kwargs)
     if reload_every is None:

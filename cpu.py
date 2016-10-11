@@ -17,7 +17,7 @@ import movie
 from default import *
 
 class CPU(Default):
-    options = [
+    _options = [
       Option('tag', type=int),
       Option('dump', type=str, default=None, help="dump experiences to ip address via zmq"),
       Option('user', type=str, help="dolphin user directory"),
@@ -28,7 +28,7 @@ class CPU(Default):
       #Option('p2', type=str, choices=characters.keys(), default="fox" help="character for player two"),
     ] + [Option('p%d' % i, type=str, choices=characters.keys(), default="falcon", help="character for player %d" % i) for i in [1, 2]]
     
-    members = [
+    _members = [
       ('agent', agent.Agent)
     ]
     

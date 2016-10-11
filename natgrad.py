@@ -4,11 +4,11 @@ import tf_lib as tfl
 import cg
 
 class NaturalGradient(Default):
-  options = [
+  _options = [
     Option('target_distance', type=float, default=None, help="Target natural gradient distance."),
   ]
   
-  members = [
+  _members = [
     ('cg', cg.ConjugateGradient),
   ]
   

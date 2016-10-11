@@ -47,7 +47,7 @@ import util
 from default import *
 
 class SetupUser(Default):
-  options = [
+  _options = [
     Option('gfx', type=str, default="Null", help="graphics backend"),
     Option('cpu_thread', type=bool, default=True, help="Use separate gpu and cpu threads."),
     Option('cpus', type=int, nargs='+', default=[1], help="Which players are cpu-controlled."),
@@ -86,7 +86,7 @@ class SetupUser(Default):
 import subprocess
 
 class DolphinRunner(Default):
-  options = [
+  _options = [
     Option('exe', type=str, default='dolphin-emu-headless', help="dolphin executable"),
     Option('user', type=str, help="path to dolphin user directory"),
     Option('iso', type=str, default="SSBM.iso", help="path to SSBM iso"),
@@ -97,7 +97,7 @@ class DolphinRunner(Default):
     Option('mute', action="store_true", default=False, help="mute game audio"),
   ]
   
-  members = [
+  _members = [
     ('setupUser', SetupUser)
   ]
   

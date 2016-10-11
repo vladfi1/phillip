@@ -6,7 +6,7 @@ def mag2(x):
   return tf.reduce_sum(tf.square(x))
 
 class ConjugateGradient(Default):
-  options = [
+  _options = [
     Option('cg_iters', type=int, default=10, help="Maximum number of conjugate gradient iterations."),
     Option('residual_tol', type=float, default=1e-10, help="Minimum conjugate gradient residual tolerance."),
     Option('cg_damping', type=float, default=1e-4, help="Add a multiple of the identity function during conjugate gradient descent."),
