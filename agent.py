@@ -17,11 +17,11 @@ class Agent(Default):
   ]
   
   def __init__(self, reload_every=None, **kwargs):
-    Default.__init__(self, mode=RL.Mode.PLAY, **kwargs)
-    if reload_every is None:
-      self.reload_every = self.model.rlConfig.experience_length
-    else:
-      self.reload_every = reload_every
+    kwargs = kwargs.copy()
+    kwargs.update(mode=RL.Mode.PLAY)
+    Default.__init__(self, **kwargs)
+    
+    self.reload_every = reload_every
     
     self.counter = 0
     self.action = 0

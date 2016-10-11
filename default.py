@@ -5,8 +5,7 @@ class Default:
   
   _members = []
   
-  def __init__(self, *args, init_members=True, **kwargs):
-    self._ezpickle_args = args
+  def __init__(self, init_members=True, **kwargs):
     self._ezpickle_kwargs = kwargs
     
     for opt in self._options:
@@ -47,18 +46,18 @@ class Default:
       yield from cls_.full_opts()
   
   def __getstate__(self):
-    return {"_ezpickle_args" : self._ezpickle_args, "_ezpickle_kwargs": self._ezpickle_kwargs}
+    return self._ezpickle_kwargs
   def __setstate__(self, d):
-    self.__init__(*d["_ezpickle_args"], **d["_ezpickle_kwargs"])
+    self.__init__(**d)
   
   def dump(self, f):
-    pickle.dump(self._ezpickle_kwargs)
+    pickle.dump(self._ezpickle_kwargs, f)
   
   @classmethod
   def load(cls, f, **override):
     kwargs = pickle.load(f)
     kwargs.update(**override)
-    return cls.__init__(**kwargs)
+    return cls(**kwargs)
   
 class Option:
   def __init__(self, name, **kwargs):
