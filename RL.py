@@ -23,7 +23,7 @@ class Mode(Enum):
   PLAY = 1
 
 models = [
-  #DQN,
+  DQN,
   #ActorCritic,
   #ActorCriticSplit,
   #ThompsonDQN,
