@@ -7,11 +7,16 @@ import random
 import menu_manager
 from movie import stages
 from cpu import CPU
+import RL
 
 parser = ArgumentParser()
 
 for opt in CPU.full_opts():
   opt.update_parser(parser)
+
+for model in RL.models.values():
+  for opt in model.full_opts():
+    opt.update_parser(parser)
 
 # dolphin options
 parser.add_argument("--dolphin", action="store_true", help="run dolphin")
