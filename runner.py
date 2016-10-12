@@ -41,9 +41,9 @@ def add_param(param, value, jobs, name=True):
 both = ['train', 'agent']
 
 model = 'DQN'
-model = 'ActorCriticSplit'
+#model = 'ActorCriticSplit'
 #model = 'RecurrentActorCritic'
-model = 'NaturalActorCritic'
+#model = 'NaturalActorCritic'
 
 add_param('model', model, both)
 #add_param('epsilon', 0.02, both, False)
@@ -52,28 +52,31 @@ train_settings = [
   #('optimizer', 'Adam'),
   #('learning_rate', 0.0002),
   ('tdN', 6),
-  ('iters', 1),
+  ('iters', 10),
   ('batch_size', 40),
   ('batch_steps', 1),
   ('gpu', 1),
 ]
 
+add_param('learning_rate', 0.0002, ['train'], True)
+
 if model.count('DQN'):
   train_settings += [
-    ('sarsa', True),
-    ('target_delay', 4000),
+    ('sarsa', 1),
+    #('target_delay', 4000),
   ]
-  add_param('temperature', 0.002, ['agent'])
+  add_param('temperature', 0.002, ['agent'], True)
 elif model.count('ActorCritic'):
-  add_param('policy_scale', 1e-1, ['train'], True)
-  add_param('entropy_scale', 1e-3, ['train'], True)
+  add_param('policy_scale', 1, ['train'], True)
+  add_param('entropy_scale', 5e-4, ['train'], True)
   #add_param('target_kl', 1e-5, ['train'], True)
 
 if model.count('Natural'):
-  add_param('target_distance', 2e-5, ['train'], True)
+  add_param('kl_scale', 0.1, ['train'], True)
+  add_param('target_distance', 1e-4, ['train'], True)
   add_param('cg_damping', 1e-5, ['train'], False)
-  #add_param('cg_iters', 10, ['train'], False)
-add_param('learning_rate', 1, ['train'], False)
+  add_param('cg_iters', 20, ['train'], False)
+  add_param('learning_rate', 1, ['train'], False)
 #add_param('learning_rate', 0.02, ['train'], True)
 
 for k, v in train_settings:
@@ -83,17 +86,17 @@ for k, v in train_settings:
 
 # agent settings
 
-add_param('dump', args.trainer, ['agent'], False)
+#add_param('dump', args.trainer, ['agent'], False)
 add_param('dolphin', True, ['agent'], False)
 
 self_play = False
-self_play = 600
+self_play = 1200
 add_param('self_play', self_play, ['agent'], False)
 
-add_param('experience_time', 10, both, False)
+add_param('experience_time', 20, both, False)
 add_param('act_every', 3, both, False)
-add_param('delay', 0, ['agent'])
-add_param('memory', 0, both, False)
+#add_param('delay', 0, ['agent'])
+#add_param('memory', 0, both)
 
 #movie = 'movies/endless_netplay_battlefield_dual.dtm'
 #add_param('movie', movie, ['agent'], False)
@@ -178,7 +181,7 @@ if args.trainer is None:
   slurm_script(train_name, train_command,
     gpu=True,
     qos='tenenbaum',
-    mem=8000
+    mem=16000
   )
 else:
   agent_count = 0
@@ -189,5 +192,5 @@ else:
 
       #for _ in range(agents):
       agent_name = "agent_%d_%s" % (agent_count, exp_name)
-      slurm_script(agent_name, command, log=True, array=agents)
+      slurm_script(agent_name, command, log=False, array=agents)
       agent_count += 1
