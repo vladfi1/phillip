@@ -46,8 +46,8 @@ class DQN(Default):
 
     train_length = experience_length - n
 
-    predictedQs = self.q_net(states)
-    trainQs = tfl.batch_dot(actions, predictedQs)
+    self.predictedQs = self.q_net(states)
+    trainQs = tfl.batch_dot(actions, self.predictedQs)
     trainQs = tf.slice(trainQs, [0, 0], [-1, train_length])
     
     self.q_target = self.q_net#.clone()
@@ -61,8 +61,6 @@ class DQN(Default):
     targets = tf.slice(targetQs, [0, n], [-1, train_length])
     for i in reversed(range(n)):
       targets = tf.slice(rewards, [0, i], [-1, train_length]) + self.rlConfig.discount * targets
-    # not necessary if we optimize only on q_net variables
-    # but this is easier :)
     targets = tf.stop_gradient(targets)
 
     qLosses = tf.squared_difference(trainQs, targets)
@@ -73,15 +71,17 @@ class DQN(Default):
     explained_variance = 1 - qLoss / variance
     tf.scalar_summary("explained_variance", explained_variance)
     
-    predictedQs = tf.reshape(predictedQs, [-1, self.action_size])
-    action_probs = tf.nn.softmax(predictedQs / self.temperature)
+    flatQs = tf.reshape(self.predictedQs, [-1, self.action_size])
+    action_probs = tf.nn.softmax(flatQs / self.temperature)
     action_probs = (1.0 - self.epsilon) * action_probs + self.epsilon / self.action_size
     entropy = -tf.reduce_sum(tf.log(action_probs) * action_probs, -1)
     entropy = tf.reduce_mean(entropy)
     tf.scalar_summary("entropy", entropy)
     
-    optimizer = tf.train.GradientDescentOptimizer(self.learning_rate)
-    return optimizer.minimize(qLoss)
+    self.params = tf.trainable_variables()
+    self.gradients = tf.gradients(qLoss, self.params, -self.learning_rate)
+    
+    return tfl.apply_grads(self.params, self.gradients)
     
     """
     update_target = lambda: tf.group(*self.q_target.assign(self.q_net), name="update_target")

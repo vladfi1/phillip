@@ -72,10 +72,11 @@ while True:
     model.train(experiences, **args.__dict__)
   
   model.save()
+  
   sweeps += 1
   total_time = time.time() - start_time
   
-  if True:
+  if False:
     after = count_objects()
     print(diff_objects(after, before))
     before = after
