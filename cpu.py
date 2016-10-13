@@ -23,13 +23,12 @@ class CPU(Default):
       Option('user', type=str, help="dolphin user directory"),
       Option('self_play', type=int, default=None, help="play against a copy that updates SELF_PLAY times slower"),
       Option('zmq', type=bool, default=True, help="use zmq for memory watcher"),
-      Option('stage', type=str, default="final_destination", choices=movie.stages.keys(), help="which stage to play on")
-      #Option('p1', type=str, choices=characters.keys(), default="marth" help="character for player one"),
-      #Option('p2', type=str, choices=characters.keys(), default="fox" help="character for player two"),
+      Option('stage', type=str, default="final_destination", choices=movie.stages.keys(), help="which stage to play on"),
+      Option('enemy', type=str, help="load enemy agent from file"),
     ] + [Option('p%d' % i, type=str, choices=characters.keys(), default="falcon", help="character for player %d" % i) for i in [1, 2]]
     
     _members = [
-      ('agent', agent.Agent)
+      ('agent', agent.Agent),
     ]
     
     def __init__(self, **kwargs):
@@ -43,7 +42,7 @@ class CPU(Default):
               import zmq
             except ImportError as err:
               print("ImportError: {0}".format(err))
-              sys.exit("Either install pyzmq or run with the --nodump option")
+              sys.exit("Install pyzmq to dump experiences")
             
             context = zmq.Context()
 
@@ -72,18 +71,26 @@ class CPU(Default):
         if self.tag is not None:
             random.seed(self.tag)
         
-        self.cpus = [0, 1] if self.self_play else [1]
-        self.agents = []
+        self.pids = [1]
+        self.agents = {1: self.agent}
+        self.characters = {1: self.p2}
 
         reload_every = self.rlConfig.experience_length
         self.agent.reload_every = reload_every
-        if self.self_play:
-            self.enemy = agent.Agent(reload_every=self.self_play*reload_every, swap=True, **kwargs)
-            self.agents.append(self.enemy)
-        self.agents.append(self.agent)
         
-        self.characters = [self.p1, self.p2] if self.self_play else [self.p2]
-        self.menu_managers = [MenuManager(characters[c], pid=i) for c, i in zip(self.characters, self.cpus)]
+        enemy = None
+        if self.self_play:
+            enemy = agent.Agent(reload_every=self.self_play*reload_every, swap=True, **kwargs)
+        elif self.enemy:
+            with open(self.enemy, 'rb') as f:
+                enemy = agent.Agent.load(f, reload_every=None, swap=True)
+        
+        if enemy:
+            self.pids.append(0)
+            self.agents[0] = enemy
+            self.characters[0] = self.p1
+        
+        self.menu_managers = {i: MenuManager(characters[c], pid=i) for i, c in self.characters.items()}
 
         print('Creating MemoryWatcher.')
         mwType = memory_watcher.MemoryWatcher
@@ -95,7 +102,7 @@ class CPU(Default):
         print('Creating Pads at %s. Open dolphin now.' % pipe_dir)
         util.makedirs(self.user + '/Pipes/')
         
-        paths = [pipe_dir + 'phillip%d' % i for i in self.cpus]
+        paths = [pipe_dir + 'phillip%d' % i for i in self.pids]
         self.get_pads = util.async_map(Pad, paths)
 
         self.init_stats()
@@ -110,10 +117,10 @@ class CPU(Default):
             print("Pipes not initialized!")
             return
 
-        for mm, pad in zip(self.menu_managers, self.pads):
-            mm.pad = pad
+        for pid, pad in zip(self.pids, self.pads):
+            self.menu_managers[pid].pad = pad
         
-        self.settings_mm = MenuManager(settings, pid=self.cpus[0], pad=self.pads[0])
+        self.settings_mm = MenuManager(settings, pid=self.pids[0], pad=self.pads[0])
         
         print('Starting run loop.')
         self.start_time = time.time()
@@ -207,8 +214,8 @@ class CPU(Default):
         # print(menu)
         if self.state.menu == Menu.Game.value:
             if self.action_counter % self.rlConfig.act_every == 0:
-                for agent, pad in zip(self.agents, self.pads):
-                    agent.act(self.state, pad)
+                for pid, pad in zip(self.pids, self.pads):
+                    self.agents[pid].act(self.state, pad)
                 if self.dump:
                     self.dump_state()
             self.action_counter += 1
@@ -217,7 +224,7 @@ class CPU(Default):
         elif self.state.menu in [menu.value for menu in [Menu.Characters, Menu.Stages]]:
             # FIXME: this is very convoluted
             done = True
-            for mm in self.menu_managers:
+            for mm in self.menu_managers.values():
                 if not mm.reached:
                     done = False
                 mm.move(self.state)

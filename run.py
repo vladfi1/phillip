@@ -37,6 +37,8 @@ if args.user is None:
 print("Creating cpu.")
 cpu = CPU(**args.__dict__)
 
+args.cpus = cpu.pids
+
 if args.dolphin:
   dolphinRunner = DolphinRunner(**args.__dict__)
   # delay for a bit to let the cpu start up

@@ -30,10 +30,10 @@ def generatePipeConfig(player, count):
   return config
 
 # TODO: make this configurable
-def generateGCPadNew(cpus=[1]):
+def generateGCPadNew(pids=[1]):
   config = ""
   count = 0
-  for p in cpus:
+  for p in sorted(pids):
     config += generatePipeConfig(p, count)
     count += 1
   return config
@@ -92,7 +92,6 @@ class DolphinRunner(Default):
     Option('iso', type=str, default="SSBM.iso", help="path to SSBM iso"),
     Option('movie', type=str, help="path to dolphin movie file to play at startup"),
     Option('setup', type=bool, default=True, help="setup custom dolphin directory"),
-    Option('self_play', type=bool, default=False, help="sets player 1 as a cpu in addition to player 2"),
     Option('gui', action="store_true", default=False, help="run with graphics and sound at normal speed"),
     Option('mute', action="store_true", default=False, help="mute game audio"),
   ]
@@ -106,7 +105,7 @@ class DolphinRunner(Default):
     
     if self.user is None:
       self.user = 'dolphin-test/'
-    
+  
     if self.gui:
       self.exe = 'dolphin-emu-nogui'
       kwargs.update(
@@ -118,9 +117,6 @@ class DolphinRunner(Default):
         kwargs.update(audio = 'No audio backend')
       else:
         kwargs.update(audio = 'ALSA')
-    
-    if self.self_play:
-      kwargs.update(cpus = [0, 1])
       
     if self.setup:
       self._init_members(**kwargs)
