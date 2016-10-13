@@ -1,14 +1,9 @@
 import numpy as np
 import util
 
-# see https://docs.google.com/spreadsheets/d/1JX2w-r2fuvWuNgGb6D3Cs4wHQKLFegZe2jhbBuIhCG8/edit#gid=13
-dyingActions = set(range(0xA))
-
-def isDyingAction(action_state):
-  return action_state in dyingActions
-
 def isDying(player):
-  return isDyingAction(player.action_state)
+  # see https://docs.google.com/spreadsheets/d/1JX2w-r2fuvWuNgGb6D3Cs4wHQKLFegZe2jhbBuIhCG8/edit#gid=13
+  return player.action_state <= 0xA
 
 # players tend to be dead for many frames in a row
 # here we prune all but the first frame of the death
