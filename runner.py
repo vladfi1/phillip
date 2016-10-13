@@ -120,7 +120,8 @@ add_param('agents', agents, [], False)
 print("Launching %d agents." % (agents * len(characters) ** 2))
 
 add_param('name', exp_name, both, False)
-add_param('path', "saves/%s/" % exp_name, both, False)
+path = "saves/%s/" % exp_name
+add_param('path', path, both, False)
 
 if args.trainer:
   dump = "172.16.24.%s" % args.trainer
@@ -173,6 +174,11 @@ else:
     model = RL.Model(mode=RL.Mode.TRAIN, **job_dicts['train'])
     model.init()
     model.save()
+    
+    import pickle
+    for k, v in job_dicts.items():
+      with open(path + k, 'wb') as f:
+        pickle.dump(v, f)
 
 if args.trainer is None:
   train_name = "trainer_" + exp_name
