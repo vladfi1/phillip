@@ -73,7 +73,7 @@ class CPU(Default):
         
         self.pids = [1]
         self.agents = {1: self.agent}
-        self.characters = {1: self.p2}
+        self.characters = {1: self.agent.char or self.p2}
 
         reload_every = self.rlConfig.experience_length
         self.agent.reload_every = reload_every
@@ -88,7 +88,7 @@ class CPU(Default):
         if enemy:
             self.pids.append(0)
             self.agents[0] = enemy
-            self.characters[0] = self.p1
+            self.characters[0] = enemy.char or self.p1
         
         self.menu_managers = {i: MenuManager(characters[c], pid=i) for i, c in self.characters.items()}
 

@@ -6,10 +6,12 @@ from numpy import random, exp
 import RL
 import util
 from default import *
+from menu_manager import characters
 
 class Agent(Default):
   _options = [
     Option('delay', type=int, default=0, help="delay actions this many rounds"),
+    Option('char', type=str, choices=characters.keys(), help="character that this agent plays as"),
   ]
   
   _members = [
