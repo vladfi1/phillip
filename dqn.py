@@ -56,7 +56,10 @@ class DQN(Default):
     realQs = tfl.batch_dot(actions, targetQs)
     maxQs = tf.reduce_max(targetQs, -1)
     targetQs = realQs if self.sarsa else maxQs
-
+    
+    tf.scalar_summary("q_mean", tf.reduce_mean(self.predictedQs))
+    tf.scalar_summary("q_max", tf.reduce_mean(maxQs))
+    
     # smooth between TD(m) for m<=n?
     targets = tf.slice(targetQs, [0, n], [-1, train_length])
     for i in reversed(range(n)):
@@ -65,7 +68,7 @@ class DQN(Default):
 
     qLosses = tf.squared_difference(trainQs, targets)
     qLoss = tf.reduce_mean(qLosses)
-    tf.scalar_summary("qLoss", qLoss)
+    tf.scalar_summary("q_loss", qLoss)
     
     variance = tf.reduce_mean(tf.squared_difference(targets, tf.reduce_mean(targets)))
     explained_variance = 1 - qLoss / variance
