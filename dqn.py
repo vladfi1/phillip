@@ -102,7 +102,7 @@ class DQN(Default):
     if self.temperature:
       action = tf.multinomial(qValues / self.temperature, 1)
     else:
-      action = tf.argmax(qValues, 0)
+      action = tf.argmax(qValues, 1)
     
     if self.epsilon:
       greedy = tf.random_uniform([]) > self.epsilon
