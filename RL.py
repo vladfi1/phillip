@@ -153,7 +153,7 @@ class Model(Default):
           history = tf.concat(1, [states, prev_actions])
           history = tf.reshape(history, [history_size])
           
-          self.policy = self.model.getPolicy(history, **kwargs)
+          self.policy = self.model.getPolicy(history)
       
       tf_config = dict(
         allow_soft_placement=True

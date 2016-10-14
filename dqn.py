@@ -97,7 +97,7 @@ class DQN(Default):
     )
     """
   
-  def getPolicy(self, state, **kwargs):
+  def getPolicy(self, state):
     #return [self.epsilon, tf.argmax(self.getQValues(state), 1)]
     state = tf.expand_dims(state, 0)
     qValues = self.q_net(state)
@@ -112,7 +112,12 @@ class DQN(Default):
       random_action = lambda: tf.multinomial(tf.constant(0., shape=[1, self.action_size]), 1)
       action = tf.cond(greedy, lambda: action, random_action)
     
-    return tf.squeeze(action)
+    action = tf.squeeze(action)
+
+    return action, tf.squeeze(qValues)
   
   def act(self, policy, verbose=False):
-    return policy
+    action, qValues = policy
+    if verbose:
+      print(qValues)
+    return action
