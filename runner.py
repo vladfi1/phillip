@@ -41,6 +41,7 @@ def add_param(param, value, jobs, name=True):
 both = ['train', 'agent']
 
 model = 'DQN'
+#model = 'NaturalDQN'
 #model = 'ActorCriticSplit'
 #model = 'RecurrentActorCritic'
 #model = 'NaturalActorCritic'
@@ -54,30 +55,37 @@ train_settings = [
   ('tdN', 6),
   ('iters', 10),
   ('batch_size', 40),
-  ('batch_steps', 1),
+  ('batch_steps', 2),
   ('gpu', 1),
 ]
 
-add_param('learning_rate', 0.0002, ['train'], True)
+#add_param('learning_rate', 0.001, ['train'], True)
 
 if model.count('DQN'):
   train_settings += [
     ('sarsa', 1),
     #('target_delay', 4000),
   ]
-  add_param('temperature', 0.002, ['agent'], True)
+  add_param('temperature', 0.005, ['agent'], True)
 elif model.count('ActorCritic'):
   add_param('policy_scale', 1, ['train'], True)
   add_param('entropy_scale', 5e-4, ['train'], True)
   #add_param('target_kl', 1e-5, ['train'], True)
 
 if model.count('Natural'):
-  add_param('kl_scale', 0.1, ['train'], True)
-  add_param('target_distance', 1e-4, ['train'], True)
+  if model.count('ActorCritic'):
+    add_param('kl_scale', 0.1, ['train'], True)
+    
+  if True:
+    add_param('target_distance', 2e-5, ['train'], True)
+    add_param('learning_rate', 1., ['train'], False)
+  else:
+    add_param('learning_rate', 0.01, ['train'], True)
+  
   add_param('cg_damping', 1e-5, ['train'], False)
   add_param('cg_iters', 20, ['train'], False)
-  add_param('learning_rate', 1, ['train'], False)
-#add_param('learning_rate', 0.02, ['train'], True)
+else:
+  add_param('learning_rate', 0.0001, ['train'], True)
 
 for k, v in train_settings:
   add_param(k, v, ['train'], False)
@@ -101,23 +109,27 @@ add_param('act_every', 3, both, False)
 #movie = 'movies/endless_netplay_battlefield_dual.dtm'
 #add_param('movie', movie, ['agent'], False)
 
-characters = [
-  'fox',
-#  'zelda',
-#  'marth',
-#  'roy',
-#  'falcon',
+char = 'fox'
+add_param('char', char, ['agent'], True)
+
+enemy_table = {
+  "nac1" : "agents/nac1/",
+}
+
+enemies = [
+  "nac1", # fox fox fd
 ]
 
-for c in characters:
-  exp_name += '_' + c
+exp_name += "_enemies"
+for enemy in enemies:
+  exp_name += "_" + enemy
 
-# number of agents playing each matchup
+job_dicts['enemies'] = enemies
+
+# number of agents playing each enemy
 agents = 54
-agents //= len(characters) ** 2
-add_param('agents', agents, [], False)
-
-print("Launching %d agents." % (agents * len(characters) ** 2))
+print("Launching %d agents." % agents)
+agents //= len(enemies)
 
 add_param('name', exp_name, both, False)
 path = "saves/%s/" % exp_name
@@ -175,10 +187,10 @@ else:
     model.init()
     model.save()
     
-    import pickle
+    import json
     for k, v in job_dicts.items():
       with open(path + k, 'wb') as f:
-        pickle.dump(v, f)
+        json.dump(v, f, indent=2)
 
 if args.trainer is None:
   train_name = "trainer_" + exp_name
@@ -192,11 +204,11 @@ if args.trainer is None:
 else:
   agent_count = 0
   agent_command = "python3 -u run.py" + job_flags['agent']
-  for c1 in characters:
-    for c2 in characters:
-      command = agent_command + " --p1 %s --p2 %s" % (c1, c2)
+  for enemy in enemies:
+    command = agent_command + " --enemy %s" % enemy_table[enemy]
 
-      #for _ in range(agents):
-      agent_name = "agent_%d_%s" % (agent_count, exp_name)
-      slurm_script(agent_name, command, log=False, array=agents)
-      agent_count += 1
+    #for _ in range(agents):
+    agent_name = "agent_%d_%s" % (agent_count, exp_name)
+    slurm_script(agent_name, command, log=False, array=agents)
+    agent_count += 1
+
