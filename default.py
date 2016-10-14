@@ -6,7 +6,7 @@ class Default:
   _members = []
   
   def __init__(self, init_members=True, **kwargs):
-    self._ezpickle_kwargs = kwargs
+    self._kwargs = kwargs
     
     for opt in self._options:
       value = None
@@ -46,12 +46,12 @@ class Default:
       yield from cls_.full_opts()
   
   def __getstate__(self):
-    return self._ezpickle_kwargs
+    return self._kwargs
   def __setstate__(self, d):
     self.__init__(**d)
   
   def dump(self, f):
-    pickle.dump(self._ezpickle_kwargs, f)
+    pickle.dump(self._kwargs, f)
   
   @classmethod
   def load(cls, f, **override):
