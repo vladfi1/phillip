@@ -12,6 +12,7 @@ class Agent(Default):
   _options = [
     Option('delay', type=int, default=0, help="delay actions this many rounds"),
     Option('char', type=str, choices=characters.keys(), help="character that this agent plays as"),
+    Option('verbose', action="store_true"),
   ]
   
   _members = [
@@ -32,8 +33,8 @@ class Agent(Default):
     self.model.restore()
 
   def act(self, state, pad):
-    #verbose = self.counter % 60 == 0
-    verbose = False
+    verbose = self.verbose and (self.counter % (10 * self.model.rlConfig.fps) == 0)
+    #verbose = False
     
     current = self.memory.peek()
     current.state = state
@@ -48,7 +49,7 @@ class Agent(Default):
     current.action = self.action
 
     if verbose:
-      print(state.players[1])
+      #print(state.players[1])
       print(self.action)
     
     # the delayed action
