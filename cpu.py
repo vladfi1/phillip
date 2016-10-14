@@ -82,8 +82,8 @@ class CPU(Default):
         if self.self_play:
             enemy = agent.Agent(reload_every=self.self_play*reload_every, swap=True, **kwargs)
         elif self.enemy:
-            with open(self.enemy, 'rb') as f:
-                enemy = agent.Agent.load(f, reload_every=None, swap=True)
+            with open(self.enemy + 'agent', 'rb') as f:
+                enemy = agent.Agent.load(f, reload_every=None, swap=True, dump=None, path=self.enemy)
         
         if enemy:
             self.pids.append(0)
