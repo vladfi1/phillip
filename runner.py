@@ -1,12 +1,14 @@
 import os
 import sys
 from argparse import ArgumentParser
+import subprocess
 
 parser = ArgumentParser()
 
 parser.add_argument('--dry_run', action='store_true', help="don't start jobs")
 parser.add_argument('--init', action='store_true', help="initialize model")
 parser.add_argument('--trainer', type=str, help='trainer IP address')
+parser.add_argument('--local', action='store_true', help="run locally")
 
 args = parser.parse_args()
 
@@ -128,6 +130,7 @@ job_dicts['enemies'] = enemies
 
 # number of agents playing each enemy
 agents = 54
+job_dicts['agents'] = agents
 print("Launching %d agents." % agents)
 agents //= len(enemies)
 
@@ -135,13 +138,41 @@ add_param('name', exp_name, both, False)
 path = "saves/%s/" % exp_name
 add_param('path', path, both, False)
 
-if args.trainer:
-  dump = "172.16.24.%s" % args.trainer
-  add_param('dump', dump, ['agent'], False)
+run_agents = False
+run_trainer = False
+
+if args.local:
+  add_param('dump', "localhost", ['agent'], False)
+  #add_param('dump', "ib0", ['train'], False)
+  run_agents = True
+  run_trainer = True
 else:
-  add_param('dump', "ib0", ['train'], False)
+  if args.trainer:
+    dump = "172.16.24.%s" % args.trainer
+    add_param('dump', dump, ['agent'], False)
+    run_agents = True
+  else:
+    add_param('dump', "ib0", ['train'], False)
+    run_trainer = True
 
 def slurm_script(name, command, cpus=2, mem=1000, gpu=False, log=True, qos=None, array=None):
+  if args.dry_run:
+    print(command)
+    return
+  
+  if args.local:
+    if array is None:
+      array = 1
+    for i in range(array):
+      kwargs = {}
+      if log:
+        kwargs.update(
+          stdout = "slurm_logs/%s_%d.out" % (name, i),
+          stderr = "slurm_logs/%s_%d.err" % (name, i),
+        )
+      subprocess.Popen(command.split(' '), **kwargs)
+    return
+
   slurmfile = 'slurm_scripts/' + name + '.slurm'
   with open(slurmfile, 'w') as f:
     f.write("#!/bin/bash\n")
@@ -167,13 +198,7 @@ def slurm_script(name, command, cpus=2, mem=1000, gpu=False, log=True, qos=None,
     f.write(command)
 
   #command = "screen -S %s -dm srun --job-name %s --pty singularity exec -B $OM_USER/phillip -B $HOME/phillip/ -H ../home phillip.img gdb -ex r --args %s" % (name[:10], name, command)
-
-  if args.dry_run:
-    print(command)
-  else:
-    #os.system(command)
-    os.system("sbatch " + slurmfile)
-    #os.system("sbatch -N 1 -c 2 --mem=8000 --time=6-23:00:00 slurm_scripts/" + jobname + ".slurm &")
+  os.system("sbatch " + slurmfile)
 
 if args.dry_run:
   print("NOT starting jobs:")
@@ -192,7 +217,7 @@ else:
       with open(path + k, 'wb') as f:
         json.dump(v, f, indent=2)
 
-if args.trainer is None:
+if run_trainer:
   train_name = "trainer_" + exp_name
   train_command = "python3 -u train.py" + job_flags['train']
   
@@ -201,7 +226,8 @@ if args.trainer is None:
     qos='tenenbaum',
     mem=16000
   )
-else:
+
+if run_agents:
   agent_count = 0
   agent_command = "python3 -u run.py" + job_flags['agent']
   for enemy in enemies:
