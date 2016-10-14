@@ -55,8 +55,8 @@ train_settings = [
   #('optimizer', 'Adam'),
   #('learning_rate', 0.0002),
   ('tdN', 6),
-  ('iters', 10),
-  ('batch_size', 40),
+  ('iters', 1),
+  ('batch_size', 2),
   ('batch_steps', 2),
   ('gpu', 1),
 ]
@@ -129,7 +129,7 @@ for enemy in enemies:
 job_dicts['enemies'] = enemies
 
 # number of agents playing each enemy
-agents = 54
+agents = 2
 job_dicts['agents'] = agents
 print("Launching %d agents." % agents)
 agents //= len(enemies)
@@ -165,11 +165,8 @@ def slurm_script(name, command, cpus=2, mem=1000, gpu=False, log=True, qos=None,
       array = 1
     for i in range(array):
       kwargs = {}
-      if log:
-        kwargs.update(
-          stdout = "slurm_logs/%s_%d.out" % (name, i),
-          stderr = "slurm_logs/%s_%d.err" % (name, i),
-        )
+      for s in ['out', 'err']:
+        kwargs['std' + s] = open("slurm_logs/%s_%d.%s" % (name, i, s), 'w') if log else subprocess.DEVNULL
       subprocess.Popen(command.split(' '), **kwargs)
     return
 
@@ -214,7 +211,7 @@ else:
     
     import json
     for k, v in job_dicts.items():
-      with open(path + k, 'wb') as f:
+      with open(path + k, 'w') as f:
         json.dump(v, f, indent=2)
 
 if run_trainer:
