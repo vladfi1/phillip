@@ -1,1 +1,5 @@
-{"act_every": 3, "model": "NaturalActorCritic"}
+{
+  "act_every": 3,
+  "model": "NaturalActorCritic",
+  "char": "fox"
+}
