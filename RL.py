@@ -10,14 +10,12 @@ import numpy as np
 import embed
 from default import *
 from dqn import DQN
-from actor_critic import ActorCritic
-from actor_critic_split import ActorCriticSplit
-from thompson_dqn import ThompsonDQN
+from ac import ActorCritic
+#from thompson_dqn import ThompsonDQN
 from operator import add, sub
 from enum import Enum
 from reward import computeRewards
-from rac import RecurrentActorCritic
-from nac import NaturalActorCritic
+#from rac import RecurrentActorCritic
 from ndqn import NaturalDQN
 
 class Mode(Enum):
@@ -26,12 +24,10 @@ class Mode(Enum):
 
 models = [
   DQN,
-  NaturalDQN,
-  #ActorCritic,
-  #ActorCriticSplit,
+  #NaturalDQN,
+  ActorCritic,
   #ThompsonDQN,
   #RecurrentActorCritic,
-  NaturalActorCritic
 ]
 models = {model.__name__ : model for model in models}
 

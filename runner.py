@@ -42,9 +42,9 @@ def add_param(param, value, jobs, name=True):
 
 both = ['train', 'agent']
 
-model = 'DQN'
+#model = 'DQN'
 #model = 'NaturalDQN'
-#model = 'ActorCriticSplit'
+model = 'ActorCritic'
 #model = 'RecurrentActorCritic'
 #model = 'NaturalActorCritic'
 
@@ -74,7 +74,11 @@ elif model.count('ActorCritic'):
   add_param('entropy_scale', 5e-4, ['train'], True)
   #add_param('target_kl', 1e-5, ['train'], True)
 
-if model.count('Natural'):
+natural = True
+#natural = False
+
+if natural:
+  add_param('natural', True, ['train'], True)
   if model.count('ActorCritic'):
     add_param('kl_scale', 0.1, ['train'], True)
     
@@ -84,8 +88,10 @@ if model.count('Natural'):
   else:
     add_param('learning_rate', 0.01, ['train'], True)
   
-  add_param('cg_damping', 1e-5, ['train'], False)
-  add_param('cg_iters', 20, ['train'], False)
+  train_settings += [
+    ('cg_damping', 1e-5),
+    ('cg_iters', 20),
+  ]
 else:
   add_param('learning_rate', 0.0001, ['train'], True)
 
@@ -100,8 +106,9 @@ for k, v in train_settings:
 add_param('dolphin', True, ['agent'], False)
 
 self_play = False
-self_play = 1200
-add_param('self_play', self_play, ['agent'], False)
+#self_play = 1200
+if self_play:
+  add_param('self_play', self_play, ['agent'], False)
 
 add_param('experience_time', 20, both, False)
 add_param('act_every', 3, both, False)
@@ -232,6 +239,6 @@ if run_agents:
 
     #for _ in range(agents):
     agent_name = "agent_%d_%s" % (agent_count, exp_name)
-    slurm_script(agent_name, command, log=False, array=agents)
+    slurm_script(agent_name, command, log=True, array=agents)
     agent_count += 1
 
