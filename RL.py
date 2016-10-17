@@ -1,4 +1,5 @@
 import tensorflow as tf
+import os
 import random
 import ssbm
 import ctypes
@@ -79,6 +80,9 @@ class Model(Default):
     device = '/gpu:0' if self.gpu else '/cpu:0'
     print("Using device " + device)
     
+    if not self.gpu:
+      os.environ['CUDA_VISIBLE_DEVICES'] = ""
+    
     with self.graph.as_default(), tf.device(device):
       self._init_members(**kwargs)
       
@@ -156,7 +160,8 @@ class Model(Default):
           self.policy = self.model.getPolicy(history)
       
       tf_config = dict(
-        allow_soft_placement=True
+        allow_soft_placement=True,
+        #log_device_placement=True,
       )
       
       if mode == Mode.PLAY: # don't eat up cpu cores
