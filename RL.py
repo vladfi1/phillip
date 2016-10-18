@@ -16,7 +16,6 @@ from operator import add, sub
 from enum import Enum
 from reward import computeRewards
 #from rac import RecurrentActorCritic
-from ndqn import NaturalDQN
 
 class Mode(Enum):
   TRAIN = 0
@@ -24,7 +23,6 @@ class Mode(Enum):
 
 models = [
   DQN,
-  #NaturalDQN,
   ActorCritic,
   #ThompsonDQN,
   #RecurrentActorCritic,

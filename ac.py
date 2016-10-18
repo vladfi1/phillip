@@ -89,10 +89,9 @@ class ActorCritic(Default):
     tf.scalar_summary('actor_gain', actor_gain)
     
     acLoss = vLoss - self.policy_scale * (actor_gain + self.entropy_scale * actor_entropy)
-    acLoss *= -self.learning_rate
     
     params = tf.trainable_variables()
-    pg = tf.gradients(acLoss, params)
+    pg = tf.gradients(acLoss, params, -self.learning_rate)
     
     if self.natural:
       predictions = [values, log_actor_probs]
