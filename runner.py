@@ -42,9 +42,9 @@ def add_param(param, value, jobs, name=True):
 
 both = ['train', 'agent']
 
-#model = 'DQN'
+model = 'DQN'
 #model = 'NaturalDQN'
-model = 'ActorCritic'
+#model = 'ActorCritic'
 #model = 'RecurrentActorCritic'
 #model = 'NaturalActorCritic'
 
@@ -55,9 +55,10 @@ train_settings = [
   #('optimizer', 'Adam'),
   #('learning_rate', 0.0002),
   ('tdN', 6),
-  ('iters', 1),
-  ('batch_size', 2),
-  ('batch_steps', 2),
+  ('sweeps', 5),
+  ('batches', 2),
+  ('batch_size', 1),
+  ('batch_steps', 1),
   ('gpu', 1),
 ]
 
