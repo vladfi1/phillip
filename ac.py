@@ -3,7 +3,7 @@ import tf_lib as tfl
 import util
 from numpy import random
 from default import *
-import natgrad
+import opt
 
 class ActorCritic(Default):
   _options = [
@@ -11,18 +11,15 @@ class ActorCritic(Default):
     Option('critic_layers', type=int, nargs='+', default=[128, 128]),
 
     Option('epsilon', type=float, default=0.02),
-    Option('learning_rate', type=float, default=0.0005),
+
     Option('entropy_scale', type=float, default=0.001),
     Option('policy_scale', type=float, default=0.1),
     
-    Option('optimizer', type=str, default="GradientDescent", help="which tf.train optimizer to use"),
-    
-    Option('natural', action="store_true", help="Use natural gradient."),
     Option('kl_scale', type=float, default=1.0, help="kl divergence weight in natural metric"),
   ]
-  
+
   _members = [
-    ('natgrad', natgrad.NaturalGradient)
+    ('optimizer', opt.Optimizer)
   ]
   
   def __init__(self, state_size, action_size, global_step, rlConfig, **kwargs):
@@ -93,26 +90,18 @@ class ActorCritic(Default):
     acLoss = vLoss - self.policy_scale * (actor_gain + self.entropy_scale * actor_entropy)
     
     params = tf.trainable_variables()
-    
-    if self.natural:
-      pg = tf.gradients(acLoss, params, -self.learning_rate)
       
-      predictions = [values, log_actor_probs]
+    predictions = [values, log_actor_probs]
       
-      def metric(vp1, vp2):
-        v1, p1 = vp1
-        v2, p2 = vp2
-        
-        vDist = tf.reduce_mean(tf.squared_difference(v1, v2))
-        pDist = tf.reduce_mean(tfl.kl(p1, p2))
-        return vDist + self.kl_scale * pDist
+    def metric(vp1, vp2):
+      v1, p1 = vp1
+      v2, p2 = vp2
       
-      pg = self.natgrad(params, pg, predictions, metric)
+      vDist = tf.reduce_mean(tf.squared_difference(v1, v2))
+      pDist = tf.reduce_mean(tfl.kl(p1, p2))
+      return vDist + self.kl_scale * pDist
     
-      return tfl.apply_grads(params, pg)
-    
-    optimizer = getattr(tf.train, self.optimizer + 'Optimizer')
-    return optimizer(self.learning_rate).minimize(acLoss)
+    return self.optimizer.optimize(acLoss, params, predictions, metric)
   
   def getPolicy(self, state, **kwargs):
     return self.actor(state)

@@ -3,7 +3,7 @@ import tf_lib as tfl
 import util
 from numpy import random
 from default import *
-import natgrad
+import opt
 
 class DQN(Default):
   _options = [
@@ -11,13 +11,10 @@ class DQN(Default):
     Option('epsilon', type=float, default=0.02, help="pick random action with probability EPSILON"),
     Option('temperature', type=float, default=0.01, help="Boltzmann distribution over actions"),
     Option('sarsa', type=bool, default=True, help="use action taken instead of max when computing target Q-values"),
-    Option('learning_rate', type=float, default=0.001),
-    Option('natural', action="store_true", help="Use natural gradient."),
-    #Option('optimizer', type=str, default='Adam'
   ]
   
   _members = [
-    ('natgrad', natgrad.NaturalGradient)
+    ('optimizer', opt.Optimizer)
   ]
 
   def __init__(self, state_size, action_size, global_step, rlConfig, **kwargs):
@@ -90,16 +87,11 @@ class DQN(Default):
     tf.scalar_summary("q_mean", tf.reduce_mean(meanQs))
     
     self.params = tf.trainable_variables()
-    self.gradients = tf.gradients(qLoss, self.params, -self.learning_rate)
     
-    gradients = self.gradients
+    def q_metric(q1, q2):
+      return self.action_size * tf.reduce_mean(tf.squared_difference(q1, q2))
     
-    if self.natural:
-      def q_metric(q1, q2):
-        return self.action_size * tf.reduce_mean(tf.squared_difference(q1, q2))
-      gradients = self.natgrad(self.params, gradients, self.predictedQs, q_metric)
-    
-    return tfl.apply_grads(self.params, gradients)
+    return self.optimizer.optimize(qLoss, self.params, self.predictedQs, q_metric)
     
     """
     update_target = lambda: tf.group(*self.q_target.assign(self.q_net), name="update_target")
