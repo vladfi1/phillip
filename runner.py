@@ -49,15 +49,15 @@ model = 'DQN'
 #model = 'NaturalActorCritic'
 
 add_param('model', model, both)
-#add_param('epsilon', 0.02, both, False)
+add_param('epsilon', 0.02, both, False)
 
 train_settings = [
   #('optimizer', 'Adam'),
   #('learning_rate', 0.0002),
   ('tdN', 6),
   ('sweeps', 5),
-  ('batches', 2),
-  ('batch_size', 1),
+  ('batches', 5),
+  ('batch_size', 5),
   ('batch_steps', 1),
   ('gpu', 1),
 ]
@@ -84,7 +84,7 @@ if natural:
     add_param('kl_scale', 0.1, ['train'], True)
     
   if True:
-    add_param('target_distance', 2e-5, ['train'], True)
+    add_param('target_distance', 1e-5, ['train'], True)
     add_param('learning_rate', 1., ['train'], False)
   else:
     add_param('learning_rate', 0.01, ['train'], True)
@@ -111,7 +111,7 @@ self_play = False
 if self_play:
   add_param('self_play', self_play, ['agent'], False)
 
-add_param('experience_time', 20, both, False)
+add_param('experience_time', 60, both, False)
 add_param('act_every', 3, both, False)
 #add_param('delay', 0, ['agent'])
 #add_param('memory', 0, both)
@@ -137,7 +137,7 @@ for enemy in enemies:
 job_dicts['enemies'] = enemies
 
 # number of agents playing each enemy
-agents = 2
+agents = 25
 job_dicts['agents'] = agents
 print("Launching %d agents." % agents)
 agents //= len(enemies)

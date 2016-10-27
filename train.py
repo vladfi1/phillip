@@ -75,7 +75,7 @@ while True:
     shuffle(experiences)
     
     for batch in util.chunk(experiences, args.batch_size):
-      model.train(experiences, **args.__dict__)
+      model.train(batch, **args.__dict__)
   
   model.save()
   
