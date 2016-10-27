@@ -70,6 +70,8 @@ while True:
   for _ in range(sweep_size):
     experiences.append(socket.recv_pyobj())
   
+  collect_time = time.time()
+  
   for _ in range(args.sweeps):
     from random import shuffle
     shuffle(experiences)
@@ -77,15 +79,22 @@ while True:
     for batch in util.chunk(experiences, args.batch_size):
       model.train(batch, **args.__dict__)
   
+  train_time = time.time()
+  
   model.save()
   
+  save_time = time.time()
+  
   sweeps += 1
-  total_time = time.time() - start_time
   
   if False:
     after = count_objects()
     print(diff_objects(after, before))
     before = after
-
-  print(sweeps, total_time, sweep_size)
+  
+  save_time -= train_time
+  train_time -= collect_time
+  collect_time -= start_time
+  
+  print(sweeps, sweep_size, collect_time, train_time, save_time)
 
