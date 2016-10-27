@@ -63,7 +63,6 @@ class DQN(Default):
     maxQs = tf.reduce_max(targetQs, -1)
     targetQs = realQs if self.sarsa else maxQs
     
-    tf.scalar_summary("q_mean", tf.reduce_mean(self.predictedQs))
     tf.scalar_summary("q_max", tf.reduce_mean(maxQs))
     
     # smooth between TD(m) for m<=n?
@@ -86,6 +85,9 @@ class DQN(Default):
     entropy = -tf.reduce_sum(tf.log(action_probs) * action_probs, -1)
     entropy = tf.reduce_mean(entropy)
     tf.scalar_summary("entropy", entropy)
+    
+    meanQs = tfl.batch_dot(action_probs, self.predictedQs)
+    tf.scalar_summary("q_mean", tf.reduce_mean(meanQs))
     
     self.params = tf.trainable_variables()
     self.gradients = tf.gradients(qLoss, self.params, -self.learning_rate)
