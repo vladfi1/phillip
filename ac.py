@@ -15,6 +15,8 @@ class ActorCritic(Default):
     Option('entropy_scale', type=float, default=0.001),
     Option('policy_scale', type=float, default=0.1),
     
+    Option('optimizer', type=str, default="GradientDescent", help="which tf.train optimizer to use")
+    
     Option('natural', action="store_true", help="Use natural gradient."),
     Option('kl_scale', type=float, default=1.0, help="kl divergence weight in natural metric"),
   ]
@@ -91,9 +93,10 @@ class ActorCritic(Default):
     acLoss = vLoss - self.policy_scale * (actor_gain + self.entropy_scale * actor_entropy)
     
     params = tf.trainable_variables()
-    pg = tf.gradients(acLoss, params, -self.learning_rate)
     
     if self.natural:
+      pg = tf.gradients(acLoss, params, -self.learning_rate)
+      
       predictions = [values, log_actor_probs]
       
       def metric(vp1, vp2):
@@ -106,7 +109,10 @@ class ActorCritic(Default):
       
       pg = self.natgrad(params, pg, predictions, metric)
     
-    return tfl.apply_grads(params, pg)
+      return tfl.apply_grads(params, pg)
+    
+    optimizer = getattr(tf.train, self.optimizer + 'Optimizer')
+    return optimizer(self.learning_rate).minimize(acLoss)
   
   def getPolicy(self, state, **kwargs):
     return self.actor(state)
