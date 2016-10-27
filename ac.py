@@ -15,7 +15,7 @@ class ActorCritic(Default):
     Option('entropy_scale', type=float, default=0.001),
     Option('policy_scale', type=float, default=0.1),
     
-    Option('optimizer', type=str, default="GradientDescent", help="which tf.train optimizer to use")
+    Option('optimizer', type=str, default="GradientDescent", help="which tf.train optimizer to use"),
     
     Option('natural', action="store_true", help="Use natural gradient."),
     Option('kl_scale', type=float, default=1.0, help="kl divergence weight in natural metric"),
