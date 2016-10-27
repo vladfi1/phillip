@@ -220,10 +220,14 @@ class Model(Default):
     #state_actions = ssbm.readStateActions(filename)
     #feed_dict = feedStateActions(state_actions)
     #experiences = util.async_map(ssbm.readStateActions_pickle, filenames)()
+    import time
+    t = time.time()
+    
     experiences = util.deepZip(*experiences)
     experiences = util.deepMap(np.array, experiences)
-    
     input_dict = dict(util.deepValues(util.deepZip(self.experience, experiences)))
+    
+    print("Processing time", time.time() - t)
     
     """
     saved_data = self.sess.run(self.saved_data, input_dict)
