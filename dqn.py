@@ -83,7 +83,7 @@ class DQN(Default):
     entropy = tf.reduce_mean(entropy)
     tf.scalar_summary("entropy", entropy)
     
-    meanQs = tfl.batch_dot(action_probs, self.predictedQs)
+    meanQs = tfl.batch_dot(action_probs, flatQs)
     tf.scalar_summary("q_mean", tf.reduce_mean(meanQs))
     
     self.params = tf.trainable_variables()
