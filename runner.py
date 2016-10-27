@@ -103,6 +103,7 @@ for k, v in train_settings:
 
 # agent settings
 
+add_param('cpu_thread', not args.local, ['agent'], False)
 #add_param('dump', args.trainer, ['agent'], False)
 add_param('dolphin', True, ['agent'], False)
 
