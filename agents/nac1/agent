@@ -1,5 +1,0 @@
-{
-  "act_every": 3,
-  "model": "ActorCritic",
-  "char": "fox"
-}
