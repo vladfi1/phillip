@@ -36,8 +36,9 @@ model = 'ActorCritic'
 add_param('model', model, both)
 add_param('epsilon', 0.02, both, False)
 
+add_param('optimizer', 'Adam', ['train'])
+
 train_settings = [
-  #('optimizer', 'Adam'),
   #('learning_rate', 0.0002),
   ('tdN', 6),
   ('sweeps', 2),
@@ -56,7 +57,7 @@ if model.count('DQN'):
   ]
   add_param('temperature', 0.005, ['agent'], True)
 elif model.count('ActorCritic'):
-  add_param('policy_scale', 1, ['train'], True)
+  add_param('policy_scale', 0.1, ['train'], True)
   add_param('entropy_scale', 5e-4, ['train'], True)
   #add_param('target_kl', 1e-5, ['train'], True)
 
@@ -72,14 +73,14 @@ if natural:
     add_param('target_distance', 1e-5, ['train'], True)
     add_param('learning_rate', 1., ['train'], False)
   else:
-    add_param('learning_rate', 0.5, ['train'], True)
+    add_param('learning_rate', 1., ['train'], True)
   
   train_settings += [
     ('cg_damping', 1e-5),
     ('cg_iters', 20),
   ]
 else:
-  add_param('learning_rate', 0.0001, ['train'], True)
+  add_param('learning_rate', 0.001, ['train'], True)
 
 for k, v in train_settings:
   add_param(k, v, ['train'], False)
@@ -103,6 +104,7 @@ add_param('act_every', 3, both, False)
 #movie = 'movies/endless_netplay_battlefield_dual.dtm'
 #add_param('movie', movie, ['agent'], False)
 
+#char = 'marth'
 char = 'fox'
 add_param('char', char, ['agent'], True)
 
