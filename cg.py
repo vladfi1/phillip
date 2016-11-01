@@ -59,6 +59,8 @@ class ConjugateGradient(Default):
       
       n, x, p, r, rr = tf.while_loop(cond, body, (n, x, p, r, rr), back_prop=False)
       
+      tf.scalar_summary('cg_iters', n)
+      
       if debug:
         return n, x, p, r, rr
       else:
