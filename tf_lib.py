@@ -9,7 +9,7 @@ def leaky_relu(x, alpha=0.01):
   return tf.maximum(alpha * x, x)
 
 def log_sum_exp(xs):
-  maxes = tf.reduce_max(xs, keep_dims=True)
+  maxes = tf.reduce_max(xs, -1, keep_dims=True)
   xs -= maxes
   return tf.squeeze(maxes, [-1]) + tf.log(tf.reduce_sum(tf.exp(xs), -1))
 
@@ -136,11 +136,13 @@ def matmul(v, m):
 # I think this is the more efficient version?
 def matmul2(x, m, bias=None, nl=None):
   [input_size, output_size] = m.get_shape().as_list()
+  input_shape_py = x.get_shape().as_list()
+  assert(input_shape_py[-1] == input_size)
   
-  input_shape = tf.shape(x)
-  batch_rank = len(x.get_shape()) - 1
-  batch_shape = tf.slice(input_shape, [0], [batch_rank])
-  output_shape = tf.concat(0, [batch_shape, [output_size]])
+  input_shape_tf = tf.shape(x)
+  batch_rank = len(input_shape_py) - 1
+  batch_shape_tf = input_shape_tf[:batch_rank]
+  output_shape_tf = tf.concat(0, [batch_shape_tf, [output_size]])
   
   squashed = tf.reshape(x, [-1, input_size])
   y = tf.matmul(squashed, m)
@@ -151,12 +153,12 @@ def matmul2(x, m, bias=None, nl=None):
   if nl is not None:
     y = nl(y)
   
-  y = tf.reshape(y, output_shape)
+  y = tf.reshape(y, output_shape_tf)
   
   # fix shape inference
-  output_shape = x.get_shape().as_list()
-  output_shape[-1] = output_size
-  y.set_shape(output_shape)
+  output_shape_py = input_shape_py.copy()
+  output_shape_py[-1] = output_size
+  y.set_shape(output_shape_py)
   
   return y
 
