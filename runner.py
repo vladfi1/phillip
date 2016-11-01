@@ -1,6 +1,7 @@
 import os
 import sys
 import subprocess
+import util
 
 exp_name = "diagonal"
 job_flags = dict(train="", agent="")
@@ -26,9 +27,9 @@ def add_param(param, value, jobs, name=True):
 
 both = ['train', 'agent']
 
-model = 'DQN'
+#model = 'DQN'
 #model = 'NaturalDQN'
-#model = 'ActorCritic'
+model = 'ActorCritic'
 #model = 'RecurrentActorCritic'
 #model = 'NaturalActorCritic'
 
@@ -39,9 +40,9 @@ train_settings = [
   #('optimizer', 'Adam'),
   #('learning_rate', 0.0002),
   ('tdN', 6),
-  ('sweeps', 1),
-  ('batches', 2),
-  ('batch_size', 1),
+  ('sweeps', 2),
+  ('batches', 5),
+  ('batch_size', 20),
   ('batch_steps', 1),
   ('gpu', 1),
 ]
@@ -67,11 +68,11 @@ if natural:
   if model.count('ActorCritic'):
     add_param('kl_scale', 0.1, ['train'], True)
     
-  if True:
+  if False:
     add_param('target_distance', 1e-5, ['train'], True)
     add_param('learning_rate', 1., ['train'], False)
   else:
-    add_param('learning_rate', 0.01, ['train'], True)
+    add_param('learning_rate', 0.5, ['train'], True)
   
   train_settings += [
     ('cg_damping', 1e-5),
@@ -116,12 +117,15 @@ for enemy in enemies:
 job_dicts['enemies'] = enemies
 
 # number of agents playing each enemy
-agents = 2
+agents = 80
 job_dicts['agents'] = agents
 
 add_param('name', exp_name, both, False)
 path = "saves/%s/" % exp_name
 add_param('path', path, both, False)
+
+print("Writing to", path)
+util.makedirs(path)
 
 import json
 for k, v in job_dicts.items():
