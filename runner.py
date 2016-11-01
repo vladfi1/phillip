@@ -41,9 +41,9 @@ add_param('optimizer', 'Adam', ['train'])
 train_settings = [
   #('learning_rate', 0.0002),
   ('tdN', 6),
-  ('sweeps', 2),
-  ('batches', 5),
-  ('batch_size', 20),
+  ('sweeps', 1),
+  ('batches', 2),
+  ('batch_size', 1),
   ('batch_steps', 1),
   ('gpu', 1),
 ]
@@ -91,12 +91,7 @@ for k, v in train_settings:
 
 add_param('dolphin', True, ['agent'], False)
 
-self_play = False
-#self_play = 1200
-if self_play:
-  add_param('self_play', self_play, ['agent'], False)
-
-add_param('experience_time', 20, both, False)
+add_param('experience_time', 5, both, False)
 add_param('act_every', 3, both, False)
 #add_param('delay', 0, ['agent'])
 #add_param('memory', 0, both)
@@ -109,8 +104,10 @@ char = 'fox'
 add_param('char', char, ['agent'], True)
 
 enemies = [
-  "nac1", # fox fox fd
+  "self",
 ]
+
+add_param('enemy_reload', 600, ['agent'], False)
 
 exp_name += "_enemies"
 for enemy in enemies:

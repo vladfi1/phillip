@@ -11,6 +11,7 @@ parser.add_argument('--init', action='store_true', help="initialize model")
 parser.add_argument('--trainer', type=str, help='trainer IP address')
 parser.add_argument('--local', action='store_true', help="run locally")
 parser.add_argument('--agents', type=int, help="number of agents to run")
+parser.add_argument('--log_agents', action='store_true', help='log agent outputs')
 
 args = parser.parse_args()
 
@@ -121,11 +122,15 @@ if run_agents:
     agent_command += " --cpu_thread"
 
   for enemy in enemies:
-    command = agent_command + " --enemy agents/%s/" % enemy
+    command = agent_command + " --enemy "
+    if enemy == "self":
+      command += args.path
+    else:
+      command += "agents/%s/" % enemy
 
     agent_name = "agent_%d_%s" % (agent_count, params['agent']['name'])
     launch(agent_name, command,
-      log=True,
+      log=args.log_agents,
       qos='use-everything',
       array=agents
     )

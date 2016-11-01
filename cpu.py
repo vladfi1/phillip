@@ -19,12 +19,12 @@ from default import *
 class CPU(Default):
     _options = [
       Option('tag', type=int),
-      Option('dump', type=str, default=None, help="dump experiences to ip address via zmq"),
+      Option('dump', type=str, help="dump experiences to ip address via zmq"),
       Option('user', type=str, help="dolphin user directory"),
-      Option('self_play', type=int, default=None, help="play against a copy that updates SELF_PLAY times slower"),
       Option('zmq', type=bool, default=True, help="use zmq for memory watcher"),
       Option('stage', type=str, default="final_destination", choices=movie.stages.keys(), help="which stage to play on"),
       Option('enemy', type=str, help="load enemy agent from file"),
+      Option('enemy_reload', type=int, default=0, help="enemy reload interval"),
     ] + [Option('p%d' % i, type=str, choices=characters.keys(), default="falcon", help="character for player %d" % i) for i in [1, 2]]
     
     _members = [
@@ -78,22 +78,18 @@ class CPU(Default):
         reload_every = self.rlConfig.experience_length
         self.agent.reload_every = reload_every
         
-        enemy = None
-        if self.self_play:
-            enemy = agent.Agent(reload_every=self.self_play*reload_every, swap=True, **kwargs)
-        elif self.enemy:
+        if self.enemy:
             with open(self.enemy + 'params', 'r') as f:
                 import json
                 enemy_kwargs = json.load(f)['agent']
             enemy_kwargs.update(
-                reload_every=None,
+                reload_every=self.enemy_reload * reload_every,
                 swap=True,
                 dump=None,
                 path=self.enemy
             )
             enemy = agent.Agent(**enemy_kwargs)
         
-        if enemy:
             self.pids.append(0)
             self.agents[0] = enemy
             self.characters[0] = enemy.char or self.p1
