@@ -10,14 +10,14 @@ def leaky_relu(x, alpha=0.01):
 
 def log_sum_exp(xs):
   maxes = tf.reduce_max(xs, -1, keep_dims=True)
-  xs -= maxes
-  return tf.squeeze(maxes, [-1]) + tf.log(tf.reduce_sum(tf.exp(xs), -1))
+  maxes = tf.stop_gradient(maxes)
+  return tf.squeeze(maxes, [-1]) + tf.log(tf.reduce_sum(tf.exp(xs-maxes), -1))
 
 def leaky_softplus(alpha=0.01):
   "Really just a special case of log_sum_exp."
   def f(x):
     ax = alpha * x
-    maxes = tf.maximum(ax, x)
+    maxes = tf.stop_gradient(tf.maximum(ax, x))
     return maxes + tf.log(tf.exp(ax - maxes) + tf.exp(x - maxes))
   return f
 
