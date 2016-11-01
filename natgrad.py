@@ -64,7 +64,7 @@ class NaturalGradient(Default):
       
       step_size = tf.sqrt(self.target_distance / acceleration)
       #step_size = tf.minimum(1.0, step_size)
-      tf.scalar_summary('step_size', tf.log(step_size))
+      tf.scalar_summary('ng_step', tf.log(step_size))
       
       direction_natural *= step_size
     
