@@ -116,7 +116,7 @@ agents //= len(enemies)
 
 if run_agents:
   agent_count = 0
-  agent_command = "python3 -u run.py --params " + args.path + "params"
+  agent_command = "python3 -u run.py --load " + args.path
   agent_command += " --dump " + agent_dump
   if not args.local:
     agent_command += " --cpu_thread"

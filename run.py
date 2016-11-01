@@ -17,19 +17,21 @@ for model in RL.models.values():
   for opt in model.full_opts():
     opt.update_parser(parser)
 
+parser.add_argument("--load", type=str, help="path to folder containing snapshot and params")
+
 # dolphin options
 parser.add_argument("--dolphin", action="store_true", default=None, help="run dolphin")
-parser.add_argument("--params", type=str, help="path to a json file from which to load params")
 
 for opt in DolphinRunner.full_opts():
   opt.update_parser(parser)
 
 args = parser.parse_args()
 
-if args.params:
+if args.load:
   import json
-  with open(args.params) as f:
+  with open(args.load + 'params') as f:
     params = json.load(f)['agent']
+  params['path'] = args.load
 else:
   params = {}
 
