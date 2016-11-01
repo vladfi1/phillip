@@ -68,7 +68,7 @@ def bias_variable(shape):
     :param shape: The dimensions of the desired Tensor
     :return: The initialized Tensor
     '''
-    return tf.Variable(0.1, name='bias')
+    return tf.Variable(tf.constant(0.1, shape=shape), name='bias')
 
 def conv2d(x, W):
     '''
