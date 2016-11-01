@@ -82,9 +82,9 @@ class CPU(Default):
         if self.self_play:
             enemy = agent.Agent(reload_every=self.self_play*reload_every, swap=True, **kwargs)
         elif self.enemy:
-            with open(self.enemy + 'agent', 'r') as f:
+            with open(self.enemy + 'params', 'r') as f:
                 import json
-                enemy_kwargs = json.load(f)
+                enemy_kwargs = json.load(f)['agent']
             enemy_kwargs.update(
                 reload_every=None,
                 swap=True,

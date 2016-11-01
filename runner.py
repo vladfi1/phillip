@@ -130,9 +130,5 @@ print("Writing to", path)
 util.makedirs(path)
 
 import json
-for k, v in job_dicts.items():
-  with open(path + k, 'w') as f:
-    json.dump(v, f, indent=2)
-
 with open(path + "params", 'w') as f:
   json.dump(job_dicts, f, indent=2)
