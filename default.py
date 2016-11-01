@@ -64,7 +64,10 @@ class Option:
     self.name = name
     self.default = None
     self.__dict__.update(kwargs)
-    self.kwargs = kwargs
+    self.kwargs = kwargs.copy()
+    
+    # don't pass default on to argparse
+    self.kwargs['default'] = None
   
   def update_parser(self, parser):
     flag = "--" + self.name

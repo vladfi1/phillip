@@ -157,9 +157,17 @@ def hashString(s):
   return hashlib.md5(s).hexdigest()
 
 def port(s):
+  print("PORT", s)
   return 5536 + int(hashString(s), 16) % 60000
 
 def makedirs(path):
   if not os.path.exists(path):
     os.makedirs(path)
+
+def update(dikt, **kwargs):
+  for k, v in kwargs.items():
+    if v is not None:
+      dikt[k] = v
+    elif k not in dikt:
+      dikt[k] = None
 

@@ -12,7 +12,7 @@ class Agent(Default):
   _options = [
     Option('delay', type=int, default=0, help="delay actions this many rounds"),
     Option('char', type=str, choices=characters.keys(), help="character that this agent plays as"),
-    Option('verbose', action="store_true"),
+    Option('verbose', type=int, default=0),
   ]
   
   _members = [

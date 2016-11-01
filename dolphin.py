@@ -49,11 +49,11 @@ from default import *
 class SetupUser(Default):
   _options = [
     Option('gfx', type=str, default="Null", help="graphics backend"),
-    Option('cpu_thread', action="store_true", help="Use separate gpu and cpu threads."),
+    Option('cpu_thread', action="store_true", default=False, help="Use separate gpu and cpu threads."),
     Option('cpus', type=int, nargs='+', default=[1], help="Which players are cpu-controlled."),
     Option('audio', type=str, default="No audio backend", help="audio backend"),
     Option('speed', type=int, default=0, help='framerate - 100=normal, 0=unlimited'),
-    Option('dump_frames', type=bool, default=False, help="dump frames from dolphin to disk"),
+    Option('dump_frames', action="store_true", default=False, help="dump frames from dolphin to disk"),
   ]
   
   def __call__(self, user):
