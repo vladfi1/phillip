@@ -18,12 +18,6 @@ import json
 with open(args.path + 'params') as f:
   params = json.load(f)
 
-if not os.path.exists("slurm_logs"):
-    os.makedirs("slurm_logs")
-
-if not os.path.exists("slurm_scripts"):
-    os.makedirs("slurm_scripts")
-
 run_trainer = True
 run_agents = True
 
