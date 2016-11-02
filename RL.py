@@ -153,6 +153,15 @@ class Model(Default):
           
           self.policy = self.model.getPolicy(history)
       
+      self.debug = debug
+      
+      self.variables = tf.all_variables()
+      
+      self.saver = tf.train.Saver(self.variables)
+      
+      self.placeholders = {v.name : tf.placeholder(v.dtype, v.get_shape()) for v in self.variables}
+      self.unblobber = [tf.assign(v, self.placeholders[v.name]) for v in self.variables]
+      
       tf_config = dict(
         allow_soft_placement=True,
         #log_device_placement=True,
@@ -172,12 +181,6 @@ class Model(Default):
         graph=self.graph,
         config=tf.ConfigProto(**tf_config),
       )
-      
-      self.debug = debug
-      
-      #self.saver = tf.train.Saver(self.variables)
-      print("Creating saver.")
-      self.saver = tf.train.Saver(tf.all_variables())
 
   def act(self, history, verbose=False):
     feed_dict = dict(util.deepValues(util.deepZip(self.input, ct.vectorizeCTypes(ssbm.SimpleStateAction, history))))
@@ -256,4 +259,12 @@ class Model(Default):
     with self.graph.as_default():
       #self.sess.run(tf.initialize_variables(self.variables))
       self.sess.run(tf.initialize_all_variables())
+  
+  def blob(self):
+    with self.graph.as_default():
+      values = self.sess.run(self.variables)
+      return {var.name: val for var, val in zip(self.variables, values)}
+  
+  def unblob(self, blob):
+    self.sess.run(self.unblobber, {self.placeholders[k]: v for k, v in blob.items()})
 
