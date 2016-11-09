@@ -1,0 +1,41 @@
+{
+  "train": {
+    "name": "MarthFD",
+    "sweeps": 1,
+    "batch_steps": 1,
+    "model": "ActorCritic",
+    "kl_scale": 0.1,
+    "batches": 1,
+    "learning_rate": 1.0,
+    "batch_size": 100,
+    "entropy_scale": 0.0005,
+    "cg_iters": 20,
+    "tdN": 6,
+    "policy_scale": 0.1,
+    "epsilon": 0.02,
+    "target_distance": 1e-05,
+    "natural": true,
+    "act_every": 3,
+    "experience_time": 20,
+    "cg_damping": 1e-05,
+    "gpu": 1,
+    "memory": 1
+  },
+  "agents": 100,
+  "agent": {
+    "epsilon": 0.02,
+    "model": "ActorCritic",
+    "experience_time": 20,
+    "char": "marth",
+    "name": "MarthFD",
+    "act_every": 3,
+    "enemy_reload": 600,
+    "dolphin": true,
+    "memory": 1
+  },
+  "enemies": [
+    "FoxFD",
+    "FalconFD",
+    "MarthFD"
+  ]
+}

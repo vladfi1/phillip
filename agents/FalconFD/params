@@ -1,0 +1,41 @@
+{
+  "agent": {
+    "epsilon": 0.02,
+    "char": "falcon",
+    "memory": 1,
+    "act_every": 3,
+    "experience_time": 20,
+    "name": "FalconFD",
+    "model": "ActorCritic",
+    "enemy_reload": 600,
+    "dolphin": true
+  },
+  "enemies": [
+    "FalconFD",
+    "FoxFD",
+    "MarthFD"
+  ],
+  "train": {
+    "memory": 1,
+    "natural": true,
+    "kl_scale": 0.1,
+    "gpu": 1,
+    "batch_steps": 1,
+    "act_every": 3,
+    "experience_time": 20,
+    "name": "FalconFD",
+    "tdN": 6,
+    "batches": 1,
+    "sweeps": 1,
+    "epsilon": 0.02,
+    "policy_scale": 1,
+    "learning_rate": 1.0,
+    "entropy_scale": 0.0005,
+    "model": "ActorCritic",
+    "target_distance": 1e-05,
+    "cg_iters": 20,
+    "cg_damping": 1e-05,
+    "batch_size": 100
+  },
+  "agents": 100
+}
