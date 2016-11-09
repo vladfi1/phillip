@@ -95,7 +95,7 @@ def launch(name, command, cpus=2, mem=1000, gpu=False, log=True, qos=None, array
 
 if run_trainer:
   train_name = "trainer_" + params['train']['name']
-  train_command = "python3 -u train.py --params " + args.path + "params"
+  train_command = "python3 -u train.py --load " + args.path
   train_command += " --dump " + trainer_dump
   
   launch(train_name, train_command,

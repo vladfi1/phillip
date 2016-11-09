@@ -32,21 +32,22 @@ class Trainer(Default):
 
     Option("dump", type=str, default="127.0.0.1", help="interface to listen on for experience dumps"),
 
-    Option("params", type=str, help="path to a json file from which to load params"),
+    Option("load", type=str, help="path to a json file from which to load params"),
   ]
   
   _members = [
     ("model", RL.Model),
   ]
   
-  def __init__(self, params=None, **kwargs):
-    if params is None:
+  def __init__(self, load=None, **kwargs):
+    if load is None:
       args = {}
     else:
       import json
-      with open(params, 'r') as f:
+      with open(load + 'params', 'r') as f:
         args = json.load(f)['train']
-    
+      args['path'] = load
+      
     util.update(args, mode=RL.Mode.TRAIN, **kwargs)
     print(args)
     Default.__init__(self, **args)
