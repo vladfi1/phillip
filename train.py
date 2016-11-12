@@ -6,6 +6,7 @@ from default import *
 import numpy as np
 from collections import defaultdict
 from gc import get_objects
+import zmq
 
 # some helpers for debugging memory leaks
 
@@ -57,33 +58,45 @@ class Trainer(Default):
       self.model.save()
     else:
       self.model.restore()
-  
-  def train(self):
-    import zmq
 
     context = zmq.Context()
 
-    socket = context.socket(zmq.PULL)
+    self.socket = context.socket(zmq.PULL)
     sock_addr = "tcp://%s:%d" % (self.dump, util.port(self.model.name))
     print("Binding to " + sock_addr)
-    socket.bind(sock_addr)
+    self.socket.bind(sock_addr)
 
-    sweep_size = self.batches * self.batch_size
-    print("Sweep size", sweep_size)
-
-    sweeps = 0
-
+    self.sweep_size = self.batches * self.batch_size
+    print("Sweep size", self.sweep_size)
+    
+    self.buffer = util.CircularQueue(self.sweep_size)
+  
+  def train(self):
     before = count_objects()
+    
+    sweeps = 0
+    
+    for _ in range(self.sweep_size):
+      self.buffer.push(self.socket.recv_pyobj())
+    
+    print("Buffer filled")
+
 
     while True:
       start_time = time.time()
       
-      experiences = []
+      collected = 0
       
-      for _ in range(sweep_size):
-        experiences.append(socket.recv_pyobj())
+      while True:
+        try:
+          self.buffer.push(self.socket.recv_pyobj(zmq.NOBLOCK))
+          collected += 1
+        except zmq.ZMQError as e:
+          break
       
       collect_time = time.time()
+      
+      experiences = self.buffer.as_list()
       
       for _ in range(self.sweeps):
         from random import shuffle
@@ -109,7 +122,7 @@ class Trainer(Default):
       train_time -= collect_time
       collect_time -= start_time
       
-      print(sweeps, sweep_size, collect_time, train_time, save_time)
+      print(sweeps, self.sweep_size, collected, collect_time, train_time, save_time)
 
 if __name__ == '__main__':
   from argparse import ArgumentParser
