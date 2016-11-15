@@ -39,11 +39,11 @@ class Agent(Default):
     current = self.memory.peek()
     current.state = state
     
-    self.memory.increment()
-    history = self.memory.as_list()
-    
     self.prev_action = self.action
     current.prev_action = self.prev_action
+
+    self.memory.increment()
+    history = self.memory.as_list()
     
     self.action = self.model.act(history, verbose)
     current.action = self.action

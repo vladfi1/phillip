@@ -160,7 +160,7 @@ class Model(Default):
       self.saver = tf.train.Saver(self.variables)
       
       self.placeholders = {v.name : tf.placeholder(v.dtype, v.get_shape()) for v in self.variables}
-      self.unblobber = [tf.assign(v, self.placeholders[v.name]) for v in self.variables]
+      self.unblobber = tf.group(*[tf.assign(v, self.placeholders[v.name]) for v in self.variables])
       
       tf_config = dict(
         allow_soft_placement=True,
@@ -220,9 +220,6 @@ class Model(Default):
     import ipdb; ipdb.set_trace()
 
   def train(self, experiences, batch_steps=1, **kwargs):
-    #state_actions = ssbm.readStateActions(filename)
-    #feed_dict = feedStateActions(state_actions)
-    #experiences = util.async_map(ssbm.readStateActions_pickle, filenames)()
     experiences = util.deepZip(*experiences)
     experiences = util.deepMap(np.array, experiences)
     
@@ -239,7 +236,13 @@ class Model(Default):
       self.debugGrads(input_dict)
     
     for _ in range(batch_steps):
-      results = self.sess.run(self.run_dict, input_dict)
+      try:
+        results = self.sess.run(self.run_dict, input_dict)
+      except tf.errors.InvalidArgumentError as e:
+        import pickle
+        with open(self.path + 'error', 'wb') as f:
+          pickle.dump(experiences, f)
+        raise e
       
       summary_str = results['summary']
       global_step = results['global_step']

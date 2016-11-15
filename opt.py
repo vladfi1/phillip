@@ -27,4 +27,6 @@ class Optimizer(Default):
     if self.natural:
       grads = self.natgrad(params, grads, predictions, metric)
     
+    grads = [tf.check_numerics(g, "NaN gradient in param %d" % i) for i, g in enumerate(grads)]
+    
     return self.optimizer.apply_gradients(zip(grads, params))
