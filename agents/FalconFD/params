@@ -25,7 +25,7 @@
     "experience_time": 20,
     "name": "FalconFD",
     "tdN": 6,
-    "batches": 1,
+    "batches": 10,
     "sweeps": 1,
     "epsilon": 0.02,
     "policy_scale": 1,
