@@ -2,10 +2,11 @@ import os
 import sys
 import subprocess
 import util
+from collections import OrderedDict
 
 exp_name = "diagonal"
 job_flags = dict(train="", agent="")
-job_dicts = dict(train={}, agent={})
+job_dicts = dict(train=OrderedDict(), agent=OrderedDict())
 
 def add_param(param, value, jobs, name=True):
   global exp_name
@@ -36,75 +37,79 @@ model = 'ActorCritic'
 add_param('model', model, both)
 add_param('epsilon', 0.02, both, False)
 
-add_param('optimizer', 'Adam', ['train'])
-
 train_settings = [
   #('learning_rate', 0.0002),
   ('tdN', 6),
   ('sweeps', 1),
-  ('batches', 2),
-  ('batch_size', 1),
+  ('batches', 10),
+  ('batch_size', 100),
   ('batch_steps', 1),
   ('gpu', 1),
 ]
 
-#add_param('learning_rate', 0.001, ['train'], True)
+natural = True
+#natural = False
 
 if model.count('DQN'):
   train_settings += [
     ('sarsa', 1),
     #('target_delay', 4000),
   ]
-  add_param('temperature', 0.005, ['agent'], True)
+  add_param('temperature', 0.0002, ['agent'], True)
 elif model.count('ActorCritic'):
-  add_param('policy_scale', 0.1, ['train'], True)
-  add_param('entropy_scale', 5e-4, ['train'], True)
+  if natural:
+    add_param('policy_scale', 1, ['train'], True)
+    add_param('entropy_scale', 5e-4, ['train'], True)
+  else:
+    add_param('policy_scale', 0.1, ['train'], True)
+    add_param('entropy_scale', 5e-3, ['train'], True)
   #add_param('target_kl', 1e-5, ['train'], True)
-
-natural = True
-#natural = False
 
 if natural:
   add_param('natural', True, ['train'], True)
   if model.count('ActorCritic'):
     add_param('kl_scale', 0.1, ['train'], True)
     
-  if False:
-    add_param('target_distance', 1e-5, ['train'], True)
+  if True:
+    add_param('target_distance', 2e-5, ['train'], True)
     add_param('learning_rate', 1., ['train'], False)
   else:
     add_param('learning_rate', 1., ['train'], True)
   
   train_settings += [
     ('cg_damping', 1e-5),
-    ('cg_iters', 20),
+    ('cg_iters', 10),
   ]
 else:
-  add_param('learning_rate', 0.001, ['train'], True)
+  add_param('learning_rate', 1e-5, ['train'], True)
+  add_param('optimizer', 'Adam', ['train'])
 
 for k, v in train_settings:
   add_param(k, v, ['train'], False)
 
 #add_param('action_space', 
+add_param('player_space', 0, both, True)
 
 # agent settings
 
 add_param('dolphin', True, ['agent'], False)
 
-add_param('experience_time', 5, both, False)
+add_param('experience_time', 20, both, False)
 add_param('act_every', 3, both, False)
 #add_param('delay', 0, ['agent'])
-#add_param('memory', 0, both)
+add_param('memory', 1, both)
 
 #movie = 'movies/endless_netplay_battlefield_dual.dtm'
 #add_param('movie', movie, ['agent'], False)
 
-#char = 'marth'
-char = 'fox'
+#char = 'falcon'
+char = 'marth'
+#char = 'fox'
 add_param('char', char, ['agent'], True)
 
 enemies = [
   "self",
+  "FoxFoxFD",
 ]
 
 add_param('enemy_reload', 600, ['agent'], False)
@@ -116,7 +121,7 @@ for enemy in enemies:
 job_dicts['enemies'] = enemies
 
 # number of agents playing each enemy
-agents = 80
+agents = 100
 job_dicts['agents'] = agents
 
 add_param('name', exp_name, both, False)

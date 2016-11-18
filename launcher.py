@@ -82,8 +82,8 @@ def launch(name, command, cpus=2, mem=1000, gpu=False, log=True, qos=None, array
     #f.write("#SBATCH --cpu_bind=verbose,cores\n")
     #f.write("#SBATCH --cpu_bind=threads\n")
     if gpu:
-      #f.write("#SBATCH --gres gpu:titan-x:1\n")
-      f.write("#SBATCH --gres gpu:1\n")
+      f.write("#SBATCH --gres gpu:titan-x:1\n")
+      #f.write("#SBATCH --gres gpu:1\n")
     if qos:
       f.write("#SBATCH --qos %s\n" % qos)
     if array:
@@ -100,7 +100,7 @@ if run_trainer:
   
   launch(train_name, train_command,
     gpu=True,
-    qos='tenenbaum',
+    #qos='tenenbaum',
     mem=16000
   )
 
