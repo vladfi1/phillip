@@ -7,9 +7,11 @@ from default import *
 floatType = tf.float32
 
 class FloatEmbedding(object):
-  def __init__(self, scale=None, bias=None):
+  def __init__(self, scale=None, bias=None, lower=-10.0, upper=10.0):
     self.scale = scale
     self.bias = bias
+    self.lower = lower
+    self.upper = upper
     self.size = 1
   
   def __call__(self, t):
@@ -21,6 +23,12 @@ class FloatEmbedding(object):
     
     if self.scale:
       t *= self.scale
+    
+    if self.lower:
+      t = tf.maximum(t, self.lower)
+    
+    if self.upper:
+      t = tf.minimum(t, self.upper)
     
     return tf.expand_dims(t, -1)
 
