@@ -30,6 +30,7 @@ class Trainer(Default):
     Option("batches", type=int, default=1, help="number of batches per sweep"),
     Option("batch_size", type=int, default=1, help="number of trajectories per batch"),
     Option("batch_steps", type=int, default=1, help="number of gradient steps to take on each batch"),
+    Option("min_collect", type=int, default=1, help="minimum number of experiences to collect between sweeps"),
 
     Option("dump", type=str, default="127.0.0.1", help="interface to listen on for experience dumps"),
 
@@ -85,7 +86,10 @@ class Trainer(Default):
     while True:
       start_time = time.time()
       
-      collected = 0
+      for _ in range(self.min_collect):
+        self.buffer.push(self.socket.recv_pyobj())
+
+      collected = self.min_collect
       
       while True:
         try:
