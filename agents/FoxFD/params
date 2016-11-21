@@ -1,41 +1,43 @@
 {
-  "agent": {
-    "epsilon": 0.02,
-    "char": "falcon",
-    "memory": 1,
-    "act_every": 3,
-    "experience_time": 20,
-    "name": "FoxFD",
-    "model": "ActorCritic",
-    "enemy_reload": 600,
-    "dolphin": true
-  },
   "enemies": [
-    "FalconFD",
+    "MarthFD",
     "FoxFD",
-    "MarthFD"
+    "FalconFD"
   ],
-  "train": {
-    "memory": 1,
-    "natural": true,
-    "kl_scale": 0.1,
-    "gpu": 1,
-    "batch_steps": 1,
-    "act_every": 3,
+  "agent": {
+    "model": "ActorCritic",
+    "epsilon": 0.02,
+    "player_space": 0,
+    "dolphin": true,
     "experience_time": 20,
-    "name": "FoxFD",
-    "tdN": 6,
-    "batches": 1,
-    "sweeps": 1,
+    "act_every": 3,
+    "memory": 1,
+    "char": "fox",
+    "enemy_reload": 600,
+    "name": "FoxFD"
+  },
+  "agents": 81,
+  "train": {
+    "model": "ActorCritic",
     "epsilon": 0.02,
     "policy_scale": 1,
-    "learning_rate": 1.0,
     "entropy_scale": 0.0005,
-    "model": "ActorCritic",
-    "target_distance": 1e-05,
-    "cg_iters": 20,
+    "natural": true,
+    "kl_scale": 0.1,
+    "target_distance": 5e-05,
+    "learning_rate": 1.0,
+    "tdN": 6,
+    "sweeps": 1,
+    "batches": 10,
+    "batch_size": 100,
+    "batch_steps": 1,
+    "gpu": 1,
     "cg_damping": 1e-05,
-    "batch_size": 100
-  },
-  "agents": 100
+    "cg_iters": 10,
+    "player_space": 0,
+    "experience_time": 20,
+    "act_every": 3,
+    "memory": 1,
+    "name": "FoxFD"
+  }
 }
