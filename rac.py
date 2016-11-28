@@ -2,21 +2,38 @@ import tensorflow as tf
 import tf_lib as tfl
 import util
 from numpy import random
+from default import *
+import opt
 
-class RecurrentActorCritic:
+class RecurrentActorCritic(Default):
+  _options = [
+    Option('rac_layers', type=int, nargs='+', default=[128, 128]),
+
+    Option('epsilon', type=float, default=0.02),
+
+    Option('entropy_scale', type=float, default=0.001),
+    Option('policy_scale', type=float, default=0.1),
+    
+    Option('kl_scale', type=float, default=1.0, help="kl divergence weight in natural metric"),
+  ]
+
+  _members = [
+    ('optimizer', opt.Optimizer)
+  ]
+
   def __init__(self, state_size, action_size, global_step, rlConfig, **kwargs):
+    Default.__init__(self, **kwargs)
+    
     self.action_size = action_size
-    self.layer_sizes = [128, 128]
-    self.layers = []
     
     prev_size = state_size
     cells = []
-    for size in self.layer_sizes:
+    for size in self.rac_layers:
       cells.append(tfl.GRUCell(prev_size, size))
       prev_size = size
     
     self.rnn = tf.nn.rnn_cell.MultiRNNCell(cells)
-    self.initial_state = tfl.bias_variable([self.rnn.state_size])
+    self.hidden_size = self.rnn.state_size
 
     with tf.variable_scope('actor'):
       self.actor = tfl.makeAffineLayer(prev_size, action_size, tf.nn.log_softmax)
@@ -28,7 +45,7 @@ class RecurrentActorCritic:
 
     self.rlConfig = rlConfig
 
-  def getLoss(self, states, actions, rewards, entropy_scale=0.001, policy_scale=0.01, **kwargs):
+  def train(self, states, actions, rewards, initial, **unused):
     n = self.rlConfig.tdN
     
     state_shape = tf.shape(states)
@@ -37,9 +54,7 @@ class RecurrentActorCritic:
     
     train_length = experience_length - n
     
-    initial_state = tf.expand_dims(self.initial_state, 0)
-    initial_state = tf.tile(initial_state, tf.pack([batch_size, 1]))
-    outputs, hidden = tf.nn.dynamic_rnn(self.rnn, states, initial_state=initial_state)
+    outputs, hidden = tf.nn.dynamic_rnn(self.rnn, states, initial_state=initial)
 
     values = self.critic(outputs)
     log_actor_probs = self.actor(outputs)
@@ -58,23 +73,45 @@ class RecurrentActorCritic:
 
     advantages = targets - trainVs
     vLoss = tf.reduce_mean(tf.square(advantages))
+    tf.scalar_summary('v_loss', vLoss)
+    
+    variance = tf.reduce_mean(tf.squared_difference(targets, tf.reduce_mean(targets)))
+    explained_variance = 1. - vLoss / variance
+    tf.scalar_summary("v_ev", explained_variance)
 
     actor_entropy = -tf.reduce_mean(tfl.batch_dot(actor_probs, log_actor_probs))
+    tf.scalar_summary('actor_entropy', actor_entropy)
+    
     real_log_actor_probs = tfl.batch_dot(actions, log_actor_probs)
     train_log_actor_probs = tf.slice(real_log_actor_probs, [0, 0], [-1, train_length])
     actor_gain = tf.reduce_mean(tf.mul(train_log_actor_probs, tf.stop_gradient(advantages)))
+    tf.scalar_summary('actor_gain', actor_gain)
+    
+    acLoss = vLoss - self.policy_scale * (actor_gain + self.entropy_scale * actor_entropy)
+    
+    params = tf.trainable_variables()
+      
+    predictions = [values, log_actor_probs]
+      
+    def metric(vp1, vp2):
+      v1, p1 = vp1
+      v2, p2 = vp2
+      
+      vDist = tf.reduce_mean(tf.squared_difference(v1, v2))
+      pDist = tf.reduce_mean(tfl.kl(p1, p2))
+      return vDist + self.kl_scale * pDist
+    
+    return self.optimizer.optimize(acLoss, params, predictions, metric)
 
-    acLoss = vLoss - policy_scale * (actor_gain + entropy_scale * actor_entropy)
-
-    return acLoss, [('vLoss', vLoss), ('actor_gain', actor_gain), ('actor_entropy', actor_entropy)], log_actor_probs
-
-  def getPolicy(self, state, **kwargs):
+  def getPolicy(self, state, hidden, **unused):
     state = tf.expand_dims(state, 0)
-    initial_state = tf.expand_dims(self.initial_state, 0)
-    output, hidden = self.rnn(state, initial_state)
+    hidden = tuple(tf.expand_dims(x, 0) for x in hidden)
+    output, hidden = self.rnn(state, hidden)
+    hidden = tuple(tf.squeeze(x, [0]) for x in hidden)
     output = tf.squeeze(output, [0])
-    hidden = tf.squeeze(hidden, [0])
-    return tf.exp(self.actor(output)), tf.assign(self.initial_state, hidden)
+    return tf.exp(self.actor(output)), hidden
 
   def act(self, policy, verbose=False):
-    return random.choice(range(self.action_size), p=policy[0])
+    actor_probs, hidden = policy
+    return random.choice(range(self.action_size), p=actor_probs), hidden
+

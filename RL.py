@@ -15,7 +15,7 @@ from ac import ActorCritic
 from operator import add, sub
 from enum import Enum
 from reward import computeRewards
-#from rac import RecurrentActorCritic
+from rac import RecurrentActorCritic
 
 class Mode(Enum):
   TRAIN = 0
@@ -25,7 +25,7 @@ models = [
   DQN,
   ActorCritic,
   #ThompsonDQN,
-  #RecurrentActorCritic,
+  RecurrentActorCritic,
 ]
 models = {model.__name__ : model for model in models}
 
@@ -93,7 +93,11 @@ class Model(Default):
         with tf.name_scope('train'):
           self.experience = ct.inputCType(ssbm.SimpleStateAction, [None, self.rlConfig.experience_length], "experience")
           # instantaneous rewards for all but the first state
-          self.experience['reward'] = tf.placeholder(tf.float32, [None, None], name='reward')
+          self.experience['reward'] = tf.placeholder(tf.float32, [None, None], name='experience/reward')
+          
+          # initial state for recurrent networks
+          self.experience['initial'] = tuple(tf.placeholder(tf.float32, [None, size], name='experience/initial/%d' % i) for i, size in enumerate(self.model.hidden_size))
+          
           mean_reward = tf.reduce_mean(self.experience['reward'])
           
           states = self.embedGame(self.experience['state'])
@@ -127,7 +131,14 @@ class Model(Default):
           loss, stats = self.model.getLoss(*loaded_data, **kwargs)
           """
           
-          self.train_op = self.model.train(self.train_states, self.train_actions, self.train_rewards)
+          train_args = dict(
+            states=self.train_states,
+            actions=self.train_actions,
+            rewards=self.train_rewards,
+            initial=self.experience['initial']
+          )
+          
+          self.train_op = self.model.train(**train_args)
 
           #tf.scalar_summary("loss", loss)
           #tf.scalar_summary('learning_rate', tf.log(self.learning_rate))
@@ -145,13 +156,21 @@ class Model(Default):
       else:
         with tf.name_scope('policy'):
           self.input = ct.inputCType(ssbm.SimpleStateAction, [self.memory+1], "input")
+          
+          self.input['hidden'] = [tf.placeholder(tf.float32, [size], name='input/hidden/%d' % i) for i, size in enumerate(self.model.hidden_size)]
+          
           states = self.embedGame(self.input['state'])
           prev_actions = embed.embedAction(self.input['prev_action'])
           
           history = tf.concat(1, [states, prev_actions])
           history = tf.reshape(history, [history_size])
           
-          self.policy = self.model.getPolicy(history)
+          policy_args = dict(
+            state=history,
+            hidden=self.input['hidden']
+          )
+          
+          self.policy = self.model.getPolicy(**policy_args)
       
       self.debug = debug
       
@@ -183,7 +202,7 @@ class Model(Default):
       )
 
   def act(self, history, verbose=False):
-    feed_dict = dict(util.deepValues(util.deepZip(self.input, ct.vectorizeCTypes(ssbm.SimpleStateAction, history))))
+    feed_dict = dict(util.deepValues(util.deepZip(self.input, history)))
     return self.model.act(self.sess.run(self.policy, feed_dict), verbose)
 
   #summaryWriter = tf.train.SummaryWriter('logs/', sess.graph)
