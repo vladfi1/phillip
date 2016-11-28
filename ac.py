@@ -6,6 +6,8 @@ from default import *
 import opt
 
 class ActorCritic(Default):
+  hidden_size = []  
+  
   _options = [
     Option('actor_layers', type=int, nargs='+', default=[128, 128]),
     Option('critic_layers', type=int, nargs='+', default=[128, 128]),
@@ -47,7 +49,7 @@ class ActorCritic(Default):
 
     self.rlConfig = rlConfig
 
-  def train(self, states, actions, rewards):
+  def train(self, states, actions, rewards, **unused):
     n = self.rlConfig.tdN
     
     state_shape = tf.shape(states)
@@ -103,8 +105,9 @@ class ActorCritic(Default):
     
     return self.optimizer.optimize(acLoss, params, predictions, metric)
   
-  def getPolicy(self, state, **kwargs):
+  def getPolicy(self, state, **unused):
     return self.actor(state)
 
   def act(self, policy, verbose=False):
-    return random.choice(range(self.action_size), p=policy)
+    return random.choice(range(self.action_size), p=policy), []
+

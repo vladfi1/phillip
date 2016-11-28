@@ -77,7 +77,7 @@ def deepZip(*objs):
   first = objs[0]
   if isinstance(first, dict):
     return {k : deepZip(*[obj[k] for obj in objs]) for k in first}
-  if isinstance(first, list):
+  if isinstance(first, (list, tuple)):
     return zipWith(deepZip, *objs)
   return objs
 

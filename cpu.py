@@ -163,6 +163,9 @@ class CPU(Default):
         state_action.state = self.state
         state_action.prev = self.agent.prev_action
         state_action.action = self.agent.action
+        
+        if self.dump_frame == 0:
+            self.initial = self.agent.hidden
 
         self.dump_frame += 1
 
@@ -176,6 +179,7 @@ class CPU(Default):
             print("Dumping", self.dump_count)
             
             prepared = ssbm.prepareStateActions(self.dump_state_actions)
+            prepared['initial'] = self.initial
             
             self.socket.send_pyobj(prepared)
 

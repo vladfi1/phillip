@@ -67,7 +67,7 @@ class PlayerMemory(Structure):
   _fields = [
     ('percent', c_uint),
     ('stock', c_uint),
-    # True is right, false is left
+    # 1.0 is right, -1.0 is left
     ('facing', c_float),
     ('x', c_float),
     ('y', c_float),

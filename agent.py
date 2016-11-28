@@ -7,6 +7,7 @@ import RL
 import util
 from default import *
 from menu_manager import characters
+import ctype_util as ct
 
 class Agent(Default):
   _options = [
@@ -30,6 +31,9 @@ class Agent(Default):
     self.action = 0
     self.actions = util.CircularQueue(self.delay+1, 0)
     self.memory = util.CircularQueue(array=((self.model.memory+1) * ssbm.SimpleStateAction)())
+    
+    self.hidden = list(map(np.zeros, self.model.model.hidden_size))
+    
     self.model.restore()
 
   def act(self, state, pad):
@@ -45,7 +49,10 @@ class Agent(Default):
     self.memory.increment()
     history = self.memory.as_list()
     
-    self.action = self.model.act(history, verbose)
+    history = ct.vectorizeCTypes(ssbm.SimpleStateAction, history)
+    history['hidden'] = self.hidden
+    
+    self.action, self.hidden = self.model.act(history, verbose)
     current.action = self.action
 
     if verbose:
