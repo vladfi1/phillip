@@ -8,6 +8,13 @@ characters = dict(
   roy = (18, 5),
   marth = (11, 5),
   zelda = (11, 11),
+  mewtwo = (-2, 5),
+  luigi = (-16, 18),
+  puff = (-10, 5),
+  kirby = (-2, 11),
+  peach = (-2, 18),
+  ganon = (23, 18),
+  samus = (3, 11),
 )
 
 settings = (0, 24)
