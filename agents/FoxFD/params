@@ -30,10 +30,11 @@
     "enemy_reload": 600,
     "name": "FoxFD"
   },
-  "agents": 81,
+  "agents": 100,
   "enemies": [
     "FoxFD",
     "MarthFD",
-    "FalconFD"
+    "FalconFD",
+    "PeachFD"
   ]
 }

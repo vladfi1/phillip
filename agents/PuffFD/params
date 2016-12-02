@@ -17,14 +17,14 @@
     "experience_time": 20,
     "act_every": 3,
     "memory": 1,
-    "name": "MarthFD"
+    "name": "PuffFD"
   },
   "enemies": [
+    "PuffFD",
     "PeachFD",
     "FoxFD2",
     "MarthFD",
-    "FalconFD2",
-    "PuffFD"
+    "FalconFD2"
   ],
   "agent": {
     "model": "ActorCritic",
@@ -34,8 +34,8 @@
     "experience_time": 20,
     "act_every": 3,
     "memory": 1,
-    "char": "marth",
+    "char": "puff",
     "enemy_reload": 600,
-    "name": "MarthFD"
+    "name": "PuffFD"
   }
 }
