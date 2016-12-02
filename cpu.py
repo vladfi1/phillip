@@ -227,7 +227,6 @@ class CPU(Default):
                 if self.dump:
                     self.dump_state()
             self.action_counter += 1
-            #self.fox.advance(self.state, self.pad)
 
         elif self.state.menu in [menu.value for menu in [Menu.Characters, Menu.Stages]]:
             # FIXME: this is very convoluted

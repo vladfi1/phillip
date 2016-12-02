@@ -53,6 +53,18 @@ class Agent(Default):
     history['hidden'] = self.hidden
     
     self.action, self.hidden = self.model.act(history, verbose)
+    
+    # TODO: make the banned action system more robust
+    
+    # prevent peach from using toad
+    # for some reason it causes both agents to use action 0
+    if self.char == 'peach' and self.action == 22:
+      self.action = 4
+    
+    # prevent sheik and zelda from transforming
+    if self.char in ['zelda', 'sheik'] and self.action == 21:
+      self.action = 4
+    
     current.action = self.action
 
     if verbose:
