@@ -71,7 +71,7 @@ class Agent(Default):
       action = 4
     
     # prevent sheik and zelda from transforming
-    if self.char in ['zelda', 'sheik'] and action == 21:
+    if self.char in ['zelda', 'sheik'] and action in [18, 21, 24]:
       action = 4
 
     controller = ssbm.simpleControllerStates[action]
