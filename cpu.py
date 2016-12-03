@@ -230,6 +230,8 @@ class CPU(Default):
 
         elif self.state.menu in [menu.value for menu in [Menu.Characters, Menu.Stages]]:
             # FIXME: this is very convoluted
+            
+            # each player picks their character
             done = True
             for mm in self.menu_managers.values():
                 if not mm.reached:
@@ -237,10 +239,18 @@ class CPU(Default):
                 mm.move(self.state)
             
             if done:
-                if self.settings_mm.reached:
+                if not self.settings_mm.reached:
+                    # enter game settings
+                    self.settings_mm.move(self.state)
+                elif not self.movie.over():
+                    # set mode to endless time and pick stage
                     self.movie.play(self.pads[0])
                 else:
-                    self.settings_mm.move(self.state)
+                    # sheik must hold A before the game starts
+                    for pid, pad in zip(self.pids, self.pads):
+                        if self.agents[pid].char == 'sheik':
+                            pad.press_button(Button.A)
+        
         elif self.state.menu == Menu.PostGame.value:
             self.spam(Button.START)
         else:
