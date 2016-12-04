@@ -4,6 +4,7 @@ from pad import *
 
 characters = dict(
   fox = (-23.5, 11.5),
+  falco = (-30, 11),
   falcon = (18, 18),
   roy = (18, 5),
   marth = (11, 5),
