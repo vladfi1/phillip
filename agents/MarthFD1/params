@@ -1,6 +1,6 @@
 {
   "agents": 60,
-  "enemies": "delay1"
+  "enemies": "delay1",
   "train": {
     "model": "ActorCritic",
     "epsilon": 0.02,
