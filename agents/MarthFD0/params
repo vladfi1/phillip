@@ -17,15 +17,9 @@
     "experience_time": 20,
     "act_every": 3,
     "memory": 1,
-    "name": "FalconFD2"
+    "name": "MarthFD0"
   },
-  "enemies": [
-    "PeachFD",
-    "FoxFD2",
-    "MarthFD",
-    "FalconFD2",
-    "PuffFD"
-  ],
+  "enemies": "delay0",
   "agent": {
     "model": "ActorCritic",
     "epsilon": 0.02,
@@ -34,8 +28,8 @@
     "experience_time": 20,
     "act_every": 3,
     "memory": 1,
-    "char": "falcon",
+    "char": "marth",
     "enemy_reload": 600,
-    "name": "FalconFD2"
+    "name": "MarthFD0"
   }
 }

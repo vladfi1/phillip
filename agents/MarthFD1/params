@@ -1,5 +1,6 @@
 {
-  "agents": 100,
+  "agents": 60,
+  "enemies": "delay1"
   "train": {
     "model": "ActorCritic",
     "epsilon": 0.02,
@@ -16,10 +17,9 @@
     "player_space": 0,
     "experience_time": 20,
     "act_every": 3,
-    "memory": 1,
-    "name": "PuffFD"
+    "memory": 2,
+    "name": "MarthFD1"
   },
-  "enemies": "delay0",
   "agent": {
     "model": "ActorCritic",
     "epsilon": 0.02,
@@ -27,9 +27,10 @@
     "dolphin": true,
     "experience_time": 20,
     "act_every": 3,
-    "memory": 1,
-    "char": "puff",
+    "delay": 1,
+    "memory": 2,
+    "char": "marth",
     "enemy_reload": 600,
-    "name": "PuffFD"
+    "name": "MarthFD1"
   }
 }

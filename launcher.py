@@ -82,8 +82,8 @@ def launch(name, command, cpus=2, mem=1000, gpu=False, log=True, qos=None, array
     #f.write("#SBATCH --cpu_bind=verbose,cores\n")
     #f.write("#SBATCH --cpu_bind=threads\n")
     if gpu:
-      #f.write("#SBATCH --gres gpu:titan-x:1\n")
-      f.write("#SBATCH --gres gpu:1\n")
+      f.write("#SBATCH --gres gpu:titan-x:1\n")
+      #f.write("#SBATCH --gres gpu:1\n")
     if qos:
       f.write("#SBATCH --qos %s\n" % qos)
     if array:
@@ -104,11 +104,12 @@ if run_trainer:
     mem=16000
   )
 
+enemies = 'easy'
 if 'enemies' in params:
   enemies = params['enemies']
-else:
-  with open('enemies') as f:
-    enemies = json.load(f)
+
+with open('enemies/' + enemies) as f:
+  enemies = json.load(f)
 
 agents = 1
 if params['agents']:

@@ -1,4 +1,9 @@
 {
+  "enemies": [
+    "FoxFD",
+    "MarthFD",
+    "FalconFD"
+  ],
   "agent": {
     "model": "ActorCritic",
     "epsilon": 0.02,
@@ -7,16 +12,16 @@
     "experience_time": 20,
     "act_every": 3,
     "memory": 1,
-    "char": "peach",
+    "char": "falcon",
     "enemy_reload": 600,
-    "name": "PeachFD"
+    "name": "FalconFD"
   },
-  "agents": 100,
+  "agents": 81,
   "train": {
     "model": "ActorCritic",
     "epsilon": 0.02,
-    "policy_scale": 2,
-    "entropy_scale": 0.002,
+    "policy_scale": 1,
+    "entropy_scale": 0.003,
     "learning_rate": 0.0001,
     "optimizer": "Adam",
     "tdN": 6,
@@ -29,7 +34,6 @@
     "experience_time": 20,
     "act_every": 3,
     "memory": 1,
-    "name": "PeachFD"
-  },
-  "enemies": "delay0"
+    "name": "FalconFD"
+  }
 }

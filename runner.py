@@ -89,8 +89,8 @@ else:
 for k, v in train_settings:
   add_param(k, v, ['train'], False)
 
-#add_param('action_space', 
-add_param('player_space', 0, both, True)
+#add_param('action_space', 0, both)
+#add_param('player_space', 0, both, True)
 
 #add_param('critic_layers', [128, 128, 128], both)
 #add_param('actor_layers', [128, 128], both)
@@ -102,7 +102,7 @@ add_param('dolphin', True, ['agent'], False)
 add_param('experience_time', 20, both, False)
 add_param('act_every', 3, both, False)
 
-delay = 3
+delay = 2
 if delay:
   add_param('delay', delay, ['agent'])
 if not recurrent:
@@ -122,23 +122,10 @@ char = 'marth'
 #char = 'puff'
 add_param('char', char, ['agent'], True)
 
-enemies = [
-  #"self",
-  "FoxFD",
-  #"PuffFD",
-  #"FoxFD2",
-  #"MarthFD",
-  #"FalconFD2",
-  #"PeachFD",
-  #"SheikFD"
-]
-
+enemies = "easy"
 add_param('enemy_reload', 600, ['agent'], False)
 
-exp_name += "_enemies"
-for enemy in enemies:
-  exp_name += "_" + enemy
-
+exp_name += "_enemies_" + enemies
 job_dicts['enemies'] = enemies
 
 # number of agents playing each enemy

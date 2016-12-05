@@ -17,9 +17,8 @@
     "experience_time": 20,
     "act_every": 3,
     "memory": 1,
-    "name": "PuffFD"
+    "name": "SamusFD"
   },
-  "enemies": "delay0",
   "agent": {
     "model": "ActorCritic",
     "epsilon": 0.02,
@@ -28,8 +27,9 @@
     "experience_time": 20,
     "act_every": 3,
     "memory": 1,
-    "char": "puff",
+    "char": "samus",
     "enemy_reload": 600,
-    "name": "PuffFD"
-  }
+    "name": "SamusFD"
+  },
+  "enemies": "delay0"
 }

@@ -17,7 +17,7 @@
     "experience_time": 20,
     "act_every": 3,
     "memory": 1,
-    "name": "PuffFD"
+    "name": "FoxFD0"
   },
   "enemies": "delay0",
   "agent": {
@@ -28,8 +28,8 @@
     "experience_time": 20,
     "act_every": 3,
     "memory": 1,
-    "char": "puff",
+    "char": "fox",
     "enemy_reload": 600,
-    "name": "PuffFD"
+    "name": "FoxFD0"
   }
 }

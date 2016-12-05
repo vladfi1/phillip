@@ -31,12 +31,5 @@
     "enemy_reload": 600,
     "name": "SheikFD"
   },
-  "enemies": [
-    "SheikFD",
-    "PuffFD",
-    "FoxFD2",
-    "MarthFD",
-    "FalconFD2",
-    "PeachFD"
-  ]
+  "enemies": "delay0"
 }
