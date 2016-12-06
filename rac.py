@@ -29,7 +29,7 @@ class RecurrentActorCritic(Default):
     prev_size = state_size
     cells = []
     for size in self.rac_layers:
-      cells.append(tfl.GRUCell(prev_size, size))
+      cells.append(tfl.GRUCell(prev_size, size, nl=tfl.leak_softplus()))
       prev_size = size
     
     self.rnn = tf.nn.rnn_cell.MultiRNNCell(cells)
