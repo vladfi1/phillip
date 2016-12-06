@@ -124,11 +124,14 @@ maxAction = 0x017E
 numActions = 1 + maxAction
 
 maxCharacter = 32 # should be large enough?
-maxJumps = 8 # unused
+maxJumps = 8
 
 class PlayerEmbedding(StructEmbedding, Default):
   _options = [
-    Option('action_space', type=int, default=64, help="embed actions in ACTION_SPACE dimensions")
+    Option('action_space', type=int, default=64, help="embed actions in ACTION_SPACE dimensions"),
+    Option('xy_scale', type=float, default=0.1, help="scale xy coordinates"),
+    Option('shield_scale', type=float, default=0.01),
+    Option('speed_scale', type=float, default=0.5),
   ]
   
   def __init__(self, **kwargs):
@@ -137,12 +140,15 @@ class PlayerEmbedding(StructEmbedding, Default):
     embedAction = OneHotEmbedding(numActions)
     if self.action_space:
       embedAction = FCEmbedding(embedAction, self.action_space)
+    
+    embedXY = FloatEmbedding(scale=self.xy_scale)
+    embedSpeed = FloatEmbedding(scale=self.speed_scale)
 
     playerEmbedding = [
       ("percent", FloatEmbedding(scale=0.01)),
       ("facing", embedFloat),
-      ("x", FloatEmbedding(scale=0.1)),
-      ("y", FloatEmbedding(scale=0.1)),
+      ("x", embedXY),
+      ("y", embedXY),
       ("action_state", embedAction),
       # ("action_counter", embedFloat),
       ("action_frame", FloatEmbedding(scale=0.02)),
@@ -152,13 +158,13 @@ class PlayerEmbedding(StructEmbedding, Default):
       ("hitstun_frames_left", embedFloat),
       ("jumps_used", embedFloat),
       ("charging_smash", embedFloat),
-      ("shield_size", embedFloat),
+      ("shield_size", FloatEmbedding(scale=self.shield_scale)),
       ("in_air", embedFloat),
-      ('speed_air_x_self', embedFloat),
-      ('speed_ground_x_self', embedFloat),
-      ('speed_y_self', embedFloat),
-      ('speed_x_attack', embedFloat),
-      ('speed_y_attack', embedFloat),
+      ('speed_air_x_self', embedSpeed),
+      ('speed_ground_x_self', embedSpeed),
+      ('speed_y_self', embedSpeed),
+      ('speed_x_attack', embedSpeed),
+      ('speed_y_attack', embedSpeed),
 
       #('controller', embedController)
     ]
