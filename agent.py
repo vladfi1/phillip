@@ -8,6 +8,9 @@ import util
 from default import *
 from menu_manager import characters
 import ctype_util as ct
+import pprint
+
+pp = pprint.PrettyPrinter(indent=2)
 
 class Agent(Default):
   _options = [
@@ -57,7 +60,7 @@ class Agent(Default):
     current.action = self.action
 
     if verbose:
-      #print(state.players[1])
+      pp.pprint(ct.toDict(state.players[1]))
       print(self.action)
     
     # the delayed action
