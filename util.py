@@ -54,8 +54,8 @@ def compose(*fs):
 def deepMap(f, obj):
   if isinstance(obj, dict):
     return {k : deepMap(f, v) for k, v in obj.items()}
-  if isinstance(obj, list):
-    return [deepMap(f, x) for x in obj]
+  if isinstance(obj, (list, tuple)):
+    return type(obj)(deepMap(f, x) for x in obj)
   return f(obj)
 
 def deepValues(obj):
@@ -67,7 +67,7 @@ def deepValues(obj):
     for v in obj:
       for x in deepValues(v):
         yield x
-  else:
+  else: # note that tuples are values, not lists
     yield obj
 
 def deepZip(*objs):

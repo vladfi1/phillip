@@ -96,7 +96,8 @@ class Model(Default):
           self.experience['reward'] = tf.placeholder(tf.float32, [None, None], name='experience/reward')
           
           # initial state for recurrent networks
-          self.experience['initial'] = tuple(tf.placeholder(tf.float32, [None, size], name='experience/initial/%d' % i) for i, size in enumerate(self.model.hidden_size))
+          #self.experience['initial'] = tuple(tf.placeholder(tf.float32, [None, size], name='experience/initial/%d' % i) for i, size in enumerate(self.model.hidden_size))
+          self.experience['initial'] = util.deepMap(lambda size: tf.placeholder(tf.float32, [None, size], name="experience/initial"), self.model.hidden_size)
           
           mean_reward = tf.reduce_mean(self.experience['reward'])
           
@@ -157,7 +158,8 @@ class Model(Default):
         with tf.name_scope('policy'):
           self.input = ct.inputCType(ssbm.SimpleStateAction, [self.memory+1], "input")
           
-          self.input['hidden'] = [tf.placeholder(tf.float32, [size], name='input/hidden/%d' % i) for i, size in enumerate(self.model.hidden_size)]
+          #self.input['hidden'] = [tf.placeholder(tf.float32, [size], name='input/hidden/%d' % i) for i, size in enumerate(self.model.hidden_size)]
+          self.input['hidden'] = util.deepMap(lambda size: tf.placeholder(tf.float32, [size], name="input/hidden"), self.model.hidden_size)
           
           states = self.embedGame(self.input['state'])
           prev_actions = embed.embedAction(self.input['prev_action'])

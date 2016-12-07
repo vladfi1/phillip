@@ -35,7 +35,7 @@ class Agent(Default):
     self.actions = util.CircularQueue(self.delay+1, 0)
     self.memory = util.CircularQueue(array=((self.model.memory+1) * ssbm.SimpleStateAction)())
     
-    self.hidden = list(map(np.zeros, self.model.model.hidden_size))
+    self.hidden = util.deepMap(np.zeros, self.model.model.hidden_size)
     
     self.model.restore()
 

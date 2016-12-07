@@ -7,7 +7,8 @@ import opt
 
 class RecurrentActorCritic(Default):
   _options = [
-    Option('rac_layers', type=int, nargs='+', default=[128, 128]),
+    Option('actor_layers', type=int, nargs='+', default=[128, 128]),
+    Option('critic_layers', type=int, nargs='+', default=[128, 128]),
 
     Option('epsilon', type=float, default=0.02),
 
@@ -25,23 +26,28 @@ class RecurrentActorCritic(Default):
     Default.__init__(self, **kwargs)
     
     self.action_size = action_size
-    
-    prev_size = state_size
-    cells = []
-    for size in self.rac_layers:
-      cells.append(tfl.GRUCell(prev_size, size, nl=tfl.leak_softplus()))
-      prev_size = size
+
+    for name in ['actor', 'critic']:
+      with tf.variable_scope(name):
+        cells = []
+        prev_size = state_size
+        for i, next_size in enumerate(getattr(self, name + "_layers")):
+          with tf.variable_scope("layer_%d" % i):
+            cells.append(tfl.GRUCell(prev_size, next_size, nl=tfl.leaky_softplus()))
+          prev_size = next_size
+        rnn = tf.nn.rnn_cell.MultiRNNCell(cells)
+      setattr(self, name + "_rnn", rnn)
     
     self.rnn = tf.nn.rnn_cell.MultiRNNCell(cells)
-    self.hidden_size = self.rnn.state_size
+    self.hidden_size = (self.actor_rnn.state_size, self.critic_rnn.state_size)
 
     with tf.variable_scope('actor'):
-      self.actor = tfl.makeAffineLayer(prev_size, action_size, tf.nn.log_softmax)
+      self.actor_out = tfl.makeAffineLayer(prev_size, action_size, tf.nn.log_softmax)
 
     with tf.variable_scope('critic'):
       v_out = tfl.makeAffineLayer(prev_size, 1)
       v_out = util.compose(lambda x: tf.squeeze(x, [-1]), v_out)
-      self.critic = v_out
+      self.critic_out = v_out
 
     self.rlConfig = rlConfig
 
@@ -54,10 +60,12 @@ class RecurrentActorCritic(Default):
     
     train_length = experience_length - n
     
-    outputs, hidden = tf.nn.dynamic_rnn(self.rnn, states, initial_state=initial)
+    (actor_initial, critic_initial) = initial
+    actor_outputs, actor_hidden = tf.nn.dynamic_rnn(self.actor_rnn, states, initial_state=actor_initial)
+    critic_outputs, critic_hidden = tf.nn.dynamic_rnn(self.critic_rnn, states, initial_state=critic_initial)
 
-    values = self.critic(outputs)
-    log_actor_probs = self.actor(outputs)
+    values = self.critic_out(critic_outputs)
+    log_actor_probs = self.actor_out(actor_outputs)
     actor_probs = tf.exp(log_actor_probs)
     
     trainVs = tf.slice(values, [0, 0], [-1, train_length])
@@ -105,11 +113,16 @@ class RecurrentActorCritic(Default):
 
   def getPolicy(self, state, hidden, **unused):
     state = tf.expand_dims(state, 0)
-    hidden = tuple(tf.expand_dims(x, 0) for x in hidden)
-    output, hidden = self.rnn(state, hidden)
-    hidden = tuple(tf.squeeze(x, [0]) for x in hidden)
-    output = tf.squeeze(output, [0])
-    return tf.exp(self.actor(output)), hidden
+    hidden = util.deepMap(lambda x: tf.expand_dims(x, 0), hidden)
+    
+    (actor_hidden, critic_hidden) = hidden
+    actor_output, actor_hidden = self.actor_rnn(state, actor_hidden)
+    _, critic_hidden = self.critic_rnn(state, critic_hidden)
+    
+    hidden = (actor_hidden, critic_hidden)
+    hidden = util.deepMap(lambda x: tf.squeeze(x, [0]), hidden)
+    log_actor_probs = tf.squeeze(self.actor_out(actor_output), [0])
+    return tf.exp(log_actor_probs), hidden
 
   def act(self, policy, verbose=False):
     actor_probs, hidden = policy
