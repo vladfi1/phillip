@@ -17,7 +17,7 @@
     "experience_time": 20,
     "act_every": 3,
     "memory": 1,
-    "name": "FalcoFD"
+    "name": "FalcoFD0"
   },
   "agent": {
     "model": "ActorCritic",
@@ -29,7 +29,7 @@
     "memory": 1,
     "char": "falco",
     "enemy_reload": 600,
-    "name": "FalcoFD"
+    "name": "FalcoFD0"
   },
   "enemies": "delay0"
 }

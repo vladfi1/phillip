@@ -1,17 +1,4 @@
 {
-  "enemies": "easy",
-  "agent": {
-    "model": "ActorCritic",
-    "epsilon": 0.02,
-    "player_space": 0,
-    "dolphin": true,
-    "experience_time": 20,
-    "act_every": 3,
-    "memory": 1,
-    "char": "falcon",
-    "enemy_reload": 600,
-    "name": "FalconFD_easy"
-  },
   "agents": 100,
   "train": {
     "model": "ActorCritic",
@@ -30,6 +17,19 @@
     "experience_time": 20,
     "act_every": 3,
     "memory": 1,
-    "name": "FalconFD_easy"
+    "name": "KirbyFD0"
+  },
+  "enemies": "delay0",
+  "agent": {
+    "model": "ActorCritic",
+    "epsilon": 0.02,
+    "player_space": 0,
+    "dolphin": true,
+    "experience_time": 20,
+    "act_every": 3,
+    "memory": 1,
+    "char": "kirby",
+    "enemy_reload": 600,
+    "name": "KirbyFD0"
   }
 }
