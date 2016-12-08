@@ -29,7 +29,11 @@ class Optimizer(Default):
     
     grads = [tf.check_numerics(g, "NaN gradient in param %d" % i) for i, g in enumerate(grads)]
     
-    ratios = [tf.reduce_max(tf.abs(g/p)) for g, p in zip(grads, params)]
-    tf.scalar_summary('max_grad_param', tf.reduce_max(tf.pack(ratios)))
+    ratios = [tf.abs(g/p) for g, p in zip(grads, params)]
+    max_ratio = tf.reduce_max(tf.pack([tf.reduce_max(r) for r in ratios]))
+    avg_ratio = tf.reduce_mean(tf.pack([tf.reduce_mean(r) for r in ratios]))
+    
+    tf.scalar_summary('grad_param_max', max_ratio)
+    tf.scalar_summary('grad_param_avg', avg_ratio)
     
     return self.optimizer.apply_gradients(zip(grads, params))
