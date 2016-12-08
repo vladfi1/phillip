@@ -33,7 +33,7 @@ class RecurrentActorCritic(Default):
         prev_size = state_size
         for i, next_size in enumerate(getattr(self, name + "_layers")):
           with tf.variable_scope("layer_%d" % i):
-            cells.append(tfl.GRUCell(prev_size, next_size, nl=tfl.leaky_softplus()))
+            cells.append(tfl.GRUCell(prev_size, next_size))
           prev_size = next_size
         rnn = tf.nn.rnn_cell.MultiRNNCell(cells)
       setattr(self, name + "_rnn", rnn)
