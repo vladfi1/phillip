@@ -17,7 +17,7 @@ class NaturalGradient(Default):
     Corrects the given direction to account for the natural metric of the model space.
     
     Arguments:
-      params: The parameteries (tf Variables) that we are optimizing.
+      params: The parameters (tf Variables) that we are optimizing.
       direction: Initial direction in which we want to adjust the parameters.
       predictions: Function of the parameters (and data). This is the space in which we want to move.
       metric: Metric that defines the geometry of the function space.
