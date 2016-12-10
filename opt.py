@@ -8,7 +8,7 @@ class Optimizer(Default):
     Option('learning_rate', type=float, default=0.001),
     Option('optimizer', type=str, default="GradientDescent", help="which tf.train optimizer to use"),
     Option('natural', action="store_true", help="Use natural gradient."),
-    Option('clip', type=float, default=0, help="clip gradients above a certain value")
+    Option('clip', type=float, help="clip gradients above a certain value")
   ]
   
   _members = [
@@ -32,9 +32,9 @@ class Optimizer(Default):
     
     flat_params, flat_grads = [tf.abs(tf.concat(0, [tf.reshape(t, [-1]) for t in ts])) for ts in (params, grads)]
     
-    flat_ratios = flat_grads / flat_params
-    tf.scalar_summary('grad_param_max', tf.reduce_max(flat_ratios))
-    tf.scalar_summary('grad_param_avg', tf.reduce_mean(flat_ratios))
+    #flat_ratios = flat_grads / flat_params
+    #tf.scalar_summary('grad_param_max', tf.reduce_max(flat_ratios))
+    #tf.scalar_summary('grad_param_avg', tf.reduce_mean(flat_ratios))
     
     grad_max = tf.reduce_max(flat_grads)
     
