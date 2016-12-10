@@ -75,15 +75,12 @@ class CPU(Default):
         self.agents = {1: self.agent}
         self.characters = {1: self.agent.char or self.p2}
 
-        reload_every = self.rlConfig.experience_length
-        self.agent.reload_every = reload_every
-        
         if self.enemy:
             with open(self.enemy + 'params', 'r') as f:
                 import json
                 enemy_kwargs = json.load(f)['agent']
             enemy_kwargs.update(
-                reload_every=self.enemy_reload * reload_every,
+                reload=self.enemy_reload * self.agent.reload,
                 swap=True,
                 dump=None,
                 path=self.enemy

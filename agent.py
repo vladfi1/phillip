@@ -17,18 +17,17 @@ class Agent(Default):
     Option('delay', type=int, default=0, help="delay actions this many rounds"),
     Option('char', type=str, choices=characters.keys(), help="character that this agent plays as"),
     Option('verbose', action="store_true", default=False, help="print stuff while running"),
+    Option('reload', type=int, default=60, help="reload model every RELOAD seconds"),
   ]
   
   _members = [
     ('model', RL.Model)
   ]
   
-  def __init__(self, reload_every=None, **kwargs):
+  def __init__(self, **kwargs):
     kwargs = kwargs.copy()
     kwargs.update(mode=RL.Mode.PLAY)
     Default.__init__(self, **kwargs)
-    
-    self.reload_every = reload_every
     
     self.counter = 0
     self.action = 0
@@ -82,6 +81,6 @@ class Agent(Default):
 
     self.counter += 1
 
-    if self.reload_every and self.counter % self.reload_every == 0:
+    if self.reload and self.counter % (self.reload * self.model.rlConfig.fps) == 0:
       self.model.restore()
 
