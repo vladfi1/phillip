@@ -56,13 +56,16 @@ class NaturalGradient(Default):
     
     direction_flat = flatten(direction)
     
-    direction_natural = self.cg(fvp, direction_flat, **kwargs)
+    if self.cg.cg_iters:
+      direction_natural = self.cg(fvp, direction_flat, **kwargs)
+    else:
+      direction_natural = direction_flat
     
     if self.target_distance is not None:
       #acceleration = .5 * tfl.dot(direction_natural, direction_flat)
-      acceleration = .5 * tfl.dot(direction_natural, fvp(direction_natural))
+      projected_distance = .5 * tfl.dot(direction_natural, fvp(direction_natural))
       
-      step_size = tf.sqrt(self.target_distance / acceleration)
+      step_size = tf.sqrt(self.target_distance / projected_distance)
       #step_size = tf.minimum(1.0, step_size)
       tf.scalar_summary('ng_step', tf.log(step_size))
       

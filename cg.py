@@ -52,9 +52,11 @@ class ConjugateGradient(Default):
     
     with tf.name_scope('cg'):
       n = tf.constant(0)
-      p = b
-      r = b
       x = tf.zeros_like(b)
+      r = b
+      #x = b # this way cg_iters = 0 means we use the original direction
+      #r = b - f_Ax(x)
+      p = r
       rr = mag2(r)
       
       n, x, p, r, rr = tf.while_loop(cond, body, (n, x, p, r, rr), back_prop=False)
