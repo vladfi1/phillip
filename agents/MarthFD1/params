@@ -1,5 +1,5 @@
 {
-  "agents": 60,
+  "agents": 70,
   "enemies": "delay1",
   "train": {
     "model": "ActorCritic",
@@ -34,3 +34,4 @@
     "name": "MarthFD1"
   }
 }
+
