@@ -61,8 +61,13 @@ class RecurrentActorCritic(Default):
     train_length = experience_length - n
     
     (actor_initial, critic_initial) = initial
-    actor_outputs, actor_hidden = tf.nn.dynamic_rnn(self.actor_rnn, states, initial_state=actor_initial)
-    critic_outputs, critic_hidden = tf.nn.dynamic_rnn(self.critic_rnn, states, initial_state=critic_initial)
+    states = tf.unpack(states, axis=1)
+    
+    actor_outputs, actor_hidden = tf.nn.rnn(self.actor_rnn, states, initial_state=actor_initial)
+    critic_outputs, critic_hidden = tf.nn.rnn(self.critic_rnn, states, initial_state=critic_initial)
+    
+    actor_outputs = tf.pack(actor_outputs, 1)
+    critic_outputs = tf.pack(critic_outputs, 1)
 
     values = self.critic_out(critic_outputs)
     log_actor_probs = self.actor_out(actor_outputs)
