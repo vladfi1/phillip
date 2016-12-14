@@ -1,0 +1,37 @@
+{
+  "agents": 60,
+  "enemies": "delay1",
+  "train": {
+    "model": "ActorCritic",
+    "epsilon": 0.02,
+    "policy_scale": 1,
+    "entropy_scale": 0.002,
+    "learning_rate": 0.0001,
+    "optimizer": "Adam",
+    "tdN": 6,
+    "sweeps": 1,
+    "batches": 20,
+    "batch_size": 200,
+    "batch_steps": 1,
+    "gpu": 1,
+    "player_space": 0,
+    "experience_time": 20,
+    "act_every": 3,
+    "memory": 2,
+    "name": "FoxFD1"
+  },
+  "agent": {
+    "model": "ActorCritic",
+    "epsilon": 0.02,
+    "player_space": 0,
+    "dolphin": true,
+    "experience_time": 20,
+    "act_every": 3,
+    "delay": 1,
+    "memory": 2,
+    "char": "fox",
+    "enemy_reload": 600,
+    "name": "FoxFD1"
+  }
+}
+
