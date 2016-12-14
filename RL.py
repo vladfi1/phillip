@@ -273,7 +273,7 @@ class Model(Default):
     import os
     util.makedirs(self.path)
     print("Saving to", self.path)
-    self.saver.save(self.sess, self.path + "snapshot")
+    self.saver.save(self.sess, self.path + "snapshot", write_meta_graph=False)
 
   def restore(self):
     print("Restoring from", self.path)
