@@ -62,7 +62,6 @@ class NaturalGradient(Default):
       direction_natural = direction_flat
     
     if self.target_distance is not None:
-      #acceleration = .5 * tfl.dot(direction_natural, direction_flat)
       projected_distance = .5 * tfl.dot(direction_natural, fvp(direction_natural))
       
       step_size = tf.sqrt(self.target_distance / projected_distance)
@@ -70,6 +69,9 @@ class NaturalGradient(Default):
       tf.scalar_summary('ng_step', tf.log(step_size))
       
       direction_natural *= step_size
+      
+      progress = tfl.dot(direction_natural, direction_flat)
+      tf.scalar_summary('ng_progress', progress)
     
     return unflatten(direction_natural)
 
