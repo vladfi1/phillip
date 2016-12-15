@@ -63,6 +63,7 @@ class ConjugateGradient(Default):
       
       tf.scalar_summary('cg_iters', n)
       tf.scalar_summary('cg_error', tf.sqrt(rr / mag2(b)))
+      tf.scalar_summary('cg_loss', -0.5 * tfl.dot(x, b+r))
       
       if debug:
         return n, x, p, r, rr
