@@ -15,9 +15,9 @@ class ActorCritic(Default):
     Option('epsilon', type=float, default=0.02),
 
     Option('entropy_scale', type=float, default=0.001),
-    Option('policy_scale', type=float, default=0.1),
+    #Option('policy_scale', type=float, default=0.1),
     
-    Option('kl_scale', type=float, default=1.0, help="kl divergence weight in natural metric"),
+    #Option('kl_scale', type=float, default=1.0, help="kl divergence weight in natural metric"),
   ]
 
   _members = [
@@ -35,17 +35,15 @@ class ActorCritic(Default):
         prev_size = state_size
         for i, next_size in enumerate(getattr(self, name + "_layers")):
           with tf.variable_scope("layer_%d" % i):
-            net.append(tfl.makeAffineLayer(prev_size, next_size, tfl.leaky_softplus()))
+            net.append(tfl.FCLayer(prev_size, next_size, tfl.leaky_softplus()))
           prev_size = next_size
       setattr(self, name, net)
 
     with tf.variable_scope('actor'):
-      self.actor.append(tfl.makeAffineLayer(prev_size, action_size, tf.nn.softmax))
-      self.actor.append(lambda p: (1. - self.epsilon) * p + self.epsilon / action_size)
+      self.actor.append(tfl.FCLayer(prev_size, action_size, lambda p: (1. - self.epsilon) * tf.nn.softmax(p) + self.epsilon / action_size))
 
     with tf.variable_scope('critic'):
-      self.critic.append(tfl.makeAffineLayer(prev_size, 1))
-      self.critic.append(lambda x: tf.squeeze(x, [-1]))
+      self.critic.append(tfl.FCLayer(prev_size, 1))
 
     self.rlConfig = rlConfig
 
@@ -58,7 +56,7 @@ class ActorCritic(Default):
     
     train_length = experience_length - n
 
-    values = self.critic(states)
+    values = tf.squeeze(self.critic(states), [-1])
     actor_probs = self.actor(states)
     log_actor_probs = tf.log(actor_probs)
     
@@ -89,21 +87,17 @@ class ActorCritic(Default):
     actor_gain = tf.reduce_mean(tf.mul(train_log_actor_probs, tf.stop_gradient(advantages)))
     tf.scalar_summary('actor_gain', actor_gain)
     
-    acLoss = vLoss - self.policy_scale * (actor_gain + self.entropy_scale * actor_entropy)
+    actor_loss = - (actor_gain + self.entropy_scale * actor_entropy)
     
-    params = tf.trainable_variables()
+    actor_params = self.actor.getVariables()
       
-    predictions = [values, log_actor_probs]
-      
-    def metric(vp1, vp2):
-      v1, p1 = vp1
-      v2, p2 = vp2
-      
-      vDist = tf.reduce_mean(tf.squared_difference(v1, v2))
-      pDist = tf.reduce_mean(tfl.kl(p1, p2))
-      return vDist + self.kl_scale * pDist
+    def metric(p1, p2):
+      return tf.reduce_mean(tfl.kl(p1, p2))
     
-    return self.optimizer.optimize(acLoss, params, predictions, metric)
+    train_actor = self.optimizer.optimize(actor_loss, actor_params, log_actor_probs, metric)
+    train_critic = tf.train.AdamOptimizer().minimize(vLoss) # TODO: parameterize
+    
+    return tf.group(train_actor, train_critic)
   
   def getPolicy(self, state, **unused):
     return self.actor(state)
