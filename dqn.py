@@ -6,6 +6,8 @@ from default import *
 import opt
 
 class DQN(Default):
+  hidden_size = []
+  
   _options = [
     Option('q_layers', type=int, nargs='+', default=[128, 128], help="sizes of the dqn hidden layers"),
     Option('epsilon', type=float, default=0.02, help="pick random action with probability EPSILON"),
@@ -40,7 +42,7 @@ class DQN(Default):
   def getVariables(self):
     return self.q_net.getVariables()
   
-  def train(self, states, actions, rewards):
+  def train(self, states, actions, rewards, **unused):
     n = self.rlConfig.tdN
     
     state_shape = tf.shape(states)
@@ -79,19 +81,22 @@ class DQN(Default):
     flatQs = tf.reshape(self.predictedQs, [-1, self.action_size])
     action_probs = tf.nn.softmax(flatQs / self.temperature)
     action_probs = (1.0 - self.epsilon) * action_probs + self.epsilon / self.action_size
-    entropy = -tf.reduce_sum(tf.log(action_probs) * action_probs, -1)
-    entropy = tf.reduce_mean(entropy)
+    log_action_probs = tf.log(action_probs)
+    entropy = -tf.reduce_mean(tfl.batch_dot(action_probs, log_action_probs))
     tf.scalar_summary("entropy", entropy)
     
     meanQs = tfl.batch_dot(action_probs, flatQs)
     tf.scalar_summary("q_mean", tf.reduce_mean(meanQs))
     
-    self.params = tf.trainable_variables()
+    self.params = self.q_net.getVariables()
     
-    def q_metric(q1, q2):
-      return self.action_size * tf.reduce_mean(tf.squared_difference(q1, q2))
-    
-    return self.optimizer.optimize(qLoss, self.params, self.predictedQs, q_metric)
+    #def q_metric(q1, q2):
+      #return self.action_size * tf.reduce_mean(tf.squared_difference(q1, q2))
+    def metric(p1, p2):
+      # cross-entropy? p1 stays fixed so this is equivalent to KL in gradient
+      return tf.reduce_mean(tfl.batch_dot(p1, -tf.log(p2)))
+
+    return self.optimizer.optimize(qLoss, self.params, action_probs, metric)
     
     """
     update_target = lambda: tf.group(*self.q_target.assign(self.q_net), name="update_target")
@@ -104,27 +109,19 @@ class DQN(Default):
     )
     """
   
-  def getPolicy(self, state):
+  def getPolicy(self, state, **unused):
     #return [self.epsilon, tf.argmax(self.getQValues(state), 1)]
     state = tf.expand_dims(state, 0)
     qValues = self.q_net(state)
     
-    if self.temperature:
-      action = tf.multinomial(qValues / self.temperature, 1)
-    else:
-      action = tf.argmax(qValues, 1)
-    
-    if self.epsilon:
-      greedy = tf.random_uniform([]) > self.epsilon
-      random_action = lambda: tf.multinomial(tf.constant(0., shape=[1, self.action_size]), 1)
-      action = tf.cond(greedy, lambda: action, random_action)
-    
-    action = tf.squeeze(action)
+    action_probs = tf.nn.softmax(qValues / self.temperature)
+    action_probs = (1.0 - self.epsilon) * action_probs + self.epsilon / self.action_size
 
-    return action, tf.squeeze(qValues)
+    return tf.squeeze(action_probs), tf.squeeze(qValues)
   
   def act(self, policy, verbose=False):
-    action, qValues = policy
+    action_probs, qValues = policy
     if verbose:
       print(qValues)
-    return action
+    return random.choice(range(self.action_size), p=action_probs), []
+

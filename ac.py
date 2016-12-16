@@ -6,7 +6,7 @@ from default import *
 import opt
 
 class ActorCritic(Default):
-  hidden_size = []  
+  hidden_size = []
   
   _options = [
     Option('actor_layers', type=int, nargs='+', default=[128, 128]),
@@ -95,7 +95,7 @@ class ActorCritic(Default):
       return tf.reduce_mean(tfl.kl(p1, p2))
     
     train_actor = self.optimizer.optimize(actor_loss, actor_params, log_actor_probs, metric)
-    train_critic = tf.train.AdamOptimizer().minimize(vLoss) # TODO: parameterize
+    train_critic = tf.train.AdamOptimizer(1e-4).minimize(vLoss) # TODO: parameterize
     
     return tf.group(train_actor, train_critic)
   
