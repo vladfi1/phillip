@@ -71,7 +71,7 @@ class NaturalGradient(Default):
       direction_natural *= step_size
       
       progress = tfl.dot(direction_natural, direction_flat)
-      tf.scalar_summary('ng_progress', progress)
+      tf.scalar_summary('ng_progress', tf.log(progress))
     
     return unflatten(direction_natural)
 
