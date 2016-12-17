@@ -76,7 +76,7 @@ class DQN(Default):
     
     variance = tf.reduce_mean(tf.squared_difference(targets, tf.reduce_mean(targets)))
     explained_variance = 1 - qLoss / variance
-    tf.scalar_summary("explained_variance", explained_variance)
+    tf.scalar_summary("q_ev", explained_variance)
     
     flatQs = tf.reshape(self.predictedQs, [-1, self.action_size])
     action_probs = tf.nn.softmax(flatQs / self.temperature)
