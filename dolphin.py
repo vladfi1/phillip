@@ -91,7 +91,7 @@ class DolphinRunner(Default):
     Option('user', type=str, help="path to dolphin user directory"),
     Option('iso', type=str, default="SSBM.iso", help="path to SSBM iso"),
     Option('movie', type=str, help="path to dolphin movie file to play at startup"),
-    Option('setup', type=bool, default=True, help="setup custom dolphin directory"),
+    Option('setup', type=int, default=1, help="setup custom dolphin directory"),
     Option('gui', action="store_true", default=False, help="run with graphics and sound at normal speed"),
     Option('mute', action="store_true", default=False, help="mute game audio"),
   ]
