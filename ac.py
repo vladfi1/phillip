@@ -81,11 +81,12 @@ class ActorCritic(Default):
 
     actor_entropy = -tf.reduce_mean(tfl.batch_dot(actor_probs, log_actor_probs))
     tf.scalar_summary('actor_entropy', actor_entropy)
+    tf.scalar_summary('advantage', tf.reduce_mean(advantages))
     
     real_log_actor_probs = tfl.batch_dot(actions, log_actor_probs)
     train_log_actor_probs = tf.slice(real_log_actor_probs, [0, 0], [-1, train_length])
     actor_gain = tf.reduce_mean(tf.mul(train_log_actor_probs, tf.stop_gradient(advantages)))
-    tf.scalar_summary('actor_gain', actor_gain)
+    #tf.scalar_summary('actor_gain', actor_gain)
     
     actor_loss = - (actor_gain + self.entropy_scale * actor_entropy)
     
