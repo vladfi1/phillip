@@ -33,6 +33,9 @@ def sym_kl(logp, logq):
 def kl(logp, logq):
   return batch_dot(tf.exp(logp), logp - logq)
 
+def sample_variance(xs):
+  return tf.reduce_mean(tf.squared_difference(xs, tf.reduce_mean(xs)))
+
 def apply_grads(params, grads):
   return tf.group(*[tf.assign_add(p, g) for p, g in zip(params, grads)])
 

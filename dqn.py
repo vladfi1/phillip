@@ -23,17 +23,25 @@ class DQN(Default):
     Default.__init__(self, **kwargs)
     self.action_size = action_size
     
-    self.q_net = tfl.Sequential()
-    
-    prev_size = state_size
-    for i, size in enumerate(self.q_layers):
-      with tf.variable_scope("layer_%d" % i):
-        self.q_net.append(tfl.FCLayer(prev_size, size, tfl.leaky_softplus()))
-      prev_size = size
+    # TODO: share q and v networks?
+    for name in ['q', 'v']:
+      net = tfl.Sequential()
+      
+      prev_size = state_size
+      for i, size in enumerate(self.q_layers):
+        with tf.variable_scope("layer_%d" % i):
+          net.append(tfl.FCLayer(prev_size, size, tfl.leaky_softplus()))
+        prev_size = size
+      
+      setattr(self, name + '_net', net)
     
     with tf.variable_scope("q_out"):
       # no non-linearity on output layer
       self.q_net.append(tfl.FCLayer(prev_size, action_size))
+
+    with tf.variable_scope("v_out"):
+      # no non-linearity on output layer
+      self.v_net.append(tfl.FCLayer(prev_size, 1))
     
     self.rlConfig = rlConfig
     
@@ -51,13 +59,34 @@ class DQN(Default):
 
     train_length = experience_length - n
 
-    self.predictedQs = self.q_net(states)
-    trainQs = tfl.batch_dot(actions, self.predictedQs)
+    predictedVs = tf.squeeze(self.v_net(states), [-1])
+    trainVs = tf.slice(predictedVs, [0, 0], [-1, train_length])
+    
+    # smooth between TD(m) for m<=n?
+    targets = tf.slice(predictedVs, [0, n], [-1, train_length])
+    #targets = values[:,n:]
+    for i in reversed(range(n)):
+      targets *= self.rlConfig.discount
+      targets += tf.slice(rewards, [0, i], [-1, train_length])
+    targets = tf.stop_gradient(targets)
+
+    advantages = targets - trainVs
+    vLoss = tf.reduce_mean(tf.square(advantages))
+    tf.scalar_summary('v_loss', vLoss)
+    tf.scalar_summary('advantage', tf.reduce_mean(advantages))
+
+    v_ev = 1. - vLoss / tfl.sample_variance(targets)
+    tf.scalar_summary("v_ev", v_ev)
+
+    predictedQs = self.q_net(states)
+    trainQs = tfl.batch_dot(actions, predictedQs)
     trainQs = tf.slice(trainQs, [0, 0], [-1, train_length])
     
-    self.q_target = self.q_net#.clone()
+    #self.q_target = self.q_net#.clone()
+    #targetQs = self.q_target(states)
     
-    targetQs = self.q_target(states)
+    """ TODO: do we still want this code path for maxQ/sarsa?
+    targetQs = predictedQs
     realQs = tfl.batch_dot(actions, targetQs)
     maxQs = tf.reduce_max(targetQs, -1)
     targetQs = realQs if self.sarsa else maxQs
@@ -69,16 +98,13 @@ class DQN(Default):
     for i in reversed(range(n)):
       targets = tf.slice(rewards, [0, i], [-1, train_length]) + self.rlConfig.discount * targets
     targets = tf.stop_gradient(targets)
-
-    qLosses = tf.squared_difference(trainQs, targets)
-    qLoss = tf.reduce_mean(qLosses)
+    """
+    
+    qLoss = tf.reduce_mean(tf.squared_difference(trainQs, targets))
     tf.scalar_summary("q_loss", qLoss)
+    tf.scalar_summary("q_ev", 1 - qLoss / vLoss)
     
-    variance = tf.reduce_mean(tf.squared_difference(targets, tf.reduce_mean(targets)))
-    explained_variance = 1 - qLoss / variance
-    tf.scalar_summary("q_ev", explained_variance)
-    
-    flatQs = tf.reshape(self.predictedQs, [-1, self.action_size])
+    flatQs = tf.reshape(predictedQs, [-1, self.action_size])
     action_probs = tf.nn.softmax(flatQs / self.temperature)
     action_probs = (1.0 - self.epsilon) * action_probs + self.epsilon / self.action_size
     log_action_probs = tf.log(action_probs)
@@ -88,7 +114,7 @@ class DQN(Default):
     meanQs = tfl.batch_dot(action_probs, flatQs)
     tf.scalar_summary("q_mean", tf.reduce_mean(meanQs))
     
-    self.params = self.q_net.getVariables()
+    self.params = self.q_net.getVariables() + self.v_net.getVariables()
     
     #def q_metric(q1, q2):
       #return self.action_size * tf.reduce_mean(tf.squared_difference(q1, q2))
@@ -96,7 +122,7 @@ class DQN(Default):
       # cross-entropy? p1 stays fixed so this is equivalent to KL in gradient
       return tf.reduce_mean(tfl.batch_dot(p1, -tf.log(p2)))
 
-    return self.optimizer.optimize(qLoss, self.params, action_probs, metric)
+    return self.optimizer.optimize(vLoss + qLoss, self.params, action_probs, metric)
     
     """
     update_target = lambda: tf.group(*self.q_target.assign(self.q_net), name="update_target")
