@@ -72,16 +72,15 @@ class ActorCritic(Default):
     targets = tf.stop_gradient(targets)
 
     advantages = targets - trainVs
+    tf.scalar_summary('advantage', tf.reduce_mean(advantages))
+    
     vLoss = tf.reduce_mean(tf.square(advantages))
     tf.scalar_summary('v_loss', vLoss)
     
-    variance = tf.reduce_mean(tf.squared_difference(targets, tf.reduce_mean(targets)))
-    explained_variance = 1. - vLoss / variance
-    tf.scalar_summary("v_ev", explained_variance)
+    tf.scalar_summary("v_ev", 1. - vLoss / tfl.sample_variance(targets))
 
     actor_entropy = -tf.reduce_mean(tfl.batch_dot(actor_probs, log_actor_probs))
     tf.scalar_summary('actor_entropy', actor_entropy)
-    tf.scalar_summary('advantage', tf.reduce_mean(advantages))
     
     real_log_actor_probs = tfl.batch_dot(actions, log_actor_probs)
     train_log_actor_probs = tf.slice(real_log_actor_probs, [0, 0], [-1, train_length])

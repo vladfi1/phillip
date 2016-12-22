@@ -13,9 +13,6 @@ class RecurrentActorCritic(Default):
     Option('epsilon', type=float, default=0.02),
 
     Option('entropy_scale', type=float, default=0.001),
-    Option('policy_scale', type=float, default=0.1),
-    
-    Option('kl_scale', type=float, default=1.0, help="kl divergence weight in natural metric"),
   ]
 
   _members = [
@@ -41,10 +38,10 @@ class RecurrentActorCritic(Default):
     self.rnn = tf.nn.rnn_cell.MultiRNNCell(cells)
     self.hidden_size = (self.actor_rnn.state_size, self.critic_rnn.state_size)
 
-    with tf.variable_scope('actor'):
+    with tf.variable_scope('actor/out'):
       self.actor_out = tfl.makeAffineLayer(prev_size, action_size, tf.nn.log_softmax)
 
-    with tf.variable_scope('critic'):
+    with tf.variable_scope('critic/out'):
       v_out = tfl.makeAffineLayer(prev_size, 1)
       v_out = util.compose(lambda x: tf.squeeze(x, [-1]), v_out)
       self.critic_out = v_out
@@ -65,6 +62,7 @@ class RecurrentActorCritic(Default):
     
     actor_outputs, actor_hidden = tf.nn.rnn(self.actor_rnn, states, initial_state=actor_initial)
     critic_outputs, critic_hidden = tf.nn.rnn(self.critic_rnn, states, initial_state=critic_initial)
+    print("Unrolled rnns")
     
     actor_outputs = tf.pack(actor_outputs, 1)
     critic_outputs = tf.pack(critic_outputs, 1)
@@ -85,12 +83,12 @@ class RecurrentActorCritic(Default):
     targets = tf.stop_gradient(targets)
 
     advantages = targets - trainVs
+    tf.scalar_summary('advantage', tf.reduce_mean(advantages))
+    
     vLoss = tf.reduce_mean(tf.square(advantages))
     tf.scalar_summary('v_loss', vLoss)
     
-    variance = tf.reduce_mean(tf.squared_difference(targets, tf.reduce_mean(targets)))
-    explained_variance = 1. - vLoss / variance
-    tf.scalar_summary("v_ev", explained_variance)
+    tf.scalar_summary("v_ev", 1. - vLoss / tfl.sample_variance(targets))
 
     actor_entropy = -tf.reduce_mean(tfl.batch_dot(actor_probs, log_actor_probs))
     tf.scalar_summary('actor_entropy', actor_entropy)
@@ -98,23 +96,19 @@ class RecurrentActorCritic(Default):
     real_log_actor_probs = tfl.batch_dot(actions, log_actor_probs)
     train_log_actor_probs = tf.slice(real_log_actor_probs, [0, 0], [-1, train_length])
     actor_gain = tf.reduce_mean(tf.mul(train_log_actor_probs, tf.stop_gradient(advantages)))
-    tf.scalar_summary('actor_gain', actor_gain)
+    actor_loss = - (actor_gain + self.entropy_scale * actor_entropy)
     
-    acLoss = vLoss - self.policy_scale * (actor_gain + self.entropy_scale * actor_entropy)
+    actor_params = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='actor')
+      
+    def metric(p1, p2):
+      return tf.reduce_mean(tfl.kl(p1, p2))
     
-    params = tf.trainable_variables()
-      
-    predictions = [values, log_actor_probs]
-      
-    def metric(vp1, vp2):
-      v1, p1 = vp1
-      v2, p2 = vp2
-      
-      vDist = tf.reduce_mean(tf.squared_difference(v1, v2))
-      pDist = tf.reduce_mean(tfl.kl(p1, p2))
-      return vDist + self.kl_scale * pDist
+    print("Actor optimizer.")
+    train_actor = self.optimizer.optimize(actor_loss, actor_params, log_actor_probs, metric)
+    print("Critic optimizer.")
+    train_critic = tf.train.AdamOptimizer(1e-4).minimize(vLoss) # TODO: parameterize
     
-    return self.optimizer.optimize(acLoss, params, predictions, metric)
+    return tf.group(train_actor, train_critic)
 
   def getPolicy(self, state, hidden, **unused):
     state = tf.expand_dims(state, 0)

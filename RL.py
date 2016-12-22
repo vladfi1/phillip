@@ -66,7 +66,6 @@ class Model(Default):
     if self.path is None:
       self.path = "saves/%s/" % self.name
     
-    print("Creating model:", self.model)
     modelType = models[self.model]
     
     self.graph = tf.Graph()
@@ -84,6 +83,7 @@ class Model(Default):
       
       state_size = self.embedGame.size
       
+      print("Creating model:", self.model)
       history_size = (1+self.memory) * (state_size+embed.action_size)
       self.model = modelType(history_size, embed.action_size, self.global_step, self.rlConfig, **kwargs)
 
@@ -139,7 +139,9 @@ class Model(Default):
             initial=self.experience['initial']
           )
           
+          print("Creating train op")
           self.train_op = self.model.train(**train_args)
+          print("Created train op")
 
           #tf.scalar_summary("loss", loss)
           #tf.scalar_summary('learning_rate', tf.log(self.learning_rate))
@@ -153,7 +155,7 @@ class Model(Default):
           self.run_dict = dict(summary=merged, global_step=self.global_step, train=self.train_op, misc=misc)
           
           print("Creating summary writer at logs/%s." % self.name)
-          self.writer = tf.train.SummaryWriter('logs/' + self.name, self.graph)
+          self.writer = tf.train.SummaryWriter('logs/' + self.name)#, self.graph)
       else:
         with tf.name_scope('policy'):
           self.input = ct.inputCType(ssbm.SimpleStateAction, [self.memory+1], "input")
