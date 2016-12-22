@@ -75,8 +75,7 @@ class DQN(Default):
     tf.scalar_summary('v_loss', vLoss)
     tf.scalar_summary('advantage', tf.reduce_mean(advantages))
 
-    v_ev = 1. - vLoss / tfl.sample_variance(targets)
-    tf.scalar_summary("v_ev", v_ev)
+    tf.scalar_summary("v_ev", 1. - vLoss / tfl.sample_variance(targets))
 
     predictedQs = self.q_net(states)
     trainQs = tfl.batch_dot(actions, predictedQs)
@@ -102,7 +101,7 @@ class DQN(Default):
     
     qLoss = tf.reduce_mean(tf.squared_difference(trainQs, targets))
     tf.scalar_summary("q_loss", qLoss)
-    tf.scalar_summary("q_ev", 1 - qLoss / vLoss)
+    tf.scalar_summary("q_ev", 1. - qLoss / tfl.sample_variance(advantages))
     
     flatQs = tf.reshape(predictedQs, [-1, self.action_size])
     action_probs = tf.nn.softmax(flatQs / self.temperature)
