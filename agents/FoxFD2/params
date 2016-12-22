@@ -4,7 +4,7 @@
     "model": "ActorCritic",
     "epsilon": 0.02,
     "policy_scale": 0.5,
-    "entropy_scale": 0.001,
+    "entropy_scale": 0.002,
     "learning_rate": 0.0001,
     "optimizer": "Adam",
     "tdN": 6,
