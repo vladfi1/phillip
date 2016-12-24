@@ -60,8 +60,8 @@ class RecurrentActorCritic(Default):
     (actor_initial, critic_initial) = initial
     states = tf.unpack(states, axis=1)
     
-    actor_outputs, actor_hidden = tf.nn.rnn(self.actor_rnn, states, initial_state=actor_initial)
-    critic_outputs, critic_hidden = tf.nn.rnn(self.critic_rnn, states, initial_state=critic_initial)
+    actor_outputs, actor_hidden = tfl.rnn(self.actor_rnn, states, actor_initial)
+    critic_outputs, critic_hidden = tfl.rnn(self.critic_rnn, states, critic_initial)
     print("Unrolled rnns")
     
     actor_outputs = tf.pack(actor_outputs, 1)

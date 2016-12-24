@@ -309,3 +309,11 @@ class GRUCell(tf.nn.rnn_cell.RNNCell):
     
     return new_h, new_h
 
+# TODO: auto unpack and repack inputs?
+def rnn(cell, inputs, initial_state, scope=None):
+  outputs = []
+  state = initial_state
+  for i, input_ in enumerate(inputs):
+    output, state = cell(input_, state)
+    outputs.append(output)
+  return outputs, state
