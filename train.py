@@ -5,14 +5,16 @@ import util
 from default import *
 import numpy as np
 from collections import defaultdict
-from gc import get_objects
 import zmq
+import resource
+import gc
+import objgraph
 
 # some helpers for debugging memory leaks
 
 def count_objects():
   counts = defaultdict(int)
-  for obj in get_objects():
+  for obj in gc.get_objects():
     counts[type(obj)] += 1
   return counts
 
@@ -127,6 +129,10 @@ class Trainer(Default):
       collect_time -= start_time
       
       print(sweeps, self.sweep_size, collected, collect_time, train_time, save_time)
+      print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+      
+      gc.collect()  # don't care about stuff that would be garbage collected properly
+      objgraph.show_most_common_types()
 
 if __name__ == '__main__':
   from argparse import ArgumentParser
