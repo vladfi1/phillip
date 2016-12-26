@@ -267,12 +267,12 @@ class Model(Default):
         with open(self.path + 'error', 'wb') as f:
           pickle.dump(experiences, f)
         raise e
-      print('After run: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+      #print('After run: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
       
       summary_str = results['summary']
       global_step = results['global_step']
       self.writer.add_summary(summary_str, global_step)
-      print('After summary: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+      #print('After summary: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
 
   def save(self):
     import os

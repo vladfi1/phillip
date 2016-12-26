@@ -88,6 +88,8 @@ class Trainer(Default):
     while True:
       start_time = time.time()
       
+      print('Start: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+
       for _ in range(self.min_collect):
         self.buffer.push(self.socket.recv_pyobj())
 
@@ -100,6 +102,7 @@ class Trainer(Default):
         except zmq.ZMQError as e:
           break
       
+      print('After collect: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
       collect_time = time.time()
       
       experiences = self.buffer.as_list()
@@ -111,10 +114,12 @@ class Trainer(Default):
         for batch in util.chunk(experiences, self.batch_size):
           self.model.train(batch, self.batch_steps)
       
+      print('After train: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
       train_time = time.time()
       
       self.model.save()
       
+      print('After save: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
       save_time = time.time()
       
       sweeps += 1
@@ -129,10 +134,10 @@ class Trainer(Default):
       collect_time -= start_time
       
       print(sweeps, self.sweep_size, collected, collect_time, train_time, save_time)
-      print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+      #print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
       
-      gc.collect()  # don't care about stuff that would be garbage collected properly
-      objgraph.show_most_common_types()
+      #gc.collect()  # don't care about stuff that would be garbage collected properly
+      #objgraph.show_most_common_types()
 
 if __name__ == '__main__':
   from argparse import ArgumentParser
