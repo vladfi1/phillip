@@ -137,7 +137,7 @@ class Trainer(Default):
       #print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
       
       #gc.collect()  # don't care about stuff that would be garbage collected properly
-      #objgraph.show_most_common_types()
+      #objgraph.show_growth()
 
 if __name__ == '__main__':
   from argparse import ArgumentParser
