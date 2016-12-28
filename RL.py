@@ -186,6 +186,8 @@ class Model(Default):
       self.placeholders = {v.name : tf.placeholder(v.dtype, v.get_shape()) for v in self.variables}
       self.unblobber = tf.group(*[tf.assign(v, self.placeholders[v.name]) for v in self.variables])
       
+      self.graph.finalize()
+      
       tf_config = dict(
         allow_soft_placement=True,
         #log_device_placement=True,
