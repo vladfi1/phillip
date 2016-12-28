@@ -58,9 +58,9 @@ class Agent(Default):
     
     current.action = self.action
 
-    if verbose:
-      pp.pprint(ct.toDict(state.players[1]))
-      print(self.action)
+    #if verbose:
+    #  pp.pprint(ct.toDict(state.players[1]))
+    #  print(self.action)
     
     # the delayed action
     action = self.actions.push(self.action)

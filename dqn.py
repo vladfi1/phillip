@@ -141,12 +141,17 @@ class DQN(Default):
     
     action_probs = tf.nn.softmax(qValues / self.temperature)
     action_probs = (1.0 - self.epsilon) * action_probs + self.epsilon / self.action_size
+    action_probs = tf.squeeze(action_probs)
+    
+    log_action_probs = tf.log(action_probs)
+    entropy = - tfl.dot(action_probs, log_action_probs)
 
-    return tf.squeeze(action_probs), tf.squeeze(qValues)
+    return action_probs, tf.squeeze(qValues), entropy
   
   def act(self, policy, verbose=False):
-    action_probs, qValues = policy
+    action_probs, qValues, entropy = policy
     if verbose:
-      print(qValues)
+      #print(qValues)
+      print(entropy)
     return random.choice(range(self.action_size), p=action_probs), []
 
