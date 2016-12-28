@@ -12,6 +12,7 @@ parser.add_argument('--trainer', type=str, help='trainer IP address')
 parser.add_argument('--local', action='store_true', help="run locally")
 parser.add_argument('--agents', type=int, help="number of agents to run")
 parser.add_argument('--log_agents', action='store_true', help='log agent outputs')
+parser.add_argument('--profile', action='store_true', help='heap profile trainer')
 
 args = parser.parse_args()
 
@@ -52,6 +53,7 @@ if not os.path.exists("slurm_scripts"):
     os.makedirs("slurm_scripts")
 
 def launch(name, command, cpus=2, mem=1000, gpu=False, log=True, qos=None, array=None):
+  #command = "LD_PRELOAD=$OM_USER/lib/libtcmalloc.so.4 " + command
   if args.dry_run:
     print(command)
     return
@@ -97,10 +99,17 @@ if run_trainer:
   train_name = "trainer_" + params['train']['name']
   train_command = "python3 -u train.py --load " + args.path
   train_command += " --dump " + trainer_dump
+
+  if args.profile:
+    vars = "LD_PRELOAD=$OM_USER/lib/libtcmalloc.so HEAPPROFILE=profile/%s " % train_name
+  else:
+    vars = "LD_PRELOAD=$OM_USER/lib/libtcmalloc_minimal.so "
   
+  train_command = vars + train_command
+
   launch(train_name, train_command,
     gpu=True,
-    #qos='tenenbaum',
+    qos='tenenbaum',
     mem=16000
   )
 
@@ -137,7 +146,7 @@ if run_agents:
     agent_name = "agent_%d_%s" % (agent_count, params['agent']['name'])
     launch(agent_name, command,
       log=args.log_agents,
-      qos='use-everything',
+      #qos='use-everything',
       array=agents
     )
     agent_count += 1

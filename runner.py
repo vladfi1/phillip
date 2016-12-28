@@ -33,10 +33,9 @@ def add_param(param, value, jobs, name=True):
 
 both = ['train', 'agent']
 
-#model = 'DQN'
-#model = 'NaturalDQN'
+model = 'DQN'
 #model = 'ActorCritic'
-model = 'RecurrentActorCritic'
+#model = 'RecurrentActorCritic'
 #model = 'NaturalActorCritic'
 
 recurrent = model.count('Recurrent')
@@ -44,41 +43,36 @@ recurrent = model.count('Recurrent')
 add_param('model', model, both)
 add_param('epsilon', 0.02, both, False)
 
+natural = True
+natural = False
+
 train_settings = [
   #('learning_rate', 0.0002),
-  ('tdN', 6),
+  ('tdN', 5),
   ('sweeps', 1),
-  ('batches', 20),
-  ('batch_size', 100 if recurrent else 500),
+  ('batches', 10),
+  ('batch_size', 500),
   ('batch_steps', 1),
   ('gpu', 1),
 ]
-
-natural = True
-#natural = False
 
 if model.count('DQN'):
   train_settings += [
     ('sarsa', 1),
     #('target_delay', 4000),
   ]
-  add_param('temperature', 0.0002, ['agent'], True)
+  add_param('temperature', 0.002, both)
 elif model.count('ActorCritic'):
   if natural:
-    add_param('policy_scale', 5, ['train'], True)
-    add_param('entropy_scale', 1e-3, ['train'], True)
+    add_param('entropy_scale', 5e-4, ['train'], True)
   else:
-    add_param('policy_scale', 5 if recurrent else 1, ['train'], True)
-    add_param('entropy_scale', 1e-3 if recurrent else 2e-3, ['train'], True)
-  #add_param('target_kl', 1e-5, ['train'], True)
+    add_param('entropy_scale', 1e-3 if recurrent else 3e-3, ['train'], True)
 
 if natural:
   add_param('natural', True, ['train'], True)
-  if model.count('ActorCritic'):
-    add_param('kl_scale', 0.2, ['train'], True)
-    
+  
   if True:
-    add_param('target_distance', 1e-5, ['train'], True)
+    add_param('target_distance', 1e-6, ['train'], True)
     add_param('learning_rate', 1., ['train'], False)
   else:
     add_param('learning_rate', 1., ['train'], True)
@@ -86,9 +80,8 @@ if natural:
   train_settings += [
     ('cg_damping', 1e-5),
   ]
-  add_param('cg_iters', 0, ['train'], True)
-  #add_param('cg_iters', 10, ['train'], False)
-  add_param('optimizer', 'Adam', ['train'], True)
+  add_param('cg_iters', 10, ['train'], True)
+  #add_param('optimizer', 'Adam', ['train'], True)
 else:
   add_param('learning_rate', 1e-5 if recurrent else 1e-4, ['train'], True)
   add_param('optimizer', 'Adam', ['train'], False)
@@ -104,19 +97,19 @@ for k, v in train_settings:
 add_param('xy_scale', 0.05, both, False)
 #add_param('speed_scale
 
-#add_param('action_space', 0, both)
-add_param('player_space', 0, both, True)
+add_param('action_space', 0, both, False)
+add_param('player_space', 0, both, False)
 
-#add_param('critic_layers', [128, 128, 128], both)
-#add_param('actor_layers', [128, 128, 128], both)
+#add_param('critic_layers', [128] * 1, both)
+#add_param('actor_layers', [128] * 3, both)
 
 # agent settings
 
 add_param('dolphin', True, ['agent'], False)
 
-add_param('experience_time', 1 if recurrent else 5, both, False)
-add_param('reload', 10, ['agent'], False)
-add_param('act_every', 3, both, False)
+add_param('experience_time', 1 if recurrent else 2, both, False)
+add_param('reload', 6, ['agent'], False)
+add_param('act_every', 2, both, False)
 
 delay = 2
 if delay:
@@ -127,9 +120,10 @@ if not recurrent:
 #movie = 'movies/endless_netplay_battlefield_dual.dtm'
 #add_param('movie', movie, ['agent'], False)
 
+#char = 'falco'
 #char = 'sheik'
-#char = 'falcon'
-char = 'marth'
+char = 'falcon'
+#char = 'marth'
 #char = 'fox'
 #char = 'peach'
 #char = 'luigi'
@@ -147,7 +141,7 @@ exp_name += "_enemies_" + enemies
 job_dicts['enemies'] = enemies
 
 # number of agents playing each enemy
-agents = 120
+agents = 60
 job_dicts['agents'] = agents
 
 add_param('name', exp_name, both, False)
