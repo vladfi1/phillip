@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 import RL
 import util
@@ -117,7 +118,10 @@ class Trainer(Default):
       print('After train: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
       train_time = time.time()
       
-      self.model.save()
+      try:
+        self.model.save()
+      except tf.errors.ResourceExhaustedError as e:
+        print(e, file=sys.stderr)
       
       print('After save: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
       save_time = time.time()
