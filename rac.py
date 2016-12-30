@@ -12,6 +12,7 @@ class RecurrentActorCritic(Default):
 
     Option('epsilon', type=float, default=0.02),
 
+    Option('entropy_power', type=float, default=1.),
     Option('entropy_scale', type=float, default=0.001),
   ]
 
@@ -91,7 +92,7 @@ class RecurrentActorCritic(Default):
     tf.scalar_summary("v_ev", 1. - vLoss / tfl.sample_variance(targets))
 
     entropy = - tfl.batch_dot(actor_probs, log_actor_probs)
-    entropy_avg = tf.reduce_mean(entropy)
+    entropy_avg = tfl.power_mean(self.entropy_power, entropy)
     tf.scalar_summary('entropy_avg', entropy_avg)
     tf.scalar_summary('entropy_min', tf.reduce_min(entropy))
     

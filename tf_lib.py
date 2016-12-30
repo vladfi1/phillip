@@ -27,6 +27,9 @@ def batch_dot(xs, ys):
 def dot(x, y):
   return tf.reduce_sum(x * y)
 
+def power_mean(p, xs):
+  return tf.pow(tf.reduce_mean(tf.pow(xs, p)), 1/p)
+
 def sym_kl(logp, logq):
   return 0.5 * batch_dot(tf.exp(logp) - tf.exp(logq), logp - logq)
 
