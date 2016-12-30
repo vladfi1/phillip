@@ -10,6 +10,7 @@ import zmq
 import resource
 import gc
 import objgraph
+import tensorflow as tf
 
 # some helpers for debugging memory leaks
 
