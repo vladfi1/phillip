@@ -90,13 +90,15 @@ class RecurrentActorCritic(Default):
     
     tf.scalar_summary("v_ev", 1. - vLoss / tfl.sample_variance(targets))
 
-    actor_entropy = -tf.reduce_mean(tfl.batch_dot(actor_probs, log_actor_probs))
-    tf.scalar_summary('actor_entropy', actor_entropy)
+    entropy = - tfl.batch_dot(actor_probs, log_actor_probs)
+    entropy_avg = tf.reduce_mean(entropy)
+    tf.scalar_summary('entropy_avg', entropy_avg)
+    tf.scalar_summary('entropy_min', tf.reduce_min(entropy))
     
     real_log_actor_probs = tfl.batch_dot(actions, log_actor_probs)
     train_log_actor_probs = tf.slice(real_log_actor_probs, [0, 0], [-1, train_length])
     actor_gain = tf.reduce_mean(tf.mul(train_log_actor_probs, tf.stop_gradient(advantages)))
-    actor_loss = - (actor_gain + self.entropy_scale * actor_entropy)
+    actor_loss = - (actor_gain + self.entropy_scale * entropy_avg)
     
     actor_params = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='actor')
       
