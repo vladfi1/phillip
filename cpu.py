@@ -44,10 +44,10 @@ class CPU(Default):
               print("ImportError: {0}".format(err))
               sys.exit("Install pyzmq to dump experiences")
             
-            context = zmq.Context()
+            context = zmq.Context.instance()
 
             self.socket = context.socket(zmq.PUSH)
-            self.sock_addr = "tcp://%s:%d" % (self.dump, util.port(self.model.name))
+            self.sock_addr = "tcp://%s:%d" % (self.dump, util.port(self.model.name + "/experience"))
             print("Connecting to " + self.sock_addr)
             self.socket.connect(self.sock_addr)
             

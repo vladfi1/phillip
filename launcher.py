@@ -133,6 +133,7 @@ if run_agents:
   agent_count = 0
   agent_command = "python3 -u run.py --load " + args.path
   agent_command += " --dump " + agent_dump
+  agent_command += " --listen " + agent_dump
   if not args.local:
     agent_command += " --cpu_thread"
 

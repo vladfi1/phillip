@@ -297,5 +297,6 @@ class Model(Default):
       return {var.name: val for var, val in zip(self.variables, values)}
   
   def unblob(self, blob):
-    self.sess.run(self.unblobber, {self.placeholders[k]: v for k, v in blob.items()})
+    #self.sess.run(self.unblobber, {self.placeholders[k]: v for k, v in blob.items()})
+    self.sess.run(self.unblobber, {v: blob[k] for k, v in self.placeholders.items()})
 

@@ -36,7 +36,10 @@ class Trainer(Default):
     Option("batch_steps", type=int, default=1, help="number of gradient steps to take on each batch"),
     Option("min_collect", type=int, default=1, help="minimum number of experiences to collect between sweeps"),
 
-    Option("dump", type=str, default="127.0.0.1", help="interface to listen on for experience dumps"),
+    Option("dump", type=str, default="lo", help="interface to listen on for experience dumps"),
+    Option("broadcast", action="store_true", help="broadcast model params to agents"),
+    
+    Option("save_interval", type=int, default=10, help="length of time between saves to disk, in minutes"),
 
     Option("load", type=str, help="path to a json file from which to load params"),
   ]
@@ -64,17 +67,34 @@ class Trainer(Default):
     else:
       self.model.restore()
 
-    context = zmq.Context()
+    context = zmq.Context.instance()
 
-    self.socket = context.socket(zmq.PULL)
-    sock_addr = "tcp://%s:%d" % (self.dump, util.port(self.model.name))
-    print("Binding to " + sock_addr)
-    self.socket.bind(sock_addr)
+    self.experience_socket = context.socket(zmq.PULL)
+    experience_addr = "tcp://%s:%d" % (self.dump, util.port(self.model.name + "/experience"))
+    self.experience_socket.bind(experience_addr)
+    
+    if self.broadcast:
+      self.params_socket = context.socket(zmq.PUB)
+      params_addr = "tcp://%s:%d" % (self.dump, util.port(self.model.name + "/params"))
+      print("Binding params socket to", params_addr)
+      self.params_socket.bind(params_addr)
 
     self.sweep_size = self.batches * self.batch_size
     print("Sweep size", self.sweep_size)
     
     self.buffer = util.CircularQueue(self.sweep_size)
+    
+    self.last_save = time.time()
+  
+  def save(self):
+    current_time = time.time()
+    
+    if current_time - self.last_save > 60 * self.save_interval:
+      try:
+        self.model.save()
+        self.last_save = current_time
+      except tf.errors.InternalError as e:
+        print(e, file=sys.stderr)
   
   def train(self):
     before = count_objects()
@@ -82,24 +102,23 @@ class Trainer(Default):
     sweeps = 0
     
     for _ in range(self.sweep_size):
-      self.buffer.push(self.socket.recv_pyobj())
+      self.buffer.push(self.experience_socket.recv_pyobj())
     
     print("Buffer filled")
-
-
+    
     while True:
       start_time = time.time()
       
       print('Start: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
 
       for _ in range(self.min_collect):
-        self.buffer.push(self.socket.recv_pyobj())
+        self.buffer.push(self.experience_socket.recv_pyobj())
 
       collected = self.min_collect
       
       while True:
         try:
-          self.buffer.push(self.socket.recv_pyobj(zmq.NOBLOCK))
+          self.buffer.push(self.experience_socket.recv_pyobj(zmq.NOBLOCK))
           collected += 1
         except zmq.ZMQError as e:
           break
@@ -119,10 +138,10 @@ class Trainer(Default):
       print('After train: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
       train_time = time.time()
       
-      try:
-        self.model.save()
-      except tf.errors.ResourceExhaustedError as e:
-        print(e, file=sys.stderr)
+      self.params_socket.send_string("", zmq.SNDMORE)
+      self.params_socket.send_pyobj(self.model.blob())
+      
+      self.save()
       
       print('After save: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
       save_time = time.time()
