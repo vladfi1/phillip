@@ -32,10 +32,11 @@ models = {model.__name__ : model for model in models}
 
 class RLConfig(Default):
   _options = [
-    Option('tdN', type=int, default=10, help="use n-step TD error"),
+    Option('tdN', type=int, default=5, help="use n-step TD error"),
     Option('reward_halflife', type=float, default=2.0, help="time to discount rewards by half, in seconds"),
     Option('act_every', type=int, default=2, help="Take an action every ACT_EVERY frames."),
     Option('experience_time', type=int, default=5, help="Length of experiences, in seconds."),
+    Option('delay', type=int, default=0, help="frame delay on actions taken"),
   ]
   
   def __init__(self, **kwargs):
@@ -107,7 +108,7 @@ class Model(Default):
           prev_actions = embed.embedAction(self.experience['prev_action'])
           states = tf.concat(2, [states, prev_actions])
           
-          train_length = self.rlConfig.experience_length - self.memory
+          train_length = self.rlConfig.experience_length - self.memory - self.rlConfig.delay
           
           history = [tf.slice(states, [0, i, 0], [-1, train_length, -1]) for i in range(self.memory+1)]
           self.train_states = tf.concat(2, history)
@@ -115,7 +116,7 @@ class Model(Default):
           actions = embed.embedAction(self.experience['action'])
           self.train_actions = tf.slice(actions, [0, self.memory, 0], [-1, train_length, -1])
           
-          self.train_rewards = tf.slice(self.experience['reward'], [0, self.memory], [-1, -1])
+          self.train_rewards = tf.slice(self.experience['reward'], [0, self.memory + self.rlConfig.delay], [-1, -1])
           
           """
           data_names = ['state', 'action', 'reward']
