@@ -99,6 +99,7 @@ if run_trainer:
   train_name = "trainer_" + params['train']['name']
   train_command = "python3 -u train.py --load " + args.path
   train_command += " --dump " + trainer_dump
+  train_command += " --broadcast"
 
   if args.profile:
     vars = "LD_PRELOAD=$OM_USER/lib/libtcmalloc.so HEAPPROFILE=profile/%s " % train_name
@@ -109,7 +110,7 @@ if run_trainer:
 
   launch(train_name, train_command,
     gpu=True,
-    qos='tenenbaum',
+    #qos='tenenbaum',
     mem=16000
   )
 
@@ -147,7 +148,7 @@ if run_agents:
     agent_name = "agent_%d_%s" % (agent_count, params['agent']['name'])
     launch(agent_name, command,
       log=args.log_agents,
-      #qos='use-everything',
+      qos='use-everything',
       array=agents
     )
     agent_count += 1

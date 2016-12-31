@@ -33,9 +33,9 @@ def add_param(param, value, jobs, name=True):
 
 both = ['train', 'agent']
 
-model = 'DQN'
+#model = 'DQN'
 #model = 'ActorCritic'
-#model = 'RecurrentActorCritic'
+model = 'RecurrentActorCritic'
 #model = 'NaturalActorCritic'
 
 recurrent = model.count('Recurrent')
@@ -44,14 +44,14 @@ add_param('model', model, both)
 add_param('epsilon', 0.02, both, False)
 
 natural = True
-natural = False
+#natural = False
 
 train_settings = [
   #('learning_rate', 0.0002),
   ('tdN', 5),
   ('sweeps', 1),
-  ('batches', 10),
-  ('batch_size', 500),
+  ('batches', 2 if recurrent else 10),
+  ('batch_size', 1000 if recurrent else 2000),
   ('batch_steps', 1),
   ('gpu', 1),
 ]
@@ -63,8 +63,9 @@ if model.count('DQN'):
   ]
   add_param('temperature', 0.002, both)
 elif model.count('ActorCritic'):
+  add_param('entropy_power', 0, ['train'])
   if natural:
-    add_param('entropy_scale', 5e-4, ['train'], True)
+    add_param('entropy_scale', 1e-4, ['train'], True)
   else:
     add_param('entropy_scale', 1e-3 if recurrent else 3e-3, ['train'], True)
 
@@ -108,12 +109,12 @@ add_param('player_space', 0, both, False)
 add_param('dolphin', True, ['agent'], False)
 
 add_param('experience_time', 1 if recurrent else 2, both, False)
-add_param('reload', 6, ['agent'], False)
+add_param('reload', 2, ['agent'], False)
 add_param('act_every', 2, both, False)
 
-delay = 2
+delay = 8
 if delay:
-  add_param('delay', delay, ['agent'])
+  add_param('delay', delay, both)
 if not recurrent:
   add_param('memory', 1 + delay, both)
 
@@ -133,8 +134,8 @@ char = 'falcon'
 add_param('char', char, ['agent'], True)
 
 #enemies = "easy"
-#enemies = "delay0"
-enemies = "delay%d" % delay
+enemies = "delay2"
+#enemies = "delay%d" % delay
 add_param('enemy_reload', 600, ['agent'], False)
 
 exp_name += "_enemies_" + enemies
