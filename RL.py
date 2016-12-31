@@ -180,6 +180,7 @@ class Model(Default):
       self.debug = debug
       
       self.variables = tf.all_variables()
+      self.initializer = tf.initialize_all_variables()
       
       self.saver = tf.train.Saver(self.variables)
       
@@ -287,9 +288,7 @@ class Model(Default):
     self.saver.restore(self.sess, self.path + "snapshot")
 
   def init(self):
-    with self.graph.as_default():
-      #self.sess.run(tf.initialize_variables(self.variables))
-      self.sess.run(tf.initialize_all_variables())
+    self.sess.run(self.initializer)
   
   def blob(self):
     with self.graph.as_default():
