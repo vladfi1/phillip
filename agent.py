@@ -14,7 +14,6 @@ pp = pprint.PrettyPrinter(indent=2)
 
 class Agent(Default):
   _options = [
-    Option('delay', type=int, default=0, help="delay actions this many rounds"),
     Option('char', type=str, choices=characters.keys(), help="character that this agent plays as"),
     Option('verbose', action="store_true", default=False, help="print stuff while running"),
     Option('reload', type=int, default=60, help="reload model every RELOAD seconds"),
@@ -32,7 +31,7 @@ class Agent(Default):
     
     self.counter = 0
     self.action = 0
-    self.actions = util.CircularQueue(self.delay+1, 0)
+    self.actions = util.CircularQueue(self.model.rlConfig.delay+1, 0)
     self.memory = util.CircularQueue(array=((self.model.memory+1) * ssbm.SimpleStateAction)())
     
     self.hidden = util.deepMap(np.zeros, self.model.model.hidden_size)
@@ -100,7 +99,7 @@ class Agent(Default):
         while True:
           try:
             topic = self.socket.recv_string(zmq.NOBLOCK)
-            blob = self.socket.recv_pyobj(zmq.NOBLOCK)
+            blob = self.socket.recv_pyobj()
           except zmq.ZMQError as e:
             if e.errno == zmq.EAGAIN:
               # nothing to receive
