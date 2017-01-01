@@ -96,7 +96,7 @@ def launch(name, command, cpus=2, mem=1000, gpu=False, log=True, qos=None, array
   os.system("sbatch " + slurmfile)
 
 if run_trainer:
-  train_name = "trainer_" + params['train']['name']
+  train_name = "trainer_" + params['name']
   train_command = "python3 -u train.py --load " + args.path
   train_command += " --dump " + trainer_dump
 
@@ -144,7 +144,7 @@ if run_agents:
     else:
       command += "agents/%s/" % enemy
 
-    agent_name = "agent_%d_%s" % (agent_count, params['agent']['name'])
+    agent_name = "agent_%d_%s" % (agent_count, params['name'])
     launch(agent_name, command,
       log=args.log_agents,
       qos='use-everything',
