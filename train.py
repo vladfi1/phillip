@@ -37,9 +37,8 @@ class Trainer(Default):
     Option("min_collect", type=int, default=1, help="minimum number of experiences to collect between sweeps"),
 
     Option("dump", type=str, default="lo", help="interface to listen on for experience dumps"),
-    Option("broadcast", action="store_true", help="broadcast model params to agents"),
     
-    Option("save_interval", type=int, default=10, help="length of time between saves to disk, in minutes"),
+    Option("save_interval", type=float, default=10, help="length of time between saves to disk, in minutes"),
 
     Option("load", type=str, help="path to a json file from which to load params"),
   ]
@@ -52,10 +51,7 @@ class Trainer(Default):
     if load is None:
       args = {}
     else:
-      import json
-      with open(load + 'params', 'r') as f:
-        args = json.load(f)['train']
-      args['path'] = load
+      args = util.load_params(load, 'train')
       
     util.update(args, mode=RL.Mode.TRAIN, **kwargs)
     print(args)
@@ -73,11 +69,10 @@ class Trainer(Default):
     experience_addr = "tcp://%s:%d" % (self.dump, util.port(self.model.name + "/experience"))
     self.experience_socket.bind(experience_addr)
     
-    if self.broadcast:
-      self.params_socket = context.socket(zmq.PUB)
-      params_addr = "tcp://%s:%d" % (self.dump, util.port(self.model.name + "/params"))
-      print("Binding params socket to", params_addr)
-      self.params_socket.bind(params_addr)
+    self.params_socket = context.socket(zmq.PUB)
+    params_addr = "tcp://%s:%d" % (self.dump, util.port(self.model.name + "/params"))
+    print("Binding params socket to", params_addr)
+    self.params_socket.bind(params_addr)
 
     self.sweep_size = self.batches * self.batch_size
     print("Sweep size", self.sweep_size)
@@ -109,7 +104,7 @@ class Trainer(Default):
     while True:
       start_time = time.time()
       
-      print('Start: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+      #print('Start: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
 
       for _ in range(self.min_collect):
         self.buffer.push(self.experience_socket.recv_pyobj())
@@ -123,7 +118,7 @@ class Trainer(Default):
         except zmq.ZMQError as e:
           break
       
-      print('After collect: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+      #print('After collect: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
       collect_time = time.time()
       
       experiences = self.buffer.as_list()
@@ -143,7 +138,7 @@ class Trainer(Default):
       
       self.save()
       
-      print('After save: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+      #print('After save: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
       save_time = time.time()
       
       sweeps += 1
@@ -158,7 +153,7 @@ class Trainer(Default):
       collect_time -= start_time
       
       print(sweeps, self.sweep_size, collected, collect_time, train_time, save_time)
-      #print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+      print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
       
       #gc.collect()  # don't care about stuff that would be garbage collected properly
       #objgraph.show_growth()

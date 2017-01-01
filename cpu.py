@@ -76,14 +76,11 @@ class CPU(Default):
         self.characters = {1: self.agent.char or self.p2}
 
         if self.enemy:
-            with open(self.enemy + 'params', 'r') as f:
-                import json
-                enemy_kwargs = json.load(f)['agent']
+            enemy_kwargs = util.load_params(self.enemy, 'agent')
             enemy_kwargs.update(
                 reload=self.enemy_reload * self.agent.reload,
                 swap=True,
                 dump=None,
-                path=self.enemy
             )
             enemy = agent.Agent(**enemy_kwargs)
         

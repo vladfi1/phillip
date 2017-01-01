@@ -2,6 +2,7 @@ import os
 import sys
 from argparse import ArgumentParser
 import subprocess
+import util
 
 parser = ArgumentParser()
 
@@ -16,9 +17,8 @@ parser.add_argument('--profile', action='store_true', help='heap profile trainer
 
 args = parser.parse_args()
 
-import json
-with open(args.path + 'params') as f:
-  params = json.load(f)
+
+params = util.load_params(args.path)
 
 run_trainer = True
 run_agents = True
@@ -42,15 +42,15 @@ else:
 # init model for the first time
 if args.init:
   import RL
-  model = RL.Model(mode=RL.Mode.TRAIN, **params['train'])
+  model = RL.Model(mode=RL.Mode.TRAIN, **params)
   model.init()
   model.save()
 
 if not os.path.exists("slurm_logs"):
-    os.makedirs("slurm_logs")
+  os.makedirs("slurm_logs")
 
 if not os.path.exists("slurm_scripts"):
-    os.makedirs("slurm_scripts")
+  os.makedirs("slurm_scripts")
 
 def launch(name, command, cpus=2, mem=1000, gpu=False, log=True, qos=None, array=None):
   #command = "LD_PRELOAD=$OM_USER/lib/libtcmalloc.so.4 " + command
@@ -99,14 +99,13 @@ if run_trainer:
   train_name = "trainer_" + params['train']['name']
   train_command = "python3 -u train.py --load " + args.path
   train_command += " --dump " + trainer_dump
-  train_command += " --broadcast"
 
   if args.profile:
-    vars = "LD_PRELOAD=$OM_USER/lib/libtcmalloc.so HEAPPROFILE=profile/%s " % train_name
+    env_vars = "LD_PRELOAD=$OM_USER/lib/libtcmalloc.so HEAPPROFILE=profile/%s " % train_name
   else:
-    vars = "LD_PRELOAD=$OM_USER/lib/libtcmalloc_minimal.so "
+    env_vars = "LD_PRELOAD=$OM_USER/lib/libtcmalloc_minimal.so "
   
-  train_command = vars + train_command
+  train_command = env_vars + train_command
 
   launch(train_name, train_command,
     gpu=True,

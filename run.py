@@ -28,10 +28,7 @@ for opt in DolphinRunner.full_opts():
 args = parser.parse_args()
 
 if args.load:
-  import json
-  with open(args.load + 'params') as f:
-    params = json.load(f)['agent']
-  params['path'] = args.load
+  params = util.load_params(args.load, 'agent')
 else:
   params = {}
 

@@ -109,6 +109,7 @@ class Model(Default):
           states = tf.concat(2, [states, prev_actions])
           
           train_length = self.rlConfig.experience_length - self.memory - self.rlConfig.delay
+          print("train length", train_length)
           
           history = [tf.slice(states, [0, i, 0], [-1, train_length, -1]) for i in range(self.memory+1)]
           self.train_states = tf.concat(2, history)
