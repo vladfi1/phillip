@@ -3,6 +3,7 @@ import sys
 from argparse import ArgumentParser
 import subprocess
 import util
+import json
 
 parser = ArgumentParser()
 
@@ -113,23 +114,23 @@ if run_trainer:
     mem=16000
   )
 
-enemies = 'easy'
-if 'enemies' in params:
-  enemies = params['enemies']
-
-with open('enemies/' + enemies) as f:
-  enemies = json.load(f)
-
-agents = 1
-if params['agents']:
-  agents = params['agents']
-if args.agents:
-  agents = args.agents
-
-print("Using %d agents" % agents)
-agents //= len(enemies)
-
 if run_agents:
+  enemies = 'easy'
+  if 'enemies' in params:
+    enemies = params['enemies']
+
+  with open('enemies/' + enemies) as f:
+    enemies = json.load(f)
+
+  agents = 1
+  if params['agents']:
+    agents = params['agents']
+  if args.agents:
+    agents = args.agents
+
+  print("Using %d agents" % agents)
+  agents //= len(enemies)
+
   agent_count = 0
   agent_command = "python3 -u run.py --load " + args.path
   agent_command += " --dump " + agent_dump
