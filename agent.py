@@ -17,7 +17,8 @@ class Agent(Default):
     Option('char', type=str, choices=characters.keys(), help="character that this agent plays as"),
     Option('verbose', action="store_true", default=False, help="print stuff while running"),
     Option('reload', type=int, default=60, help="reload model every RELOAD seconds"),
-    Option('listen', type=str, help="address to listen on for model updates"), #TODO: merge with cpu dump
+    Option('dump', type=str, help="dump experiences to ip address via zmq"),
+    Option('listen', type=str, help="address to listen on for model updates"),
   ]
   
   _members = [
@@ -29,7 +30,8 @@ class Agent(Default):
     kwargs.update(mode=RL.Mode.PLAY)
     Default.__init__(self, **kwargs)
     
-    self.counter = 0
+    self.frame_counter = 0
+    self.action_counter = 0
     self.action = 0
     self.actions = util.CircularQueue(self.model.rlConfig.delay+1, 0)
     self.memory = util.CircularQueue(array=((self.model.memory+1) * ssbm.SimpleStateAction)())
@@ -38,18 +40,70 @@ class Agent(Default):
     
     self.model.restore()
     
+    # TODO: merge dump and listen, they should always use the same address?
+    if self.dump:
+      try:
+        import zmq
+      except ImportError as err:
+        print("ImportError: {0}".format(err))
+        sys.exit("Install pyzmq to dump experiences")
+      
+      context = zmq.Context.instance()
+
+      self.dump_socket = context.socket(zmq.PUSH)
+      sock_addr = "tcp://%s:%d" % (self.dump, util.port(self.model.name + "/experience"))
+      print("Connecting experience socket to " + sock_addr)
+      self.dump_socket.connect(sock_addr)
+      
+      self.dump_size = self.model.rlConfig.experience_length
+      self.dump_state_actions = (self.dump_size * ssbm.SimpleStateAction)()
+
+      self.dump_frame = 0
+      self.dump_count = 0
+
     if self.listen:
       import zmq
       context = zmq.Context.instance()
-      self.socket = context.socket(zmq.SUB)
-      self.socket.setsockopt_string(zmq.SUBSCRIBE, "")
+      self.params_socket = context.socket(zmq.SUB)
+      self.params_socket.setsockopt_string(zmq.SUBSCRIBE, "")
       address = "tcp://%s:%d" % (self.listen, util.port(self.model.name + "/params"))
       print("Connecting params socket to", address)
       self.socket.connect(address)
 
+  def dump_state(self):
+    state_action = self.dump_state_actions[self.dump_frame]
+    state_action.state = self.state
+    state_action.prev = self.prev_action
+    state_action.action = self.action
+    
+    if self.dump_frame == 0:
+      self.initial = self.hidden
+
+    self.dump_frame += 1
+
+    if self.dump_frame == self.dump_size:
+      self.dump_count += 1
+      self.dump_frame = 0
+      
+      if self.dump_count == 1:
+        return # FIXME: figure out what is wrong with the first experience
+      
+      print("Dumping", self.dump_count)
+      
+      prepared = ssbm.prepareStateActions(self.dump_state_actions)
+      prepared['initial'] = self.initial
+      
+      self.dump_socket.send_pyobj(prepared)
+
   def act(self, state, pad):
-    verbose = self.verbose and (self.counter % (10 * self.model.rlConfig.fps) == 0)
+    self.frame_counter += 1
+    if self.frame_counter % self.model.rlConfig.act_every != 0:
+      return
+    
+    verbose = self.verbose and (self.action_counter % (10 * self.model.rlConfig.fps) == 0)
     #verbose = False
+    
+    self.state = state
     
     current = self.memory.peek()
     current.state = state
@@ -88,9 +142,12 @@ class Agent(Default):
     controller = ssbm.simpleControllerStates[action]
     pad.send_controller(controller.realController())
 
-    self.counter += 1
-
-    if self.reload and self.counter % (self.reload * self.model.rlConfig.fps) == 0:
+    self.action_counter += 1
+    
+    if self.dump:
+      self.dump_state()
+    
+    if self.reload and self.action_counter % (self.reload * self.model.rlConfig.fps) == 0:
       if self.listen:
         import zmq
         blob = None

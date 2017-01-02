@@ -19,7 +19,6 @@ from default import *
 class CPU(Default):
     _options = [
       Option('tag', type=int),
-      Option('dump', type=str, help="dump experiences to ip address via zmq"),
       Option('user', type=str, help="dolphin user directory"),
       Option('zmq', type=bool, default=True, help="use zmq for memory watcher"),
       Option('stage', type=str, default="final_destination", choices=movie.stages.keys(), help="which stage to play on"),
@@ -33,32 +32,7 @@ class CPU(Default):
     
     def __init__(self, **kwargs):
         Default.__init__(self, **kwargs)
-        
-        self.model = self.agent.model
-        self.rlConfig = self.model.rlConfig
-        
-        if self.dump:
-            try:
-              import zmq
-            except ImportError as err:
-              print("ImportError: {0}".format(err))
-              sys.exit("Install pyzmq to dump experiences")
-            
-            context = zmq.Context.instance()
 
-            self.socket = context.socket(zmq.PUSH)
-            self.sock_addr = "tcp://%s:%d" % (self.dump, util.port(self.model.name + "/experience"))
-            print("Connecting to " + self.sock_addr)
-            self.socket.connect(self.sock_addr)
-            
-            self.dump_size = self.rlConfig.experience_length
-            self.dump_state_actions = (self.dump_size * ssbm.SimpleStateAction)()
-  
-            self.dump_frame = 0
-            self.dump_count = 0
-
-        self.first_frame = True
-        self.action_counter = 0
         self.toggle = False
 
         self.user = os.path.expanduser(self.user)
@@ -152,31 +126,6 @@ class CPU(Default):
         with open(path + 'Locations.txt', 'w') as f:
             f.write('\n'.join(self.sm.locations()))
 
-    def dump_state(self):
-        state_action = self.dump_state_actions[self.dump_frame]
-        state_action.state = self.state
-        state_action.prev = self.agent.prev_action
-        state_action.action = self.agent.action
-        
-        if self.dump_frame == 0:
-            self.initial = self.agent.hidden
-
-        self.dump_frame += 1
-
-        if self.dump_frame == self.dump_size:
-            self.dump_count += 1
-            self.dump_frame = 0
-            
-            if self.dump_count == 1:
-                return # FIXME
-            
-            print("Dumping", self.dump_count)
-            
-            prepared = ssbm.prepareStateActions(self.dump_state_actions)
-            prepared['initial'] = self.initial
-            
-            self.socket.send_pyobj(prepared)
-
     def advance_frame(self):
         last_frame = self.state.frame
         
@@ -215,12 +164,8 @@ class CPU(Default):
         # menu = Menu(self.state.menu)
         # print(menu)
         if self.state.menu == Menu.Game.value:
-            if self.action_counter % self.rlConfig.act_every == 0:
-                for pid, pad in zip(self.pids, self.pads):
-                    self.agents[pid].act(self.state, pad)
-                if self.dump:
-                    self.dump_state()
-            self.action_counter += 1
+            for pid, pad in zip(self.pids, self.pads):
+                self.agents[pid].act(self.state, pad)
 
         elif self.state.menu in [menu.value for menu in [Menu.Characters, Menu.Stages]]:
             # FIXME: this is very convoluted
