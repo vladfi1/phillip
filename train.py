@@ -133,7 +133,7 @@ class Trainer(Default):
       print('After train: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
       train_time = time.time()
       
-      self.params_socket.send_string("", zmq.SNDMORE)
+      #self.params_socket.send_string("", zmq.SNDMORE)
       self.params_socket.send_pyobj(self.model.blob())
       
       self.save()

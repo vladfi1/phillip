@@ -65,10 +65,10 @@ class Agent(Default):
       import zmq
       context = zmq.Context.instance()
       self.params_socket = context.socket(zmq.SUB)
-      self.params_socket.setsockopt_string(zmq.SUBSCRIBE, "")
+      self.params_socket.setsockopt(zmq.SUBSCRIBE, b"")
       address = "tcp://%s:%d" % (self.listen, util.port(self.model.name + "/params"))
       print("Connecting params socket to", address)
-      self.socket.connect(address)
+      self.params_socket.connect(address)
 
   def dump_state(self):
     state_action = self.dump_state_actions[self.dump_frame]
@@ -155,8 +155,8 @@ class Agent(Default):
         # get the latest update from the trainer
         while True:
           try:
-            topic = self.socket.recv_string(zmq.NOBLOCK)
-            blob = self.socket.recv_pyobj()
+            #topic = self.socket.recv_string(zmq.NOBLOCK)
+            blob = self.params_socket.recv_pyobj(zmq.NOBLOCK)
           except zmq.ZMQError as e:
             if e.errno == zmq.EAGAIN:
               # nothing to receive
