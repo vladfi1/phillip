@@ -27,13 +27,17 @@ def batch_dot(xs, ys):
 def dot(x, y):
   return tf.reduce_sum(x * y)
 
+def power(x, p):
+  if p == 1:
+    return x
+
 def geometric_mean(xs):
   return tf.exp(tf.reduce_mean(tf.log(xs)))
 
 def power_mean(p, xs):
   if p == 0:
     return geometric_mean(xs)
-  return tf.pow(tf.reduce_mean(tf.pow(xs, p)), 1/p)
+  return power(tf.reduce_mean(power(xs, p)), 1/p)
 
 def sym_kl(logp, logq):
   return 0.5 * batch_dot(tf.exp(logp) - tf.exp(logq), logp - logq)

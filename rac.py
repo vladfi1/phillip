@@ -12,7 +12,7 @@ class RecurrentActorCritic(Default):
 
     Option('epsilon', type=float, default=0.02),
 
-    Option('entropy_power', type=float, default=1.),
+    Option('entropy_power', type=float, default=1),
     Option('entropy_scale', type=float, default=0.001),
   ]
 

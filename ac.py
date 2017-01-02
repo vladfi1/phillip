@@ -14,10 +14,8 @@ class ActorCritic(Default):
 
     Option('epsilon', type=float, default=0.02),
 
+    Option('entropy_power', type=float, default=1),
     Option('entropy_scale', type=float, default=0.001),
-    #Option('policy_scale', type=float, default=0.1),
-    
-    #Option('kl_scale', type=float, default=1.0, help="kl divergence weight in natural metric"),
   ]
 
   _members = [
@@ -76,18 +74,19 @@ class ActorCritic(Default):
     
     vLoss = tf.reduce_mean(tf.square(advantages))
     tf.scalar_summary('v_loss', vLoss)
-    
-    tf.scalar_summary("v_ev", 1. - vLoss / tfl.sample_variance(targets))
+    tf.scalar_summary("v_uev", vLoss / tfl.sample_variance(targets))
 
-    actor_entropy = -tf.reduce_mean(tfl.batch_dot(actor_probs, log_actor_probs))
-    tf.scalar_summary('actor_entropy', actor_entropy)
-    
+    entropy = - tfl.batch_dot(actor_probs, log_actor_probs)
+    entropy_avg = tfl.power_mean(self.entropy_power, entropy)
+    tf.scalar_summary('entropy_avg', entropy_avg)
+    tf.scalar_summary('entropy_min', tf.reduce_min(entropy))
+
     real_log_actor_probs = tfl.batch_dot(actions, log_actor_probs)
     train_log_actor_probs = tf.slice(real_log_actor_probs, [0, 0], [-1, train_length])
     actor_gain = tf.reduce_mean(tf.mul(train_log_actor_probs, tf.stop_gradient(advantages)))
     #tf.scalar_summary('actor_gain', actor_gain)
     
-    actor_loss = - (actor_gain + self.entropy_scale * actor_entropy)
+    actor_loss = - (actor_gain + self.entropy_scale * entropy_avg)
     
     actor_params = self.actor.getVariables()
       
