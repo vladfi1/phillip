@@ -127,21 +127,9 @@ class Agent(Default):
     
     # the delayed action
     action = self.actions.push(self.action)
-
-    # TODO: make the banned action system more robust
     
-    # prevent peach from using toad
-    # for some reason it causes both agents to use action 0
-    if self.char == 'peach' and action == 22:
-      action = 4
+    self.model.actionType.send(action, pad, self.char)
     
-    # prevent sheik and zelda from transforming
-    if self.char in ['zelda', 'sheik'] and action in [18, 21, 24]:
-      action = 4
-
-    controller = ssbm.simpleControllerStates[action]
-    pad.send_controller(controller.realController())
-
     self.action_counter += 1
     
     if self.dump:

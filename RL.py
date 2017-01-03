@@ -51,6 +51,7 @@ class Model(Default):
     Option('path', type=str, help="path to saved model"),
     Option('gpu', type=bool, default=False, help="train on gpu"),
     Option('memory', type=int, default=0, help="number of frames to remember"),
+    Option('action_type', type=str, default="diagonal", choices=ssbm.actionTypes.keys()),
     Option('name', type=str)
   ]
   
@@ -69,7 +70,9 @@ class Model(Default):
       self.path = "saves/%s/" % self.name
     
     modelType = models[self.model]
-    
+    self.actionType = ssbm.actionTypes[self.action_type]
+    embedAction = embed.OneHotEmbedding(self.actionType.size)
+
     self.graph = tf.Graph()
     
     device = '/gpu:0' if self.gpu else '/cpu:0'
@@ -86,8 +89,8 @@ class Model(Default):
       state_size = self.embedGame.size
       
       print("Creating model:", self.model)
-      history_size = (1+self.memory) * (state_size+embed.action_size)
-      self.model = modelType(history_size, embed.action_size, self.global_step, self.rlConfig, **kwargs)
+      history_size = (1+self.memory) * (state_size+embedAction.size)
+      self.model = modelType(history_size, embedAction.size, self.global_step, self.rlConfig, **kwargs)
 
       #self.variables = self.model.getVariables() + [self.global_step]
       
@@ -105,7 +108,7 @@ class Model(Default):
           
           states = self.embedGame(self.experience['state'])
           
-          prev_actions = embed.embedAction(self.experience['prev_action'])
+          prev_actions = embedAction(self.experience['prev_action'])
           states = tf.concat(2, [states, prev_actions])
           
           train_length = self.rlConfig.experience_length - self.memory - self.rlConfig.delay
@@ -114,7 +117,7 @@ class Model(Default):
           history = [tf.slice(states, [0, i, 0], [-1, train_length, -1]) for i in range(self.memory+1)]
           self.train_states = tf.concat(2, history)
           
-          actions = embed.embedAction(self.experience['action'])
+          actions = embedAction(self.experience['action'])
           self.train_actions = tf.slice(actions, [0, self.memory, 0], [-1, train_length, -1])
           
           self.train_rewards = tf.slice(self.experience['reward'], [0, self.memory + self.rlConfig.delay], [-1, -1])
@@ -167,7 +170,7 @@ class Model(Default):
           self.input['hidden'] = util.deepMap(lambda size: tf.placeholder(tf.float32, [size], name="input/hidden"), self.model.hidden_size)
           
           states = self.embedGame(self.input['state'])
-          prev_actions = embed.embedAction(self.input['prev_action'])
+          prev_actions = embedAction(self.input['prev_action'])
           
           history = tf.concat(1, [states, prev_actions])
           history = tf.reshape(history, [history_size])
@@ -214,39 +217,6 @@ class Model(Default):
   def act(self, history, verbose=False):
     feed_dict = dict(util.deepValues(util.deepZip(self.input, history)))
     return self.model.act(self.sess.run(self.policy, feed_dict), verbose)
-
-  #summaryWriter = tf.train.SummaryWriter('logs/', sess.graph)
-  #summaryWriter.flush()
-
-  def debugGrads(self, feed_dict):
-    gs = self.sess.run([gv[0] for gv in self.grads_and_vars], feed_dict)
-    vs = self.sess.run([gv[1] for gv in self.grads_and_vars], feed_dict)
-    #   loss = sess.run(qLoss, feed_dict)
-    #act_qs = sess.run(qs, feed_dict)
-    #act_qs = list(map(util.compose(np.sort, np.abs), act_qs))
-
-    #t = sess.run(temperature)
-    #print("Temperature: ", t)
-    #for i, act in enumerate(act_qs):
-    #  print("act_%d"%i, act)
-    #print("grad/param(action)", np.mean(np.abs(gs[0] / vs[0])))
-    #print("grad/param(stage)", np.mean(np.abs(gs[2] / vs[2])))
-
-    print("param avg and max")
-    for g, v in zip(gs, vs):
-      abs_v = np.abs(v)
-      abs_g = np.abs(g)
-      print(v.shape, np.mean(abs_v), np.max(abs_v), np.mean(abs_g), np.max(abs_g))
-
-    print("grad/param avg and max")
-    for g, v in zip(gs, vs):
-      ratios = np.abs(g / v)
-      print(np.mean(ratios), np.max(ratios))
-    #print("grad", np.mean(np.abs(gs[4])))
-    #print("param", np.mean(np.abs(vs[0])))
-
-    # if step_index == 10:
-    import ipdb; ipdb.set_trace()
 
   def train(self, experiences, batch_steps=1, **kwargs):
     experiences = util.deepZip(*experiences)

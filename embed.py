@@ -210,6 +210,7 @@ class GameEmbedding(StructEmbedding, Default):
     
     StructEmbedding.__init__(self, gameEmbedding)
 
+"""
 def embedEnum(enum):
   return OneHotEmbedding(len(enum))
 
@@ -229,5 +230,5 @@ simpleControllerEmbedding = [
 embedSimpleController = StructEmbedding(simpleControllerEmbedding)
 
 action_size = len(ssbm.simpleControllerStates)
-embedAction = OneHotEmbedding(action_size)
+"""
 

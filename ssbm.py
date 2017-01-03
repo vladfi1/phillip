@@ -9,6 +9,7 @@ import pickle
 from reward import computeRewards
 import numpy as np
 import itertools
+import attr
 
 @pretty_struct
 class Stick(Structure):
@@ -61,6 +62,8 @@ class RealControllerState(Structure):
 
     self.stick_MAIN.reset()
     self.stick_C.reset()
+  
+RealControllerState.neutral = RealControllerState()
 
 @pretty_struct
 class PlayerMemory(Structure):
@@ -114,64 +117,51 @@ class SimpleButton(IntEnum):
   Z = 3
   Y = 4
   L = 5
-
-axis_granularity = 3
-axis_positions = np.linspace(0, 1, axis_granularity)
-
-@pretty_struct
-class SimpleStick(Structure):
-  _fields = [
-    ('x', c_uint),
-    ('y', c_uint)
-  ]
   
-  def __init__(self, x, y):
-    self.x = x
-    self.y = y
-  
-  def reset(self):
-    self.x = axis_granularity // 2
-    self.y = self.x
-  
-  def realStick(self):
-    return Stick(axis_positions[self.x], axis_positions[self.y])
-
-simpleSticks = [SimpleStick(x, y) for x, y in itertools.product(range(axis_granularity), repeat=2)]
-
-@pretty_struct
-class SimpleControllerState(Structure):
-  _fields = [
-    ('button', SimpleButton),
-    ('stick_MAIN', SimpleStick),
-  ]
-  
-  def __init__(self, button=None, stick=None):
-    self.reset()
-    if button is not None:
-      self.button = button
-    if stick is not None:
-      self.stick_MAIN = stick
-  
-  def reset(self):
-    self.button = SimpleButton.NONE
-    self.stick_MAIN.reset()
+@attr.s
+class SimpleController:
+  button = attr.ib(default=SimpleButton.NONE)
+  x = attr.ib(default=0.5)
+  y = attr.ib(default=0.5)
   
   def realController(self):
     controller = RealControllerState()
     if self.button is not SimpleButton.NONE:
-      setattr(controller, "button_%s" % SimpleButton(self.button).name, True)
+      setattr(controller, "button_%s" % self.button.name, True)
 
-    controller.stick_MAIN = self.stick_MAIN.realStick()
+    controller.stick_MAIN.x = self.x
+    controller.stick_MAIN.y = self.y
     return controller
+  
+  def banned(self, char):
+    if char == 'peach':
+      return self.button == SimpleButton.B and self.x == 0.5 and self.y == 0.5
+    if char in ['sheik', 'zelda']:
+      return self.button == SimpleButton.B and self.y == 0
+    return False
 
-  def fromIndex(index):
-    return simpleControllerStates[index]
+axis_granularity = 3
+axis_positions = np.linspace(0, 1, axis_granularity)
 
-# simpleControllerStates = SimpleControllerState.allValues()
-simpleControllerStates = [SimpleControllerState(button, stick) for button in SimpleButton for stick in simpleSticks]
+#diagonal_sticks = itertools.product(axis_positions, repeat=2)
+diagonal_controllers = [SimpleController(*args) for args in itertools.product(SimpleButton, axis_positions, axis_positions)]
+diagonal_size = len(diagonal_controllers)
+real_diagonal_controllers = [c.realController() for c in diagonal_controllers]
 
-for i, c in enumerate(simpleControllerStates):
-  c.index = i
+class DiagonalAction:
+  size = diagonal_size
+  
+  @staticmethod
+  def send(index, pad, char=None):
+    controller = diagonal_controllers[index]
+    if controller.banned(char):
+      pad.send_controller(RealControllerState.neutral)
+    else:
+      pad.send_controller(real_diagonal_controllers[index])
+
+actionTypes = dict(
+  diagonal = DiagonalAction,
+)
 
 @pretty_struct
 class SimpleStateAction(Structure):
