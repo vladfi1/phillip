@@ -117,50 +117,66 @@ class SimpleButton(IntEnum):
   Z = 3
   Y = 4
   L = 5
-  
+
+neutral_stick = (0.5, 0.5)
+
 @attr.s
 class SimpleController:
   button = attr.ib(default=SimpleButton.NONE)
-  x = attr.ib(default=0.5)
-  y = attr.ib(default=0.5)
+  stick = attr.ib(default=neutral_stick)
   
   def realController(self):
     controller = RealControllerState()
     if self.button is not SimpleButton.NONE:
       setattr(controller, "button_%s" % self.button.name, True)
 
-    controller.stick_MAIN.x = self.x
-    controller.stick_MAIN.y = self.y
+    controller.stick_MAIN = self.stick
     return controller
   
   def banned(self, char):
     if char == 'peach':
-      return self.button == SimpleButton.B and self.x == 0.5 and self.y == 0.5
+      return self.button == SimpleButton.B and self.stick == neutral_stick
     if char in ['sheik', 'zelda']:
-      return self.button == SimpleButton.B and self.y == 0
+      return self.button == SimpleButton.B and self.stick[1] == 0
     return False
+
+SimpleController.neutral = SimpleController()
 
 axis_granularity = 3
 axis_positions = np.linspace(0, 1, axis_granularity)
+diagonal_sticks = list(itertools.product(axis_positions, repeat=2))
+diagonal_controllers = [SimpleController(*args) for args in itertools.product(SimpleButton, diagonal_sticks)]
 
-#diagonal_sticks = itertools.product(axis_positions, repeat=2)
-diagonal_controllers = [SimpleController(*args) for args in itertools.product(SimpleButton, axis_positions, axis_positions)]
-diagonal_size = len(diagonal_controllers)
-real_diagonal_controllers = [c.realController() for c in diagonal_controllers]
-
-class DiagonalAction:
-  size = diagonal_size
+class SimpleAction:
+  def __init__(self, simple_controllers):
+    self.simple_controllers = simple_controllers
+    self.size = len(simple_controllers)
+    self.real_controllers = [None if c is None else c.realController() for c in simple_controllers]
   
-  @staticmethod
-  def send(index, pad, char=None):
-    controller = diagonal_controllers[index]
-    if controller.banned(char):
+  def send(self, index, pad, char=None):
+    simple = self.simple_controllers[index]
+    if simple is None:
+      return
+    if simple.banned(char):
       pad.send_controller(RealControllerState.neutral)
     else:
-      pad.send_controller(real_diagonal_controllers[index])
+      pad.send_controller(self.real_controllers[index])
+
+cardinal_sticks = [(0, 0.5), (1, 0.5), (0.5, 0), (0.5, 1), (0.5, 0.5)]
+tilt_sticks = [(0.25, 0.5), (0.75, 0.5), (0.5, 0.25), (0.5, 0.75)]
+
+custom_controllers = itertools.chain(
+  itertools.product([SimpleButton.A, SimpleButton.B], cardinal_sticks),
+  itertools.product([SimpleButton.A], tilt_sticks),
+  itertools.product([SimpleButton.NONE, SimpleButton.L], diagonal_sticks),
+  itertools.product([SimpleButton.Z, SimpleButton.Y], [neutral_stick]),
+)
+custom_controllers = [SimpleController(*args) for args in custom_controllers]
+custom_controllers.append(None)
 
 actionTypes = dict(
-  diagonal = DiagonalAction,
+  diagonal = SimpleAction(diagonal_controllers),
+  custom = SimpleAction(custom_controllers),
 )
 
 @pretty_struct

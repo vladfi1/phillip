@@ -4,7 +4,6 @@ import subprocess
 import util
 from collections import OrderedDict
 
-exp_name = "diagonal"
 params = OrderedDict()
 
 def toStr(val):
@@ -22,13 +21,15 @@ def add_param(param, value, name=True):
   params[param] = value
 
 #model = 'DQN'
-#model = 'ActorCritic'
-model = 'RecurrentActorCritic'
+model = 'ActorCritic'
+#model = 'RecurrentActorCritic'
 #model = 'NaturalActorCritic'
+
+exp_name = model
 
 recurrent = model.count('Recurrent')
 
-add_param('model', model)
+add_param('model', model, False)
 add_param('epsilon', 0.02, False)
 
 natural = True
@@ -91,6 +92,8 @@ add_param('player_space', 0, False)
 
 #add_param('critic_layers', [128] * 1)
 #add_param('actor_layers', [128] * 3)
+
+add_param('action_type', 'custom')
 
 # agent settings
 
