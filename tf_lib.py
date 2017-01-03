@@ -30,6 +30,9 @@ def dot(x, y):
 def power(x, p):
   if p == 1:
     return x
+  if p == -1:
+    return tf.inv(x)
+  return tf.pow(x, p)
 
 def geometric_mean(xs):
   return tf.exp(tf.reduce_mean(tf.log(xs)))
