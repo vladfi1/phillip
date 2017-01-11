@@ -73,9 +73,7 @@ class DQN(Default):
     advantages = targets - trainVs
     vLoss = tf.reduce_mean(tf.square(advantages))
     tf.scalar_summary('v_loss', vLoss)
-    tf.scalar_summary('advantage', tf.reduce_mean(advantages))
-
-    tf.scalar_summary("v_ev", 1. - vLoss / tfl.sample_variance(targets))
+    tf.scalar_summary("v_uev", vLoss / tfl.sample_variance(targets))
 
     predictedQs = self.q_net(states)
     trainQs = tfl.batch_dot(actions, predictedQs)
@@ -101,14 +99,15 @@ class DQN(Default):
     
     qLoss = tf.reduce_mean(tf.squared_difference(trainQs, targets))
     tf.scalar_summary("q_loss", qLoss)
-    tf.scalar_summary("q_ev", 1. - qLoss / vLoss)
+    tf.scalar_summary("q_uev", qLoss / vLoss)
     
     flatQs = tf.reshape(predictedQs, [-1, self.action_size])
     action_probs = tf.nn.softmax(flatQs / self.temperature)
     action_probs = (1.0 - self.epsilon) * action_probs + self.epsilon / self.action_size
     log_action_probs = tf.log(action_probs)
-    entropy = -tf.reduce_mean(tfl.batch_dot(action_probs, log_action_probs))
-    tf.scalar_summary("entropy", entropy)
+    entropy = -tfl.batch_dot(action_probs, log_action_probs)
+    tf.scalar_summary("entropy_avg", tf.reduce_mean(entropy))
+    tf.histogram_summary("entropy", entropy)
     
     meanQs = tfl.batch_dot(action_probs, flatQs)
     tf.scalar_summary("q_mean", tf.reduce_mean(meanQs))
