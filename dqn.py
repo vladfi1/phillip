@@ -115,13 +115,15 @@ class DQN(Default):
     
     self.params = self.q_net.getVariables() + self.v_net.getVariables()
     
-    #def q_metric(q1, q2):
-      #return self.action_size * tf.reduce_mean(tf.squared_difference(q1, q2))
-    def metric(p1, p2):
-      # cross-entropy? p1 stays fixed so this is equivalent to KL in gradient
-      return tf.reduce_mean(tfl.batch_dot(p1, -tf.log(p2)))
+    def metric(qv1, qv2):
+      q1, v1 = qv1
+      q2, v2 = qv2
+      
+      qDiff = self.action_size * tf.reduce_mean(tf.squared_difference(q1, q2))
+      vDiff = tf.reduce_mean(tf.squared_difference(v1, v2))
+      return qDiff + vDiff
 
-    return self.optimizer.optimize(vLoss + qLoss, self.params, action_probs, metric)
+    return self.optimizer.optimize(vLoss + qLoss, self.params, (predictedQs, predictedVs), metric)
     
     """
     update_target = lambda: tf.group(*self.q_target.assign(self.q_net), name="update_target")

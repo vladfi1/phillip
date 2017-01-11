@@ -35,7 +35,7 @@ class RLConfig(Default):
     Option('tdN', type=int, default=5, help="use n-step TD error"),
     Option('reward_halflife', type=float, default=2.0, help="time to discount rewards by half, in seconds"),
     Option('act_every', type=int, default=2, help="Take an action every ACT_EVERY frames."),
-    Option('experience_time', type=int, default=5, help="Length of experiences, in seconds."),
+    Option('experience_time', type=int, default=1, help="Length of experiences, in seconds."),
     Option('delay', type=int, default=0, help="frame delay on actions taken"),
   ]
   
