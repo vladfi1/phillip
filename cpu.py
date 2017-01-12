@@ -47,6 +47,7 @@ class CPU(Default):
         
         self.pids = [1]
         self.agents = {1: self.agent}
+        self.cpus = {1: None}
         self.characters = {1: self.agent.char or self.p2}
 
         if self.enemy:
@@ -60,9 +61,13 @@ class CPU(Default):
         
             self.pids.append(0)
             self.agents[0] = enemy
+            self.cpus[0] = None
             self.characters[0] = enemy.char or self.p1
-        
-        self.menu_managers = {i: MenuManager(characters[c], pid=i) for i, c in self.characters.items()}
+        elif self.cpu:
+            self.pids.append(0)
+            self.agents[0] = None
+            self.cpus[0] = self.cpu
+            self.characters[0] = self.p1
 
         print('Creating MemoryWatcher.')
         mwType = memory_watcher.MemoryWatcher
@@ -78,9 +83,6 @@ class CPU(Default):
         self.get_pads = util.async_map(Pad, paths)
 
         self.init_stats()
-        
-        # sets the game mode and random stage
-        self.movie = movie.Movie(movie.endless_netplay + movie.stages[self.stage])
 
     def run(self, frames=None, dolphin_process=None):
         try:
@@ -88,11 +90,44 @@ class CPU(Default):
         except KeyboardInterrupt:
             print("Pipes not initialized!")
             return
-
-        for pid, pad in zip(self.pids, self.pads):
-            self.menu_managers[pid].pad = pad
         
-        self.settings_mm = MenuManager(settings, pid=self.pids[0], pad=self.pads[0])
+        pick_chars = []
+        
+        tapA = [
+            (0, movie.pushButton(Button.A)),
+            (1, movie.releaseButton(Button.A)),
+        ]
+        
+        for pid, pad in zip(self.pids, self.pads):
+            actions = []
+            
+            """
+            cpu = self.cpus[pid]
+            
+            if cpu:
+              moves = [
+                (movie.pushButton(Button.A)),
+                movie.release
+              ]
+              actions.append(movie.Movie(moves))
+            """
+            
+            actions.append(MoveTo(characters[self.characters[pid]], pid, pad))
+            actions.append(movie.Movie(tapA, pad))
+            
+            pick_chars.append(Sequential(*actions))
+        
+        pick_chars = Parallel(*pick_chars)
+        
+        enter_settings = Sequential(
+          MoveTo(settings, self.pids[0], self.pads[0]),
+          movie.Movie(tapA, self.pads[0])
+        )
+        
+        # sets the game mode and picks the stage
+        start_game = movie.Movie(movie.endless_netplay + movie.stages[self.stage], self.pads[0])
+        
+        self.navigate_menus = Sequential(pick_chars, enter_settings, start_game)
         
         print('Starting run loop.')
         self.start_time = time.time()
@@ -165,30 +200,17 @@ class CPU(Default):
         # print(menu)
         if self.state.menu == Menu.Game.value:
             for pid, pad in zip(self.pids, self.pads):
-                self.agents[pid].act(self.state, pad)
+                agent = self.agents[pid]
+                if agent:
+                    agent.act(self.state, pad)
 
         elif self.state.menu in [menu.value for menu in [Menu.Characters, Menu.Stages]]:
-            # FIXME: this is very convoluted
+            self.navigate_menus.move(self.state)
             
-            # each player picks their character
-            done = True
-            for mm in self.menu_managers.values():
-                if not mm.reached:
-                    done = False
-                mm.move(self.state)
-            
-            if done:
-                if not self.settings_mm.reached:
-                    # enter game settings
-                    self.settings_mm.move(self.state)
-                elif not self.movie.over():
-                    # set mode to endless time and pick stage
-                    self.movie.play(self.pads[0])
-                else:
-                    # sheik must hold A before the game starts
-                    for pid, pad in zip(self.pids, self.pads):
-                        if self.agents[pid].char == 'sheik':
-                            pad.press_button(Button.A)
+            if self.navigate_menus.done():
+                for pid, pad in zip(self.pids, self.pads):
+                    if self.characters[pid] == 'sheik':
+                        pad.press_button(Button.A)
         
         elif self.state.menu == Menu.PostGame.value:
             self.spam(Button.START)

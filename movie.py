@@ -13,6 +13,7 @@ neutral = tiltStick(Stick.MAIN, 0.5, 0.5)
 left = tiltStick(Stick.MAIN, 0, 0.5)
 down = tiltStick(Stick.MAIN, 0.5, 0)
 up = tiltStick(Stick.MAIN, 0.5, 1)
+right = tiltStick(Stick.MAIN, 1, 0.5)
 
 endless_netplay = [
   # time
@@ -59,20 +60,21 @@ stages = dict(
 )
 
 class Movie:
-  def __init__(self, actions):
+  def __init__(self, actions, pad):
     self.actions = actions
     self.frame = 0
     self.index = 0
+    self.pad = pad
   
-  def play(self, pad):
-    if not self.over():
+  def move(self, state):
+    if not self.done():
       frame, action = self.actions[self.index]
       if self.frame == frame:
-        action(pad)
+        action(self.pad)
         self.index += 1
         self.frame = 0
       else:
        self.frame += 1
   
-  def over(self):
+  def done(self):
     return self.index == len(self.actions)

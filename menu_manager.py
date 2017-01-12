@@ -21,33 +21,57 @@ characters = dict(
 
 settings = (0, 24)
 
-#stages = dict()
+class MoveTo:
+  def __init__(self, target, pid, pad):
+    self.target = target
+    self.pid = pid
+    self.pad = pad
+    self.reached = False
+    
+  def move(self, state):
+    player = state.players[self.pid]
+    
+    dx = self.target[0] - player.cursor_x
+    dy = self.target[1] - player.cursor_y
+    mag = math.sqrt(dx * dx + dy * dy)
+    if mag < 0.3:
+      self.pad.tilt_stick(Stick.MAIN, 0.5, 0.5)
+      self.reached = True
+    else:
+      self.pad.tilt_stick(Stick.MAIN, 0.5 * (dx / (mag+1)) + 0.5, 0.5 * (dy / (mag+1)) + 0.5)
+      self.reached = False
 
-def press(state, pad, target, cursor):
-  dx = target[0] - cursor[0]
-  dy = target[1] - cursor[1]
-  mag = math.sqrt(dx * dx + dy * dy)
-  if mag < 0.3:
-      pad.press_button(Button.A)
-      pad.tilt_stick(Stick.MAIN, 0.5, 0.5)
-      return True
-  else:
-      pad.tilt_stick(Stick.MAIN, 0.5 * (dx / (mag+1)) + 0.5, 0.5 * (dy / (mag+1)) + 0.5)
-      return False
+  def done(self):
+    return self.reached
 
-class MenuManager:
-    def __init__(self, target, pad=None, pid=1):
-        self.target = target
-        self.pad = pad
-        self.pid = pid
-        self.reached = False
+class Sequential:
+  def __init__(self, *actions):
+    self.actions = actions
+    self.index = 0
+  
+  def move(self, state):
+    if not self.done():
+      action = self.actions[self.index]
+      if action.done():
+        self.index += 1
+      else:
+        action.move(state)
 
-    def move(self, state):
-        if self.reached:
-            # Release buttons
-            self.pad.release_button(Button.A)
-            #pad.tilt_stick(Stick.MAIN, 0.5, 0.5)
-        else:
-            player = state.players[self.pid]
-            self.reached = press(state, self.pad, self.target, (player.cursor_x, player.cursor_y))
+  def done(self):
+    return self.index == len(self.actions)
+
+class Parallel:
+  def __init__(self, *actions):
+    self.actions = actions
+    self.complete = False
+  
+  def move(self, state):
+    self.complete = True
+    for action in self.actions:
+      if not action.done():
+        action.move(state)
+        self.complete = False
+  
+  def done(self):
+    return self.complete
 
