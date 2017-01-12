@@ -61,9 +61,14 @@ class DQN(Default):
 
     predictedVs = tf.squeeze(self.v_net(states), [-1])
     trainVs = tf.slice(predictedVs, [0, 0], [-1, train_length])
+
+    predictedQs = self.q_net(states)
+    takenQs = tfl.batch_dot(actions, predictedQs)
+    trainQs = tf.slice(takenQs, [0, 0], [-1, train_length])
     
     # smooth between TD(m) for m<=n?
     targets = tf.slice(predictedVs, [0, n], [-1, train_length])
+    #targets = tf.slice(takenQs, [0, n], [-1, train_length])
     #targets = values[:,n:]
     for i in reversed(range(n)):
       targets *= self.rlConfig.discount
@@ -74,10 +79,6 @@ class DQN(Default):
     vLoss = tf.reduce_mean(tf.square(advantages))
     tf.scalar_summary('v_loss', vLoss)
     tf.scalar_summary("v_uev", vLoss / tfl.sample_variance(targets))
-
-    predictedQs = self.q_net(states)
-    trainQs = tfl.batch_dot(actions, predictedQs)
-    trainQs = tf.slice(trainQs, [0, 0], [-1, train_length])
     
     #self.q_target = self.q_net#.clone()
     #targetQs = self.q_target(states)
@@ -101,6 +102,7 @@ class DQN(Default):
     tf.scalar_summary("q_loss", qLoss)
     tf.scalar_summary("q_uev", qLoss / vLoss)
     
+    # all this just to log entropy statistics
     flatQs = tf.reshape(predictedQs, [-1, self.action_size])
     action_probs = tf.nn.softmax(flatQs / self.temperature)
     action_probs = (1.0 - self.epsilon) * action_probs + self.epsilon / self.action_size
@@ -112,17 +114,15 @@ class DQN(Default):
     meanQs = tfl.batch_dot(action_probs, flatQs)
     tf.scalar_summary("q_mean", tf.reduce_mean(meanQs))
     
-    self.params = self.q_net.getVariables() + self.v_net.getVariables()
+    params = self.q_net.getVariables()
     
-    def metric(qv1, qv2):
-      q1, v1 = qv1
-      q2, v2 = qv2
-      
-      qDiff = self.action_size * tf.reduce_mean(tf.squared_difference(q1, q2))
-      vDiff = tf.reduce_mean(tf.squared_difference(v1, v2))
-      return qDiff + vDiff
+    def metric(q1, q2):
+      return tf.reduce_mean(tf.squared_difference(q1, q2))
 
-    return self.optimizer.optimize(vLoss + qLoss, self.params, [predictedQs, predictedVs], metric)
+    trainQ = self.optimizer.optimize(qLoss, params, predictedQs, metric)
+    trainV = tf.train.AdamOptimizer(1e-4).minimize(vLoss) # TODO: parameterize
+    
+    return tf.group(trainQ, trainV)
     
     """
     update_target = lambda: tf.group(*self.q_target.assign(self.q_net), name="update_target")
