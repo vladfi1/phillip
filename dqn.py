@@ -122,7 +122,7 @@ class DQN(Default):
       vDiff = tf.reduce_mean(tf.squared_difference(v1, v2))
       return qDiff + vDiff
 
-    return self.optimizer.optimize(vLoss + qLoss, self.params, (predictedQs, predictedVs), metric)
+    return self.optimizer.optimize(vLoss + qLoss, self.params, [predictedQs, predictedVs], metric)
     
     """
     update_target = lambda: tf.group(*self.q_target.assign(self.q_net), name="update_target")
