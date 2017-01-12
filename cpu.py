@@ -24,6 +24,7 @@ class CPU(Default):
       Option('stage', type=str, default="final_destination", choices=movie.stages.keys(), help="which stage to play on"),
       Option('enemy', type=str, help="load enemy agent from file"),
       Option('enemy_reload', type=int, default=0, help="enemy reload interval"),
+      Option('cpu', type=int, help="enemy cpu level"),
     ] + [Option('p%d' % i, type=str, choices=characters.keys(), default="falcon", help="character for player %d" % i) for i in [1, 2]]
     
     _members = [
@@ -95,22 +96,23 @@ class CPU(Default):
         
         tapA = [
             (0, movie.pushButton(Button.A)),
-            (1, movie.releaseButton(Button.A)),
+            (0, movie.releaseButton(Button.A)),
         ]
         
         for pid, pad in zip(self.pids, self.pads):
             actions = []
             
-            """
             cpu = self.cpus[pid]
             
             if cpu:
-              moves = [
-                (movie.pushButton(Button.A)),
-                movie.release
-              ]
-              actions.append(movie.Movie(moves))
-            """
+                actions.append(MoveTo([0, 20], pid, pad, True))
+                actions.append(movie.Movie(tapA, pad))
+                actions.append(movie.Movie(tapA, pad))
+                actions.append(MoveTo([0, -14], pid, pad, True))
+                actions.append(movie.Movie(tapA, pad))
+                actions.append(MoveTo([cpu * 1.1, 0], pid, pad, True))
+                actions.append(movie.Movie(tapA, pad))
+                #actions.append(Wait(10000))
             
             actions.append(MoveTo(characters[self.characters[pid]], pid, pad))
             actions.append(movie.Movie(tapA, pad))
@@ -120,8 +122,8 @@ class CPU(Default):
         pick_chars = Parallel(*pick_chars)
         
         enter_settings = Sequential(
-          MoveTo(settings, self.pids[0], self.pads[0]),
-          movie.Movie(tapA, self.pads[0])
+            MoveTo(settings, self.pids[0], self.pads[0]),
+            movie.Movie(tapA, self.pads[0])
         )
         
         # sets the game mode and picks the stage

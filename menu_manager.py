@@ -22,14 +22,20 @@ characters = dict(
 settings = (0, 24)
 
 class MoveTo:
-  def __init__(self, target, pid, pad):
+  def __init__(self, target, pid, pad, relative=False):
     self.target = target
     self.pid = pid
     self.pad = pad
     self.reached = False
+    self.relative = relative
     
   def move(self, state):
     player = state.players[self.pid]
+    
+    if self.relative:
+      self.target[0] += player.cursor_x
+      self.target[1] += player.cursor_y
+      self.relative = False
     
     dx = self.target[0] - player.cursor_x
     dy = self.target[1] - player.cursor_y
@@ -43,6 +49,29 @@ class MoveTo:
 
   def done(self):
     return self.reached
+
+class Wait:
+  def __init__(self, frames):
+    self.frames = frames
+  
+  def done(self):
+    return self.frames == 0
+  
+  def move(self, state):
+    self.frames -= 1
+
+class Action:
+  def __init__(self, action, pad):
+    self.action = action
+    self.pad = pad
+    self.acted = False
+  
+  def done(self):
+    return self.acted
+  
+  def move(self, state):
+    self.action(self.pad)
+    self.acted = True
 
 class Sequential:
   def __init__(self, *actions):
