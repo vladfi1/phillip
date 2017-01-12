@@ -70,7 +70,9 @@ class ActorCritic(Default):
     targets = tf.stop_gradient(targets)
 
     advantages = targets - trainVs
-    tf.scalar_summary('advantage', tf.reduce_mean(advantages))
+    advantage_avg = tf.reduce_mean(advantages)
+    tf.scalar_summary('advantage_avg', advantage_avg)
+    tf.scalar_summary('advantage_std', tf.sqrt(tf.reduce_mean(tf.squared_difference(advantages, advantage_avg))))
     
     vLoss = tf.reduce_mean(tf.square(advantages))
     tf.scalar_summary('v_loss', vLoss)
