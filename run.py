@@ -7,6 +7,7 @@ import random
 from cpu import CPU
 import RL
 import util
+import tempfile
 
 parser = ArgumentParser()
 
@@ -39,9 +40,7 @@ if params['gui']:
   params['dolphin'] = True
 
 if params['user'] is None:
-  if params['tag'] is None:
-    params['tag'] = random.getrandbits(32)
-  params['user'] = 'dolphin/%d/' % params['tag']
+  params['user'] = tempfile.mkdtemp() + '/'
 
 print("Creating cpu.")
 cpu = CPU(**params)
