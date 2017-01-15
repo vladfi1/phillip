@@ -37,7 +37,8 @@ class RLConfig(Default):
     Option('tdN', type=int, default=5, help="use n-step TD error"),
     Option('reward_halflife', type=float, default=2.0, help="time to discount rewards by half, in seconds"),
     Option('act_every', type=int, default=2, help="Take an action every ACT_EVERY frames."),
-    Option('experience_time', type=int, default=1, help="Length of experiences, in seconds."),
+    #Option('experience_time', type=int, default=1, help="Length of experiences, in seconds."),
+    Option('experience_length', type=int, default=30, help="Length of experiences, in seconds."),
     Option('delay', type=int, default=0, help="frame delay on actions taken"),
   ]
   
@@ -45,7 +46,7 @@ class RLConfig(Default):
     super(RLConfig, self).__init__(**kwargs)
     self.fps = 60 // self.act_every
     self.discount = 0.5 ** ( 1.0 / (self.fps*self.reward_halflife) )
-    self.experience_length = self.experience_time * self.fps
+    #self.experience_length = self.experience_time * self.fps
 
 class Model(Default):
   _options = [
