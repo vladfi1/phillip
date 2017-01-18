@@ -24,10 +24,10 @@ short_hop = dict(
   mewtwo = 4,
   roy = 4,
   
-  ganon = 7,
-  zelda = 7,
-  link = 7,
+  ganon = 5,
+  zelda = 5,
+  link = 5,
   
-  bowser = 9
+  bowser = 7
 )
 
