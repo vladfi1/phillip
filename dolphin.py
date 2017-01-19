@@ -83,6 +83,8 @@ class SetupUser(Default):
     gameSettings = "GameSettings/"
     shutil.copytree(gameSettings, user + gameSettings)
 
+    util.makedirs(user + 'Dump/Frames/')
+
 import subprocess
 
 class DolphinRunner(Default):
