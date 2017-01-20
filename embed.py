@@ -14,7 +14,7 @@ def nullEmbedding(t):
 nullEmbedding.size = 0
 
 class FloatEmbedding(object):
-  def __init__(self, scale=None, bias=None, lower=-10.0, upper=10.0):
+  def __init__(self, scale=None, bias=None, lower=-50.0, upper=50.0):
     self.scale = scale
     self.bias = bias
     self.lower = lower
@@ -91,10 +91,22 @@ class ArrayEmbedding(object):
         embed.append(t)
     return tf.concat(rank-1, embed)
 
-class FCEmbedding(object):
-  def __init__(self, wrapper, size):
+class FCEmbedding(Default):
+  _options = [
+    Option('embed_nl', type=bool, default=True)
+  ]
+  
+  _members = [
+    ('nl', tfl.NL)
+  ]
+
+  def __init__(self, wrapper, size, **kwargs):
+    Default.__init__(self, **kwargs)
+    if not self.embed_nl:
+      self.nl = None
+  
     self.wrapper = wrapper
-    self.fc = tfl.FCLayer(wrapper.size, size, nl=tfl.leaky_softplus())
+    self.fc = tfl.FCLayer(wrapper.size, size, nl=self.nl)
     self.size = size
   
   def __call__(self, x):

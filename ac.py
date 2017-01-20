@@ -11,6 +11,7 @@ class ActorCritic(Default):
   _options = [
     Option('actor_layers', type=int, nargs='+', default=[128, 128]),
     Option('critic_layers', type=int, nargs='+', default=[128, 128]),
+    Option('fix_scopes', type=bool, default=False),
 
     Option('epsilon', type=float, default=0.02),
 
@@ -19,7 +20,8 @@ class ActorCritic(Default):
   ]
 
   _members = [
-    ('optimizer', opt.Optimizer)
+    ('optimizer', opt.Optimizer),
+    ('nl', tfl.NL),
   ]
   
   def __init__(self, state_size, action_size, global_step, rlConfig, **kwargs):
@@ -33,15 +35,23 @@ class ActorCritic(Default):
         prev_size = state_size
         for i, next_size in enumerate(getattr(self, name + "_layers")):
           with tf.variable_scope("layer_%d" % i):
-            net.append(tfl.FCLayer(prev_size, next_size, tfl.leaky_softplus()))
+            net.append(tfl.FCLayer(prev_size, next_size, self.nl))
           prev_size = next_size
+        
+        if self.fix_scopes:
+          if name == 'actor':
+            net.append(tfl.FCLayer(prev_size, action_size, lambda p: (1. - self.epsilon) * tf.nn.softmax(p) + self.epsilon / action_size))
+          else:
+            net.append(tfl.FCLayer(prev_size, 1))
+      
       setattr(self, name, net)
+      
+    if not self.fix_scopes:
+      with tf.variable_scope('actor'):
+        self.actor.append(tfl.FCLayer(prev_size, action_size, lambda p: (1. - self.epsilon) * tf.nn.softmax(p) + self.epsilon / action_size))
 
-    with tf.variable_scope('actor'):
-      self.actor.append(tfl.FCLayer(prev_size, action_size, lambda p: (1. - self.epsilon) * tf.nn.softmax(p) + self.epsilon / action_size))
-
-    with tf.variable_scope('critic'):
-      self.critic.append(tfl.FCLayer(prev_size, 1))
+      with tf.variable_scope('critic'):
+        self.critic.append(tfl.FCLayer(prev_size, 1))
 
     self.rlConfig = rlConfig
 

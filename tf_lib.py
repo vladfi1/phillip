@@ -4,6 +4,7 @@ import ctypes
 import math
 import itertools
 #import util
+from default import *
 
 def leaky_relu(x, alpha=0.01):
   return tf.maximum(alpha * x, x)
@@ -13,13 +14,23 @@ def log_sum_exp(xs):
   maxes = tf.stop_gradient(maxes)
   return tf.squeeze(maxes, [-1]) + tf.log(tf.reduce_sum(tf.exp(xs-maxes), -1))
 
-def leaky_softplus(alpha=0.01):
+def leaky_softplus(x, alpha=0.01):
   "Really just a special case of log_sum_exp."
-  def f(x):
-    ax = alpha * x
-    maxes = tf.stop_gradient(tf.maximum(ax, x))
-    return maxes + tf.log(tf.exp(ax - maxes) + tf.exp(x - maxes))
-  return f
+  ax = alpha * x
+  maxes = tf.stop_gradient(tf.maximum(ax, x))
+  return maxes + tf.log(tf.exp(ax - maxes) + tf.exp(x - maxes))
+
+class NL(Default):
+  _options = [
+    Option('nl', type=str, choices=['leaky_relu', 'leaky_softplus'], default='leaky_softplus'),
+    Option('alpha', type=float, default=0.01),
+  ]
+  
+  def __call__(self, x):
+    if self.nl == 'leaky_relu':
+      return leaky_relu(x, self.alpha)
+    elif self.nl == 'leaky_softplus':
+      return leaky_softplus(x, self.alpha)
 
 def batch_dot(xs, ys):
   return tf.reduce_sum(tf.mul(xs, ys), -1)
