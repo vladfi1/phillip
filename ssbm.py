@@ -162,7 +162,7 @@ class SimpleAction:
     else:
       pad.send_controller(self.real_controllers[index])
 
-old_sticks = [(0.5, 1), (0.5, 0), (0, 0.5), (1, 0.5), (0.5, 0.5)]
+old_sticks = [(0.5, 0.5), (0.5, 1), (0.5, 0), (0, 0.5), (1, 0.5)]
 old_controllers = [SimpleController(*args) for args in itertools.product(SimpleButton, old_sticks)]
 
 cardinal_sticks = [(0, 0.5), (1, 0.5), (0.5, 0), (0.5, 1), (0.5, 0.5)]
