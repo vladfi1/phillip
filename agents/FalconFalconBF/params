@@ -7,7 +7,7 @@
   "act_every": 3,
   "xy_scale": 0.1,
   "speed_scale": 1,
-  "sheild_scale": 1,
+  "shield_scale": 1,
   "action_space": 32,
   "player_space": 64,
   "omit_char": true,

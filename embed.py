@@ -14,7 +14,7 @@ def nullEmbedding(t):
 nullEmbedding.size = 0
 
 class FloatEmbedding(object):
-  def __init__(self, scale=None, bias=None, lower=-50.0, upper=50.0):
+  def __init__(self, scale=None, bias=None, lower=-200.0, upper=200.0):
     self.scale = scale
     self.bias = bias
     self.lower = lower
