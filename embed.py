@@ -6,6 +6,13 @@ from default import *
 
 floatType = tf.float32
 
+def nullEmbedding(t):
+  shape = tf.shape(t)
+  shape = tf.concat(0, [shape, [0]])
+  return tf.zeros(shape)
+
+nullEmbedding.size = 0
+
 class FloatEmbedding(object):
   def __init__(self, scale=None, bias=None, lower=-10.0, upper=10.0):
     self.scale = scale
@@ -132,6 +139,7 @@ class PlayerEmbedding(StructEmbedding, Default):
     Option('xy_scale', type=float, default=0.1, help="scale xy coordinates"),
     Option('shield_scale', type=float, default=0.01),
     Option('speed_scale', type=float, default=0.5),
+    Option('omit_char', type=bool, default=False),
   ]
   
   def __init__(self, **kwargs):
@@ -152,7 +160,7 @@ class PlayerEmbedding(StructEmbedding, Default):
       ("action_state", embedAction),
       # ("action_counter", embedFloat),
       ("action_frame", FloatEmbedding(scale=0.02)),
-      ("character", OneHotEmbedding(maxCharacter)),
+      ("character", nullEmbedding if self.omit_char else OneHotEmbedding(maxCharacter)),
       ("invulnerable", embedFloat),
       ("hitlag_frames_left", embedFloat),
       ("hitstun_frames_left", embedFloat),

@@ -163,6 +163,8 @@ class SimpleAction:
       pad.send_controller(self.real_controllers[index])
 
 cardinal_sticks = [(0, 0.5), (1, 0.5), (0.5, 0), (0.5, 1), (0.5, 0.5)]
+cardinal_controllers = [SimpleController(*args) for args in itertools.product(SimpleButton, cardinal_sticks)]
+
 tilt_sticks = [(0.4, 0.5), (0.6, 0.5), (0.5, 0.4), (0.5, 0.6)]
 
 custom_controllers = itertools.chain(
@@ -175,6 +177,7 @@ custom_controllers = [SimpleController(*args) for args in custom_controllers]
 custom_controllers.append(None)
 
 actionTypes = dict(
+  cardinal = SimpleAction(cardinal_controllers),
   diagonal = SimpleAction(diagonal_controllers),
   custom = SimpleAction(custom_controllers),
 )

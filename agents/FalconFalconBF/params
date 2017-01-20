@@ -1,0 +1,12 @@
+{
+  "model": "ActorCritic",
+  "char": "falcon",
+  "stage": "battlefield",
+  "action_type": "cardinal",
+  "act_every": 3,
+  "xy_scale": 0.1,
+  "speed_scale": 1,
+  "action_space": 32,
+  "player_space": 64,
+  "omit_char": true
+}
