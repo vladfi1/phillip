@@ -14,7 +14,7 @@ def nullEmbedding(t):
 nullEmbedding.size = 0
 
 class FloatEmbedding(object):
-  def __init__(self, scale=None, bias=None, lower=-200.0, upper=200.0):
+  def __init__(self, scale=None, bias=None, lower=None, upper=None):
     self.scale = scale
     self.bias = bias
     self.lower = lower
@@ -104,7 +104,7 @@ class FCEmbedding(Default):
     Default.__init__(self, **kwargs)
     if not self.embed_nl:
       self.nl = None
-  
+
     self.wrapper = wrapper
     self.fc = tfl.FCLayer(wrapper.size, size, nl=self.nl)
     self.size = size
@@ -159,7 +159,7 @@ class PlayerEmbedding(StructEmbedding, Default):
     
     embedAction = OneHotEmbedding(numActions)
     if self.action_space:
-      embedAction = FCEmbedding(embedAction, self.action_space)
+      embedAction = FCEmbedding(embedAction, self.action_space, **kwargs)
     
     embedXY = FloatEmbedding(scale=self.xy_scale)
     embedSpeed = FloatEmbedding(scale=self.speed_scale)
@@ -216,7 +216,7 @@ class GameEmbedding(StructEmbedding, Default):
     Default.__init__(self, **kwargs)
     
     if self.player_space:
-      self.embedPlayer = FCEmbedding(self.embedPlayer, self.player_space)
+      self.embedPlayer = FCEmbedding(self.embedPlayer, self.player_space, **kwargs)
     
     players = [0, 1]
     if swap: players.reverse()
