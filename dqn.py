@@ -16,7 +16,8 @@ class DQN(Default):
   ]
   
   _members = [
-    ('optimizer', opt.Optimizer)
+    ('optimizer', opt.Optimizer),
+    ('nl', tfl.NL),
   ]
 
   def __init__(self, state_size, action_size, global_step, rlConfig, **kwargs):
@@ -30,7 +31,7 @@ class DQN(Default):
       prev_size = state_size
       for i, size in enumerate(self.q_layers):
         with tf.variable_scope("layer_%d" % i):
-          net.append(tfl.FCLayer(prev_size, size, tfl.leaky_softplus()))
+          net.append(tfl.FCLayer(prev_size, size, self.nl))
         prev_size = size
       
       setattr(self, name + '_net', net)
