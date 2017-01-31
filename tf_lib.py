@@ -22,7 +22,7 @@ def leaky_softplus(x, alpha=0.01):
 
 class NL(Default):
   _options = [
-    Option('nl', type=str, choices=['leaky_relu', 'leaky_softplus'], default='leaky_softplus'),
+    Option('nl', type=str, choices=['leaky_relu', 'leaky_softplus', 'elu', 'relu', 'tanh', 'sigmoid'], default='leaky_softplus'),
     Option('alpha', type=float, default=0.01),
   ]
   
@@ -31,6 +31,8 @@ class NL(Default):
       return leaky_relu(x, self.alpha)
     elif self.nl == 'leaky_softplus':
       return leaky_softplus(x, self.alpha)
+    else:
+      return getattr(tf.nn, self.nl)(x)
 
 def batch_dot(xs, ys):
   return tf.reduce_sum(tf.mul(xs, ys), -1)
