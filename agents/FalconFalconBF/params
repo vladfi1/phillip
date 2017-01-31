@@ -12,5 +12,19 @@
   "player_space": 64,
   "omit_char": true,
   "nl": "leaky_relu",
-  "embed_nl": false
+  "embed_nl": false,
+
+  "epsilon": 0.02,
+  "entropy_scale": 0.0002,
+  "natural": true,
+  "target_distance": 1e-06,
+  "learning_rate": 1.0,
+  "cg_iters": 15,
+  "tdN": 5,
+  "sweeps": 1,
+  "batches": 1,
+  "batch_size": 2000,
+  "batch_steps": 1,
+  "gpu": 1,
+  "cg_damping": 1e-05
 }
