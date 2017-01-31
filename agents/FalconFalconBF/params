@@ -4,7 +4,7 @@
   "char": "falcon",
   "stage": "battlefield",
   "action_type": "old",
-  "act_every": 3,
+  "act_every": 2,
   "xy_scale": 0.1,
   "speed_scale": 1,
   "shield_scale": 1,
