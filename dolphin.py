@@ -109,7 +109,10 @@ class DolphinRunner(Default):
       self.user = 'dolphin-test/'
   
     if self.gui:
-      self.exe = 'dolphin-emu-nogui'
+      # switch from headless to nogui
+      if self.exe.endswith("headless"):
+        self.exe = self.exe[:-8] + "nogui"
+      
       kwargs.update(
         speed = 1,
         gfx = 'OGL',
