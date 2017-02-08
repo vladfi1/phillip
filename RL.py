@@ -38,7 +38,7 @@ class RLConfig(Default):
     Option('reward_halflife', type=float, default=2.0, help="time to discount rewards by half, in seconds"),
     Option('act_every', type=int, default=2, help="Take an action every ACT_EVERY frames."),
     #Option('experience_time', type=int, default=1, help="Length of experiences, in seconds."),
-    Option('experience_length', type=int, default=30, help="Length of experiences, in seconds."),
+    Option('experience_length', type=int, default=30, help="Length of experiences, in frames."),
     Option('delay', type=int, default=0, help="frame delay on actions taken"),
   ]
   
