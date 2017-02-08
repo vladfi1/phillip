@@ -20,11 +20,13 @@ class CPU(Default):
     _options = [
       Option('tag', type=int),
       Option('user', type=str, help="dolphin user directory"),
-      Option('zmq', type=bool, default=True, help="use zmq for memory watcher"),
+      Option('zmq', type=int, default=1, help="use zmq for memory watcher"),
       Option('stage', type=str, default="final_destination", choices=movie.stages.keys(), help="which stage to play on"),
       Option('enemy', type=str, help="load enemy agent from file"),
       Option('enemy_reload', type=int, default=0, help="enemy reload interval"),
       Option('cpu', type=int, help="enemy cpu level"),
+      Option('start', type=int, default=1, help="start game in endless time mode"),
+      Option('netplay', type=str),
     ] + [Option('p%d' % i, type=str, choices=characters.keys(), default="falcon", help="character for player %d" % i) for i in [1, 2]]
     
     _members = [
@@ -36,7 +38,7 @@ class CPU(Default):
 
         self.toggle = False
 
-        self.user = os.path.expanduser(self.user)
+        self.user = os.path.expanduser(self.user)               
 
         self.state = ssbm.GameMemory()
         # track players 1 and 2 (pids 0 and 1)
@@ -46,10 +48,18 @@ class CPU(Default):
         if self.tag is not None:
             random.seed(self.tag)
         
-        self.pids = [1]
-        self.agents = {1: self.agent}
-        self.cpus = {1: None}
-        self.characters = {1: self.agent.char or self.p2}
+        # we play as player 2
+        self.pid = 1
+        
+        # unless we are netplaying
+        # in that case local pid 0 gets mapped to global pid 1 (if we are joining)
+        #if self.netplay:
+        #  self.pid = 0
+        
+        self.pids = [self.pid]
+        self.agents = {self.pid: self.agent}
+        self.cpus = {self.pid: None}
+        self.characters = {self.pid: self.agent.char or self.p2}
 
         if self.enemy:
             enemy_kwargs = util.load_params(self.enemy, 'agent')
@@ -92,6 +102,8 @@ class CPU(Default):
             print("Pipes not initialized!")
             return
         
+        print("Pipes initialized.")
+        
         pick_chars = []
         
         tapA = [
@@ -129,7 +141,12 @@ class CPU(Default):
         # sets the game mode and picks the stage
         start_game = movie.Movie(movie.endless_netplay + movie.stages[self.stage], self.pads[0])
         
-        self.navigate_menus = Sequential(pick_chars, enter_settings, start_game)
+        actions = [pick_chars]
+        
+        if self.start:
+            actions += [enter_settings, start_game]
+        
+        self.navigate_menus = Sequential(*actions)
         
         print('Starting run loop.')
         self.start_time = time.time()
@@ -142,7 +159,7 @@ class CPU(Default):
             self.print_stats()
 
     def init_stats(self):
-        self.total_frames = 0
+        self.total_frames = 1
         self.skip_frames = 0
         self.thinking_time = 0
 
@@ -210,6 +227,7 @@ class CPU(Default):
             self.navigate_menus.move(self.state)
             
             if self.navigate_menus.done():
+                print("Finished navigating menus")
                 for pid, pad in zip(self.pids, self.pads):
                     if self.characters[pid] == 'sheik':
                         pad.press_button(Button.A)

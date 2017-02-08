@@ -29,12 +29,11 @@ def generatePipeConfig(player, count):
   config += pipeConfig
   return config
 
-# TODO: make this configurable
-def generateGCPadNew(pids=[1]):
+def generateGCPadNew(pids=[1], pipe_count=True):
   config = ""
   count = 0
   for p in sorted(pids):
-    config += generatePipeConfig(p, count)
+    config += generatePipeConfig(p, count if pipe_count else 0)
     count += 1
   return config
 
@@ -54,6 +53,7 @@ class SetupUser(Default):
     Option('audio', type=str, default="No audio backend", help="audio backend"),
     Option('speed', type=int, default=0, help='framerate - 100=normal, 0=unlimited'),
     Option('dump_frames', action="store_true", default=False, help="dump frames from dolphin to disk"),
+    Option('pipe_count', type=int, default=1, help="Count pipes alphabetically. Turn off for newer dolphins."),
   ]
   
   def __call__(self, user):
@@ -61,7 +61,7 @@ class SetupUser(Default):
     util.makedirs(configDir)
 
     with open(configDir + 'GCPadNew.ini', 'w') as f:
-      f.write(generateGCPadNew(self.cpus))
+      f.write(generateGCPadNew(self.cpus, self.pipe_count))
 
     with open(configDir + 'Dolphin.ini', 'w') as f:
       config_args = dict(
@@ -96,6 +96,7 @@ class DolphinRunner(Default):
     Option('setup', type=int, default=1, help="setup custom dolphin directory"),
     Option('gui', action="store_true", default=False, help="run with graphics and sound at normal speed"),
     Option('mute', action="store_true", default=False, help="mute game audio"),
+    Option('netplay', type=str, help="join traversal server")
   ]
   
   _members = [
@@ -106,8 +107,18 @@ class DolphinRunner(Default):
     Default.__init__(self, init_members=False, **kwargs)
     
     if self.user is None:
-      self.user = 'dolphin-test/'
-  
+      import tempfile
+      self.user = tempfile.mkdtemp() + '/'
+    
+    print("Dolphin user dir", self.user)
+    
+    if self.netplay: # need gui version to netplay
+      index = self.exe.rfind('dolphin-emu') + len('dolphin-emu')
+      self.exe = self.exe[:index]
+      #kwargs.update(
+      #  cpus = [0]
+      #)
+    
     if self.gui:
       # switch from headless to nogui
       if self.exe.endswith("headless"):
@@ -128,9 +139,51 @@ class DolphinRunner(Default):
       self.setupUser(self.user)
   
   def __call__(self):
-    args = [self.exe, "--user", self.user, "--exec", self.iso]
+    args = [self.exe, "--user", self.user]
+    if not self.netplay:
+      args += ["--exec", self.iso]
     if self.movie is not None:
       args += ["--movie", self.movie]
     
-    return subprocess.Popen(args)
+    process = subprocess.Popen(args)
+    
+    if self.netplay:
+      import time
+      time.sleep(1) # let dolphin window spawn
+      
+      import pyautogui
+      pyautogui.hotkey('alt', 't') # tools
+      pyautogui.hotkey('n') # netplay
+      
+      time.sleep(0.1) # allow netplay window time to spawn
+      
+      #return process
+      
+      #pyautogui.hotkey('down') # traversal
+      
+      #for _ in range(3): # move to textbox
+      #  pyautogui.hotkey('tab')
+      
+      pyautogui.typewrite(self.netplay) # write traversal code
+      
+      return process
+      
+      time.sleep(0.1)
+      # connect
+      #pyautogui.hotkey('tab')
+      pyautogui.hotkey('enter')
+    
+    return process
 
+if __name__ == "__main__":
+  import argparse
+  
+  parser = argparse.ArgumentParser()
+  
+  for opt in DolphinRunner.full_opts():
+    opt.update_parser(parser)
+  
+  args = parser.parse_args()
+  
+  runner = DolphinRunner(**args.__dict__)
+  runner()
