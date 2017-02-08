@@ -54,6 +54,8 @@ class SetupUser(Default):
     Option('speed', type=int, default=0, help='framerate - 100=normal, 0=unlimited'),
     Option('dump_frames', action="store_true", default=False, help="dump frames from dolphin to disk"),
     Option('pipe_count', type=int, default=1, help="Count pipes alphabetically. Turn off for newer dolphins."),
+    Option('netplay', type=str),
+    Option('direct', action="store_true", default=False, help="netplay direct connect"),
   ]
   
   def __call__(self, user):
@@ -61,7 +63,7 @@ class SetupUser(Default):
     util.makedirs(configDir)
 
     with open(configDir + 'GCPadNew.ini', 'w') as f:
-      f.write(generateGCPadNew(self.cpus, self.pipe_count))
+      f.write(generateGCPadNew([0] if self.netplay else self.cpus, self.pipe_count))
 
     with open(configDir + 'Dolphin.ini', 'w') as f:
       config_args = dict(
@@ -70,7 +72,9 @@ class SetupUser(Default):
         cpu_thread=self.cpu_thread,
         dump_frames=self.dump_frames,
         audio=self.audio,
-        speed=self.speed
+        speed=self.speed,
+        netplay=self.netplay,
+        traversal='direct' if self.direct else 'traversal',
       )
       f.write(dolphinConfig.format(**config_args))
 
@@ -115,9 +119,6 @@ class DolphinRunner(Default):
     if self.netplay: # need gui version to netplay
       index = self.exe.rfind('dolphin-emu') + len('dolphin-emu')
       self.exe = self.exe[:index]
-      #kwargs.update(
-      #  cpus = [0]
-      #)
     
     if self.gui:
       # switch from headless to nogui
@@ -164,9 +165,9 @@ class DolphinRunner(Default):
       #for _ in range(3): # move to textbox
       #  pyautogui.hotkey('tab')
       
-      pyautogui.typewrite(self.netplay) # write traversal code
+      #pyautogui.typewrite(self.netplay) # write traversal code
       
-      return process
+      #return process
       
       time.sleep(0.1)
       # connect

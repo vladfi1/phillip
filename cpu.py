@@ -51,11 +51,6 @@ class CPU(Default):
         # we play as player 2
         self.pid = 1
         
-        # unless we are netplaying
-        # in that case local pid 0 gets mapped to global pid 1 (if we are joining)
-        #if self.netplay:
-        #  self.pid = 0
-        
         self.pids = [self.pid]
         self.agents = {self.pid: self.agent}
         self.cpus = {self.pid: None}
@@ -90,7 +85,11 @@ class CPU(Default):
         print('Creating Pads at %s. Open dolphin now.' % pipe_dir)
         util.makedirs(self.user + '/Pipes/')
         
-        paths = [pipe_dir + 'phillip%d' % i for i in self.pids]
+        pads = self.pids
+        if self.netplay:
+          pads = [0]
+        
+        paths = [pipe_dir + 'phillip%d' % i for i in pads]
         self.get_pads = util.async_map(Pad, paths)
 
         self.init_stats()
@@ -227,7 +226,6 @@ class CPU(Default):
             self.navigate_menus.move(self.state)
             
             if self.navigate_menus.done():
-                print("Finished navigating menus")
                 for pid, pad in zip(self.pids, self.pads):
                     if self.characters[pid] == 'sheik':
                         pad.press_button(Button.A)
