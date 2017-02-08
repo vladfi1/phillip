@@ -85,7 +85,7 @@ def scaled_weight_variable(shape):
     return scale * w
     
 def weight_variable(shape):
-    initial = tf.normal(shape, stddev=1.0)
+    initial = tf.random_normal(shape, stddev=1.0)
     
     norms = tf.sqrt(tf.reduce_sum(tf.square(initial), list(range(len(shape)-1))))
     initial /= norms
