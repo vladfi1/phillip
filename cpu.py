@@ -145,7 +145,7 @@ class CPU(Default):
         if self.start:
             actions += [enter_settings, start_game]
         
-        actions.append(Wait(120))
+        #actions.append(Wait(600))
         
         self.navigate_menus = Sequential(*actions)
         
@@ -219,12 +219,18 @@ class CPU(Default):
         # menu = Menu(self.state.menu)
         # print(menu)
         if self.state.menu == Menu.Game.value:
+            self.game_frame += 1
+            
+            if self.game_frame <= 120:
+                return # wait for game to properly load
+            
             for pid, pad in zip(self.pids, self.pads):
                 agent = self.agents[pid]
                 if agent:
                     agent.act(self.state, pad)
 
         elif self.state.menu in [menu.value for menu in [Menu.Characters, Menu.Stages]]:
+            self.game_frame = 0
             self.navigate_menus.move(self.state)
             
             if self.navigate_menus.done():
