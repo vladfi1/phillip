@@ -31,6 +31,7 @@ class Pad:
     """Writes out controller inputs."""
     def __init__(self, path):
         """Opens the fifo. Blocks until the other end is listening."""
+        self.path = path
         self.pipe = None
         try:
             os.mkfifo(path)

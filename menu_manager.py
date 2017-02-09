@@ -23,6 +23,8 @@ settings = (0, 24)
 
 class MoveTo:
   def __init__(self, target, pid, pad, relative=False):
+    #print(target, pid, pad.path)
+    
     self.target = target
     self.pid = pid
     self.pad = pad
@@ -31,7 +33,7 @@ class MoveTo:
     
   def move(self, state):
     player = state.players[self.pid]
-    
+        
     if self.relative:
       self.target[0] += player.cursor_x
       self.target[1] += player.cursor_y

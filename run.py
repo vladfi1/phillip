@@ -49,7 +49,7 @@ params['cpus'] = cpu.pids
 if params['dolphin']:
   dolphinRunner = DolphinRunner(**params)
   # delay for a bit to let the cpu start up
-  time.sleep(5)
+  time.sleep(2)
   print("Running dolphin.")
   dolphin = dolphinRunner()
 else:
