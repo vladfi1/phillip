@@ -145,6 +145,8 @@ class CPU(Default):
         if self.start:
             actions += [enter_settings, start_game]
         
+        actions.append(Wait(120))
+        
         self.navigate_menus = Sequential(*actions)
         
         print('Starting run loop.')
