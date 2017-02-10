@@ -235,8 +235,11 @@ class CPU(Default):
             
             if self.navigate_menus.done():
                 for pid, pad in zip(self.pids, self.pads):
-                    if self.characters[pid] == 'sheik':
-                        pad.press_button(Button.A)
+                    if self.state.menu == Menu.Stages.value:
+                        if self.characters[pid] == 'sheik':
+                            pad.press_button(Button.A)
+                    else:
+                        pad.send_controller(ssbm.RealControllerState.neutral)
         
         elif self.state.menu == Menu.PostGame.value:
             self.spam(Button.START)
