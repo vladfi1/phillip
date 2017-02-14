@@ -1,22 +1,16 @@
 import tensorflow as tf
+import numpy as np
+from enum import Enum
 import os
 import random
-import ssbm
+from . import ssbm, tf_lib as tfl, util, embed, ctype_util as ct
 import ctypes
-import tf_lib as tfl
-import util
-import ctype_util as ct
-import numpy as np
-import embed
-from default import *
-from dqn import DQN
-from ac import ActorCritic
-#from thompson_dqn import ThompsonDQN
-from operator import add, sub
-from enum import Enum
-from reward import computeRewards
-from rac import RecurrentActorCritic
-from rdqn import RecurrentDQN
+from .default import *
+from .dqn import DQN
+from .ac import ActorCritic
+from .reward import computeRewards
+from .rac import RecurrentActorCritic
+from .rdqn import RecurrentDQN
 import resource
 
 class Mode(Enum):

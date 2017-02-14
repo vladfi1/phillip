@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 import time
-from dolphin import DolphinRunner
+from .dolphin import DolphinRunner
 from argparse import ArgumentParser
 from multiprocessing import Process
-from cpu import CPU
-import RL
-import util
+from .cpu import CPU
+from . import RL, util
 import tempfile
 
 def run(**kwargs):
@@ -15,13 +14,13 @@ def run(**kwargs):
   else:
     params = {}
   
-  util.update(params, kwargs)
+  util.update(params, **kwargs)
   print(params)
 
-  if params['gui']:
+  if params.get('gui'):
     params['dolphin'] = True
 
-  if params['user'] is None:
+  if params.get('user') is None:
     params['user'] = tempfile.mkdtemp() + '/'
 
   print("Creating cpu.")
@@ -29,7 +28,7 @@ def run(**kwargs):
 
   params['cpus'] = cpu.pids
 
-  if params['dolphin']:
+  if params.get('dolphin'):
     dolphinRunner = DolphinRunner(**params)
     # delay for a bit to let the cpu start up
     time.sleep(2)

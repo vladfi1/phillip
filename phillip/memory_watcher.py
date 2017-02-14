@@ -1,5 +1,5 @@
 import binascii
-import util
+from . import util
 import os
 import sys
 import socket

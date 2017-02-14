@@ -1,9 +1,7 @@
 import tensorflow as tf
-import tf_lib as tfl
-import util
+from . import tf_lib as tfl, util, opt
 from numpy import random
-from default import *
-import opt
+from .default import *
 
 class RecurrentActorCritic(Default):
   _options = [

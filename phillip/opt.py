@@ -1,7 +1,7 @@
 import tensorflow as tf
 
-from default import *
-import natgrad
+from .default import *
+from . import natgrad
 
 class Optimizer(Default):
   _options = [

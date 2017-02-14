@@ -37,13 +37,16 @@ def generateGCPadNew(pids=[1], pipe_count=True):
     count += 1
   return config
 
-with open('Dolphin.ini', 'r') as f:
+import phillip
+datapath = phillip.path + '/data'
+
+with open(datapath + '/Dolphin.ini', 'r') as f:
   dolphinConfig = f.read()
 
 import shutil
 import os
-import util
-from default import *
+from . import util
+from .default import *
 
 class SetupUser(Default):
   _options = [
@@ -59,13 +62,13 @@ class SetupUser(Default):
   ]
   
   def __call__(self, user):
-    configDir = user + 'Config/'
+    configDir = user + '/Config'
     util.makedirs(configDir)
 
-    with open(configDir + 'GCPadNew.ini', 'w') as f:
+    with open(configDir + '/GCPadNew.ini', 'w') as f:
       f.write(generateGCPadNew([0] if self.netplay else self.cpus, self.pipe_count))
 
-    with open(configDir + 'Dolphin.ini', 'w') as f:
+    with open(configDir + '/Dolphin.ini', 'w') as f:
       config_args = dict(
         user=user,
         gfx=self.gfx,
@@ -84,10 +87,10 @@ class SetupUser(Default):
     #memcardName = 'MemoryCardA.USA.raw'
     #shutil.copyfile(memcardName, gcDir + memcardName)
     
-    gameSettings = "GameSettings/"
-    shutil.copytree(gameSettings, user + gameSettings)
+    gameSettings = "/GameSettings"
+    shutil.copytree(datapath + gameSettings, user + gameSettings)
 
-    util.makedirs(user + 'Dump/Frames/')
+    util.makedirs(user + '/Dump/Frames')
 
 import subprocess
 

@@ -1,12 +1,12 @@
 from ctypes import *
-from ctype_util import *
+from .ctype_util import *
 from enum import IntEnum
 import struct
 import tempfile
 import os
 #import h5py
 import pickle
-from reward import computeRewards
+from .reward import computeRewards
 import numpy as np
 import itertools
 import attr

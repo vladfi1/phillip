@@ -1,20 +1,13 @@
-import ssbm
-from state import *
-import state_manager
-import memory_watcher
-from menu_manager import *
+from . import ssbm, state_manager, memory_watcher, agent, util, RL, movie
+from .state import *
+from .menu_manager import *
 import os
-from pad import *
+from .pad import *
 import time
-import fox
-import agent
-import util
-from ctype_util import copy
-import RL
+from .ctype_util import copy
 from numpy import random
-from reward import computeRewards
-import movie
-from default import *
+from .reward import computeRewards
+from .default import *
 
 class CPU(Default):
     _options = [
