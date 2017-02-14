@@ -8,53 +8,58 @@ import RL
 import util
 import tempfile
 
-parser = ArgumentParser()
+def run(**kwargs):
+  load = kwargs.get('load')
+  if load:
+    params = util.load_params(load, 'agent')
+  else:
+    params = {}
+  
+  util.update(params, kwargs)
+  print(params)
 
-for opt in CPU.full_opts():
-  opt.update_parser(parser)
+  if params['gui']:
+    params['dolphin'] = True
 
-for model in RL.models.values():
-  for opt in model.full_opts():
+  if params['user'] is None:
+    params['user'] = tempfile.mkdtemp() + '/'
+
+  print("Creating cpu.")
+  cpu = CPU(**params)
+
+  params['cpus'] = cpu.pids
+
+  if params['dolphin']:
+    dolphinRunner = DolphinRunner(**params)
+    # delay for a bit to let the cpu start up
+    time.sleep(2)
+    print("Running dolphin.")
+    dolphin = dolphinRunner()
+  else:
+    dolphin = None
+
+  print("Running cpu.")
+  cpu.run(dolphin_process=dolphin)
+
+if __name__ == "__main__":
+  parser = ArgumentParser()
+
+  for opt in CPU.full_opts():
     opt.update_parser(parser)
 
-parser.add_argument("--load", type=str, help="path to folder containing snapshot and params")
+  for model in RL.models.values():
+    for opt in model.full_opts():
+      opt.update_parser(parser)
 
-# dolphin options
-parser.add_argument("--dolphin", action="store_true", default=None, help="run dolphin")
+  parser.add_argument("--load", type=str, help="path to folder containing snapshot and params")
 
-for opt in DolphinRunner.full_opts():
-  opt.update_parser(parser)
+  # dolphin options
+  parser.add_argument("--dolphin", action="store_true", default=None, help="run dolphin")
 
-args = parser.parse_args()
+  for opt in DolphinRunner.full_opts():
+    opt.update_parser(parser)
 
-if args.load:
-  params = util.load_params(args.load, 'agent')
-else:
-  params = {}
-
-util.update(params, **args.__dict__)
-print(params)
-
-if params['gui']:
-  params['dolphin'] = True
-
-if params['user'] is None:
-  params['user'] = tempfile.mkdtemp() + '/'
-
-print("Creating cpu.")
-cpu = CPU(**params)
-
-params['cpus'] = cpu.pids
-
-if params['dolphin']:
-  dolphinRunner = DolphinRunner(**params)
-  # delay for a bit to let the cpu start up
-  time.sleep(2)
-  print("Running dolphin.")
-  dolphin = dolphinRunner()
-else:
-  dolphin = None
-
-print("Running cpu.")
-cpu.run(dolphin_process=dolphin)
+  args = parser.parse_args()
+  
+  run(**args.__dict__)
 
