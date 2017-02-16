@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 import time
-from .dolphin import DolphinRunner
+from phillip.dolphin import DolphinRunner
 from argparse import ArgumentParser
 from multiprocessing import Process
-from .cpu import CPU
-from . import RL, util
+from phillip.cpu import CPU
+from phillip import RL, util
 import tempfile
 
 def run(**kwargs):
@@ -40,7 +40,7 @@ def run(**kwargs):
   print("Running cpu.")
   cpu.run(dolphin_process=dolphin)
 
-if __name__ == "__main__":
+def main():
   parser = ArgumentParser()
 
   for opt in CPU.full_opts():
@@ -61,4 +61,7 @@ if __name__ == "__main__":
   args = parser.parse_args()
   
   run(**args.__dict__)
+
+if __name__ == "__main__":
+  main()
 
