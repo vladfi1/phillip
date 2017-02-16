@@ -41,7 +41,13 @@ import phillip
 datapath = phillip.path + '/data'
 
 with open(datapath + '/Dolphin.ini', 'r') as f:
-  dolphinConfig = f.read()
+  dolphin_ini = f.read()
+
+gfx_ini = """
+[Settings]
+DumpFramesAsImages = False
+Crop = True
+"""
 
 import shutil
 import os
@@ -59,6 +65,7 @@ class SetupUser(Default):
     Option('pipe_count', type=int, default=1, help="Count pipes alphabetically. Turn off for newer dolphins."),
     Option('netplay', type=str),
     Option('direct', action="store_true", default=False, help="netplay direct connect"),
+    Option('fullscreen', action="store_true", default=False, help="run dolphin with fullscreen"),
   ]
   
   def __call__(self, user):
@@ -78,8 +85,12 @@ class SetupUser(Default):
         speed=self.speed,
         netplay=self.netplay,
         traversal='direct' if self.direct else 'traversal',
+        fullscreen=self.fullscreen,
       )
-      f.write(dolphinConfig.format(**config_args))
+      f.write(dolphin_ini.format(**config_args))
+    
+    with open(configDir + '/GFX.ini', 'w') as f:
+      f.write(gfx_ini)
 
     # don't need memory card with netplay
     #gcDir = user + 'GC/'
@@ -103,7 +114,7 @@ class DolphinRunner(Default):
     Option('setup', type=int, default=1, help="setup custom dolphin directory"),
     Option('gui', action="store_true", default=False, help="run with graphics and sound at normal speed"),
     Option('mute', action="store_true", default=False, help="mute game audio"),
-    Option('netplay', type=str, help="join traversal server")
+    Option('netplay', type=str, help="join traversal server"),
   ]
   
   _members = [
