@@ -1,4 +1,4 @@
-# copy this file to ~/.sopel/modules/
+# copy/symlink this file to ~/.sopel/modules/
 # you will have to set up ~/.sopel/default.cfg to log in automatically as your bot
 # then run sopel
 
@@ -7,12 +7,17 @@ import os, signal, subprocess
 from phillip import run
 from twitch import key
 
+agent_path = '/home/vlad/Repos/phillip/agents/'
+agent = 'FalconFalconBF'
+
 current_thread = None
 stream_thread=None
 
+stream = True
+
 stream_args = [
   'ffmpeg',
-  '-video_size', '1920x1080',
+  '-video_size', '1366x768',
   '-framerate', '30',
   '-f', 'x11grab', '-i', ':0.0',
   '-c:v', 'libx264', '-preset', 'veryfast',
@@ -34,6 +39,27 @@ def helloworld(bot, trigger):
 def dolphin(bot, trigger):
     bot.say("5.0-2538")
 
+@module.commands('instructions', 'rules')
+def instructions(bot, trigger):
+    bot.say("TODO")
+
+@module.commands('agent')
+def set_agent(bot, trigger):
+    global agent_path, agent
+    
+    new_agent = trigger.group(2)
+    path = agent_path + new_agent
+    
+    if not os.path.exists(path):
+      bot.say('Invalid agent!')
+      return
+    
+    agent = new_agent
+
+@module.commands('agents')
+def agents(bot, trigger):
+    bot.say(' '.join(os.listdir(agent_path)))
+
 @module.thread(False)
 @module.commands('play')
 def play(bot, trigger):
@@ -46,14 +72,17 @@ def play(bot, trigger):
   code = trigger.group(2)
   
   args = dict(
-    load="/home/vlad/Repos/phillip/agents/FalconFalconBF/",
+    load=agent_path + agent,
     gui=True,
     zmq=0,
     exe='dolphin-emu',
-    iso="/home/vlad/ISO/SSBM.iso",
+    #iso="/home/vlad/ISO/SSBM.iso",
     netplay=code,
     start=0,
     fullscreen=True,
+    delay=0,
+    act_every=1,
+    reload=60,
   )
   
   #current_thread = Process(target=run.run, kwargs=args)
@@ -72,8 +101,8 @@ def play(bot, trigger):
   
   current_thread = subprocess.Popen(cmd, start_new_session=True)
   #current_thread = subprocess.Popen(['echo', 'fasd'])
-  
-  stream_thread = subprocess.Popen(stream_args, start_new_session=True)
+  if stream:
+    stream_thread = subprocess.Popen(stream_args, start_new_session=True)
 
 @module.thread(False)
 @module.commands('stop')
@@ -87,8 +116,9 @@ def stop(bot, trigger):
     os.killpg(os.getpgid(current_thread.pid), signal.SIGTERM)
     current_thread = None
     
-    os.killpg(os.getpgid(stream_thread.pid), signal.SIGTERM)
-    stream_thread = None
+    if stream:
+      os.killpg(os.getpgid(stream_thread.pid), signal.SIGTERM)
+      stream_thread = None
   else:
     bot.say("nothing running")
 
