@@ -1,10 +1,32 @@
 # copy/symlink this file to ~/.sopel/modules/
+
 # you will have to set up ~/.sopel/default.cfg to log in automatically as your bot
-# then run sopel
+# here is my defult.cfg:
+
+sample_cfg = """
+[core]
+nick = x_pilot_bot
+host = irc.chat.twitch.tv
+use_ssl = false
+port = 6667
+auth_method = server
+auth_password = <bot oauth token>
+owner = x_pilot_bot
+channels = #x_pilot
+prefix = !
+"""
+# get the oauth token from https://twitchapps.com/tmi/
+# this should be the token for your bot account, if you made one
+
+# now run sopel from the command line
 
 from sopel import module
 import os, signal, subprocess
-from phillip import run
+#from phillip import run
+
+# key should be your twitch stream key (https://www.twitch.tv/broadcast/dashboard/streamkey)
+# this is for your regular account, not the bot
+# I made a file twitch.py on my PYTHONPATH with the key
 from twitch import key
 
 agent_path = '/home/vlad/Repos/phillip/agents/'
