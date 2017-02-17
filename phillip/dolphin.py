@@ -147,7 +147,7 @@ class DolphinRunner(Default):
       if self.mute:
         kwargs.update(audio = 'No audio backend')
       else:
-        kwargs.update(audio = 'ALSA')
+        kwargs.update(audio = 'Pulse')
       
     if self.setup:
       self._init_members(**kwargs)
