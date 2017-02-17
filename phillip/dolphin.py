@@ -66,6 +66,7 @@ class SetupUser(Default):
     Option('netplay', type=str),
     Option('direct', action="store_true", default=False, help="netplay direct connect"),
     Option('fullscreen', action="store_true", default=False, help="run dolphin with fullscreen"),
+    Option('iso_path', type=str, default="", help="directory where you keep your isos"),
   ]
   
   def __call__(self, user):
@@ -86,6 +87,7 @@ class SetupUser(Default):
         netplay=self.netplay,
         traversal='direct' if self.direct else 'traversal',
         fullscreen=self.fullscreen,
+        iso_path=self.iso_path,
       )
       f.write(dolphin_ini.format(**config_args))
     

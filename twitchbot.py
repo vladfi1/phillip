@@ -26,8 +26,8 @@ import os, signal, subprocess
 
 # key should be your twitch stream key (https://www.twitch.tv/broadcast/dashboard/streamkey)
 # this is for your regular account, not the bot
-# I made a file twitch.py on my PYTHONPATH with the key
-from twitch import key
+# I made a file globals.py on my PYTHONPATH for things like this
+from globals import twitch_key, dolphin_iso_path
 
 agent_path = '/home/vlad/Repos/phillip/agents/'
 agent = 'FalconFalconBF'
@@ -35,7 +35,7 @@ agent = 'FalconFalconBF'
 current_thread = None
 stream_thread=None
 
-stream = True
+stream = False
 
 stream_args = [
   'ffmpeg',
@@ -46,7 +46,7 @@ stream_args = [
   '-maxrate', '3000k', '-bufsize', '6000k',
   '-pix_fmt', 'yuv420p',  '-g', '50',
   '-f', 'flv',
-  'rtmp://live.twitch.tv/app/' + key
+  'rtmp://live.twitch.tv/app/' + twitch_key
 ]
 
 @module.commands('echo', 'repeat')
@@ -98,7 +98,7 @@ def play(bot, trigger):
     gui=True,
     zmq=0,
     exe='dolphin-emu',
-    #iso="/home/vlad/ISO/SSBM.iso",
+    iso_path=dolphin_iso_path,
     netplay=code,
     start=0,
     fullscreen=True,
