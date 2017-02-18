@@ -45,14 +45,16 @@ with open(datapath + '/Dolphin.ini', 'r') as f:
 
 gfx_ini = """
 [Settings]
-DumpFramesAsImages = False
+DumpFramesAsImages = {dump_ppm}
+DumpFramesToPPM = {dump_ppm}
+DumpFramesCounter = False
 Crop = True
 """
 
 import shutil
 import os
-from . import util
-from .default import *
+from phillip import util
+from phillip.default import *
 
 class SetupUser(Default):
   _options = [
@@ -62,6 +64,7 @@ class SetupUser(Default):
     Option('audio', type=str, default="No audio backend", help="audio backend"),
     Option('speed', type=int, default=0, help='framerate - 100=normal, 0=unlimited'),
     Option('dump_frames', action="store_true", default=False, help="dump frames from dolphin to disk"),
+    Option('dump_ppm', action="store_true", help="dump frames as ppm images"),
     Option('pipe_count', type=int, default=1, help="Count pipes alphabetically. Turn off for newer dolphins."),
     Option('netplay', type=str),
     Option('direct', action="store_true", default=False, help="netplay direct connect"),
@@ -72,6 +75,9 @@ class SetupUser(Default):
   def __call__(self, user):
     configDir = user + '/Config'
     util.makedirs(configDir)
+    
+    if self.dump_ppm:
+      self.dump_frames = True
 
     with open(configDir + '/GCPadNew.ini', 'w') as f:
       f.write(generateGCPadNew([0] if self.netplay else self.cpus, self.pipe_count))
@@ -92,7 +98,7 @@ class SetupUser(Default):
       f.write(dolphin_ini.format(**config_args))
     
     with open(configDir + '/GFX.ini', 'w') as f:
-      f.write(gfx_ini)
+      f.write(gfx_ini.format(dump_ppm=self.dump_ppm))
 
     # don't need memory card with netplay
     #gcDir = user + 'GC/'
@@ -192,7 +198,7 @@ class DolphinRunner(Default):
     
     return process
 
-if __name__ == "__main__":
+def main():
   import argparse
   
   parser = argparse.ArgumentParser()
@@ -204,3 +210,7 @@ if __name__ == "__main__":
   
   runner = DolphinRunner(**args.__dict__)
   runner()
+
+
+if __name__ == "__main__":
+  main()
