@@ -13,7 +13,7 @@ class CPU(Default):
     _options = [
       Option('tag', type=int),
       Option('user', type=str, help="dolphin user directory"),
-      Option('zmq', type=int, default=1, help="use zmq for memory watcher"),
+      Option('zmq', type=int, default=0, help="use zmq for memory watcher"),
       Option('stage', type=str, default="final_destination", choices=movie.stages.keys(), help="which stage to play on"),
       Option('enemy', type=str, help="load enemy agent from file"),
       Option('enemy_reload', type=int, default=0, help="enemy reload interval"),
