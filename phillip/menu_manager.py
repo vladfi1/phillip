@@ -46,7 +46,7 @@ class MoveTo:
       self.pad.tilt_stick(Stick.MAIN, 0.5, 0.5)
       self.reached = True
     else:
-      self.pad.tilt_stick(Stick.MAIN, 0.25 * (dx / (mag+1)) + 0.5, 0.25 * (dy / (mag+1)) + 0.5)
+      self.pad.tilt_stick(Stick.MAIN, 0.5 * (dx / (mag+2)) + 0.5, 0.5 * (dy / (mag+2)) + 0.5)
       self.reached = False
 
   def done(self):
