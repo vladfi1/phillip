@@ -42,11 +42,11 @@ class MoveTo:
     dx = self.target[0] - player.cursor_x
     dy = self.target[1] - player.cursor_y
     mag = math.sqrt(dx * dx + dy * dy)
-    if mag < 0.3:
+    if mag < 0.5:
       self.pad.tilt_stick(Stick.MAIN, 0.5, 0.5)
       self.reached = True
     else:
-      self.pad.tilt_stick(Stick.MAIN, 0.5 * (dx / (mag+10)) + 0.5, 0.5 * (dy / (mag+10)) + 0.5)
+      self.pad.tilt_stick(Stick.MAIN, 0.4 * (dx / (mag+2)) + 0.5, 0.4 * (dy / (mag+2)) + 0.5)
       self.reached = False
 
   def done(self):
