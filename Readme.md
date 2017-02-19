@@ -11,22 +11,23 @@ Tested on: Ubuntu >=14.04, OSX
 2. Python 3.
 3. Tensorflow - https://www.tensorflow.org/versions/r0.9/get_started/os_setup.html#download-and-setup
 4. A few python packages - `pip3 install attrs`
+5. Install phillip:
+
+    pip3 install -e .
 
 ### Play
 
-1. Configure your controller settings for player 1 and player 2. You will play as Player 1, Phillip will take Player 2. You'll probably want a GameCube controller adapter. Configuring controller settings is out of the scope of this document, but check out the file `GCPadNew.ini` provided here for an example controller config that ought to work. Just stick that in your Dolphin config directory.
-2. A saved model. A bot trained in Falcon dittos on battlefield is available. Unfortunately some updates to the learning algorithm break compatibility with old saves.
-3. The `run.py` script can do pretty much everything. Pass `--help` to see the full list of options. An example execution would be:
+Trained agents are stored in the `agents` directory.
 
-    python3 run.py --model ActorCriticSplit --act_every 3 --path path/to/saved/model/dir/ --nodump --gui --nosetup --nozmq --dolphin_dir path/to/dolphin/user/dir/
+    phillip --gui --human --start 0 --load agents/FalconFalconFD
 
 ### Train
 
-Training is controlled by `train.py`. See also `runner.py` for training massively in parallel on slurm clusters. Phillip has been trained at the [MGHPCC](http://www.mghpcc.org/).
+Training is controlled by `train.py`. See also `runner.py` and `launcher.py` for training massively in parallel on slurm clusters. Phillip has been trained at the [MGHPCC](http://www.mghpcc.org/).
 
 ## Recordings
 
-I've been streaming practice play over at http://twitch.tv/x_pilot. There you can find lots of recordings of the bot's evolution over time.
+I've been streaming practice play over at http://twitch.tv/x_pilot. There are also some recordings on my [youtube channel](https://www.youtube.com/channel/UCzpDWSOtWpDaNPC91dqmPQg).
 
 ##Credits
 
