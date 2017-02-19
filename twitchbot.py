@@ -33,7 +33,7 @@ agent_path = '/home/vlad/Repos/phillip/agents/'
 agent = 'FalconFalconBF'
 
 current_thread = None
-stream_thread=None
+stream_thread = None
 
 stream = False
 
