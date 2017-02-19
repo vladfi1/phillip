@@ -70,6 +70,7 @@ class SetupUser(Default):
     Option('direct', action="store_true", default=False, help="netplay direct connect"),
     Option('fullscreen', action="store_true", default=False, help="run dolphin with fullscreen"),
     Option('iso_path', type=str, default="", help="directory where you keep your isos"),
+    Option('human', action="store_true", help="set p1 to human"),
   ]
   
   def __call__(self, user):
@@ -94,6 +95,7 @@ class SetupUser(Default):
         traversal='direct' if self.direct else 'traversal',
         fullscreen=self.fullscreen,
         iso_path=self.iso_path,
+        port1 = 12 if self.human else 6,
       )
       f.write(dolphin_ini.format(**config_args))
     
