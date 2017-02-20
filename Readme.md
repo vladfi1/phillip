@@ -9,8 +9,11 @@ Tested on: Ubuntu >=14.04, OSX
 
 1. A recent version of dolphin.
 2. Python 3.
-3. Tensorflow - https://www.tensorflow.org/versions/r0.9/get_started/os_setup.html#download-and-setup
-4. A few python packages - `pip3 install attrs`
+3. [Tensorflow 0.11](https://www.tensorflow.org/versions/r0.11/get_started/os_setup).
+4. A few python packages
+
+    pip3 install attrs
+
 5. Install phillip:
 
     pip3 install -e .
