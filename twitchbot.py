@@ -61,9 +61,25 @@ def helloworld(bot, trigger):
 def dolphin(bot, trigger):
     bot.say("5.0-2538")
 
+instructions = """
+1. Install dolphin 5.0-2538
+2. Use the smashladder configuration (no memory card, cheats on, netplay community settings Gecko code)
+3. host a netplay lobby (traversal server)
+4. Go to twitch.tv/x_pilot
+
+commands:
+
+!play <code> - the bot will join your netplay lobby
+!stop - stops the bot so others can play
+!agents - list available agents to play against
+!agent <agent> - set the agent
+
+Bot is in norcal.
+"""
+
 @module.commands('instructions', 'rules')
 def instructions(bot, trigger):
-    bot.say("TODO")
+    bot.say(instructions)
 
 @module.commands('agent')
 def set_agent(bot, trigger):
@@ -143,4 +159,9 @@ def stop(bot, trigger):
       stream_thread = None
   else:
     bot.say("nothing running")
+
+@module.commands('kill')
+def kill(bot, trigger):
+  import os
+  os.system('killall dolphin-emu')
 
