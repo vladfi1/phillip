@@ -51,7 +51,19 @@ DumpFramesCounter = False
 Crop = True
 """
 
-import shutil
+gale01_ini = """
+[Gecko_Enabled]
+$Netplay Community Settings
+"""
+
+gale01_ini_fm = """
+[Gecko_Enabled]
+$Faster Melee Netplay Settings
+$60FPS + 4X VRH
+[Core]
+VideoRate = 4
+"""
+
 import os
 from phillip import util
 from phillip.default import *
@@ -71,6 +83,7 @@ class SetupUser(Default):
     Option('fullscreen', action="store_true", default=False, help="run dolphin with fullscreen"),
     Option('iso_path', type=str, default="", help="directory where you keep your isos"),
     Option('human', action="store_true", help="set p1 to human"),
+    Option('fm', action="store_true", help="set up config for Faster Melee"),
   ]
   
   def __call__(self, user):
@@ -79,6 +92,9 @@ class SetupUser(Default):
     
     if self.dump_ppm:
       self.dump_frames = True
+    
+    if self.fm:
+      self.pipe_count = 0
 
     with open(configDir + '/GCPadNew.ini', 'w') as f:
       f.write(generateGCPadNew([0] if self.netplay else self.cpus, self.pipe_count))
@@ -102,14 +118,10 @@ class SetupUser(Default):
     with open(configDir + '/GFX.ini', 'w') as f:
       f.write(gfx_ini.format(dump_ppm=self.dump_ppm))
 
-    # don't need memory card with netplay
-    #gcDir = user + 'GC/'
-    #os.makedirs(gcDir, exist_ok=True)
-    #memcardName = 'MemoryCardA.USA.raw'
-    #shutil.copyfile(memcardName, gcDir + memcardName)
-    
-    gameSettings = "/GameSettings"
-    shutil.copytree(datapath + gameSettings, user + gameSettings)
+    gameSettings = user + '/GameSettings'
+    util.makedirs(gameSettings)
+    with open(gameSettings + '/GALE01.ini', 'w') as f:
+      f.write(gale01_ini_fm if self.fm else gale01_ini)
 
     util.makedirs(user + '/Dump/Frames')
 
