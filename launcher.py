@@ -110,7 +110,7 @@ if run_trainer:
 
   launch(train_name, train_command,
     gpu=True,
-    #qos='tenenbaum',
+    qos='tenenbaum',
     mem=16000
   )
 
@@ -119,8 +119,9 @@ if run_agents:
   if 'enemies' in params:
     enemies = params['enemies']
 
-  with open('enemies/' + enemies) as f:
-    enemies = json.load(f)
+  if isinstance(enemies, str):
+    with open('enemies/' + enemies) as f:
+      enemies = json.load(f)
 
   agents = 1
   if params['agents']:
@@ -137,18 +138,24 @@ if run_agents:
   agent_command += " --listen " + agent_dump
   if not args.local:
     agent_command += " --cpu_thread"
+  
+  agent_command += " --dolphin"
 
   for enemy in enemies:
-    command = agent_command + " --enemy "
-    if enemy == "self":
-      command += args.path
-    else:
-      command += "agents/%s/" % enemy
-
+    command = agent_command
+    if isinstance(enemy, str):
+      command += " --enemy "
+      if enemy == "self":
+        command += args.path
+      else:
+        command += "agents/%s/" % enemy
+    else: # cpu dict
+      command += " --cpu {level} --p1 {char}".format(**enemy)
+    
     agent_name = "agent_%d_%s" % (agent_count, params['name'])
     launch(agent_name, command,
       log=args.log_agents,
-      qos='use-everything',
+      #qos='use-everything',
       array=agents
     )
     agent_count += 1
