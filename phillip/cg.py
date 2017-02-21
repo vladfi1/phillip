@@ -1,6 +1,6 @@
 import tensorflow as tf
-from default import *
-import tf_lib as tfl
+from . import tf_lib as tfl
+from .default import *
 
 def mag2(x):
   return tf.reduce_sum(tf.square(x))

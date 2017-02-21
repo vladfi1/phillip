@@ -1,7 +1,6 @@
 import struct
 import attr
-import ssbm
-import fields
+from . import ssbm, fields
 
 def generic_wrapper(value, wrapper, default):
     if wrapper is not None:

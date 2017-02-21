@@ -173,7 +173,7 @@ def update(dikt, **kwargs):
 
 def load_params(path, key=None):
   import json
-  with open(path + 'params') as f:
+  with open(path + '/params') as f:
     params = json.load(f)
   
   # support old-style separation of params into train and agent

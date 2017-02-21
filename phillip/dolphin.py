@@ -37,13 +37,36 @@ def generateGCPadNew(pids=[1], pipe_count=True):
     count += 1
   return config
 
-with open('Dolphin.ini', 'r') as f:
-  dolphinConfig = f.read()
+import phillip
+datapath = phillip.path + '/data'
 
-import shutil
+with open(datapath + '/Dolphin.ini', 'r') as f:
+  dolphin_ini = f.read()
+
+gfx_ini = """
+[Settings]
+DumpFramesAsImages = {dump_ppm}
+DumpFramesToPPM = {dump_ppm}
+DumpFramesCounter = False
+Crop = True
+"""
+
+gale01_ini = """
+[Gecko_Enabled]
+$Netplay Community Settings
+"""
+
+gale01_ini_fm = """
+[Gecko_Enabled]
+$Faster Melee Netplay Settings
+$60FPS + 4X VRH
+[Core]
+VideoRate = 4
+"""
+
 import os
-import util
-from default import *
+from phillip import util
+from phillip.default import *
 
 class SetupUser(Default):
   _options = [
@@ -53,19 +76,30 @@ class SetupUser(Default):
     Option('audio', type=str, default="No audio backend", help="audio backend"),
     Option('speed', type=int, default=0, help='framerate - 100=normal, 0=unlimited'),
     Option('dump_frames', action="store_true", default=False, help="dump frames from dolphin to disk"),
-    Option('pipe_count', type=int, default=1, help="Count pipes alphabetically. Turn off for newer dolphins."),
+    Option('dump_ppm', action="store_true", help="dump frames as ppm images"),
+    Option('pipe_count', type=int, default=0, help="Count pipes alphabetically. Turn on for older dolphins."),
     Option('netplay', type=str),
     Option('direct', action="store_true", default=False, help="netplay direct connect"),
+    Option('fullscreen', action="store_true", default=False, help="run dolphin with fullscreen"),
+    Option('iso_path', type=str, default="", help="directory where you keep your isos"),
+    Option('human', action="store_true", help="set p1 to human"),
+    Option('fm', action="store_true", help="set up config for Faster Melee"),
   ]
   
   def __call__(self, user):
-    configDir = user + 'Config/'
+    configDir = user + '/Config'
     util.makedirs(configDir)
+    
+    if self.dump_ppm:
+      self.dump_frames = True
+    
+    if self.fm:
+      self.pipe_count = 0
 
-    with open(configDir + 'GCPadNew.ini', 'w') as f:
+    with open(configDir + '/GCPadNew.ini', 'w') as f:
       f.write(generateGCPadNew([0] if self.netplay else self.cpus, self.pipe_count))
 
-    with open(configDir + 'Dolphin.ini', 'w') as f:
+    with open(configDir + '/Dolphin.ini', 'w') as f:
       config_args = dict(
         user=user,
         gfx=self.gfx,
@@ -75,19 +109,21 @@ class SetupUser(Default):
         speed=self.speed,
         netplay=self.netplay,
         traversal='direct' if self.direct else 'traversal',
+        fullscreen=self.fullscreen,
+        iso_path=self.iso_path,
+        port1 = 12 if self.human else 6,
       )
-      f.write(dolphinConfig.format(**config_args))
-
-    # don't need memory card with netplay
-    #gcDir = user + 'GC/'
-    #os.makedirs(gcDir, exist_ok=True)
-    #memcardName = 'MemoryCardA.USA.raw'
-    #shutil.copyfile(memcardName, gcDir + memcardName)
+      f.write(dolphin_ini.format(**config_args))
     
-    gameSettings = "GameSettings/"
-    shutil.copytree(gameSettings, user + gameSettings)
+    with open(configDir + '/GFX.ini', 'w') as f:
+      f.write(gfx_ini.format(dump_ppm=self.dump_ppm))
 
-    util.makedirs(user + 'Dump/Frames/')
+    gameSettings = user + '/GameSettings'
+    util.makedirs(gameSettings)
+    with open(gameSettings + '/GALE01.ini', 'w') as f:
+      f.write(gale01_ini_fm if self.fm else gale01_ini)
+
+    util.makedirs(user + '/Dump/Frames')
 
 import subprocess
 
@@ -100,7 +136,7 @@ class DolphinRunner(Default):
     Option('setup', type=int, default=1, help="setup custom dolphin directory"),
     Option('gui', action="store_true", default=False, help="run with graphics and sound at normal speed"),
     Option('mute', action="store_true", default=False, help="mute game audio"),
-    Option('netplay', type=str, help="join traversal server")
+    Option('netplay', type=str, help="join traversal server"),
   ]
   
   _members = [
@@ -133,7 +169,7 @@ class DolphinRunner(Default):
       if self.mute:
         kwargs.update(audio = 'No audio backend')
       else:
-        kwargs.update(audio = 'ALSA')
+        kwargs.update(audio = 'Pulse')
       
     if self.setup:
       self._init_members(**kwargs)
@@ -176,7 +212,7 @@ class DolphinRunner(Default):
     
     return process
 
-if __name__ == "__main__":
+def main():
   import argparse
   
   parser = argparse.ArgumentParser()
@@ -188,3 +224,7 @@ if __name__ == "__main__":
   
   runner = DolphinRunner(**args.__dict__)
   runner()
+
+
+if __name__ == "__main__":
+  main()

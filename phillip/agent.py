@@ -1,13 +1,9 @@
 import tensorflow as tf
-import ssbm
-import tf_lib as tfl
+from . import ssbm, RL, util, tf_lib as tfl, ctype_util as ct
 import numpy as np
 from numpy import random, exp
-import RL
-import util
-from default import *
-from menu_manager import characters
-import ctype_util as ct
+from .default import *
+from .menu_manager import characters
 import pprint
 
 pp = pprint.PrettyPrinter(indent=2)

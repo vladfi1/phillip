@@ -4,7 +4,7 @@ import ctypes
 import math
 import itertools
 #import util
-from default import *
+from .default import *
 
 def leaky_relu(x, alpha=0.01):
   return tf.maximum(alpha * x, x)

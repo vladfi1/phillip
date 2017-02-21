@@ -1,5 +1,5 @@
 import numpy as np
-import util
+from . import util
 
 def isDying(player):
   # see https://docs.google.com/spreadsheets/d/1JX2w-r2fuvWuNgGb6D3Cs4wHQKLFegZe2jhbBuIhCG8/edit#gid=13

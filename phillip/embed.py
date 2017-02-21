@@ -1,8 +1,6 @@
 import tensorflow as tf
-import tf_lib as tfl
-import util
-import ssbm
-from default import *
+from . import tf_lib as tfl, util, ssbm
+from .default import *
 
 floatType = tf.float32
 

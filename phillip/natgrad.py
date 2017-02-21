@@ -1,7 +1,6 @@
 import tensorflow as tf
-from default import *
-import tf_lib as tfl
-import cg
+from .default import *
+from . import tf_lib as tfl, cg
 
 class NaturalGradient(Default):
   _options = [
