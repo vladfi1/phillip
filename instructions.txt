@@ -10,5 +10,6 @@ commands:
 !stop - stops the bot so others can play
 !agents - list available agents to play against
 !agent <agent> - set the agent
+!kill - get rid of pesky netplay windows
 
 Bot is in norcal.
