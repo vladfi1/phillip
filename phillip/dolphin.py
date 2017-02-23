@@ -77,7 +77,7 @@ class SetupUser(Default):
     Option('speed', type=int, default=0, help='framerate - 100=normal, 0=unlimited'),
     Option('dump_frames', action="store_true", default=False, help="dump frames from dolphin to disk"),
     Option('dump_ppm', action="store_true", help="dump frames as ppm images"),
-    Option('pipe_count', type=int, default=1, help="Count pipes alphabetically. Turn off for newer dolphins."),
+    Option('pipe_count', type=int, default=0, help="Count pipes alphabetically. Turn on for older dolphins."),
     Option('netplay', type=str),
     Option('direct', action="store_true", default=False, help="netplay direct connect"),
     Option('fullscreen', action="store_true", default=False, help="run dolphin with fullscreen"),

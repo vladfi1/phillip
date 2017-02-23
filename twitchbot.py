@@ -29,6 +29,10 @@ import os, signal, subprocess
 # I made a file globals.py on my PYTHONPATH for things like this
 from globals import twitch_key, dolphin_iso_path
 
+# should point to FM 4.4
+# linux install guide: https://github.com/Ptomerty/FasterMelee-installer
+dolphin_path = 'dolphin-emu'
+
 agent_path = '/home/vlad/Repos/phillip/agents/'
 agent = 'FalconFalconBF'
 
@@ -113,7 +117,7 @@ def play(bot, trigger):
     load=agent_path + agent,
     gui=True,
     zmq=0,
-    exe='dolphin-emu',
+    exe=dolphin_path,
     iso_path=dolphin_iso_path,
     netplay=code,
     start=0,
