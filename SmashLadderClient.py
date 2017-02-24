@@ -354,4 +354,8 @@ class TestSmashLadderClient(SmashLadderClient):
                     self.challenge_search(search)
                     print("Challenged search created by {0} ({1}).".format(search["player1"]["username"], search["player1"]["id"]))
 
-TestSmashLadderClient().log_in("Username", "Password")
+
+# I made a file globals.py on my PYTHONPATH for things like this
+from globals import smashladder, dolphin_iso_path
+
+TestSmashLadderClient().log_in(smashladder['username'], smashladder['password'])
