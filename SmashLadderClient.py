@@ -2,8 +2,9 @@ import asyncio
 import json
 import requests # pip install requests
 import websockets # pip install websockets
+from enum import IntEnum
 
-class Characters():
+class Characters(IntEnum):
     bowser = 43
     captain_falcon = 48
     donkey_kong = 49
@@ -33,7 +34,7 @@ class Characters():
     zelda = 47
     unknown = 0
 
-class Stages():
+class Stages(IntEnum):
     yoshis_story = 43
     fountain_of_dreams = 44
     battlefield = 45
@@ -41,7 +42,7 @@ class Stages():
     dream_land = 47
     pokemon_stadium = 48
 
-class Actions():
+class Actions(IntEnum):
     player_1_strike_stage = 1
     player_2_strike_stage = 2
     player_1_pick_character = 3
@@ -59,14 +60,14 @@ class Actions():
     # Nice.
     play_rps = 13
 
-class GameResult():
+class GameResult(IntEnum):
     lose = 1
     win = 2
     cancel = 3
     finished = 4
     disputed = 5
 
-class Feedback():
+class Feedback(IntEnum):
     positive = 1
     neutral = 0
     negative = -1
