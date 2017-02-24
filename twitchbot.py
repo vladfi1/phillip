@@ -168,5 +168,5 @@ def stop(bot, trigger):
 @module.commands('kill')
 def kill(bot, trigger):
   import os
-  os.system('killall dolphin-emu')
+  os.system('killall ' + dolphin_path)
 
