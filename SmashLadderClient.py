@@ -371,9 +371,9 @@ class TestSmashLadderClient(SmashLadderClient):
                 is_melee = search["ladder_id"] == 2
                 is_not_infinite = search["match_count"] != 0
                 is_not_ranked = not search["is_ranked"]
-                can_use_dolphin_5 = search["player1"]["preferred_builds"]["2"][1]["active"] == 1
+                can_use_faster_melee = search["player1"]["preferred_builds"]["2"][0]["active"] == 1
 
-                if correct_player and is_melee and is_not_infinite and is_not_ranked and can_use_dolphin_5:
+                if correct_player and is_melee and is_not_infinite and is_not_ranked and can_use_faster_melee:
                     self.challenge_search(search)
                     print("Challenged search created by {0} ({1}).".format(search["player1"]["username"], search["player1"]["id"]))
 
