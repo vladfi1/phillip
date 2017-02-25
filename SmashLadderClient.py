@@ -97,11 +97,14 @@ class SmashLadderClient():
 
     def on_game_ended(self, match):
         return
+    
+    def on_match_chat_recieved(self, message, match_id):
+        return
 
     def on_search_created(self, match):
         return
 
-    def on_message_recieved(self):
+    def on_socket_updated(self):
         return
 
     def process_message(self, input):
@@ -124,6 +127,19 @@ class SmashLadderClient():
             # ...Unless the Smash Ladder bugs out. That's not our fault.
             for id in input["current_matches"]:
                 if id != "all_entries":
+                    # Check if the input contains chat, but also make sure it contains only chat.
+                    # If it contains match data, then it's the message sent when a client reconnects for the first time.
+                    # Not checking for this would result in previously-sent messages being processed again.
+                    if ("chat" in input["current_matches"][id]) and not ("id" in input["current_matches"][id]):
+                        chat = input["current_matches"][id]["chat"]["chat_messages"]
+
+                        # If the type is list, then the message only contains "<player> is typing..." data.
+                        if type(chat) is dict:
+                            message = chat[list(chat.keys())[0]]
+                            if str(message["player"]["id"]) != self.user_id:
+                                # Chat messages don't contain any match data, so we have to manually send the ID.
+                                self.on_match_chat_recieved(message["message"], id)
+
                     if "end_phase" in input["current_matches"][id]:
                         if input["current_matches"][id]["end_phase"] == 0:
                             self.current_match = id
@@ -139,7 +155,7 @@ class SmashLadderClient():
                                 self.last_match = self.current_match
                                 self.current_match = None
         
-        self.on_message_recieved()
+        self.on_socket_updated()
 
     def log_in(self, username, password):
         data = {
@@ -339,6 +355,12 @@ class TestSmashLadderClient(SmashLadderClient):
         self.send_chat(match["id"], "Good games, probably.")
         self.update_match_feedback(match["id"], "", Feedback.neutral, Feedback.neutral)
         print("Match completed.")
+    
+    def on_match_chat_recieved(self, message, match_id):
+        if message.upper() == "!PING":
+            self.send_chat(match_id, "Pong!")
+        elif message.upper().startswith("!ECHO"):
+            self.send_chat(match_id, message[6:])
 
     def on_search_created(self, search):
         if self.current_match == None:
