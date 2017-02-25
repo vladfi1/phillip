@@ -157,9 +157,10 @@ class DolphinRunner(Default):
     #  self.exe = self.exe[:index]
     
     if self.gui:
-      # switch from headless to nogui
-      if self.exe.endswith("headless"):
-        self.exe = self.exe[:-8] + "nogui"
+      # switch from headless to gui
+      # once nogui gets a proper CLI we should use that
+      if self.exe.endswith("-headless"):
+        self.exe = self.exe[:-9]
       
       kwargs.update(
         speed = 1,
