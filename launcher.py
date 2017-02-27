@@ -53,6 +53,8 @@ if not os.path.exists("slurm_logs"):
 if not os.path.exists("slurm_scripts"):
   os.makedirs("slurm_scripts")
 
+pids = []
+
 def launch(name, command, cpus=2, mem=1000, gpu=False, log=True, qos=None, array=None):
   #command = "LD_PRELOAD=$OM_USER/lib/libtcmalloc.so.4 " + command
   if args.dry_run:
@@ -66,7 +68,8 @@ def launch(name, command, cpus=2, mem=1000, gpu=False, log=True, qos=None, array
       kwargs = {}
       for s in ['out', 'err']:
         kwargs['std' + s] = open("slurm_logs/%s_%d.%s" % (name, i, s), 'w') if log else subprocess.DEVNULL
-      subprocess.Popen(command.split(' '), **kwargs)
+      proc = subprocess.Popen(command.split(' '), **kwargs)
+      pids.append(proc.pid)
     return
 
   slurmfile = 'slurm_scripts/' + name + '.slurm'
@@ -164,3 +167,7 @@ if run_agents:
     )
     agent_count += 1
 
+if args.local:
+  with open(args.path + '/pids', 'w') as f:
+    for p in pids:
+      f.write(str(p) + ' ')
