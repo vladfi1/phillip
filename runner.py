@@ -1,7 +1,7 @@
 import os
 import sys
 import subprocess
-import util
+from phillip import util
 from collections import OrderedDict
 import argparse
 import random
@@ -69,7 +69,7 @@ elif ac:
   if natural:
     add_param('entropy_scale', 2e-4, True)
   else:
-    add_param('entropy_scale', 1e-3 if recurrent else 3e-3, True)
+    add_param('entropy_scale', 1e-3 if recurrent else 2e-3, True)
 
 if natural:
   add_param('natural', True, False)
@@ -119,10 +119,10 @@ add_param('fix_scopes', True, False)
 add_param('experience_length', 20 + params['tdN'], False)
 add_param('reload', 1, False)
 
-char = 'falco'
+#char = 'falco'
 #char = 'sheik'
 #char = 'falcon'
-#char = 'marth'
+char = 'marth'
 #char = 'fox'
 #char = 'peach'
 #char = 'luigi'
@@ -130,12 +130,12 @@ char = 'falco'
 #char = 'ganon'
 #char = 'puff'
 
-import data
+from phillip import data
 act_every = 2
 act_every = data.short_hop[char]
 add_param('act_every', act_every)#, False)
 
-delay = 0
+delay = 1
 if delay:
   add_param('delay', delay)
 if not recurrent:
@@ -150,16 +150,16 @@ add_param('char', char, True)
 enemies = None
 #enemies = "cpu"
 #enemies = "easy"
-enemies = "delay0"
+#enemies = "delay0"
 #enemies = "delay%d" % delay
-#enemies = ["FalconFalconBF", 'self']
+enemies = ['self']
 
 add_param('enemies', enemies)
 
 add_param('enemy_reload', 3600, False)
 
 # total number of agents
-agents = 180
+agents = 120
 params['agents'] = agents
 
 add_param('name', exp_name, False)

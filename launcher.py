@@ -2,7 +2,7 @@ import os
 import sys
 from argparse import ArgumentParser
 import subprocess
-import util
+from phillip import util
 import json
 
 parser = ArgumentParser()
@@ -42,7 +42,7 @@ else:
 
 # init model for the first time
 if args.init:
-  import RL
+  from phillip import RL
   model = RL.Model(mode=RL.Mode.TRAIN, **params)
   model.init()
   model.save()
@@ -101,12 +101,13 @@ if run_trainer:
   train_command = "python3 -u train.py --load " + args.path
   train_command += " --dump " + trainer_dump
 
-  if args.profile:
-    env_vars = "LD_PRELOAD=$OM_USER/lib/libtcmalloc.so HEAPPROFILE=profile/%s " % train_name
-  else:
-    env_vars = "LD_PRELOAD=$OM_USER/lib/libtcmalloc_minimal.so "
+  if not args.local: # TODO: support LD_PRELOAD for local args too
+    if args.profile:
+      env_vars = "LD_PRELOAD=$OM_USER/lib/libtcmalloc.so HEAPPROFILE=profile/%s " % train_name
+    else:
+      env_vars = "LD_PRELOAD=$OM_USER/lib/libtcmalloc_minimal.so "
   
-  train_command = env_vars + train_command
+    train_command = env_vars + train_command
 
   launch(train_name, train_command,
     gpu=True,
@@ -133,13 +134,16 @@ if run_agents:
   agents //= len(enemies)
 
   agent_count = 0
-  agent_command = "python3 -u run.py --load " + args.path
+  agent_command = "phillip --load " + args.path
   agent_command += " --dump " + agent_dump
   agent_command += " --listen " + agent_dump
   if not args.local:
     agent_command += " --cpu_thread"
   
   agent_command += " --dolphin"
+  agent_command += " --exe dolphin-emu-headless"
+  agent_command += " --zmq 1"
+  agent_command += " --pipe_count 1"
 
   for enemy in enemies:
     command = agent_command
@@ -155,7 +159,7 @@ if run_agents:
     agent_name = "agent_%d_%s" % (agent_count, params['name'])
     launch(agent_name, command,
       log=args.log_agents,
-      #qos='use-everything',
+      qos='use-everything',
       array=agents
     )
     agent_count += 1
