@@ -1,13 +1,11 @@
 #The Phillip AI
 An SSBM player based on Deep Reinforcement Learning.
 
-##Rough Setup Steps:
+## Requirements
 
-Tested on: Ubuntu >=14.04, OSX
+Tested on: Ubuntu >=14.04, OSX. If you want Windows support, go bug the dolphin developers to support MemoryWatcher and Pipe Input on Windows! A fork 
 
-### Requirements
-
-1. A recent version of dolphin.
+1. A recent version of dolphin. Probably need to compile from source on Linux.
 2. Python 3.
 3. [Tensorflow 0.11](https://www.tensorflow.org/versions/r0.11/get_started/os_setup).
 4. A few python packages
@@ -18,15 +16,34 @@ Tested on: Ubuntu >=14.04, OSX
 
     pip3 install -e .
 
-### Play
+## Play
 
 Trained agents are stored in the `agents` directory.
 
     phillip --gui --human --start 0 --load agents/FalconFalconFD
 
-### Train
+## Train
 
-Training is controlled by `train.py`. See also `runner.py` and `launcher.py` for training massively in parallel on slurm clusters. Phillip has been trained at the [MGHPCC](http://www.mghpcc.org/).
+Training is controlled by `phillip/train.py`. See also `runner.py` and `launcher.py` for training massively in parallel on slurm clusters. Phillip has been trained at the [MGHPCC](http://www.mghpcc.org/). It is recommended to train with a custom dolphin from `https://github.com/vladfi1/dolphin` - the below commands will likely fail otherwise.
+
+Local training is also possible. First, edit `runner.py` with your desired training params (advanced). Then do:
+
+    python3 runner.py # will output a path
+    python3 launcher.py saves/path/ --init --local [--agents number_of_agents] [--log_agents]
+
+To view stats during training:
+
+    tensorboard --logdir logs/
+
+The trainer and (optionally) agents redirect their stdout/err to `slurm_logs/`. To end training:
+
+    kill $(cat saves/path/pids)
+
+To resume training run `launcher.py` again, but omit the `--init` (it will overwrite your old network).
+
+## Support
+
+Come to the [Discord](https://discord.gg/KQ8vhd6)!
 
 ## Recordings
 
