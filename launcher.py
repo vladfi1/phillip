@@ -101,7 +101,7 @@ def launch(name, command, cpus=2, mem=1000, gpu=False, log=True, qos=None, array
 
 if run_trainer:
   train_name = "trainer_" + params['name']
-  train_command = "python3 -u train.py --load " + args.path
+  train_command = "python3 -u phillip/train.py --load " + args.path
   train_command += " --dump " + trainer_dump
 
   if not args.local: # TODO: support LD_PRELOAD for local args too
