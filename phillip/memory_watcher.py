@@ -58,34 +58,21 @@ class MemoryWatcher:
     self.sock.settimeout(1)
     self.sock.bind(path)
 
-  def __iter__(self):
-    """Iterate over this class in the usual way to get memory changes."""
-    return self
-
   def __del__(self):
     """Closes the socket."""
     self.sock.close()
-
-  def __next__(self):
-    """Returns the next (address, value) tuple, or None on timeout.
-
-    address is the string provided by dolphin, set in Locations.txt.
-    value is a four-byte string suitable for interpretation with struct.
-    """
-    try:
-      data = self.sock.recv(1024).decode('utf-8').splitlines()
-    except socket.timeout:
-      return None
-    assert len(data) == 2
-    # Strip the null terminator, pad with zeros, then convert to bytes
-    return data[0], binascii.unhexlify(data[1].strip('\x00').zfill(8))
   
   def get_messages(self):
-    res = next(self)
-    if res is not None:
-      return [res]
-    return []
-  
+    try:
+      data = self.sock.recv(1024).decode('utf-8')
+      data = data.strip('\x00')
+    except socket.timeout:
+      return []
+    
+    assert(len(data) % 2 == 0)
+    
+    return parseMessage(data)
+    
   def advance(self):
     pass
 
