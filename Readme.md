@@ -3,7 +3,7 @@ An SSBM player based on Deep Reinforcement Learning.
 
 ## Requirements
 
-Tested on: Ubuntu >=14.04, OSX. If you want Windows support, go bug the dolphin developers to support MemoryWatcher and Pipe Input on Windows! A fork 
+Tested on: Ubuntu >=14.04, OSX. If you want Windows support, go [bug](https://bugs.dolphin-emu.org/issues/10126) the dolphin developers to support MemoryWatcher and Pipe Input on Windows! A fork that supports this is under works.
 
 1. A recent version of dolphin. Probably need to compile from source on Linux.
 2. Python 3.
