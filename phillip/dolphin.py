@@ -152,14 +152,15 @@ class DolphinRunner(Default):
     
     print("Dolphin user dir", self.user)
     
-    if self.netplay: # need gui version to netplay
-      index = self.exe.rfind('dolphin-emu') + len('dolphin-emu')
-      self.exe = self.exe[:index]
+    #if self.netplay: # need gui version to netplay
+    #  index = self.exe.rfind('dolphin-emu') + len('dolphin-emu')
+    #  self.exe = self.exe[:index]
     
     if self.gui:
-      # switch from headless to nogui
-      if self.exe.endswith("headless"):
-        self.exe = self.exe[:-8] + "nogui"
+      # switch from headless to gui
+      # once nogui gets a proper CLI we should use that
+      if self.exe.endswith("-headless"):
+        self.exe = self.exe[:-9]
       
       kwargs.update(
         speed = 1,

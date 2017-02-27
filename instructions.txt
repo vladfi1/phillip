@@ -1,0 +1,15 @@
+Instructions:
+1. Smashladder dolphin (FM 4.4)
+2. Use the smashladder configuration (no memory card, cheats on, netplay community settings Gecko code, widescreen hack off)
+3. host a netplay lobby (traversal server)
+4. Go to twitch.tv/x_pilot
+
+commands:
+
+!play <code> - the bot will join your netplay lobby
+!stop - stops the bot so others can play
+!agents - list available agents to play against
+!agent <agent> - set the agent
+!kill - get rid of pesky netplay windows
+
+Bot is in norcal.

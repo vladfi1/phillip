@@ -29,6 +29,10 @@ import os, signal, subprocess
 # I made a file globals.py on my PYTHONPATH for things like this
 from globals import twitch_key, dolphin_iso_path
 
+# should point to FM 4.4
+# linux install guide: https://github.com/Ptomerty/FasterMelee-installer
+dolphin_path = 'launch-faster-melee'
+
 agent_path = '/home/vlad/Repos/phillip/agents/'
 agent = 'FalconFalconBF'
 
@@ -59,7 +63,7 @@ def helloworld(bot, trigger):
 
 @module.commands('dolphin')
 def dolphin(bot, trigger):
-    bot.say("5.0-2538")
+    bot.say("Faster Melee 4.4")
 
 instructions = """
 1. Install dolphin 5.0-2538
@@ -113,7 +117,8 @@ def play(bot, trigger):
     load=agent_path + agent,
     gui=True,
     zmq=0,
-    exe='dolphin-emu',
+    exe=dolphin_path,
+    fm = True,
     iso_path=dolphin_iso_path,
     netplay=code,
     start=0,
@@ -122,7 +127,7 @@ def play(bot, trigger):
     act_every=1,
     reload=60,
   )
-  
+    
   #current_thread = Process(target=run.run, kwargs=args)
   #current_thread.start()
   #return
@@ -163,5 +168,5 @@ def stop(bot, trigger):
 @module.commands('kill')
 def kill(bot, trigger):
   import os
-  os.system('killall dolphin-emu')
+  os.system('killall ' + dolphin_path)
 
