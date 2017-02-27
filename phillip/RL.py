@@ -1,3 +1,4 @@
+import os
 import tensorflow as tf
 import numpy as np
 from enum import Enum
@@ -65,6 +66,8 @@ class Model(Default):
     
     if self.path is None:
       self.path = "saves/%s/" % self.name
+    
+    self.snapshot = os.path.join(self.path, 'snapshot')
     
     modelType = models[self.model]
     self.actionType = ssbm.actionTypes[self.action_type]
@@ -247,14 +250,13 @@ class Model(Default):
       #print('After summary: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
 
   def save(self):
-    import os
     util.makedirs(self.path)
     print("Saving to", self.path)
-    self.saver.save(self.sess, self.path + "/snapshot", write_meta_graph=False)
+    self.saver.save(self.sess, self.snapshot, write_meta_graph=False)
 
   def restore(self):
     print("Restoring from", self.path)
-    self.saver.restore(self.sess, self.path + "/snapshot")
+    self.saver.restore(self.sess, self.snapshot)
 
   def init(self):
     self.sess.run(self.initializer)
