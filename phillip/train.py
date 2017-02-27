@@ -1,9 +1,8 @@
 import os
 import sys
 import time
-import RL
-import util
-from default import *
+from phillip import RL, util
+from phillip.default import *
 import numpy as np
 from collections import defaultdict
 import zmq
