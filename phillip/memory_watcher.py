@@ -7,6 +7,8 @@ import socket
 def parseMessage(message):
   lines = message.splitlines()
   
+  assert(len(lines) % 2 == 0)
+
   diffs = util.chunk(lines, 2)
   
   for diff in diffs:
@@ -68,8 +70,6 @@ class MemoryWatcher:
       data = data.strip('\x00')
     except socket.timeout:
       return []
-    
-    assert(len(data) % 2 == 0)
     
     return parseMessage(data)
     
