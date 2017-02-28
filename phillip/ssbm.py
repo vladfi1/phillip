@@ -107,7 +107,11 @@ class GameMemory(Structure):
 
     ('frame', c_uint),
     ('menu', c_uint),
-    ('stage', c_uint)
+    ('stage', c_uint),
+    
+    # stage select screen
+    ('sss_cursor_x', c_float),
+    ('sss_cursor_y', c_float),
   ]
 
 class SimpleButton(IntEnum):

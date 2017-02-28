@@ -107,18 +107,19 @@ class CPU(Default):
             actions = []
             
             cpu = self.cpus[pid]
+            locator = locateCSSCursor(pid)
             
             if cpu:
-                actions.append(MoveTo([0, 20], pid, pad, True))
+                actions.append(MoveTo([0, 20], locator, pad, True))
                 actions.append(movie.Movie(tapA, pad))
                 actions.append(movie.Movie(tapA, pad))
-                actions.append(MoveTo([0, -14], pid, pad, True))
+                actions.append(MoveTo([0, -14], locator, pad, True))
                 actions.append(movie.Movie(tapA, pad))
-                actions.append(MoveTo([cpu * 1.1, 0], pid, pad, True))
+                actions.append(MoveTo([cpu * 1.1, 0], locator, pad, True))
                 actions.append(movie.Movie(tapA, pad))
                 #actions.append(Wait(10000))
             
-            actions.append(MoveTo(characters[self.characters[pid]], pid, pad))
+            actions.append(MoveTo(characters[self.characters[pid]], locator, pad))
             actions.append(movie.Movie(tapA, pad))
             
             pick_chars.append(Sequential(*actions))
@@ -126,7 +127,7 @@ class CPU(Default):
         pick_chars = Parallel(*pick_chars)
         
         enter_settings = Sequential(
-            MoveTo(settings, self.pids[0], self.pads[0]),
+            MoveTo(settings, locateCSSCursor(self.pids[0]), self.pads[0]),
             movie.Movie(tapA, self.pads[0])
         )
         

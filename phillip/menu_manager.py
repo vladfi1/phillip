@@ -21,26 +21,37 @@ characters = dict(
 
 settings = (0, 24)
 
+staged = dict(
+  final_destination = (0, 0),
+)
+
+def locateCSSCursor(pid):
+  def locate(state):
+    player = state.players[pid]
+    return (player.cursor_x, player.cursor_y)
+  return locate
+
+def locateSSSCursor(state):
+  return (state.sss_cursor_x, state.sss_cursor_y)
+
 class MoveTo:
-  def __init__(self, target, pid, pad, relative=False):
-    #print(target, pid, pad.path)
-    
+  def __init__(self, target, locator, pad, relative=False):
     self.target = target
-    self.pid = pid
+    self.locator = locator
     self.pad = pad
     self.reached = False
     self.relative = relative
     
   def move(self, state):
-    player = state.players[self.pid]
-        
+    x, y = self.locator(state)
+    
     if self.relative:
-      self.target[0] += player.cursor_x
-      self.target[1] += player.cursor_y
+      self.target[0] += x
+      self.target[1] += y
       self.relative = False
     
-    dx = self.target[0] - player.cursor_x
-    dy = self.target[1] - player.cursor_y
+    dx = self.target[0] - x
+    dy = self.target[1] - y
     mag = math.sqrt(dx * dx + dy * dy)
     if mag < 0.5:
       self.pad.tilt_stick(Stick.MAIN, 0.5, 0.5)

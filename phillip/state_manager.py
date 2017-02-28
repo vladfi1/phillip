@@ -69,6 +69,11 @@ global_addresses['80479D60'] = Handler(['frame'], intHandler)
 global_addresses['80479D30'] = Handler(['menu'], IntHandler(mask=byte_mask))#, Menu, Menu.Characters)
 global_addresses['804D6CAD'] = Handler(['stage'], shortHandler)#, Stage, Stage.Unselected)
 
+# doesn't work yet, crashes dolphin with invalid pointers
+sss_pointer = '80BDA810 28 '
+#global_addresses[sss_pointer + '38'] = Handler(['sss_cursor_x'], floatHandler)
+#global_addresses[sss_pointer + '3C'] = Handler(['sss_cursor_y'], floatHandler)
+
 def playerAddresses(player_id, addresses=None):
     if addresses is None:
         addresses = {}
@@ -78,8 +83,9 @@ def playerAddresses(player_id, addresses=None):
     def playerHandler(field, handler):
         return Handler(player_path + field.split('/'), handler)
 
-    cursor_x_address = add_address('81118DEC', -0xB80 * player_id)
-    cursor_y_address = add_address('81118DF0', -0xB80 * player_id)
+    cursor_pointer = add_address('804A0BC0',  4 * player_id)
+    cursor_x_address = cursor_pointer + ' ' + 'C'
+    cursor_y_address = cursor_pointer + ' ' + '10'
     addresses[cursor_x_address] = playerHandler('cursor_x', floatHandler)
     addresses[cursor_y_address] = playerHandler('cursor_y', floatHandler)
 
