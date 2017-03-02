@@ -55,7 +55,6 @@ train_settings = [
   ('batches', 1 if natural else 5),
   ('batch_size', 2000),
   ('batch_steps', 1),
-  ('gpu', 1),
 ]
 
 if dqn:

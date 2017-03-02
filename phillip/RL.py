@@ -47,7 +47,7 @@ class Model(Default):
   _options = [
     Option('model', type=str, default="DQN", choices=models.keys()),
     Option('path', type=str, help="path to saved model"),
-    Option('gpu', type=bool, default=False, help="train on gpu"),
+    Option('gpu', action="store_true", default=False, help="execute on gpu"),
     Option('memory', type=int, default=0, help="number of frames to remember"),
     Option('action_type', type=str, default="diagonal", choices=ssbm.actionTypes.keys()),
     Option('name', type=str)

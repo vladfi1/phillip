@@ -57,6 +57,9 @@ pids = []
 
 def launch(name, command, cpus=2, mem=1000, gpu=False, log=True, qos=None, array=None):
   #command = "LD_PRELOAD=$OM_USER/lib/libtcmalloc.so.4 " + command
+  if gpu:
+    command += " --gpu"
+  
   if args.dry_run:
     print(command)
     return
