@@ -74,7 +74,7 @@ class SetupUser(Default):
     Option('cpu_thread', action="store_true", default=False, help="Use separate gpu and cpu threads."),
     Option('cpus', type=int, nargs='+', default=[1], help="Which players are cpu-controlled."),
     Option('audio', type=str, default="No audio backend", help="audio backend"),
-    Option('speed', type=int, default=0, help='framerate - 100=normal, 0=unlimited'),
+    Option('speed', type=int, default=0, help='framerate - 1=normal, 0=unlimited'),
     Option('dump_frames', action="store_true", default=False, help="dump frames from dolphin to disk"),
     Option('dump_ppm', action="store_true", help="dump frames as ppm images"),
     Option('pipe_count', type=int, default=0, help="Count pipes alphabetically. Turn on for older dolphins."),
