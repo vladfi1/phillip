@@ -202,7 +202,6 @@ def embedStage(stage):
 
 class GameEmbedding(StructEmbedding, Default):
   _options = [
-    Option('swap', type=int, default=0, help="swap players 1 and 2"),
     Option('player_space', type=int, default=64, help="embed players into PLAYER_SPACE dimensions (deprecated)"),
   ]
   
@@ -217,7 +216,7 @@ class GameEmbedding(StructEmbedding, Default):
       self.embedPlayer = FCEmbedding(self.embedPlayer, self.player_space, **kwargs)
     
     players = [0, 1]
-    if self.swap: players.reverse()
+    #if self.swap: players.reverse()
     
     gameEmbedding = [
       ('players', ArrayEmbedding(self.embedPlayer, players)),

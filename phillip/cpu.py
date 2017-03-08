@@ -20,7 +20,6 @@ class CPU(Default):
       Option('cpu', type=int, help="enemy cpu level"),
       Option('start', type=int, default=1, help="start game in endless time mode"),
       Option('netplay', type=str),
-      Option('swap', type=int, default=0, help="swap players 1 and 2"),
     ] + [Option('p%d' % i, type=str, choices=characters.keys(), default="falcon", help="character for player %d" % i) for i in [1, 2]]
     
     _members = [
@@ -43,7 +42,7 @@ class CPU(Default):
             random.seed(self.tag)
         
         pids = [1, 0]
-        if self.swap: pids.reverse()
+        if self.agent.swap: pids.reverse()
         self.pid, enemy_pid = pids
         
         self.pids = [self.pid]
@@ -55,7 +54,7 @@ class CPU(Default):
             enemy_kwargs = util.load_params(self.enemy, 'agent')
             enemy_kwargs.update(
                 reload=self.enemy_reload * self.agent.reload,
-                swap=not self.swap,
+                swap=not self.agent.swap,
                 dump=None,
             )
             enemy = agent.Agent(**enemy_kwargs)

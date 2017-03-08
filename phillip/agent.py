@@ -15,6 +15,7 @@ class Agent(Default):
     Option('reload', type=int, default=60, help="reload model every RELOAD seconds"),
     Option('dump', type=str, help="dump experiences to ip address via zmq"),
     Option('listen', type=str, help="address to listen on for model updates"),
+    Option('swap', type=int, default=0, help="swap players 1 and 2"),
   ]
   
   _members = [
@@ -66,11 +67,8 @@ class Agent(Default):
       print("Connecting params socket to", address)
       self.params_socket.connect(address)
 
-  def dump_state(self):
-    state_action = self.dump_state_actions[self.dump_frame]
-    state_action.state = self.state
-    state_action.prev = self.prev_action
-    state_action.action = self.action
+  def dump_state(self, state_action):
+    self.dump_state_actions[self.dump_frame] = state_action
     
     if self.dump_frame == 0:
       self.initial = self.hidden
@@ -99,13 +97,15 @@ class Agent(Default):
     verbose = self.verbose and (self.action_counter % (10 * self.model.rlConfig.fps) == 0)
     #verbose = False
     
-    self.state = state
-    
     current = self.memory.peek()
-    current.state = state
+    current.state = state # copy
     
-    self.prev_action = self.action
-    current.prev_action = self.prev_action
+    # extra copying, oh well
+    if self.swap:
+      current.state.players[0] = state.players[1]
+      current.state.players[1] = state.players[0]
+    
+    current.prev_action = self.action
 
     self.memory.increment()
     history = self.memory.as_list()
@@ -129,7 +129,7 @@ class Agent(Default):
     self.action_counter += 1
     
     if self.dump:
-      self.dump_state()
+      self.dump_state(current)
     
     if self.reload and self.action_counter % (self.reload * self.model.rlConfig.fps) == 0:
       if self.listen:
