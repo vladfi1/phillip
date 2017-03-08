@@ -36,11 +36,9 @@ class Critic(Default):
         self.net.append(tfl.FCLayer(prev_size, 1))
   
   def __call__(self, states, rewards):
-    train_length = self.rlConfig.experience_length - 1
-  
     values = tf.squeeze(self.net(states), [-1])
-    trainVs = values[:,:train_length]
-    lastV = values[:,train_length]
+    trainVs = values[:,:-1]
+    lastV = values[:,-1]
     
     # TODO: implement GAE, or some TD(N) weighting scheme
     targets = tfl.discount(rewards, self.rlConfig.discount, lastV)
