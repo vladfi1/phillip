@@ -1,10 +1,6 @@
 import tensorflow as tf
-#import pdb
-import ctypes
-import math
 import itertools
-#import util
-from .default import *
+from phillip.default import *
 
 def leaky_relu(x, alpha=0.01):
   return tf.maximum(alpha * x, x)
@@ -345,3 +341,18 @@ def rnn(cell, inputs, initial_state, scope=None):
     output, state = cell(input_, state)
     outputs.append(output)
   return outputs, state
+
+def discount(values, gamma, initial=None):
+  values = tf.unpack(values, axis=1)
+  
+  if initial is None:
+    current = tf.zeros_like(values[0])
+  else:
+    current = initial
+  
+  for i in reversed(range(len(values))):
+    current = values[i] + gamma * current
+    values[i] = current
+  
+  return tf.pack(values, axis=1)
+
