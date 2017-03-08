@@ -20,6 +20,7 @@ class CPU(Default):
       Option('cpu', type=int, help="enemy cpu level"),
       Option('start', type=int, default=1, help="start game in endless time mode"),
       Option('netplay', type=str),
+      Option('swap', type=int, default=0, help="swap players 1 and 2"),
     ] + [Option('p%d' % i, type=str, choices=characters.keys(), default="falcon", help="character for player %d" % i) for i in [1, 2]]
     
     _members = [
@@ -41,8 +42,9 @@ class CPU(Default):
         if self.tag is not None:
             random.seed(self.tag)
         
-        # we play as player 2
-        self.pid = 1
+        pids = [1, 0]
+        if self.swap: pids.reverse()
+        self.pid, enemy_pid = pids
         
         self.pids = [self.pid]
         self.agents = {self.pid: self.agent}
@@ -53,20 +55,20 @@ class CPU(Default):
             enemy_kwargs = util.load_params(self.enemy, 'agent')
             enemy_kwargs.update(
                 reload=self.enemy_reload * self.agent.reload,
-                swap=True,
+                swap=not self.swap,
                 dump=None,
             )
             enemy = agent.Agent(**enemy_kwargs)
         
-            self.pids.append(0)
-            self.agents[0] = enemy
-            self.cpus[0] = None
-            self.characters[0] = enemy.char or self.p1
+            self.pids.append(enemy_pid)
+            self.agents[enemy_pid] = enemy
+            self.cpus[enemy_pid] = None
+            self.characters[enemy_pid] = enemy.char or self.p1
         elif self.cpu:
-            self.pids.append(0)
-            self.agents[0] = None
-            self.cpus[0] = self.cpu
-            self.characters[0] = self.p1
+            self.pids.append(enemy_pid)
+            self.agents[enemy_pid] = None
+            self.cpus[enemy_pid] = self.cpu
+            self.characters[enemy_pid] = self.p1
 
         print('Creating MemoryWatcher.')
         mwType = memory_watcher.MemoryWatcher
@@ -151,6 +153,9 @@ class CPU(Default):
         except KeyboardInterrupt:
             if dolphin_process is not None:
                 dolphin_process.terminate()
+                #hack to get C-zmq dolphin to shutdown properly
+                #self.update_state()
+                #self.mw.advance()
             self.print_stats()
 
     def init_stats(self):

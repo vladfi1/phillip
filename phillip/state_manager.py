@@ -52,7 +52,7 @@ class Handler(object):
     def __call__(self, obj, value):
         fields.setPath(obj, self.path, self.handler(value))
 
-# TODO: use numbers instead of strings to hash addresses
+# TODO: use numbers instead of strings to hash addresses?
 def add_address(x, y):
     """Returns a string representation of the sum of the two parameters.
 

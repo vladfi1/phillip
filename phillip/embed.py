@@ -145,7 +145,7 @@ maxJumps = 8
 
 class PlayerEmbedding(StructEmbedding, Default):
   _options = [
-    Option('action_space', type=int, default=64, help="embed actions in ACTION_SPACE dimensions"),
+    Option('action_space', type=int, default=64, help="embed actions in ACTION_SPACE dimensions (deprecated)"),
     Option('xy_scale', type=float, default=0.1, help="scale xy coordinates"),
     Option('shield_scale', type=float, default=0.01),
     Option('speed_scale', type=float, default=0.5),
@@ -202,22 +202,22 @@ def embedStage(stage):
 
 class GameEmbedding(StructEmbedding, Default):
   _options = [
-    #Option('swap', type=bool, default=False, help="swap players 1 and 2"),
-    Option('player_space', type=int, default=64, help="embed players into PLAYER_SPACE dimensions"),
+    Option('swap', type=int, default=0, help="swap players 1 and 2"),
+    Option('player_space', type=int, default=64, help="embed players into PLAYER_SPACE dimensions (deprecated)"),
   ]
   
   _members = [
     ('embedPlayer', PlayerEmbedding)
   ]
   
-  def __init__(self, swap=False, **kwargs):
+  def __init__(self, **kwargs):
     Default.__init__(self, **kwargs)
     
     if self.player_space:
       self.embedPlayer = FCEmbedding(self.embedPlayer, self.player_space, **kwargs)
     
     players = [0, 1]
-    if swap: players.reverse()
+    if self.swap: players.reverse()
     
     gameEmbedding = [
       ('players', ArrayEmbedding(self.embedPlayer, players)),

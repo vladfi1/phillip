@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import time
+import time, os
 from phillip.dolphin import DolphinRunner
 from argparse import ArgumentParser
 from multiprocessing import Process
@@ -22,6 +22,14 @@ def run(**kwargs):
 
   if params.get('user') is None:
     params['user'] = tempfile.mkdtemp() + '/'
+  
+  if params.get('random_swap'):
+    task_id = os.environ.get('SLURM_ARRAY_TASK_ID')
+    if task_id is not None:
+      params['swap'] = task_id % 2
+    else:
+      import random
+      params['swap'] = random.getrandbits(1)
 
   print("Creating cpu.")
   cpu = CPU(**params)
@@ -54,6 +62,8 @@ def main():
 
   # dolphin options
   parser.add_argument("--dolphin", action="store_true", default=None, help="run dolphin")
+  
+  parser.add_argument("--random_swap", action="store_true", help="randomly swap players")
 
   for opt in DolphinRunner.full_opts():
     opt.update_parser(parser)

@@ -225,8 +225,6 @@ def readStateActions(filename):
 def prepareStateActions(state_actions):
   vectorized = vectorizeCTypes(SimpleStateAction, state_actions)
   
-  #import ipdb; ipdb.set_trace()
-  
   states = vectorized['state']
 
   rewards = computeRewards(state_actions)
