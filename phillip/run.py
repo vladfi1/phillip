@@ -26,7 +26,7 @@ def run(**kwargs):
   if params.get('random_swap'):
     task_id = os.environ.get('SLURM_ARRAY_TASK_ID')
     if task_id is not None:
-      params['swap'] = task_id % 2
+      params['swap'] = int(task_id) % 2
     else:
       import random
       params['swap'] = random.getrandbits(1)
