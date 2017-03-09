@@ -143,8 +143,8 @@ if run_agents:
   agent_command = "phillip --load " + args.path
   agent_command += " --dump " + agent_dump
   agent_command += " --listen " + agent_dump
-  if not args.local:
-    agent_command += " --cpu_thread"
+  if args.local:
+    agent_command += " --dual_core 0"
   
   agent_command += " --dolphin"
   agent_command += " --exe dolphin-emu-headless"
