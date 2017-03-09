@@ -128,7 +128,7 @@ class Model(Default):
           
           # critic gets to see the future!
           critic_states = states[:,self.rlConfig.delay:,:]
-          critic_prev_actions = prev_actions[:,self.rlConfig.delay:,:]
+          critic_prev_actions = prev_actions[:,:delay_length,:]
           critic_states = tf.concat(2, [critic_states, critic_prev_actions])
           
           critic_history = [tf.slice(critic_states, [0, i, 0], [-1, train_length, -1]) for i in range(self.memory+1)]
