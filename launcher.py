@@ -150,6 +150,7 @@ if run_agents:
   agent_command += " --exe dolphin-emu-headless"
   agent_command += " --zmq 1"
   agent_command += " --pipe_count 1"
+  agent_command += " --random_swap"
 
   for enemy in enemies:
     command = agent_command
