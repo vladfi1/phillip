@@ -71,7 +71,7 @@ from phillip.default import *
 class SetupUser(Default):
   _options = [
     Option('gfx', type=str, default="Null", help="graphics backend"),
-    Option('cpu_thread', action="store_true", default=False, help="Use separate gpu and cpu threads."),
+    Option('dual_core', type=int, default=1, help="Use separate gpu and cpu threads."),
     Option('cpus', type=int, nargs='+', default=[1], help="Which players are cpu-controlled."),
     Option('audio', type=str, default="No audio backend", help="audio backend"),
     Option('speed', type=int, default=0, help='framerate - 1=normal, 0=unlimited'),
@@ -92,9 +92,6 @@ class SetupUser(Default):
     
     if self.dump_ppm:
       self.dump_frames = True
-    
-    if self.fm:
-      self.pipe_count = 0
 
     with open(configDir + '/GCPadNew.ini', 'w') as f:
       f.write(generateGCPadNew([0] if self.netplay else self.cpus, self.pipe_count))
@@ -103,7 +100,7 @@ class SetupUser(Default):
       config_args = dict(
         user=user,
         gfx=self.gfx,
-        cpu_thread=self.cpu_thread,
+        cpu_thread=bool(self.dual_core),
         dump_frames=self.dump_frames,
         audio=self.audio,
         speed=self.speed,
