@@ -37,6 +37,15 @@ class FloatEmbedding(object):
       t = tf.minimum(t, self.upper)
     
     return tf.expand_dims(t, -1)
+  
+  def extract(self, t):
+    if self.scale:
+      t /= self.scale
+    
+    if self.bias:
+      t -= self.bias
+    
+    return tf.squeeze(t, [-1])
 
 embedFloat = FloatEmbedding("float")
 
