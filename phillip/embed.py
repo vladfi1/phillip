@@ -12,7 +12,8 @@ def nullEmbedding(t):
 nullEmbedding.size = 0
 
 class FloatEmbedding(object):
-  def __init__(self, scale=None, bias=None, lower=-250., upper=250.):
+  def __init__(self, name, scale=None, bias=None, lower=-250., upper=250.):
+    self.name = name
     self.scale = scale
     self.bias = bias
     self.lower = lower
@@ -37,10 +38,11 @@ class FloatEmbedding(object):
     
     return tf.expand_dims(t, -1)
 
-embedFloat = FloatEmbedding()
+embedFloat = FloatEmbedding("float")
 
 class OneHotEmbedding(object):
-  def __init__(self, size):
+  def __init__(self, name, size):
+    self.name = name
     self.size = size
   
   def __call__(self, t):
@@ -48,7 +50,8 @@ class OneHotEmbedding(object):
     return tf.one_hot(t, self.size, 1.0, 0.0)
 
 class StructEmbedding(object):
-  def __init__(self, embedding):
+  def __init__(self, name, embedding):
+    self.name = name
     self.embedding = embedding
     
     self.size = 0
@@ -70,7 +73,8 @@ class StructEmbedding(object):
     return tf.concat(rank-1, embed)
 
 class ArrayEmbedding(object):
-  def __init__(self, op, permutation):
+  def __init__(self, name, op, permutation):
+    self.name = name
     self.op = op
     self.permutation = permutation
     self.size = len(permutation) * op.size
@@ -98,8 +102,11 @@ class FCEmbedding(Default):
     ('nl', tfl.NL)
   ]
 
-  def __init__(self, wrapper, size, **kwargs):
+  def __init__(self, name, wrapper, size, **kwargs):
     Default.__init__(self, **kwargs)
+    
+    self.name = name
+    
     if not self.embed_nl:
       self.nl = None
 
@@ -117,7 +124,7 @@ stickEmbedding = [
   ('y', embedFloat)
 ]
 
-embedStick = StructEmbedding(stickEmbedding)
+embedStick = StructEmbedding("stick", stickEmbedding)
 
 # TODO: embed entire controller
 controllerEmbedding = [
@@ -135,7 +142,7 @@ controllerEmbedding = [
   ('stick_C', embedStick),
 ]
 
-embedController = StructEmbedding(controllerEmbedding)
+embedController = StructEmbedding("controller", controllerEmbedding)
 
 maxAction = 0x017E
 numActions = 1 + maxAction
@@ -155,28 +162,28 @@ class PlayerEmbedding(StructEmbedding, Default):
   def __init__(self, **kwargs):
     Default.__init__(self, **kwargs)
     
-    embedAction = OneHotEmbedding(numActions)
+    embedAction = OneHotEmbedding("action_state", numActions)
     if self.action_space:
-      embedAction = FCEmbedding(embedAction, self.action_space, **kwargs)
+      embedAction = FCEmbedding("action_state", embedAction, self.action_space, **kwargs)
     
-    embedXY = FloatEmbedding(scale=self.xy_scale)
-    embedSpeed = FloatEmbedding(scale=self.speed_scale)
+    embedXY = FloatEmbedding("xy", scale=self.xy_scale)
+    embedSpeed = FloatEmbedding("speed", scale=self.speed_scale)
 
     playerEmbedding = [
-      ("percent", FloatEmbedding(scale=0.01)),
+      ("percent", FloatEmbedding("percent", scale=0.01)),
       ("facing", embedFloat),
       ("x", embedXY),
       ("y", embedXY),
       ("action_state", embedAction),
       # ("action_counter", embedFloat),
-      ("action_frame", FloatEmbedding(scale=0.02)),
-      ("character", nullEmbedding if self.omit_char else OneHotEmbedding(maxCharacter)),
+      ("action_frame", FloatEmbedding("action_frame", scale=0.02)),
+      ("character", nullEmbedding if self.omit_char else OneHotEmbedding("character", maxCharacter)),
       ("invulnerable", embedFloat),
       ("hitlag_frames_left", embedFloat),
       ("hitstun_frames_left", embedFloat),
       ("jumps_used", embedFloat),
       ("charging_smash", embedFloat),
-      ("shield_size", FloatEmbedding(scale=self.shield_scale)),
+      ("shield_size", FloatEmbedding("shield_size", scale=self.shield_scale)),
       ("in_air", embedFloat),
       ('speed_air_x_self', embedSpeed),
       ('speed_ground_x_self', embedSpeed),
@@ -187,7 +194,7 @@ class PlayerEmbedding(StructEmbedding, Default):
       #('controller', embedController)
     ]
     
-    StructEmbedding.__init__(self, playerEmbedding)
+    StructEmbedding.__init__(self, "player", playerEmbedding)
 
 """
 maxStage = 64 # overestimate
@@ -219,13 +226,13 @@ class GameEmbedding(StructEmbedding, Default):
     #if self.swap: players.reverse()
     
     gameEmbedding = [
-      ('players', ArrayEmbedding(self.embedPlayer, players)),
+      ('players', ArrayEmbedding("players", self.embedPlayer, players)),
 
       #('frame', c_uint),
       #('stage', embedStage)
     ]
     
-    StructEmbedding.__init__(self, gameEmbedding)
+    StructEmbedding.__init__(self, "game", gameEmbedding)
 
 """
 def embedEnum(enum):

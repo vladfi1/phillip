@@ -75,7 +75,7 @@ class Model(Default):
     
     modelType = models[self.model]
     self.actionType = ssbm.actionTypes[self.action_type]
-    embedAction = embed.OneHotEmbedding(self.actionType.size)
+    embedAction = embed.OneHotEmbedding("action", self.actionType.size)
 
     self.graph = tf.Graph()
     
