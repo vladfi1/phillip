@@ -12,20 +12,21 @@ from .ac import ActorCritic
 from .reward import computeRewards
 from .rac import RecurrentActorCritic
 from .rdqn import RecurrentDQN
+
 import resource
 
 class Mode(Enum):
   TRAIN = 0
   PLAY = 1
 
-models = [
+policies = [
   DQN,
   ActorCritic,
   #ThompsonDQN,
   RecurrentActorCritic,
   RecurrentDQN,
 ]
-models = {model.__name__ : model for model in models}
+policies = {policy.__name__ : policy for policy in policies}
 
 class RLConfig(Default):
   _options = [
@@ -38,42 +39,44 @@ class RLConfig(Default):
   ]
   
   def __init__(self, **kwargs):
-    super(RLConfig, self).__init__(**kwargs)
+    Default.__init__(self, **kwargs)
     self.fps = 60 // self.act_every
     self.discount = 0.5 ** ( 1.0 / (self.fps*self.reward_halflife) )
     #self.experience_length = self.experience_time * self.fps
 
 from .critic import Critic
+from .model import Model
 
-class Model(Default):
+class RL(Default):
   _options = [
-    Option('model', type=str, default="DQN", choices=models.keys()),
-    Option('path', type=str, help="path to saved model"),
+    Option('policy', type=str, default="ActorCritic", choices=policies.keys()),
+    Option('path', type=str, help="path to saved policy"),
     Option('gpu', action="store_true", default=False, help="execute on gpu"),
     Option('memory', type=int, default=0, help="number of frames to remember"),
     Option('action_type', type=str, default="diagonal", choices=ssbm.actionTypes.keys()),
-    Option('name', type=str)
+    Option('name', type=str),
   ]
   
   _members = [
-    ('rlConfig', RLConfig),
+    ('config', RLConfig),
     ('embedGame', embed.GameEmbedding),
     ('critic', Critic),
+    ('model', Model),
   ]
   
   def __init__(self, mode = Mode.TRAIN, debug = False, **kwargs):
     Default.__init__(self, init_members=False, **kwargs)
-    self.rlConfig = RLConfig(**kwargs)
+    self.config = RLConfig(**kwargs)
     
     if self.name is None:
-      self.name = self.model
+      self.name = self.policy
     
     if self.path is None:
       self.path = "saves/%s/" % self.name
     
     self.snapshot = os.path.join(self.path, 'snapshot')
     
-    modelType = models[self.model]
+    policyType = policies[self.policy]
     self.actionType = ssbm.actionTypes[self.action_type]
     embedAction = embed.OneHotEmbedding("action", self.actionType.size)
 
@@ -91,31 +94,32 @@ class Model(Default):
       self.embedGame = embed.GameEmbedding(**kwargs)
       state_size = self.embedGame.size
       
-      print("Creating model:", self.model)
+      print("Creating policy:", self.policy)
       history_size = (1+self.memory) * (state_size+embedAction.size)
       
-      self.model = modelType(history_size, embedAction.size, self.global_step, self.rlConfig, **kwargs)
+      self.policy = policyType(history_size, embedAction.size, self.global_step, self.config, **kwargs)
       self.critic = Critic(history_size, **kwargs)
+      self.model = Model(**kwargs)
       
       if mode == Mode.TRAIN:
         with tf.name_scope('train'):
-          self.experience = ct.inputCType(ssbm.SimpleStateAction, [None, self.rlConfig.experience_length], "experience")
+          self.experience = ct.inputCType(ssbm.SimpleStateAction, [None, self.config.experience_length], "experience")
           # instantaneous rewards for all but the first state
-          self.experience['reward'] = tf.placeholder(tf.float32, [None, self.rlConfig.experience_length-1], name='experience/reward')
+          self.experience['reward'] = tf.placeholder(tf.float32, [None, self.config.experience_length-1], name='experience/reward')
           
           # initial state for recurrent networks
-          #self.experience['initial'] = tuple(tf.placeholder(tf.float32, [None, size], name='experience/initial/%d' % i) for i, size in enumerate(self.model.hidden_size))
-          self.experience['initial'] = util.deepMap(lambda size: tf.placeholder(tf.float32, [None, size], name="experience/initial"), self.model.hidden_size)
+          #self.experience['initial'] = tuple(tf.placeholder(tf.float32, [None, size], name='experience/initial/%d' % i) for i, size in enumerate(self.policy.hidden_size))
+          self.experience['initial'] = util.deepMap(lambda size: tf.placeholder(tf.float32, [None, size], name="experience/initial"), self.policy.hidden_size)
           
           mean_reward = tf.reduce_mean(self.experience['reward'])
           
-          train_length = self.rlConfig.experience_length - self.memory - self.rlConfig.delay
+          train_length = self.config.experience_length - self.memory - self.config.delay
           print("train length", train_length)
           
           states = self.embedGame(self.experience['state'])
           prev_actions = embedAction(self.experience['prev_action'])
           
-          delay_length = self.rlConfig.experience_length - self.rlConfig.delay
+          delay_length = self.config.experience_length - self.config.delay
           policy_states = states[:,:delay_length,:]
           policy_prev_actions = prev_actions[:,:delay_length,:]
           policy_states = tf.concat(2, [policy_states, policy_prev_actions])
@@ -127,15 +131,15 @@ class Model(Default):
           train_actions = tf.slice(actions, [0, self.memory, 0], [-1, train_length, -1])
           
           # critic gets to see the future!
-          critic_states = states[:,self.rlConfig.delay:,:]
+          critic_states = states[:,self.config.delay:,:]
           critic_prev_actions = prev_actions[:,:delay_length,:]
           critic_states = tf.concat(2, [critic_states, critic_prev_actions])
           
           critic_history = [tf.slice(critic_states, [0, i, 0], [-1, train_length, -1]) for i in range(self.memory+1)]
           critic_history = tf.concat(2, critic_history)
           
-          #self.train_rewards = tf.slice(self.experience['reward'], [0, self.memory + self.rlConfig.delay], [-1, -1])
-          train_rewards = self.experience['reward'][:, self.memory+self.rlConfig.delay:]
+          #self.train_rewards = tf.slice(self.experience['reward'], [0, self.memory + self.config.delay], [-1, -1])
+          train_rewards = self.experience['reward'][:, self.memory+self.config.delay:]
           
           policy_args = dict(
             states=policy_history,
@@ -152,7 +156,9 @@ class Model(Default):
           
           self.train_critic, targets, advantages = self.critic(**critic_args)
           policy_args.update(advantages=tf.stop_gradient(advantages), targets=targets)
-          self.train_policy = self.model.train(**policy_args)
+          self.train_policy = self.policy.train(**policy_args)
+          
+          self.train_model = self.model.train(self.experience)
           
           print("Created train op")
 
@@ -168,7 +174,7 @@ class Model(Default):
           self.run_dict = dict(
             summary=merged,
             global_step=self.global_step,
-            train=tf.group(self.train_critic, self.train_policy),
+            train=tf.group(self.train_critic, self.train_policy, self.train_model),
             misc=misc
           )
           
@@ -178,8 +184,8 @@ class Model(Default):
         with tf.name_scope('policy'):
           self.input = ct.inputCType(ssbm.SimpleStateAction, [self.memory+1], "input")
           
-          #self.input['hidden'] = [tf.placeholder(tf.float32, [size], name='input/hidden/%d' % i) for i, size in enumerate(self.model.hidden_size)]
-          self.input['hidden'] = util.deepMap(lambda size: tf.placeholder(tf.float32, [size], name="input/hidden"), self.model.hidden_size)
+          #self.input['hidden'] = [tf.placeholder(tf.float32, [size], name='input/hidden/%d' % i) for i, size in enumerate(self.policy.hidden_size)]
+          self.input['hidden'] = util.deepMap(lambda size: tf.placeholder(tf.float32, [size], name="input/hidden"), self.policy.hidden_size)
           
           states = self.embedGame(self.input['state'])
           prev_actions = embedAction(self.input['prev_action'])
@@ -192,7 +198,7 @@ class Model(Default):
             hidden=self.input['hidden']
           )
           
-          self.policy = self.model.getPolicy(**policy_args)
+          self.policy = self.policy.getPolicy(**policy_args)
       
       self.debug = debug
       
@@ -228,7 +234,7 @@ class Model(Default):
 
   def act(self, history, verbose=False):
     feed_dict = dict(util.deepValues(util.deepZip(self.input, history)))
-    return self.model.act(self.sess.run(self.policy, feed_dict), verbose)
+    return self.policy.act(self.sess.run(self.policy, feed_dict), verbose)
 
   def train(self, experiences, batch_steps=1, **kwargs):
     experiences = util.deepZip(*experiences)

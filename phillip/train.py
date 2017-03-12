@@ -43,7 +43,7 @@ class Trainer(Default):
   ]
   
   _members = [
-    ("model", RL.Model),
+    ("model", RL.RL),
   ]
   
   def __init__(self, load=None, **kwargs):
@@ -164,8 +164,8 @@ if __name__ == '__main__':
   for opt in Trainer.full_opts():
     opt.update_parser(parser)
 
-  for model in RL.models.values():
-    for opt in model.full_opts():
+  for policy in RL.policies.values():
+    for opt in policy.full_opts():
       opt.update_parser(parser)
 
   args = parser.parse_args()

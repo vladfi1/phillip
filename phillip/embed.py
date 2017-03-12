@@ -45,7 +45,18 @@ class FloatEmbedding(object):
     if self.bias:
       t -= self.bias
     
+    #return t
     return tf.squeeze(t, [-1])
+  
+  def distance(self, predicted, target):
+    if self.scale:
+      target *= self.scale
+    
+    if self.bias:
+      target += self.bias
+    
+    predicted = tf.squeeze(predicted, [-1])
+    return tf.squared_difference(predicted, target)
 
 embedFloat = FloatEmbedding("float")
 
@@ -55,8 +66,17 @@ class OneHotEmbedding(object):
     self.size = size
   
   def __call__(self, t):
-    t = tf.cast(t, tf.int64)
+    #t = tf.cast(t, tf.int64)
     return tf.one_hot(t, self.size, 1.0, 0.0)
+  
+  def extract(self, embedded):
+    # TODO: pick a random sample?
+    return tf.argmax(t, -1)
+  
+  def distance(self, embedded, target):
+    logprobs = tf.nn.log_softmax(embedded)
+    target = self(target)
+    return -tfl.batch_dot(logprobs, target)
 
 class StructEmbedding(object):
   def __init__(self, name, embedding):
@@ -80,6 +100,36 @@ class StructEmbedding(object):
         
         embed.append(t)
     return tf.concat(rank-1, embed)
+  
+  def extract(self, embedded):
+    rank = len(embedded.get_shape())
+    begin (rank-1) * [0]
+    size = (rank-1) * [-1]
+    
+    struct = {}
+    offset = 0
+    
+    for field, op in self.embedding:
+      t = tf.slice(embedded, begin + [offset], size + [op.size])
+      struct[field] = op.extract(t)
+      offset += op.size
+    
+    return struct
+    
+  def distance(self, embedded, target):
+    rank = len(embedded.get_shape())
+    begin = (rank-1) * [0]
+    size = (rank-1) * [-1]
+    
+    distances = {}
+    offset = 0
+    
+    for field, op in self.embedding:
+      t = tf.slice(embedded, begin + [offset], size + [op.size])
+      distances[field] = op.distance(t, target[field])
+      offset += op.size
+    
+    return distances
 
 class ArrayEmbedding(object):
   def __init__(self, name, op, permutation):
@@ -101,6 +151,28 @@ class ArrayEmbedding(object):
         
         embed.append(t)
     return tf.concat(rank-1, embed)
+  
+  def extract(self, embedded):
+    # a bit suspect here, we can't recreate the original array,
+    # only the bits that were embedded. oh well
+    array = max(self.permutation) * [None]
+    
+    ts = tf.split(tf.rank(embedded)-1, len(self.permutation), embedded)
+    
+    for i, t in zip(self.permutation, ts):
+      array[i] = self.op.extract(t)
+    
+    return array
+
+  def distance(self, embedded, target):
+    distances = []
+  
+    ts = tf.split(tf.rank(embedded)-1, len(self.permutation), embedded)
+    
+    for i, t in zip(self.permutation, ts):
+      distances.append(self.op.distance(t, target[i]))
+    
+    return distances
 
 class FCEmbedding(Default):
   _options = [

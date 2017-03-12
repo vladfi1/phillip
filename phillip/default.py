@@ -60,8 +60,9 @@ class Default:
     return cls(**kwargs)
   
 class Option:
-  def __init__(self, name, **kwargs):
+  def __init__(self, name, _skip=False, **kwargs):
     self.name = name
+    self._skip = _skip
     self.default = None
     self.__dict__.update(kwargs)
     self.kwargs = kwargs.copy()
@@ -70,6 +71,9 @@ class Option:
     self.kwargs['default'] = None
   
   def update_parser(self, parser):
+    if self._skip:
+      return
+    
     flag = "--" + self.name
     if flag in parser._option_string_actions:
       print("warning: already have option %s. skipping"%self.name)

@@ -9,7 +9,7 @@ class Critic(Default):
     Option('critic_layers', type=int, nargs='+', default=[128, 128]),
     Option('critic_learning_rate', type=float, default=1e-4),
     Option('gae_lamdba', type=float, default=1., help="Generalized Advantage Estimation"),
-    Option('fix_scopes', type=bool, default=False),
+    Option('fix_scopes', type=bool, default=True),
   ]
   
   _members = [

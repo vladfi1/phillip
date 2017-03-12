@@ -80,22 +80,19 @@ def scaled_weight_variable(shape):
     
     return scale * w
     
-def weight_variable(shape):
+def weight_init(shape):
     initial = tf.random_normal(shape, stddev=1.0)
     
     norms = tf.sqrt(tf.reduce_sum(tf.square(initial), list(range(len(shape)-1))))
     initial /= norms
     
-    return tf.Variable(initial, name='weight')
+    return initial
 
-def bias_variable(shape):
-    '''
-    Generates a TensorFlow Tensor. This Tensor gets initialized with values sampled from <some?> distribution.
-    Its purpose will be to store bias values.
-    :param shape: The dimensions of the desired Tensor
-    :return: The initialized Tensor
-    '''
-    return tf.Variable(tf.truncated_normal(shape, stddev=0.1), name='bias')
+def bias_init(shape):
+    return tf.truncated_normal(shape, stddev=0.1)
+
+def constant_init(c):
+    return lambda shape: tf.constant(c, shape=shape)
 
 def conv2d(x, W):
     '''
@@ -192,8 +189,13 @@ def matmul2(x, m, bias=None, nl=None):
 def cloneVar(var):
   return tf.Variable(var.initialized_value())
 
-class FCLayer:
-  def __init__(self, input_size=None, output_size=None, nl=None, clone=None):
+class FCLayer(Default):
+  _options = [
+    Option("weight_init", default=weight_init),
+    Option("bias_init", default=bias_init),
+  ]
+  
+  def __init__(self, input_size=None, output_size=None, nl=None, clone=None, **kwargs):
     if clone:
       self.input_size = clone.input_size
       self.output_size = clone.output_size
@@ -202,12 +204,14 @@ class FCLayer:
       self.weight = cloneVar(clone.weight)
       self.bias = cloneVar(clone.bias)
     else:
+      Default.__init__(self, **kwargs)
+      
       self.input_size = input_size
       self.output_size = output_size
       self.nl = nl
       
-      self.weight = weight_variable([input_size, output_size])
-      self.bias = bias_variable([output_size])
+      self.weight = tf.Variable(self.weight_init([input_size, output_size]), name="weight")
+      self.bias = tf.Variable(self.bias_init([output_size]), name="bias")
   
   def __call__(self, x):
     return matmul2(x, self.weight, self.bias, self.nl)
@@ -342,6 +346,8 @@ def rnn(cell, inputs, initial_state, scope=None):
     outputs.append(output)
   return outputs, state
 
+# TODO: implement this more efficiently, with
+# a tf.while_loop instead of manually unrolling
 def discount(values, gamma, initial=None):
   values = tf.unpack(values, axis=1)
   

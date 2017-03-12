@@ -19,7 +19,7 @@ class Agent(Default):
   ]
   
   _members = [
-    ('model', RL.Model)
+    ('rl', RL.RL)
   ]
   
   def __init__(self, **kwargs):
@@ -30,12 +30,12 @@ class Agent(Default):
     self.frame_counter = 0
     self.action_counter = 0
     self.action = 0
-    self.actions = util.CircularQueue(self.model.rlConfig.delay+1, 0)
-    self.memory = util.CircularQueue(array=((self.model.memory+1) * ssbm.SimpleStateAction)())
+    self.actions = util.CircularQueue(self.rl.rlConfig.delay+1, 0)
+    self.memory = util.CircularQueue(array=((self.rl.memory+1) * ssbm.SimpleStateAction)())
     
-    self.hidden = util.deepMap(np.zeros, self.model.model.hidden_size)
+    self.hidden = util.deepMap(np.zeros, self.rl.policy.hidden_size)
     
-    self.model.restore()
+    self.rl.restore()
     
     # TODO: merge dump and listen, they should always use the same address?
     if self.dump:
@@ -48,11 +48,11 @@ class Agent(Default):
       context = zmq.Context.instance()
 
       self.dump_socket = context.socket(zmq.PUSH)
-      sock_addr = "tcp://%s:%d" % (self.dump, util.port(self.model.name + "/experience"))
+      sock_addr = "tcp://%s:%d" % (self.dump, util.port(self.rl.name + "/experience"))
       print("Connecting experience socket to " + sock_addr)
       self.dump_socket.connect(sock_addr)
       
-      self.dump_size = self.model.rlConfig.experience_length
+      self.dump_size = self.rl.rlConfig.experience_length
       self.dump_state_actions = (self.dump_size * ssbm.SimpleStateAction)()
 
       self.dump_frame = 0
@@ -63,7 +63,7 @@ class Agent(Default):
       context = zmq.Context.instance()
       self.params_socket = context.socket(zmq.SUB)
       self.params_socket.setsockopt(zmq.SUBSCRIBE, b"")
-      address = "tcp://%s:%d" % (self.listen, util.port(self.model.name + "/params"))
+      address = "tcp://%s:%d" % (self.listen, util.port(self.rl.name + "/params"))
       print("Connecting params socket to", address)
       self.params_socket.connect(address)
 
@@ -91,10 +91,10 @@ class Agent(Default):
 
   def act(self, state, pad):
     self.frame_counter += 1
-    if self.frame_counter % self.model.rlConfig.act_every != 0:
+    if self.frame_counter % self.rl.rlConfig.act_every != 0:
       return
     
-    verbose = self.verbose and (self.action_counter % (10 * self.model.rlConfig.fps) == 0)
+    verbose = self.verbose and (self.action_counter % (10 * self.rl.rlConfig.fps) == 0)
     #verbose = False
     
     current = self.memory.peek()
@@ -113,7 +113,7 @@ class Agent(Default):
     history = ct.vectorizeCTypes(ssbm.SimpleStateAction, history)
     history['hidden'] = self.hidden
     
-    self.action, self.hidden = self.model.act(history, verbose)
+    self.action, self.hidden = self.rl.act(history, verbose)
     
     current.action = self.action
 
@@ -124,14 +124,14 @@ class Agent(Default):
     # the delayed action
     action = self.actions.push(self.action)
     
-    self.model.actionType.send(action, pad, self.char)
+    self.rl.actionType.send(action, pad, self.char)
     
     self.action_counter += 1
     
     if self.dump:
       self.dump_state(current)
     
-    if self.reload and self.action_counter % (self.reload * self.model.rlConfig.fps) == 0:
+    if self.reload and self.action_counter % (self.reload * self.rl.rlConfig.fps) == 0:
       if self.listen:
         import zmq
         blob = None
