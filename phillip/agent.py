@@ -31,7 +31,7 @@ class Agent(Default):
     self.action_counter = 0
     self.action = 0
     self.actions = util.CircularQueue(self.rl.config.delay+1, 0)
-    self.memory = util.CircularQueue(array=((self.rl.memory+1) * ssbm.SimpleStateAction)())
+    self.history = util.CircularQueue(array=((self.rl.config.memory+1) * ssbm.SimpleStateAction)())
     
     self.hidden = util.deepMap(np.zeros, self.rl.policy.hidden_size)
     
@@ -97,7 +97,7 @@ class Agent(Default):
     verbose = self.verbose and (self.action_counter % (10 * self.rl.config.fps) == 0)
     #verbose = False
     
-    current = self.memory.peek()
+    current = self.history.peek()
     current.state = state # copy
     
     # extra copying, oh well
@@ -107,8 +107,8 @@ class Agent(Default):
     
     current.prev_action = self.action
 
-    self.memory.increment()
-    history = self.memory.as_list()
+    self.history.increment()
+    history = self.history.as_list()
     
     history = ct.vectorizeCTypes(ssbm.SimpleStateAction, history)
     history['hidden'] = self.hidden

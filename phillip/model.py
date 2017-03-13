@@ -10,7 +10,6 @@ class Model(Default):
   _options = [
     Option("model_layers", type=int, nargs='+', default=[128]),
 
-    Option('memory', type=int, default=0, help="number of frames to remember"),
     Option('action_type', type=str, default="diagonal", choices=ssbm.actionTypes.keys()),
     Option('model_learning_rate', type=float, default=1e-4),
   ]
@@ -27,7 +26,7 @@ class Model(Default):
     action_size = self.actionType.size # TODO: use the actual controller embedding
     self.embedAction = embed.OneHotEmbedding("action", action_size)
     
-    history_size = (1+self.memory) * (embedGame.size + action_size)
+    history_size = (1+self.rlConfig.memory) * (embedGame.size + action_size)
     input_size = action_size + history_size
     
     with tf.variable_scope("model"):
@@ -67,21 +66,21 @@ class Model(Default):
     prev_actions = self.embedAction(experiences['prev_action'])
     
     delay_length = self.rlConfig.experience_length - self.rlConfig.delay
-    train_length = delay_length - self.memory - 1
+    train_length = delay_length - self.rlConfig.memory - 1
     
     delayed_states = states[:,self.rlConfig.delay:,:]
     prev_actions = prev_actions[:,:delay_length,:]
     combined_states = tf.concat(2, [delayed_states, prev_actions])
     
-    histories = [tf.slice(combined_states, [0, i, 0], [-1, train_length, -1]) for i in range(self.memory+1)]
+    histories = [tf.slice(combined_states, [0, i, 0], [-1, train_length, -1]) for i in range(self.rlConfig.memory+1)]
     histories = tf.concat(2, histories)
     
     actions = self.embedAction(experiences['action'])
-    train_actions = tf.slice(actions, [0, self.memory, 0], [-1, train_length, -1])
+    train_actions = tf.slice(actions, [0, self.rlConfig.memory, 0], [-1, train_length, -1])
     
     inputs = tf.concat(2, [histories, train_actions])
     
-    last_states = delayed_states[:,self.memory:-1,:]
+    last_states = delayed_states[:,self.rlConfig.memory:-1,:]
     
     predicted_states = self.apply(inputs, last_states)
     
