@@ -101,12 +101,12 @@ class RL(Default):
       print("Creating policy:", self.policy)
       self.policy = policyType(history_size, embedAction.size, self.global_step, self.config, **kwargs)
       
-      self.critic = Critic(history_size, **kwargs)
-      
       if self.use_model:
         self.model = Model(**kwargs)
       
       if mode == Mode.TRAIN:
+        self.critic = Critic(history_size, **kwargs)
+
         with tf.name_scope('train'):
           self.experience = ct.inputCType(ssbm.SimpleStateAction, [None, self.config.experience_length], "experience")
           # instantaneous rewards for all but the first state
