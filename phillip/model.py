@@ -4,10 +4,7 @@ from .default import *
 from . import embed, ssbm, RL, tf_lib as tfl, util
 
 # parameter-less embedding
-embedGame = embed.GameEmbedding(
-  player_space=0,
-  action_space=0,
-)
+embedGame = embed.GameEmbedding()
 
 class Model(Default):
   _options = [
@@ -28,7 +25,7 @@ class Model(Default):
     
     self.actionType = ssbm.actionTypes[self.action_type]
     action_size = self.actionType.size # TODO: use the actual controller embedding
-    self.embedAction = embed.OneHotEmbedding(action_size)
+    self.embedAction = embed.OneHotEmbedding("action", action_size)
     
     history_size = (1+self.memory) * (embedGame.size + action_size)
     input_size = action_size + history_size
@@ -97,7 +94,7 @@ class Model(Default):
     tf.scalar_summary("model/loss/self_x", tf.sqrt(distances['players'][1]['x']))
     tf.scalar_summary("model/loss/action_state", distances['players'][1]['action_state'])
     
-    distance = tf.add_n(util.deepValues(distances))
+    distance = tf.add_n(list(util.deepValues(distances)))
     tf.scalar_summary("model/loss/total", distance)
     
     return tf.train.AdamOptimizer(self.model_learning_rate).minimize(distance)

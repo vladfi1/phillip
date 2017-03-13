@@ -54,8 +54,8 @@ def main():
   for opt in CPU.full_opts():
     opt.update_parser(parser)
 
-  for model in RL.models.values():
-    for opt in model.full_opts():
+  for policy in RL.policies.values():
+    for opt in policy.full_opts():
       opt.update_parser(parser)
 
   parser.add_argument("--load", type=str, help="path to folder containing snapshot and params")

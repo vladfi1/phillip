@@ -49,6 +49,9 @@ class FloatEmbedding(object):
     return tf.squeeze(t, [-1])
   
   def distance(self, predicted, target):
+    if target.dtype is not floatType:
+      target = tf.cast(target, floatType)
+    
     if self.scale:
       target *= self.scale
     
@@ -183,10 +186,10 @@ class FCEmbedding(Default):
     ('nl', tfl.NL)
   ]
 
-  def __init__(self, name, wrapper, size, **kwargs):
+  def __init__(self, name_, wrapper, size, **kwargs):
     Default.__init__(self, **kwargs)
     
-    self.name = name
+    self.name = name_
     
     if not self.embed_nl:
       self.nl = None
@@ -233,7 +236,7 @@ maxJumps = 8
 
 class PlayerEmbedding(StructEmbedding, Default):
   _options = [
-    Option('action_space', type=int, default=64, help="embed actions in ACTION_SPACE dimensions (deprecated)"),
+    Option('action_space', type=int, default=0, help="embed actions in ACTION_SPACE dimensions (deprecated)"),
     Option('xy_scale', type=float, default=0.1, help="scale xy coordinates"),
     Option('shield_scale', type=float, default=0.01),
     Option('speed_scale', type=float, default=0.5),
@@ -290,7 +293,7 @@ def embedStage(stage):
 
 class GameEmbedding(StructEmbedding, Default):
   _options = [
-    Option('player_space', type=int, default=64, help="embed players into PLAYER_SPACE dimensions (deprecated)"),
+    Option('player_space', type=int, default=0, help="embed players into PLAYER_SPACE dimensions (deprecated)"),
   ]
   
   _members = [

@@ -30,7 +30,7 @@ class Agent(Default):
     self.frame_counter = 0
     self.action_counter = 0
     self.action = 0
-    self.actions = util.CircularQueue(self.rl.rlConfig.delay+1, 0)
+    self.actions = util.CircularQueue(self.rl.config.delay+1, 0)
     self.memory = util.CircularQueue(array=((self.rl.memory+1) * ssbm.SimpleStateAction)())
     
     self.hidden = util.deepMap(np.zeros, self.rl.policy.hidden_size)
@@ -52,7 +52,7 @@ class Agent(Default):
       print("Connecting experience socket to " + sock_addr)
       self.dump_socket.connect(sock_addr)
       
-      self.dump_size = self.rl.rlConfig.experience_length
+      self.dump_size = self.rl.config.experience_length
       self.dump_state_actions = (self.dump_size * ssbm.SimpleStateAction)()
 
       self.dump_frame = 0
@@ -91,10 +91,10 @@ class Agent(Default):
 
   def act(self, state, pad):
     self.frame_counter += 1
-    if self.frame_counter % self.rl.rlConfig.act_every != 0:
+    if self.frame_counter % self.rl.config.act_every != 0:
       return
     
-    verbose = self.verbose and (self.action_counter % (10 * self.rl.rlConfig.fps) == 0)
+    verbose = self.verbose and (self.action_counter % (10 * self.rl.config.fps) == 0)
     #verbose = False
     
     current = self.memory.peek()
@@ -131,7 +131,7 @@ class Agent(Default):
     if self.dump:
       self.dump_state(current)
     
-    if self.reload and self.action_counter % (self.reload * self.rl.rlConfig.fps) == 0:
+    if self.reload and self.action_counter % (self.reload * self.rl.config.fps) == 0:
       if self.listen:
         import zmq
         blob = None
@@ -150,9 +150,9 @@ class Agent(Default):
         
         if blob is not None:
           print("unblobbing")
-          self.model.unblob(blob)
+          self.rl.unblob(blob)
         else:
           print("no blob received")
       else:
-        self.model.restore()
+        self.rl.restore()
 

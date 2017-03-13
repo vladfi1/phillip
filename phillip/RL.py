@@ -32,7 +32,7 @@ class RLConfig(Default):
   _options = [
     Option('tdN', type=int, default=5, help="use n-step TD error"),
     Option('reward_halflife', type=float, default=2.0, help="time to discount rewards by half, in seconds"),
-    Option('act_every', type=int, default=2, help="Take an action every ACT_EVERY frames."),
+    Option('act_every', type=int, default=3, help="Take an action every ACT_EVERY frames."),
     #Option('experience_time', type=int, default=1, help="Length of experiences, in seconds."),
     Option('experience_length', type=int, default=30, help="Length of experiences, in frames."),
     Option('delay', type=int, default=0, help="frame delay on actions taken"),
@@ -198,7 +198,7 @@ class RL(Default):
             hidden=self.input['hidden']
           )
           
-          self.policy = self.policy.getPolicy(**policy_args)
+          self.run_policy = self.policy.getPolicy(**policy_args)
       
       self.debug = debug
       
@@ -234,7 +234,7 @@ class RL(Default):
 
   def act(self, history, verbose=False):
     feed_dict = dict(util.deepValues(util.deepZip(self.input, history)))
-    return self.policy.act(self.sess.run(self.policy, feed_dict), verbose)
+    return self.policy.act(self.sess.run(self.run_policy, feed_dict), verbose)
 
   def train(self, experiences, batch_steps=1, **kwargs):
     experiences = util.deepZip(*experiences)
