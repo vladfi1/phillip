@@ -55,6 +55,7 @@ class RL(Default):
     Option('memory', type=int, default=0, help="number of frames to remember"),
     Option('action_type', type=str, default="diagonal", choices=ssbm.actionTypes.keys()),
     Option('name', type=str),
+    Option('use_model', type=int, default=0),
   ]
   
   _members = [
@@ -99,7 +100,9 @@ class RL(Default):
       
       self.policy = policyType(history_size, embedAction.size, self.global_step, self.config, **kwargs)
       self.critic = Critic(history_size, **kwargs)
-      self.model = Model(**kwargs)
+      
+      if self.use_model:
+        self.model = Model(**kwargs)
       
       if mode == Mode.TRAIN:
         with tf.name_scope('train'):
@@ -158,7 +161,11 @@ class RL(Default):
           policy_args.update(advantages=tf.stop_gradient(advantages), targets=targets)
           self.train_policy = self.policy.train(**policy_args)
           
-          self.train_model = self.model.train(self.experience)
+          train_ops = [self.train_policy, self.train_critic]
+          
+          if self.use_model:
+            self.train_model = self.model.train(self.experience)
+            train_ops.append(self.train_model)
           
           print("Created train op")
 
@@ -174,7 +181,7 @@ class RL(Default):
           self.run_dict = dict(
             summary=merged,
             global_step=self.global_step,
-            train=tf.group(self.train_critic, self.train_policy, self.train_model),
+            train=tf.group(*train_ops),
             misc=misc
           )
           

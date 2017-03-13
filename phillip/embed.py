@@ -248,7 +248,7 @@ class PlayerEmbedding(StructEmbedding, Default):
     
     embedAction = OneHotEmbedding("action_state", numActions)
     if self.action_space:
-      embedAction = FCEmbedding("action_state", embedAction, self.action_space, **kwargs)
+      embedAction = FCEmbedding("action_state_fc", embedAction, self.action_space, **kwargs)
     
     embedXY = FloatEmbedding("xy", scale=self.xy_scale)
     embedSpeed = FloatEmbedding("speed", scale=self.speed_scale)
@@ -304,7 +304,7 @@ class GameEmbedding(StructEmbedding, Default):
     Default.__init__(self, **kwargs)
     
     if self.player_space:
-      self.embedPlayer = FCEmbedding(self.embedPlayer, self.player_space, **kwargs)
+      self.embedPlayer = FCEmbedding("player_fc", self.embedPlayer, self.player_space, **kwargs)
     
     players = [0, 1]
     #if self.swap: players.reverse()
