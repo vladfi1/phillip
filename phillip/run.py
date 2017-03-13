@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 import time, os
+import pprint
 from phillip.dolphin import DolphinRunner
 from argparse import ArgumentParser
 from multiprocessing import Process
 from phillip.cpu import CPU
 from phillip import RL, util
 import tempfile
+
+pp = pprint.PrettyPrinter(indent=2)
 
 def run(**kwargs):
   load = kwargs.get('load')
@@ -15,7 +18,7 @@ def run(**kwargs):
     params = {}
   
   util.update(params, **kwargs)
-  print(params)
+  pp.pprint(params)
 
   if params.get('gui'):
     params['dolphin'] = True

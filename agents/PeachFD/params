@@ -1,8 +1,10 @@
 {
+  "fix_scopes": false,
   "agent": {
     "model": "ActorCritic",
     "epsilon": 0.02,
     "player_space": 0,
+    "action_space": 64,
     "dolphin": true,
     "experience_time": 20,
     "act_every": 3,

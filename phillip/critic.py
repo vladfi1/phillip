@@ -9,7 +9,7 @@ class Critic(Default):
     Option('critic_layers', type=int, nargs='+', default=[128, 128]),
     Option('critic_learning_rate', type=float, default=1e-4),
     Option('gae_lamdba', type=float, default=1., help="Generalized Advantage Estimation"),
-    Option('fix_scopes', type=bool, default=True),
+    Option('fix_scopes', type=bool, default=False),
   ]
   
   _members = [
@@ -30,7 +30,7 @@ class Critic(Default):
       
       if self.fix_scopes:
         self.net.append(tfl.FCLayer(prev_size, 1))
-      
+    
     if not self.fix_scopes:
       with tf.variable_scope('critic'):
         self.net.append(tfl.FCLayer(prev_size, 1))
