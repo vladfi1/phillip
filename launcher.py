@@ -43,9 +43,9 @@ else:
 # init model for the first time
 if args.init:
   from phillip import RL
-  model = RL.Model(mode=RL.Mode.TRAIN, **params)
-  model.init()
-  model.save()
+  rl = RL.RL(mode=RL.Mode.TRAIN, **params)
+  rl.init()
+  rl.save()
 
 if not os.path.exists("slurm_logs"):
   os.makedirs("slurm_logs")
@@ -117,7 +117,7 @@ if run_trainer:
 
   launch(train_name, train_command,
     gpu=True,
-    qos='tenenbaum',
+    #qos='tenenbaum',
     mem=16000
   )
 

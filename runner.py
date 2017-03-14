@@ -8,6 +8,7 @@ import random
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--tag", action="store_true", help="generate random tag for this experiment")
+parser.add_argument("--name", type=str, help="experiment name")
 args = parser.parse_args()
 
 if args.tag:
@@ -50,7 +51,8 @@ natural = False
 
 train_settings = [
   #('learning_rate', 0.0002),
-  ('tdN', 5),
+  ('tdN', 20),
+  ('reward_halflife', 4),
   ('sweeps', 1),
   ('batches', 1 if natural else 5),
   ('batch_size', 2000),
@@ -68,7 +70,7 @@ elif ac:
   if natural:
     add_param('entropy_scale', 2e-4, True)
   else:
-    add_param('entropy_scale', 1e-3 if recurrent else 2e-3, True)
+    add_param('entropy_scale', 1e-2 if recurrent else 2e-3, True)
 
 if natural:
   add_param('natural', True, False)
@@ -115,7 +117,9 @@ add_param('fix_scopes', True, False)
 
 #add_param('dolphin', True, False)
 
-add_param('experience_length', 20 + params['tdN'], False)
+#add_param('experience_length', 40 + params['tdN'], False)
+add_param('experience_length', 60, False)
+
 add_param('reload', 1, False)
 
 #char = 'falco'
@@ -138,10 +142,11 @@ delay = 1
 if delay:
   add_param('delay', delay)
 if not recurrent:
-  add_param('memory', 1 + delay)
+  #add_param('memory', 1 + delay)
+  add_param('memory', 0, False)
 
-#stage = 'battlefield'
-stage = 'final_destination'
+stage = 'battlefield'
+#stage = 'final_destination'
 add_param('stage', stage, False)
 
 add_param('char', char, True)
@@ -160,6 +165,9 @@ add_param('enemy_reload', 3600, False)
 # total number of agents
 agents = 120
 params['agents'] = agents
+
+if args.name is not None:
+  exp_name = args.name
 
 add_param('name', exp_name, False)
 path = "saves/%s/" % exp_name
