@@ -56,7 +56,6 @@ class ActorCritic(Default):
     tf.histogram_summary('entropy', entropy)
 
     real_log_actor_probs = tfl.batch_dot(actions, log_actor_probs)
-    #train_log_actor_probs = tf.slice(real_log_actor_probs, [0, 0], [-1, train_length])
     train_log_actor_probs = real_log_actor_probs[:,:-1]
     actor_gain = tf.reduce_mean(tf.mul(train_log_actor_probs, tf.stop_gradient(advantages)))
     #tf.scalar_summary('actor_gain', actor_gain)
@@ -74,5 +73,6 @@ class ActorCritic(Default):
     return self.actor(state)
 
   def act(self, policy, verbose=False):
-    return random.choice(range(self.action_size), p=policy), []
+    action = random.choice(range(self.action_size), p=policy)
+    return action, policy[action], []
 

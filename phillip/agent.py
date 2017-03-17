@@ -113,8 +113,9 @@ class Agent(Default):
     history = ct.vectorizeCTypes(ssbm.SimpleStateAction, history)
     history['hidden'] = self.hidden
     
-    self.action, self.hidden = self.rl.act(history, verbose)
+    self.action, p, self.hidden = self.rl.act(history, verbose)
     
+    current.prob = p
     current.action = self.action
 
     #if verbose:

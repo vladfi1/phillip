@@ -196,6 +196,7 @@ class SimpleStateAction(Structure):
     ('state', GameMemory),
     ('prev_action', c_uint),
     ('action', c_uint),
+    ('prob', c_float),
   ]
 
 intStruct = struct.Struct('i')
