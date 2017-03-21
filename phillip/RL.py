@@ -45,6 +45,13 @@ class RLConfig(Default):
     self.discount = 0.5 ** ( 1.0 / (self.fps*self.reward_halflife) )
     #self.experience_length = self.experience_time * self.fps
 
+def makeHistory(state, prev_action, memory=0, **unused):
+  combined = tf.concat(2, [state, prev_action])
+  #length = tf.shape(combined)[-2] - memory
+  length = combined.get_shape()[-2].value - memory
+  history = [tf.slice(combined, [0, i, 0], [-1, length, -1]) for i in range(memory+1)]
+  return tf.concat(2, history)
+
 from .critic import Critic
 from .model import Model
 
@@ -99,63 +106,39 @@ class RL(Default):
       print("History size:", history_size)
       
       print("Creating policy:", self.policy)
-      self.policy = policyType(history_size, embedAction.size, self.global_step, self.config, **kwargs)
+      self.policy = policyType(self.embedGame, embedAction, self.global_step, self.config, **kwargs)
       
       if self.use_model:
         self.model = Model(**kwargs)
       
       if mode == Mode.TRAIN:
-        self.critic = Critic(history_size, **kwargs)
+        self.critic = Critic(self.embedGame, embedAction, **kwargs)
 
         with tf.name_scope('train'):
           self.experience = ct.inputCType(ssbm.SimpleStateAction, [None, self.config.experience_length], "experience")
-          # instantaneous rewards for all but the first state
+          # instantaneous rewards for all but the last state
           self.experience['reward'] = tf.placeholder(tf.float32, [None, self.config.experience_length-1], name='experience/reward')
           
           # initial state for recurrent networks
           #self.experience['initial'] = tuple(tf.placeholder(tf.float32, [None, size], name='experience/initial/%d' % i) for i, size in enumerate(self.policy.hidden_size))
           self.experience['initial'] = util.deepMap(lambda size: tf.placeholder(tf.float32, [None, size], name="experience/initial"), self.policy.hidden_size)
           
-          mean_reward = tf.reduce_mean(self.experience['reward'])
-          
-          train_length = self.config.experience_length - self.config.memory - self.config.delay
-          print("train length", train_length)
-          
-          states = self.embedGame(self.experience['state'])
-          prev_actions = embedAction(self.experience['prev_action'])
-          
           delay_length = self.config.experience_length - self.config.delay
-          policy_states = states[:,:delay_length,:]
-          policy_prev_actions = prev_actions[:,:delay_length,:]
-          policy_states = tf.concat(2, [policy_states, policy_prev_actions])
           
-          policy_history = [tf.slice(policy_states, [0, i, 0], [-1, train_length, -1]) for i in range(self.config.memory+1)]
-          policy_history = tf.concat(2, policy_history)
+          def process_experiences(f, keys):
+            return {k: util.deepMap(f, self.experience[k]) for k in keys}
+
+          with tf.name_scope('live'):
+            #live = {k: util.deepMap(lambda t: t[:,:delay_length] for k in ['state', 'action', 'prev_action']}
+            live = process_experiences(lambda t: t[:,:delay_length], ['state', 'action', 'prev_action'])
+            live['initial'] = self.experience['initial']
+
+          with tf.name_scope('delayed'):
+            delayed = live.copy()
+            delayed.update(process_experiences(lambda t: t[:,self.config.delay:], ['state', 'reward']))
           
-          actions = embedAction(self.experience['action'])
-          train_actions = tf.slice(actions, [0, self.config.memory, 0], [-1, train_length, -1])
-          
-          # critic gets to see the future!
-          critic_states = states[:,self.config.delay:,:]
-          critic_prev_actions = prev_actions[:,:delay_length,:]
-          critic_states = tf.concat(2, [critic_states, critic_prev_actions])
-          
-          critic_history = [tf.slice(critic_states, [0, i, 0], [-1, train_length, -1]) for i in range(self.config.memory+1)]
-          critic_history = tf.concat(2, critic_history)
-          
-          #self.train_rewards = tf.slice(self.experience['reward'], [0, self.config.memory + self.config.delay], [-1, -1])
-          train_rewards = self.experience['reward'][:, self.config.memory+self.config.delay:]
-          
-          policy_args = dict(
-            states=policy_history,
-            actions=train_actions,
-            initial=self.experience['initial']
-          )
-          
-          critic_args = dict(
-            states = critic_history,
-            rewards = train_rewards,
-          )
+          policy_args = live
+          critic_args = delayed
           
           print("Creating train op")
           
@@ -166,14 +149,16 @@ class RL(Default):
           train_ops = [self.train_policy, self.train_critic]
           
           if self.use_model:
-            self.train_model = self.model.train(self.experience)
+            self.train_model = self.model.train(delayed)
             train_ops.append(self.train_model)
           
           print("Created train op")
 
           #tf.scalar_summary("loss", loss)
           #tf.scalar_summary('learning_rate', tf.log(self.learning_rate))
-          tf.scalar_summary('reward', mean_reward)
+          
+          tf.scalar_summary('reward', tf.reduce_mean(self.experience['reward']))
+          
           merged = tf.merge_all_summaries()
           
           increment = tf.assign_add(self.global_step, 1)
@@ -203,8 +188,8 @@ class RL(Default):
           history = tf.reshape(history, [history_size])
           
           policy_args = dict(
+            hidden=self.input['hidden'],
             state=history,
-            hidden=self.input['hidden']
           )
           
           self.run_policy = self.policy.getPolicy(**policy_args)

@@ -1,5 +1,5 @@
 import tensorflow as tf
-from . import tf_lib as tfl, util, opt
+from . import tf_lib as tfl, util, opt, RL
 from numpy import random
 from .default import *
 
@@ -21,16 +21,20 @@ class ActorCritic(Default):
     ('nl', tfl.NL),
   ]
   
-  def __init__(self, state_size, action_size, global_step, rlConfig, **kwargs):
+  def __init__(self, embedGame, embedAction, global_step, rlConfig, **kwargs):
     Default.__init__(self, **kwargs)
     self.rlConfig = rlConfig
     
-    self.action_size = action_size
+    self.embedGame = embedGame
+    self.embedAction = embedAction
+    action_size = embedAction.size
+    
+    history_size = (1+rlConfig.memory) * (embedGame.size+embedAction.size)
     
     name = "actor"
     net = tfl.Sequential()
     with tf.variable_scope(name):
-      prev_size = state_size
+      prev_size = history_size
       for i, next_size in enumerate(getattr(self, name + "_layers")):
         with tf.variable_scope("layer_%d" % i):
           net.append(tfl.FCLayer(prev_size, next_size, self.nl))
@@ -45,8 +49,12 @@ class ActorCritic(Default):
     
     self.actor = net
 
-  def train(self, states, actions, advantages, **unused):
-    actor_probs = self.actor(states)
+  def train(self, state, prev_action, action, advantages, **unused):
+    embedded_state = self.embedGame(state)
+    embedded_prev_action = self.embedAction(prev_action)
+    history = RL.makeHistory(embedded_state, embedded_prev_action, self.rlConfig.memory)
+    
+    actor_probs = self.actor(history)
     log_actor_probs = tf.log(actor_probs)
 
     entropy = - tfl.batch_dot(actor_probs, log_actor_probs)
@@ -55,8 +63,9 @@ class ActorCritic(Default):
     tf.scalar_summary('entropy_min', tf.reduce_min(entropy))
     tf.histogram_summary('entropy', entropy)
 
+    actions = self.embedAction(action[:,self.rlConfig.memory:])
     real_log_actor_probs = tfl.batch_dot(actions, log_actor_probs)
-    train_log_actor_probs = real_log_actor_probs[:,:-1]
+    train_log_actor_probs = real_log_actor_probs[:,:-1] # last state has no advantage
     actor_gain = tf.reduce_mean(tf.mul(train_log_actor_probs, tf.stop_gradient(advantages)))
     #tf.scalar_summary('actor_gain', actor_gain)
     
@@ -73,6 +82,6 @@ class ActorCritic(Default):
     return self.actor(state)
 
   def act(self, policy, verbose=False):
-    action = random.choice(range(self.action_size), p=policy)
+    action = random.choice(range(self.embedAction.size), p=policy)
     return action, policy[action], []
 

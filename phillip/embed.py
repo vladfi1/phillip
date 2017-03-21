@@ -38,6 +38,9 @@ class FloatEmbedding(object):
     
     return tf.expand_dims(t, -1)
   
+  def init_extract(self):
+    pass
+  
   def extract(self, t):
     if self.scale:
       t /= self.scale
@@ -198,6 +201,10 @@ class FCEmbedding(Default):
     self.fc = tfl.FCLayer(wrapper.size, size, nl=self.nl)
     self.size = size
   
+  def init_extract(self):
+    #self.extract = tfl.FCLayer(
+    pass
+
   def __call__(self, x):
     wrapped = self.wrapper(x)
     y = self.fc(wrapped)

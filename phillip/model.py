@@ -64,27 +64,20 @@ class Model(Default):
   def train(self, experiences):
     states = embedGame(experiences['state'])
     prev_actions = self.embedAction(experiences['prev_action'])
-    
-    delay_length = self.rlConfig.experience_length - self.rlConfig.delay
-    train_length = delay_length - self.rlConfig.memory - 1
-    
-    delayed_states = states[:,self.rlConfig.delay:,:]
-    prev_actions = prev_actions[:,:delay_length,:]
-    combined_states = tf.concat(2, [delayed_states, prev_actions])
-    
-    histories = [tf.slice(combined_states, [0, i, 0], [-1, train_length, -1]) for i in range(self.rlConfig.memory+1)]
-    histories = tf.concat(2, histories)
+
+    histories = RL.makeHistory(states, prev_actions, self.rlConfig.memory)
     
     actions = self.embedAction(experiences['action'])
-    train_actions = tf.slice(actions, [0, self.rlConfig.memory, 0], [-1, train_length, -1])
+    train_actions = actions[:,self.rlConfig.memory:,:]
     
     inputs = tf.concat(2, [histories, train_actions])
+    inputs = inputs[:,:-1,:] # last history has no target
     
-    last_states = delayed_states[:,self.rlConfig.memory:-1,:]
+    last_states = states[:,self.rlConfig.memory:-1,:]
     
     predicted_states = self.apply(inputs, last_states)
     
-    target_states = util.deepMap(lambda t: t[:,-train_length:], experiences['state'])
+    target_states = util.deepMap(lambda t: t[:,self.rlConfig.memory + 1:], experiences['state'])
     
     distances = embedGame.distance(predicted_states, target_states)
     #distances = util.deepValues(distances)
@@ -98,7 +91,8 @@ class Model(Default):
     
     return tf.train.AdamOptimizer(self.model_learning_rate).minimize(distance)
   
-  def predict(self, history, action, extract=False):
+  """
+  def predict(self, experience, action, extract=False):
     input = tf.concat(0, [history, action])
     output = self.apply(input)
     
@@ -106,4 +100,4 @@ class Model(Default):
       output = embedGame.extract(output)
     
     return output
-
+  """
