@@ -59,10 +59,12 @@ class RL(Default):
   _options = [
     Option('policy', type=str, default="ActorCritic", choices=policies.keys()),
     Option('path', type=str, help="path to saved policy"),
-    Option('gpu', action="store_true", default=False, help="execute on gpu"),
+    Option('gpu', action="store_true", default=False, help="run on gpu"),
     Option('action_type', type=str, default="diagonal", choices=ssbm.actionTypes.keys()),
     Option('name', type=str),
-    Option('use_model', type=int, default=0),
+    Option('train_model', type=int, default=0),
+    Option('train_policy', type=int, default=1),
+    Option('train_critic', type=int, default=1),
   ]
   
   _members = [
@@ -108,11 +110,12 @@ class RL(Default):
       print("Creating policy:", self.policy)
       self.policy = policyType(self.embedGame, embedAction, self.global_step, self.config, **kwargs)
       
-      if self.use_model:
+      if self.train_model:
         self.model = Model(**kwargs)
       
       if mode == Mode.TRAIN:
-        self.critic = Critic(self.embedGame, embedAction, **kwargs)
+        if self.train_policy or self.train_critic:
+          self.critic = Critic(self.embedGame, embedAction, **kwargs)
 
         with tf.name_scope('train'):
           self.experience = ct.inputCType(ssbm.SimpleStateAction, [None, self.config.experience_length], "experience")
@@ -140,19 +143,24 @@ class RL(Default):
           policy_args = live
           critic_args = delayed
           
-          print("Creating train op")
+          print("Creating train ops")
           
-          self.train_critic, targets, advantages = self.critic(**critic_args)
-          policy_args.update(advantages=tf.stop_gradient(advantages), targets=targets)
-          self.train_policy = self.policy.train(**policy_args)
+          train_ops = []
           
-          train_ops = [self.train_policy, self.train_critic]
+          if self.train_policy or self.train_critic:
+            train_critic, targets, advantages = self.critic(**critic_args)
           
-          if self.use_model:
-            self.train_model = self.model.train(delayed)
-            train_ops.append(self.train_model)
+          if self.train_critic:
+            train_ops.append(train_critic)
           
-          print("Created train op")
+          if self.train_policy:
+            policy_args.update(advantages=tf.stop_gradient(advantages), targets=targets)
+            train_ops.append(self.policy.train(**policy_args))
+
+          if self.train_model:
+            train_ops.append(self.model.train(**delayed))
+          
+          print("Created train ops")
 
           #tf.scalar_summary("loss", loss)
           #tf.scalar_summary('learning_rate', tf.log(self.learning_rate))

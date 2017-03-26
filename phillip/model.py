@@ -61,13 +61,13 @@ class Model(Default):
     
     return forget * (last + delta) + (1. - forget) * new
   
-  def train(self, experiences):
-    states = embedGame(experiences['state'])
-    prev_actions = self.embedAction(experiences['prev_action'])
+  def train(self, state, action, prev_action, **unused):
+    states = embedGame(state)
+    prev_actions = self.embedAction(prev_action)
 
     histories = RL.makeHistory(states, prev_actions, self.rlConfig.memory)
     
-    actions = self.embedAction(experiences['action'])
+    actions = self.embedAction(action)
     train_actions = actions[:,self.rlConfig.memory:,:]
     
     inputs = tf.concat(2, [histories, train_actions])
@@ -77,7 +77,7 @@ class Model(Default):
     
     predicted_states = self.apply(inputs, last_states)
     
-    target_states = util.deepMap(lambda t: t[:,self.rlConfig.memory + 1:], experiences['state'])
+    target_states = util.deepMap(lambda t: t[:,self.rlConfig.memory + 1:], state)
     
     distances = embedGame.distance(predicted_states, target_states)
     #distances = util.deepValues(distances)
