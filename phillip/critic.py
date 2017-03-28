@@ -1,7 +1,7 @@
 import tensorflow as tf
 from . import tf_lib as tfl
 from .default import *
-from .RL import RLConfig, makeHistory
+from .rl_common import *
 #from .embed import GameEmbedding
 
 class Critic(Default):

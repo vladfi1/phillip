@@ -1,7 +1,8 @@
 import itertools
 import tensorflow as tf
 from .default import *
-from . import embed, ssbm, RL, tf_lib as tfl, util
+from . import embed, ssbm, tf_lib as tfl, util
+from .rl_common import *
 
 # parameter-less embedding
 embedGame = embed.GameEmbedding()
@@ -16,7 +17,7 @@ class Model(Default):
   
   _members = [
     ('nl', tfl.NL),
-    ('rlConfig', RL.RLConfig),
+    ('rlConfig', RLConfig),
   ]
   
   def __init__(self, **kwargs):
