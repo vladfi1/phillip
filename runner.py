@@ -33,8 +33,8 @@ def add_param(param, value, name=True):
 
 #model = 'DQN'
 #model = 'RecurrentDQN'
-model = 'ActorCritic'
-#model = 'RecurrentActorCritic'
+#model = 'ActorCritic'
+model = 'RecurrentActorCritic'
 
 exp_name += model
 
@@ -43,6 +43,7 @@ dqn = model.count('DQN')
 ac = model.count('ActorCritic')
 
 add_param('model', model, False)
+add_param('policy', model, False)
 add_param('epsilon', 0.02, False)
 
 natural = True
@@ -124,8 +125,8 @@ add_param('reload', 1, False)
 
 #char = 'falco'
 #char = 'sheik'
-#char = 'falcon'
-char = 'marth'
+char = 'falcon'
+#char = 'marth'
 #char = 'fox'
 #char = 'peach'
 #char = 'luigi'
@@ -138,7 +139,7 @@ act_every = 2
 act_every = data.short_hop[char]
 add_param('act_every', act_every)#, False)
 
-delay = 1
+delay = 3
 if delay:
   add_param('delay', delay)
 if not recurrent:
@@ -156,14 +157,14 @@ enemies = None
 #enemies = "easy"
 #enemies = "delay0"
 #enemies = "delay%d" % delay
-enemies = ['self']
+enemies = ['delay0']
 
 add_param('enemies', enemies)
 
 add_param('enemy_reload', 3600, False)
 
 # total number of agents
-agents = 120
+agents = 20
 params['agents'] = agents
 
 if args.name is not None:
