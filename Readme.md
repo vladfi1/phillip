@@ -1,4 +1,4 @@
-#The Phillip AI
+# The Phillip AI
 An SSBM player based on Deep Reinforcement Learning.
 
 ## Requirements
