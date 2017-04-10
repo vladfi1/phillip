@@ -149,7 +149,7 @@ class CPU(Default):
         self.start_time = time.time()
         
         try:
-            while self.total_frames != self.frame_limit:
+            while self.game_frame != self.frame_limit:
               self.advance_frame()
         except KeyboardInterrupt:
             if dolphin_process is not None:
@@ -163,6 +163,7 @@ class CPU(Default):
             dolphin_process.terminate()
 
     def init_stats(self):
+        self.game_frame = 0
         self.total_frames = 1
         self.skip_frames = 0
         self.thinking_time = 0
