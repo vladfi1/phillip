@@ -122,10 +122,10 @@ def max_pool_2x2(x):
 
 def convLayer(x, filter_size=5, filter_depth=64, pool_size=2):
   x_depth = x.get_shape()[-1].value
-  W = weight_variable([filter_size, filter_size, x_depth, filter_depth])
+  W = scaled_weight_variable([filter_size, filter_size, x_depth, filter_depth])
   conv = tf.nn.conv2d(x, W, strides=[1, 1, 1, 1], padding='SAME')
 
-  b = bias_variable([filter_depth])
+  b = tf.Variable([filter_depth], name="bias")
   relu = tf.nn.relu(conv + b)
 
   pool = tf.nn.max_pool(relu,
@@ -253,16 +253,16 @@ class Sequential:
     return list(itertools.chain(*variables))
 
 def affineLayer(x, output_size, nl=None):
-  W = weight_variable([x.get_shape()[-1].value, output_size])
-  b = bias_variable([output_size])
+  W = scaled_weight_variable([x.get_shape()[-1].value, output_size])
+  b = tf.Variable([output_size], name="bias")
 
   fc = matmul2(x, W) + b
 
   return nl(fc) if nl else fc
 
 def makeAffineLayer(input_size, output_size, nl=None):
-  W = weight_variable([input_size, output_size])
-  b = bias_variable([output_size])
+  W = scaled_weight_variable([input_size, output_size])
+  b = tf.Variable([output_size], name="bias")
 
   def applyLayer(x):
     return matmul2(x, W, b, nl)
@@ -312,11 +312,11 @@ class GRUCell(tf.nn.rnn_cell.RNNCell):
   def __init__(self, input_size, hidden_size, nl=tf.tanh, name=None):
     with tf.variable_scope(name or type(self).__name__):
       with tf.variable_scope("Gates"):
-        self.Wru = weight_variable([input_size + hidden_size, 2 * hidden_size])
+        self.Wru = scaled_weight_variable([input_size + hidden_size, 2 * hidden_size])
         self.bru = tf.Variable(tf.constant(1.0, shape=[2 * hidden_size]))
       with tf.variable_scope("Candidate"):
-        self.Wc = weight_variable([input_size + hidden_size, hidden_size])
-        self.bc = bias_variable([hidden_size])
+        self.Wc = scaled_weight_variable([input_size + hidden_size, hidden_size])
+        self.bc = tf.Variable([hidden_size], name="bias")
     self.nl = nl
     self._num_units = hidden_size
 
