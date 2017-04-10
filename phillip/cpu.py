@@ -20,6 +20,7 @@ class CPU(Default):
       Option('cpu', type=int, help="enemy cpu level"),
       Option('start', type=int, default=1, help="start game in endless time mode"),
       Option('netplay', type=str),
+      Option('frame_limit', type=int, help="stop after a given number of frames"),
     ] + [Option('p%d' % i, type=str, choices=characters.keys(), default="falcon", help="character for player %d" % i) for i in [1, 2]]
     
     _members = [
@@ -146,9 +147,10 @@ class CPU(Default):
         
         print('Starting run loop.')
         self.start_time = time.time()
+        
         try:
-            while True:
-                self.advance_frame()
+            while self.total_frames != self.frame_limit:
+              self.advance_frame()
         except KeyboardInterrupt:
             if dolphin_process is not None:
                 dolphin_process.terminate()
@@ -156,6 +158,9 @@ class CPU(Default):
                 #self.update_state()
                 #self.mw.advance()
             self.print_stats()
+        
+        if dolphin_process is not None:
+            dolphin_process.terminate()
 
     def init_stats(self):
         self.total_frames = 1
