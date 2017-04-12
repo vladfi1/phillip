@@ -12,6 +12,8 @@ class RecurrentActorCritic(Default):
 
     Option('entropy_power', type=float, default=1),
     Option('entropy_scale', type=float, default=0.001),
+    
+    Option('dynamic', type=int, default=1, help='dynamically unroll rnn'),
   ]
 
   _members = [
@@ -50,7 +52,10 @@ class RecurrentActorCritic(Default):
     embedded_prev_action = self.embedAction(prev_action)
     history = RL.makeHistory(embedded_state, embedded_prev_action, self.rlConfig.memory)
     
-    actor_outputs, actor_hidden = tfl.rnn(self.rnn, history, initial)
+    if self.dynamic:
+      actor_outputs, actor_hidden = tf.nn.dynamic_rnn(self.rnn, history, initial_state=initial)
+    else:
+      actor_outputs, actor_hidden = tfl.rnn(self.rnn, history, initial)
     log_actor_probs = self.actor_out(actor_outputs)
     actor_probs = tf.exp(log_actor_probs)
 
