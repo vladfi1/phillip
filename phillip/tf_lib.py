@@ -88,8 +88,14 @@ def weight_init(shape):
     
     return initial
 
+def weight_variable(shape, name="weight"):
+    return tf.Variable(weight_init(shape), name=name)
+
 def bias_init(shape):
     return tf.truncated_normal(shape, stddev=0.1)
+
+def bias_variable(shape, name="bias"):
+    return tf.Variable(bias_init(shape), name=name)
 
 def constant_init(c):
     return lambda shape: tf.constant(c, shape=shape)
@@ -313,7 +319,7 @@ class GRUCell(tf.nn.rnn_cell.RNNCell):
     with tf.variable_scope(name or type(self).__name__):
       with tf.variable_scope("Gates"):
         self.Wru = weight_variable([input_size + hidden_size, 2 * hidden_size])
-        self.bru = tf.Variable(tf.constant(1.0, shape=[2 * hidden_size]))
+        self.bru = tf.Variable(tf.constant(1.0, shape=[2 * hidden_size]), name='bias')
       with tf.variable_scope("Candidate"):
         self.Wc = weight_variable([input_size + hidden_size, hidden_size])
         self.bc = bias_variable([hidden_size])
@@ -337,14 +343,15 @@ class GRUCell(tf.nn.rnn_cell.RNNCell):
     
     return new_h, new_h
 
-# TODO: auto unpack and repack inputs?
-def rnn(cell, inputs, initial_state, scope=None):
+# auto unpacks and repacks inputs
+def rnn(cell, inputs, initial_state, time=1):
+  inputs = tf.unpack(inputs, axis=time)
   outputs = []
   state = initial_state
   for i, input_ in enumerate(inputs):
     output, state = cell(input_, state)
     outputs.append(output)
-  return outputs, state
+  return tf.pack(outputs, axis=time), state
 
 # TODO: implement this more efficiently, with
 # a tf.while_loop instead of manually unrolling

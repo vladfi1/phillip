@@ -1,5 +1,6 @@
 import tensorflow as tf
-from . import tf_lib as tfl, util, opt, RL
+from . import tf_lib as tfl, util, opt
+from . import rl_common as RL
 from numpy import random
 from .default import *
 
