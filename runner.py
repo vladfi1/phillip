@@ -38,7 +38,7 @@ model = 'RecurrentActorCritic'
 
 exp_name += model
 
-recurrent = model.count('Recurrent')
+recurrent = model.count('RecurrentActorCritic')
 dqn = model.count('DQN')
 ac = model.count('ActorCritic')
 
@@ -56,7 +56,7 @@ train_settings = [
   ('reward_halflife', 4),
   ('sweeps', 1),
   ('batches', 1 if natural else 5),
-  ('batch_size', 2000),
+  ('batch_size', 1000),
   ('batch_steps', 1),
 ]
 
@@ -139,7 +139,7 @@ act_every = 2
 act_every = data.short_hop[char]
 add_param('act_every', act_every)#, False)
 
-delay = 3
+delay = 0
 if delay:
   add_param('delay', delay)
 if not recurrent:
@@ -152,12 +152,12 @@ add_param('stage', stage, False)
 
 add_param('char', char, True)
 
-enemies = None
-#enemies = "cpu"
+#enemies = None
+enemies = "cpu"
 #enemies = "easy"
 #enemies = "delay0"
 #enemies = "delay%d" % delay
-enemies = ['delay0']
+#enemies = ['delay0']
 
 add_param('enemies', enemies)
 

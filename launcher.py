@@ -117,7 +117,7 @@ if run_trainer:
 
   launch(train_name, train_command,
     gpu=True,
-    #qos='tenenbaum',
+    qos='tenenbaum',
     mem=16000
   )
 
@@ -166,7 +166,7 @@ if run_agents:
     agent_name = "agent_%d_%s" % (agent_count, params['name'])
     launch(agent_name, command,
       log=args.log_agents,
-      qos='use-everything',
+      #qos='use-everything',
       array=agents
     )
     agent_count += 1
