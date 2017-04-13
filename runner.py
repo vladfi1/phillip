@@ -46,7 +46,7 @@ ac = model.count('ActorCritic')
 add_param('policy', model, False)
 add_param('epsilon', 0.02, False)
 
-natural = True
+#natural = True
 natural = False
 #natural = ac
 
@@ -135,7 +135,7 @@ char = 'falcon'
 #char = 'puff'
 
 from phillip import data
-act_every = 2
+#act_every = 2
 act_every = data.short_hop[char]
 add_param('act_every', act_every)#, False)
 
