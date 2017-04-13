@@ -159,7 +159,6 @@ class RL(Default):
           print("Creating summary writer at logs/%s." % self.name)
           self.writer = tf.train.SummaryWriter('logs/' + self.name)#, self.graph)
       else:
-        print("not train mode")
         with tf.name_scope('policy'):
           self.input = ct.inputCType(ssbm.SimpleStateAction, [self.config.memory+1], "input")
           
@@ -216,7 +215,6 @@ class RL(Default):
     return self.policy.act(self.sess.run(self.run_policy, feed_dict), verbose)
 
   def train(self, experiences, batch_steps=1, **kwargs):
-    print("RL begin training...")
     experiences = util.deepZip(*experiences)
     experiences = util.deepMap(np.array, experiences)
     
