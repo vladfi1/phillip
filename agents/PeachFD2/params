@@ -1,9 +1,18 @@
 {
+  "name": "PeachFD2",
+  "policy": "ActorCritic",
+  "fix_scopes": false,
+  "player_space": 0,
+  "action_space": 64,
+  "agents": 100,
+  "act_every": 3,
+  "delay": 2,
+  "memory": 3,
   "agents": 60,
+  "enemies": "delay2",
   "train": {
-    "model": "ActorCritic",
     "epsilon": 0.02,
-    "policy_scale": 0.5,
+    "policy_scale": 1,
     "entropy_scale": 0.002,
     "learning_rate": 0.0001,
     "optimizer": "Adam",
@@ -12,27 +21,12 @@
     "batches": 20,
     "batch_size": 200,
     "batch_steps": 1,
-    "gpu": 1,
-    "xy_scale": 0.05,
-    "player_space": 0,
-    "experience_time": 20,
-    "act_every": 3,
-    "memory": 3,
-    "name": "PeachFD2"
+    "experience_time": 20
   },
   "agent": {
-    "model": "ActorCritic",
     "epsilon": 0.02,
-    "xy_scale": 0.05,
-    "player_space": 0,
-    "dolphin": true,
     "experience_time": 20,
-    "act_every": 3,
-    "delay": 2,
-    "memory": 3,
     "char": "peach",
-    "enemy_reload": 600,
-    "name": "PeachFD2"
-  },
-  "enemies": "delay2"
+    "enemy_reload": 600
+  }
 }

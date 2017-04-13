@@ -1,7 +1,7 @@
 import tensorflow as tf
 from . import tf_lib as tfl
 from .default import *
-from .RL import RLConfig
+from .rl_common import *
 #from .embed import GameEmbedding
 
 class Critic(Default):
@@ -17,12 +17,16 @@ class Critic(Default):
     ('nl', tfl.NL),
   ]
   
-  def __init__(self, state_size, **kwargs):
+  def __init__(self, embedGame, embedAction, **kwargs):
     Default.__init__(self, **kwargs)
+    
+    self.embedGame = embedGame
+    self.embedAction = embedAction
+    history_size = (1+self.rlConfig.memory) * (embedGame.size+embedAction.size)
     
     self.net = tfl.Sequential()
     with tf.variable_scope("critic"):
-      prev_size = state_size
+      prev_size = history_size
       for i, next_size in enumerate(self.critic_layers):
         with tf.variable_scope("layer_%d" % i):
           self.net.append(tfl.FCLayer(prev_size, next_size, self.nl))
@@ -34,12 +38,19 @@ class Critic(Default):
     if not self.fix_scopes:
       with tf.variable_scope('critic'):
         self.net.append(tfl.FCLayer(prev_size, 1))
+    
+    self.variables = self.net.getVariables()
   
-  def __call__(self, states, rewards):
-    values = tf.squeeze(self.net(states), [-1])
+  def __call__(self, state, prev_action, reward, **unused):
+    embedded_state = self.embedGame(state)
+    embedded_prev_action = self.embedAction(prev_action)
+    history = makeHistory(embedded_state, embedded_prev_action, self.rlConfig.memory)
+
+    values = tf.squeeze(self.net(history), [-1])
     trainVs = values[:,:-1]
     lastV = values[:,-1]
     
+    rewards = reward[:,self.rlConfig.memory:]
     # TODO: implement GAE, or some TD(N) weighting scheme
     targets = tfl.discount(rewards, self.rlConfig.discount, lastV)
     targets = tf.stop_gradient(targets)
@@ -53,7 +64,8 @@ class Critic(Default):
     tf.scalar_summary('v_loss', vLoss)
     tf.scalar_summary("v_uev", vLoss / tfl.sample_variance(targets))
     
-    train_critic = tf.train.AdamOptimizer(self.critic_learning_rate).minimize(vLoss)
+    opt = tf.train.AdamOptimizer(self.critic_learning_rate)
+    train_op = opt.minimize(vLoss, var_list=self.variables)
     
-    return train_critic, targets, advantages
+    return train_op, targets, advantages
 

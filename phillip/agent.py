@@ -5,6 +5,9 @@ from numpy import random, exp
 from .default import *
 from .menu_manager import characters
 import pprint
+import os
+import uuid
+import pickle
 
 pp = pprint.PrettyPrinter(indent=2)
 
@@ -16,6 +19,7 @@ class Agent(Default):
     Option('dump', type=str, help="dump experiences to ip address via zmq"),
     Option('listen', type=str, help="address to listen on for model updates"),
     Option('swap', type=int, default=0, help="swap players 1 and 2"),
+    Option('disk', type=int, default=0, help="dump experiences to disk"),
   ]
   
   _members = [
@@ -51,13 +55,20 @@ class Agent(Default):
       sock_addr = "tcp://%s:%d" % (self.dump, util.port(self.rl.name + "/experience"))
       print("Connecting experience socket to " + sock_addr)
       self.dump_socket.connect(sock_addr)
-      
+    
+    if self.dump or self.disk:
       self.dump_size = self.rl.config.experience_length
       self.dump_state_actions = (self.dump_size * ssbm.SimpleStateAction)()
 
       self.dump_frame = 0
       self.dump_count = 0
-
+    
+    if self.disk:
+      self.dump_dir = os.path.join(self.rl.path, 'experience')
+      print("Dumping to", self.dump_dir)
+      util.makedirs(self.dump_dir)
+      self.dump_tag = uuid.uuid4().hex
+    
     if self.listen:
       import zmq
       context = zmq.Context.instance()
@@ -87,7 +98,14 @@ class Agent(Default):
       prepared = ssbm.prepareStateActions(self.dump_state_actions)
       prepared['initial'] = self.initial
       
-      self.dump_socket.send_pyobj(prepared)
+      if self.dump:
+        self.dump_socket.send_pyobj(prepared)
+      
+      if self.disk:
+        path = os.path.join(self.dump_dir, self.dump_tag + '_%d' % self.dump_count)
+        with open(path, 'wb') as f:
+          pickle.dump(prepared, f)
+
 
   def act(self, state, pad):
     self.frame_counter += 1
@@ -113,8 +131,9 @@ class Agent(Default):
     history = ct.vectorizeCTypes(ssbm.SimpleStateAction, history)
     history['hidden'] = self.hidden
     
-    self.action, self.hidden = self.rl.act(history, verbose)
+    self.action, p, self.hidden = self.rl.act(history, verbose)
     
+    current.prob = p
     current.action = self.action
 
     #if verbose:
@@ -128,7 +147,7 @@ class Agent(Default):
     
     self.action_counter += 1
     
-    if self.dump:
+    if self.dump or self.disk:
       self.dump_state(current)
     
     if self.reload and self.action_counter % (self.reload * self.rl.config.fps) == 0:
