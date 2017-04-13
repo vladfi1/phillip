@@ -164,7 +164,7 @@ add_param('enemies', enemies)
 add_param('enemy_reload', 3600, False)
 
 # total number of agents
-agents = 20
+agents = 60
 params['agents'] = agents
 
 if args.name is not None:
