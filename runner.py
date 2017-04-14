@@ -53,10 +53,10 @@ natural = False
 train_settings = [
   #('learning_rate', 0.0002),
   ('tdN', 20),
-  ('reward_halflife', 4),
+  ('reward_halflife', 5),
   ('sweeps', 1),
   ('batches', 1 if natural else 5),
-  ('batch_size', 1000),
+  ('batch_size', 2000),
   ('batch_steps', 1),
 ]
 
@@ -75,14 +75,14 @@ elif ac:
 
 if natural:
   add_param('natural', True, False)
-  
+
   if ac:
     add_param('target_distance', 1e-6)
   elif dqn:
     add_param('target_distance', 1e-8)
-  
+
   add_param('learning_rate', 1., False)
-  
+
   train_settings += [
     ('cg_damping', 1e-5),
   ]
@@ -105,7 +105,6 @@ add_param('xy_scale', 0.05, False)
 
 add_param('action_space', 0, False)
 add_param('player_space', 0, False)
-
 #add_param('critic_layers', [128] * 1)
 #add_param('actor_layers', [128] * 3)
 add_param('nl', 'elu', False)
@@ -158,13 +157,12 @@ enemies = "cpu"
 #enemies = "delay0"
 #enemies = "delay%d" % delay
 #enemies = ['delay0']
-
 add_param('enemies', enemies)
 
 add_param('enemy_reload', 3600, False)
 
 # total number of agents
-agents = 60
+agents = 150
 params['agents'] = agents
 
 if args.name is not None:
@@ -180,3 +178,4 @@ util.makedirs(path)
 import json
 with open(path + "params", 'w') as f:
   json.dump(params, f, indent=2)
+
