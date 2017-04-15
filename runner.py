@@ -42,7 +42,7 @@ recurrent = model.count('Recurrent')
 dqn = model.count('DQN')
 ac = model.count('ActorCritic')
 
-add_param('model', model, False)
+add_param('policy', model, False)
 add_param('epsilon', 0.02, False)
 
 natural = True
