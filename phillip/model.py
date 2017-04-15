@@ -20,7 +20,7 @@ class Model(Default):
     ('rlConfig', RLConfig),
   ]
   
-  def __init__(self, **kwargs):
+  def __init__(self, scope="model", **kwargs):
     Default.__init__(self, **kwargs)
     
     self.actionType = ssbm.actionTypes[self.action_type]
@@ -30,7 +30,7 @@ class Model(Default):
     history_size = (1+self.rlConfig.memory) * (embedGame.size + action_size)
     input_size = action_size + history_size
     
-    with tf.variable_scope("model"):
+    with tf.variable_scope(scope):
       net = tfl.Sequential()
       
       prev_size = input_size

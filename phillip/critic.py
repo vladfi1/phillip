@@ -17,7 +17,7 @@ class Critic(Default):
     ('nl', tfl.NL),
   ]
   
-  def __init__(self, embedGame, embedAction, **kwargs):
+  def __init__(self, embedGame, embedAction, scope='critic', **kwargs):
     Default.__init__(self, **kwargs)
     
     self.embedGame = embedGame
@@ -25,7 +25,7 @@ class Critic(Default):
     history_size = (1+self.rlConfig.memory) * (embedGame.size+embedAction.size)
     
     self.net = tfl.Sequential()
-    with tf.variable_scope("critic"):
+    with tf.variable_scope(scope):
       prev_size = history_size
       for i, next_size in enumerate(self.critic_layers):
         with tf.variable_scope("layer_%d" % i):
@@ -36,7 +36,7 @@ class Critic(Default):
         self.net.append(tfl.FCLayer(prev_size, 1))
     
     if not self.fix_scopes:
-      with tf.variable_scope('critic'):
+      with tf.variable_scope(scope):
         self.net.append(tfl.FCLayer(prev_size, 1))
     
     self.variables = self.net.getVariables()
