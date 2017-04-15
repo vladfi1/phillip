@@ -1,3 +1,5 @@
+#!/bin/env python
+
 import os
 import sys
 from argparse import ArgumentParser
@@ -15,6 +17,7 @@ parser.add_argument('--local', action='store_true', help="run locally")
 parser.add_argument('--agents', type=int, help="number of agents to run")
 parser.add_argument('--log_agents', action='store_true', help='log agent outputs')
 parser.add_argument('--profile', action='store_true', help='heap profile trainer')
+parser.add_argument('--disk', action='store_true', help='run agents and dump experiences to disk')
 
 args = parser.parse_args()
 
@@ -28,7 +31,10 @@ if args.local:
   agent_dump = "localhost"
   trainer_dump = "127.0.0.1"
 else: # running on openmind
-  if args.trainer:
+  agent_dump = None
+  if args.disk:
+    run_trainer = False
+  elif args.trainer:
     agent_dump = "172.16.24.%s" % args.trainer
     run_trainer = False
   else:
@@ -81,10 +87,9 @@ def launch(name, command, cpus=2, mem=1000, gpu=False, log=True, qos=None, array
     f.write("#SBATCH --job-name " + name + "\n")
     if log:
       f.write("#SBATCH --output slurm_logs/" + name + "_%a.out\n")
-      f.write("#SBATCH --error slurm_logs/" + name + "_%a.err\n")
     else:
       f.write("#SBATCH --output /dev/null")
-      f.write("#SBATCH --error /dev/null")
+    f.write("#SBATCH --error slurm_logs/" + name + "_%a.err\n")
     f.write("#SBATCH -c %d\n" % cpus)
     f.write("#SBATCH --mem %d\n" % mem)
     f.write("#SBATCH --time 7-0\n")
@@ -97,6 +102,7 @@ def launch(name, command, cpus=2, mem=1000, gpu=False, log=True, qos=None, array
       f.write("#SBATCH --qos %s\n" % qos)
     if array:
       f.write("#SBATCH --array=1-%d\n" % array)
+    f.write("source activate vlad\n")
     f.write(command)
 
   #command = "screen -S %s -dm srun --job-name %s --pty singularity exec -B $OM_USER/phillip -B $HOME/phillip/ -H ../home phillip.img gdb -ex r --args %s" % (name[:10], name, command)
@@ -141,8 +147,13 @@ if run_agents:
 
   agent_count = 0
   agent_command = "phillip --load " + args.path
-  agent_command += " --dump " + agent_dump
-  agent_command += " --listen " + agent_dump
+  if args.disk:
+    agent_command += " --disk 1"
+
+  if agent_dump is not None:
+    agent_command += " --dump " + agent_dump
+    agent_command += " --listen " + agent_dump
+
   if args.local:
     agent_command += " --dual_core 0"
   
@@ -166,7 +177,7 @@ if run_agents:
     agent_name = "agent_%d_%s" % (agent_count, params['name'])
     launch(agent_name, command,
       log=args.log_agents,
-      qos='use-everything',
+      #qos='use-everything',
       array=agents
     )
     agent_count += 1
