@@ -61,7 +61,7 @@ class RecurrentActorCritic(Default):
     history = RL.makeHistory(embedded_state, embedded_prev_action, self.rlConfig.memory)
     
     history = self.actor_fc(history)
-    f self.dynamic:
+    if self.dynamic:
       actor_outputs, actor_hidden = tf.nn.dynamic_rnn(self.rnn, history, initial_state=initial)
     else:
       actor_outputs, actor_hidden = tfl.rnn(self.rnn, history, initial)
