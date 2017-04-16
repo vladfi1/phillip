@@ -66,7 +66,7 @@ class Model(Default):
     states = embedGame(state)
     prev_actions = self.embedAction(prev_action)
 
-    histories = RL.makeHistory(states, prev_actions, self.rlConfig.memory)
+    histories = makeHistory(states, prev_actions, self.rlConfig.memory)
     
     actions = self.embedAction(action)
     train_actions = actions[:,self.rlConfig.memory:,:]
