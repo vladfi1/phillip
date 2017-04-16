@@ -9,9 +9,12 @@ import random
 parser = argparse.ArgumentParser()
 parser.add_argument("--tag", action="store_true", help="generate random tag for this experiment")
 parser.add_argument("--name", type=str, help="experiment name")
+parser.add_argument("--prefix", type=str, help="experiment prefix")
 args = parser.parse_args()
 
-if args.tag:
+if args.prefix:
+  exp_name = args.prefix + "_"
+elif args.tag:
   exp_name = str(random.getrandbits(32)) + "_"
 else:
   exp_name = ""
@@ -53,10 +56,10 @@ natural = False
 train_settings = [
   #('learning_rate', 0.0002),
   ('tdN', 20),
-  ('reward_halflife', 5),
+  ('reward_halflife', 4),
   ('sweeps', 1),
   ('batches', 1 if natural else 5),
-  ('batch_size', 2000),
+  ('batch_size', 1000),
   ('batch_steps', 1),
 ]
 
@@ -75,14 +78,14 @@ elif ac:
 
 if natural:
   add_param('natural', True, False)
-
+  
   if ac:
     add_param('target_distance', 1e-6)
   elif dqn:
     add_param('target_distance', 1e-8)
-
+  
   add_param('learning_rate', 1., False)
-
+  
   train_settings += [
     ('cg_damping', 1e-5),
   ]
@@ -105,8 +108,10 @@ add_param('xy_scale', 0.05, False)
 
 add_param('action_space', 0, False)
 add_param('player_space', 0, False)
+
 #add_param('critic_layers', [128] * 1)
-#add_param('actor_layers', [128] * 3)
+add_param('actor_fc_layers', [128] * 1)
+add_param('actor_rnn_layers', [128] * 1)
 add_param('nl', 'elu', False)
 
 add_param('action_type', 'custom')
@@ -157,12 +162,13 @@ enemies = "cpu"
 #enemies = "delay0"
 #enemies = "delay%d" % delay
 #enemies = ['delay0']
+
 add_param('enemies', enemies)
 
 add_param('enemy_reload', 3600, False)
 
 # total number of agents
-agents = 150
+agents = 120
 params['agents'] = agents
 
 if args.name is not None:
@@ -178,4 +184,3 @@ util.makedirs(path)
 import json
 with open(path + "params", 'w') as f:
   json.dump(params, f, indent=2)
-
