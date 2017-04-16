@@ -23,9 +23,6 @@ def diff_objects(after, before):
   diff = {k: after[k] - before[k] for k in after}
   return {k: i for k, i in diff.items() if i}
 
-import pprint
-pp = pprint.PrettyPrinter(indent=2)
-
 class Trainer(Default):
   _options = [
     #Option("debug", action="store_true", help="set debug breakpoint"),
@@ -56,7 +53,7 @@ class Trainer(Default):
       args = util.load_params(load, 'train')
     
     util.update(args, mode=RL.Mode.TRAIN, **kwargs)
-    pp.pprint(args)
+    util.pp.pprint(args)
     Default.__init__(self, **args)
     
     if self.init:
