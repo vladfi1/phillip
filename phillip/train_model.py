@@ -34,7 +34,7 @@ class ModelTrainer(Default):
     
     kwargs.update(
         train_model=1,
-        train_actor=0,
+        train_policy=0,
         train_critic=0,
         experience_length=6000,
     )
