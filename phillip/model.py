@@ -84,8 +84,12 @@ class Model(Default):
     #distances = util.deepValues(distances)
     distances = util.deepMap(tf.reduce_mean, distances)
     
-    tf.scalar_summary("model/loss/self_x", tf.sqrt(distances['players'][1]['x']))
-    tf.scalar_summary("model/loss/action_state", distances['players'][1]['action_state'])
+    for path, tensor in util.deepItems(distances):
+      tag = "model/loss/" + "/".join(map(str, path))
+      tf.scalar_summary(tag, tensor)
+    
+    #tf.scalar_summary("model/loss/self_x", tf.sqrt(distances['players'][1]['x']))
+    #tf.scalar_summary("model/loss/action_state", distances['players'][1]['action_state'])
     
     distance = tf.add_n(list(util.deepValues(distances)))
     tf.scalar_summary("model/loss/total", distance)

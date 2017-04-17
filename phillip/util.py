@@ -96,6 +96,16 @@ def deepZipWith(f, objs):
     return [deepZipWith(f, vals) for vals in zip(*objs)]
   return f(objs)
 
+def deepItems(obj, path=[]):
+  if isinstance(obj, dict):
+    for k, v in obj.items():
+      yield from deepItems(v, path=path+[k])
+  elif isinstance(obj, list):
+    for i, v in enumerate(obj):
+      yield from deepItems(v, path=path+[i])
+  else:
+    yield (path, obj)
+
 def flip(p):
   return random.binomial(1, p)
 
