@@ -87,3 +87,37 @@ Paper Vlad cites -> Gradient Clipping
 Log other shit
 
 Play against ingame level 9 cpu, and look at the logs
+
+
+
+
+
+
+Try running regular actor critic, make recurrent empty, to compare to a baseline
+Weight initialization - Random normal, make it have norm 1 (scale weights) (scaled_weight_initializer implements this (you'd have to return weight, scale, and bias))
+	https://arxiv.org/pdf/1602.07868.pdf
+GRU Cell doesn't have to use getvariable, has its own activations, worth looking at GRU implementation (tanh - activation for GRU cell)
+
+Entropy -> e^(entropy) actions (Entropy drops but doesnt drop a lot as it learns) (decrease the entropy scale to have it drop further)
+Learning Rate -> Fiddle with that
+reward_halflife -> (drop) 2 (think about how much you care about x seconds in the future) (delay - quarter second, so having reward_halflife 4 or 5 is ridiculous)
+
+v_loss, v_uev (Unexplained Variance??? Think of R^2) - critic
+
+To understand actor loss, look at math for REINFORCE (why that's a policy gradient) (It's not actually a loss, entropy term kinda operates like a loss, actor_gain doesnt)
+	Look at description of entropy in paper
+
+Yes, don't train against delay 0 agents, master level 9 under human-like delay, than train against yourself, then have new char agents train against each other etc (do whats in the paper)
+
+DQN has a loss, actor critic loss isnt really a loss that is minimized (so adding auxillary task penalty to loss kinda makes sense for DQN, not really for A3C)
+Auxillary control problem - Learning to solve seperate fake tasks, won't inherently be able to resolve action delay problem (what agent actually learns through auxillary tasks is a mystery)
+
+Learning transition function is supervised learning problem (prediction loss), pixel control (unsupervised RL problem) (RL task)
+
+We see the world by predicting where things will be, because can't react to its perfectly (happens subconsciously)
+	Agent knows its x delayed, hence asks model to predict x states ahead, and so is fed back the present state
+
+If model is sufficiently trained, whether agent is recurrent or not is insignificant
+	Hence, approaches are orthogonal (I do think though that if the agent learns to interpret the fed back state, rather than just taking it as fact, the fact that its recurrent could help)
+
+However, these are premature thoughts, as a model-based approach to resolving the delay problem is much harder, so we should focus on the RNN
