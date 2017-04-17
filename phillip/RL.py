@@ -91,6 +91,7 @@ class RL(Default):
       
       if mode == Mode.TRAIN:
         if self.train_policy or self.train_critic:
+          print("Creating critic.")
           self.critic = Critic(self.embedGame, embedAction, **kwargs)
 
         with tf.name_scope('train'):
