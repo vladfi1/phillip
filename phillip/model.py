@@ -4,18 +4,17 @@ from .default import *
 from . import embed, ssbm, tf_lib as tfl, util
 from .rl_common import *
 
-# parameter-less embedding
-embedGame = embed.GameEmbedding()
-
 class Model(Default):
   _options = [
-    Option("model_layers", type=int, nargs='+', default=[128]),
+    Option("model_layers", type=int, nargs='+', default=[256]),
 
     Option('action_type', type=str, default="diagonal", choices=ssbm.actionTypes.keys()),
     Option('model_learning_rate', type=float, default=1e-4),
+    Option('predict_steps', type=int, default=1, help="number of future frames to predict")
   ]
   
   _members = [
+    ('embedGame', embed.GameEmbedding),
     ('nl', tfl.NL),
     ('rlConfig', RLConfig),
   ]
@@ -27,7 +26,7 @@ class Model(Default):
     action_size = self.actionType.size # TODO: use the actual controller embedding
     self.embedAction = embed.OneHotEmbedding("action", action_size)
     
-    history_size = (1+self.rlConfig.memory) * (embedGame.size + action_size)
+    history_size = (1+self.rlConfig.memory) * (self.embedGame.size + action_size)
     input_size = action_size + history_size
     
     with tf.variable_scope(scope):
@@ -41,9 +40,9 @@ class Model(Default):
         prev_size = next_size
       
       with tf.variable_scope("output"):
-        self.delta_layer = tfl.FCLayer(prev_size, embedGame.size, bias_init=tfl.constant_init(0.))
-        self.new_layer = tfl.FCLayer(prev_size, embedGame.size)
-        self.forget_layer = tfl.FCLayer(prev_size, embedGame.size, nl=tf.sigmoid, bias_init=tfl.constant_init(1.))
+        self.delta_layer = tfl.FCLayer(prev_size, self.embedGame.size, bias_init=tfl.constant_init(0.))
+        self.new_layer = tfl.FCLayer(prev_size, self.embedGame.size)
+        self.forget_layer = tfl.FCLayer(prev_size, self.embedGame.size, nl=tf.sigmoid, bias_init=tfl.constant_init(1.))
       
       self.net = net
     
@@ -63,38 +62,53 @@ class Model(Default):
     return forget * (last + delta) + (1. - forget) * new
   
   def train(self, state, action, prev_action, **unused):
-    states = embedGame(state)
+    states = self.embedGame(state)
     prev_actions = self.embedAction(prev_action)
-
-    histories = makeHistory(states, prev_actions, self.rlConfig.memory)
-    
+    combined = tf.concat(2, [states, prev_actions])
     actions = self.embedAction(action)
-    train_actions = actions[:,self.rlConfig.memory:,:]
     
-    inputs = tf.concat(2, [histories, train_actions])
-    inputs = inputs[:,:-1,:] # last history has no target
+    memory = self.rlConfig.memory
+    length = combined.get_shape()[-2].value - memory
+    history = [tf.slice(combined, [0, i, 0], [-1, length, -1]) for i in range(memory+1)]
+
+    last_states = states[:,memory:,:]
+
+    totals = []
+
+    for step in range(self.predict_steps):
+      # remove last time step from histories
+      history = [t[:,:-1,:] for t in history]
+      last_states = last_states[:,:-1,:]
+      
+      # stack memory frames and current action
+      history_concat = tf.concat(2, history[step:])
+      current_action = actions[:,memory+step:-1,:]
+      inputs = tf.concat(2, [history_concat, current_action])
+      
+      predicted_states = self.apply(inputs, last_states)
+      
+      # prepare for the next frame
+      last_states = predicted_states
+      next_actions = prev_actions[:,memory+step+1:,:]
+      history.append(tf.concat(2, [predicted_states, next_actions]))
+      
+      # compute losses on this frame
+      target_states = util.deepMap(lambda t: t[:,memory+1+step:], state)
     
-    last_states = states[:,self.rlConfig.memory:-1,:]
+      distances = self.embedGame.distance(predicted_states, target_states)
+      distances = util.deepMap(tf.reduce_mean, distances)
+      
+      # log all the individual distances
+      for path, tensor in util.deepItems(distances):
+        tag = "model/%d/" % step + "/".join(map(str, path))
+        tf.scalar_summary(tag, tensor)
     
-    predicted_states = self.apply(inputs, last_states)
+      total = tf.add_n(list(util.deepValues(distances)))
+      tf.scalar_summary("model/%d/total" % step, total)
+      totals.append(total)
     
-    target_states = util.deepMap(lambda t: t[:,self.rlConfig.memory + 1:], state)
-    
-    distances = embedGame.distance(predicted_states, target_states)
-    #distances = util.deepValues(distances)
-    distances = util.deepMap(tf.reduce_mean, distances)
-    
-    for path, tensor in util.deepItems(distances):
-      tag = "model/loss/" + "/".join(map(str, path))
-      tf.scalar_summary(tag, tensor)
-    
-    #tf.scalar_summary("model/loss/self_x", tf.sqrt(distances['players'][1]['x']))
-    #tf.scalar_summary("model/loss/action_state", distances['players'][1]['action_state'])
-    
-    distance = tf.add_n(list(util.deepValues(distances)))
-    tf.scalar_summary("model/loss/total", distance)
-    
-    return tf.train.AdamOptimizer(self.model_learning_rate).minimize(distance)
+    total_distance = tf.add_n(totals)
+    return tf.train.AdamOptimizer(self.model_learning_rate).minimize(total_distance)
   
   """
   def predict(self, experience, action, extract=False):
