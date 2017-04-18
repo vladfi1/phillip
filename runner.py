@@ -56,7 +56,7 @@ natural = False
 train_settings = [
   #('learning_rate', 0.0002),
   ('tdN', 20),
-  ('reward_halflife', 4),
+  ('reward_halflife', 2),
   ('sweeps', 1),
   ('batches', 1 if natural else 5),
   ('batch_size', 2000),
