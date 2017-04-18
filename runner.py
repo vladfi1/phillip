@@ -59,7 +59,7 @@ train_settings = [
   ('reward_halflife', 4),
   ('sweeps', 1),
   ('batches', 1 if natural else 5),
-  ('batch_size', 1000),
+  ('batch_size', 2000),
   ('batch_steps', 1),
 ]
 
@@ -74,7 +74,7 @@ elif ac:
   if natural:
     add_param('entropy_scale', 2e-4, True)
   else:
-    add_param('entropy_scale', 1e-2 if recurrent else 2e-3, True)
+    add_param('entropy_scale', 1e-2, True)
 
 if natural:
   add_param('natural', True, False)
@@ -92,7 +92,7 @@ if natural:
   add_param('cg_iters', 15, False)
   #add_param('optimizer', 'Adam', True)
 else:
-  add_param('learning_rate', 1e-5 if recurrent else 1e-4, True)
+  add_param('learning_rate', 1e-4, True)
   add_param('optimizer', 'Adam', False)
 
 #if recurrent:
@@ -110,7 +110,7 @@ add_param('action_space', 0, False)
 add_param('player_space', 0, False)
 
 #add_param('critic_layers', [128] * 1)
-add_param('actor_fc_layers', [128] * 1)
+add_param('actor_fc_layers', [128] * 2)
 add_param('actor_rnn_layers', [128] * 1)
 add_param('nl', 'elu', False)
 
@@ -168,7 +168,7 @@ add_param('enemies', enemies)
 add_param('enemy_reload', 3600, False)
 
 # total number of agents
-agents = 120
+agents = 150
 params['agents'] = agents
 
 if args.name is not None:
