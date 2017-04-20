@@ -92,7 +92,6 @@ Play against ingame level 9 cpu, and look at the logs
 
 
 
-
 Try running regular actor critic, make recurrent empty, to compare to a baseline
 Weight initialization - Random normal, make it have norm 1 (scale weights) (scaled_weight_initializer implements this (you'd have to return weight, scale, and bias))
 	https://arxiv.org/pdf/1602.07868.pdf
@@ -121,3 +120,26 @@ If model is sufficiently trained, whether agent is recurrent or not is insignifi
 	Hence, approaches are orthogonal (I do think though that if the agent learns to interpret the fed back state, rather than just taking it as fact, the fact that its recurrent could help)
 
 However, these are premature thoughts, as a model-based approach to resolving the delay problem is much harder, so we should focus on the RNN
+
+
+Initial state - Just asking agent for initial states (trainer never has a say)
+	first hidden state in that experience
+	Typically in RNNs, all 0s or learned variable (during training)
+	Maybe empty hidden state (Rather than using initial train input, use tf.zeros)
+
+	Actor Critic its an issue, might be fine for DQN
+		REINFORCE rule, on-policy, action probabilities have to match, taking gradient of log action probabilities and should match actual probabilities of taking that action
+		Won't be the case if the hidden states are different (Could make agent reset to 0)
+
+If you start with empty or 0 hidden states, run RNN for few steps (half for doom) to get hidden state to interesting place, and then train after that
+
+Could transform to supervised learning, keep policy fixed, just to see if recurrent net is training
+	(Merge branch) (Make high experience length, and high frame limit)
+	(train_model.py trains on models on disk)
+
+Consider making output layer recurrent
+
+
+Only difference is temperature vs entropy scale, (and epsilon)
+	Temperature - Divide Q values by the temperature, and use that as a probability distribution over your actions
+		Temperature and Entropy Scale have same units (reward)
