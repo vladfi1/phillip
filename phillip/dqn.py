@@ -94,17 +94,6 @@ class DQN(Default):
       return tf.reduce_mean(tf.squared_difference(q1, q2))
 
     return self.optimizer.optimize(qLoss, params, predictedQs, metric)
-    
-    """
-    update_target = lambda: tf.group(*self.q_target.assign(self.q_net), name="update_target")
-    should_update = tf.equal(tf.mod(self.global_step, target_delay), 0)
-    periodic_update = tf.case([(should_update, update_target)], default=lambda: tf.no_op())
-    
-    return (
-      qLoss,
-      [("qLoss", qLoss), ("periodic_update", periodic_update)],
-    )
-    """
   
   def getPolicy(self, state, **unused):
     #return [self.epsilon, tf.argmax(self.getQValues(state), 1)]

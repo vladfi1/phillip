@@ -2,6 +2,7 @@ import tensorflow as tf
 from . import tf_lib as tfl, util, opt
 from numpy import random
 from .default import *
+from . import rl_common as RL
 
 class RecurrentDQN(Default):
   _options = [
@@ -12,73 +13,51 @@ class RecurrentDQN(Default):
   ]
   
   _members = [
-    ('optimizer', opt.Optimizer)
+    ('optimizer', opt.Optimizer),
+    ('nl', tfl.NL),
   ]
 
-  def __init__(self, state_size, action_size, global_step, rlConfig, **kwargs):
+  def __init__(self, embedGame, embedAction, global_step, rlConfig, scope='q', **kwargs):
     Default.__init__(self, **kwargs)
-    self.action_size = action_size
+    self.rlConfig = rlConfig
     
-    with tf.variable_scope('q'):
+    self.embedGame = embedGame
+    self.embedAction = embedAction
+    self.action_size = embedAction.size
+    
+    history_size = (1+rlConfig.memory) * (embedGame.size+self.action_size)
+    
+    with tf.variable_scope(scope):
       cells = []
       
-      prev_size = state_size
+      prev_size = history_size
       for i, next_size in enumerate(self.q_layers):
         with tf.variable_scope("layer_%d" % i):
           #TODO: choose nl here?
-          cells.append(tfl.GRUCell(prev_size, next_size))
+          cells.append(tfl.GRUCell(prev_size, next_size, self.nl))
         prev_size = next_size
       
       with tf.variable_scope('out'):
-        self.q_out = tfl.FCLayer(prev_size, action_size)
-        #cells.append(tfl.GRUCell(prev_size, action_size)
+        self.q_out = tfl.FCLayer(prev_size, self.action_size)
 
       self.q_rnn = tf.nn.rnn_cell.MultiRNNCell(cells)
     
     self.hidden_size = self.q_rnn.state_size
     
-    self.rlConfig = rlConfig
-    
     self.global_step = global_step
   
-  def train(self, states, actions, rewards, initial, **unused):
-    n = self.rlConfig.tdN
-    
-    state_shape = tf.shape(states)
-    batch_size = state_shape[0]
-    experience_length = state_shape[1]
-
-    train_length = experience_length - n
+  def train(self, state, prev_action, action, initial, targets, **unused):
+    embedded_state = self.embedGame(state)
+    embedded_prev_action = self.embedAction(prev_action)
+    history = RL.makeHistory(embedded_state, embedded_prev_action, self.rlConfig.memory)
+    actions = self.embedAction(action[:,self.rlConfig.memory:])
     
     # if not natural
-    q_outputs, q_hidden = tf.nn.dynamic_rnn(self.q_rnn, states, initial_state=initial)
+    q_outputs, q_hidden = tf.nn.dynamic_rnn(self.q_rnn, history, initial_state=initial)
     
     predictedQs = self.q_out(q_outputs)
     takenQs = tfl.batch_dot(actions, predictedQs)
-    trainQs = tf.slice(takenQs, [0, 0], [-1, train_length])
-    
-    # smooth between TD(m) for m<=n?
-    targets = tf.slice(takenQs, [0, n], [-1, train_length])
-    #targets = values[:,n:]
-    for i in reversed(range(n)):
-      targets *= self.rlConfig.discount
-      targets += tf.slice(rewards, [0, i], [-1, train_length])
-    targets = tf.stop_gradient(targets)
-    
-    """ TODO: do we still want this code path for maxQ/sarsa?
-    targetQs = predictedQs
-    realQs = tfl.batch_dot(actions, targetQs)
-    maxQs = tf.reduce_max(targetQs, -1)
-    targetQs = realQs if self.sarsa else maxQs
-    
-    tf.scalar_summary("q_max", tf.reduce_mean(maxQs))
-    
-    # smooth between TD(m) for m<=n?
-    targets = tf.slice(targetQs, [0, n], [-1, train_length])
-    for i in reversed(range(n)):
-      targets = tf.slice(rewards, [0, i], [-1, train_length]) + self.rlConfig.discount * targets
-    targets = tf.stop_gradient(targets)
-    """
+    trainQs = takenQs[:,:-1]
     
     qLoss = tf.reduce_mean(tf.squared_difference(trainQs, targets))
     tf.scalar_summary("q_loss", qLoss)
@@ -103,17 +82,6 @@ class RecurrentDQN(Default):
 
     trainQ = self.optimizer.optimize(qLoss, params, predictedQs, metric)
     return trainQ
-    
-    """
-    update_target = lambda: tf.group(*self.q_target.assign(self.q_net), name="update_target")
-    should_update = tf.equal(tf.mod(self.global_step, target_delay), 0)
-    periodic_update = tf.case([(should_update, update_target)], default=lambda: tf.no_op())
-    
-    return (
-      qLoss,
-      [("qLoss", qLoss), ("periodic_update", periodic_update)],
-    )
-    """
   
   def getPolicy(self, state, hidden, **unused):
     #return [self.epsilon, tf.argmax(self.getQValues(state), 1)]
@@ -139,5 +107,5 @@ class RecurrentDQN(Default):
     if verbose:
       #print(qValues)
       print(entropy)
-    return random.choice(range(self.action_size), p=action_probs), hidden
-
+    action = random.choice(range(self.embedAction.size), p=action_probs)
+    return action, action_probs[action], hidden
