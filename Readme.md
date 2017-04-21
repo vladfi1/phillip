@@ -14,3 +14,9 @@ Check Vlad's repository for original Readme
 - scancel [job #]
 - ./scancel RecurrentActorCritic
 - scancel -u vladfi1
+
+## TODO
+- Edit RDQN to have same architecture as rac (2 Q layers, followed by GRU cell)
+- Set reward_halflife to 2 and make sure runner works
+- Train 80 agents with RDQN (keep temperature the same)
+- Train 80 agents with RAC (lower entropy to normal (not recurrent))
