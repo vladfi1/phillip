@@ -100,7 +100,6 @@ class Trainer(Default):
     sweeps = 0
     
     for _ in range(self.sweep_size):
-      print("%d of %d" % (_, self.sweep_size))
       self.buffer.push(self.experience_socket.recv_pyobj())
     
     print("Buffer filled")
