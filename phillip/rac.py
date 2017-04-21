@@ -97,7 +97,7 @@ class RecurrentActorCritic(Default):
     state = tf.expand_dims(state, 0)
     hidden = util.deepMap(lambda x: tf.expand_dims(x, 0), hidden)
     
-    actor_output, actor_hidden = self.rnn(state, hidden)
+    actor_output, actor_hidden = self.rnn(self.actor_fc(state), hidden)
     
     hidden = util.deepMap(lambda x: tf.squeeze(x, [0]), hidden)
     log_actor_probs = tf.squeeze(self.actor_out(actor_output), [0])
