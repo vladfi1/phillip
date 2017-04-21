@@ -1,0 +1,39 @@
+(With DQN, we can transform the problem to supervised learning, by keeping the policy fixed, just to see if RNN is training)
+		(Merge branch) (Make high experience length, and high frame limit)
+		(train_model.py trains on models on disk)
+
+Entropy - e^entropy actions per state considered, entropy too high (3.7) lower entropy scale, too low (0.02) raise entropy scale (too high currently)
+
+Temperature (DQN version of entropy) - q values divide by temperature and take softmax (high temperature,high entropy) (temperature should be same scale as variance of q values)
+reward_half - discount factor (2 is high, much less greedy, but much high variance) (Currently 4 or 5)
+
+GRU Cell
+	Weight initialization - scaled_weight_initializer implements weight normalizer (you'd have to return weight, scale, and bias))
+	https://arxiv.org/pdf/1602.07868.pdf (Currently Random normal, make it have norm 1 (scale weights))
+	Initial (hidden) state - Currently just asking agents, trainer doesn't have a say (maybe empty hidden state (tf.zeros?), maybe learned variable)
+		Problem for actor critic, REINFORCE rule is on-policy, action probabilities have to match
+		Would be fine for DQN (intended for DQN)
+	Nonlinearity - Currently tanh, might want to experiment
+
+Recurrent Architecture
+	# of actor layers
+	width of each actor layer
+	# of recurrent layers
+	width of each recurrent layer
+	arrangement
+
+Send only last half of gradients back for a given trace (https://arxiv.org/pdf/1609.05521.pdf)
+
+Gradient Clipping (Trust Region Policy Optimization) -  "The use of more sophisticated policies, including recurrent policies with hidden state, could further make it possible to rolls state estimation and control into the same policy in the partially-observed setting"
+
+
+act_every - maximize act_every (Action delay)
+delay - In frames is delay*act_every (12-15 frames is human)
+
+
+learning rate - order of magnitude less for recurrent (temporal stability) (might want to fiddle)
+Optimizer - Adam, look into that
+Nonlinearity - ELU, look into that
+
+natural gradients - Maybe try using natural gradients, cannot use dynamic rnn then (Currently false)
+tdN - Set a point for how far in the future to cutoff Monte Carlo estimates (truncate the sum) (Currently not used, no cutoff for episode)
