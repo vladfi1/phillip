@@ -216,8 +216,7 @@ class RL(Default):
     return self.policy.act(self.sess.run(self.run_policy, feed_dict), verbose)
 
   def train(self, experiences, batch_steps=1, **kwargs):
-    experiences = util.deepZipWith(np.array, experiences)
-    #experiences = util.deepMap(np.array, experiences)
+    experiences = util.deepZip(*experiences)
     
     input_dict = dict(util.deepValues(util.deepZip(self.experience, experiences)))
     

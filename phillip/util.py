@@ -85,16 +85,16 @@ def deepZip(*objs):
     return zipWith(deepZip, *objs)
   return objs
 
-def deepZipWith(f, objs):
+def deepZipWith(f, *objs):
   if len(objs) == 0:
     return []
   
   first = objs[0]
   if isinstance(first, dict):
-    return {k : deepZipWith(f, [obj[k] for obj in objs]) for k in first}
+    return {k : deepZipWith(f, *[obj[k] for obj in objs]) for k in first}
   if isinstance(first, (list, tuple)):
-    return [deepZipWith(f, vals) for vals in zip(*objs)]
-  return f(objs)
+    return type(first)(deepZipWith(f, *vals) for vals in zip(*objs))
+  return f(*objs)
 
 def deepItems(obj, path=[]):
   if isinstance(obj, dict):
