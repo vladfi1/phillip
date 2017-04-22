@@ -69,7 +69,7 @@ class RecurrentDQN(Default):
     history = RL.makeHistory(embedded_state, embedded_prev_action, self.rlConfig.memory)
     actions = self.embedAction(action[:,self.rlConfig.memory:])
 
-     if self.initial != 'agent':
+    if self.initial != 'agent':
       batch_size = tf.shape(history)[:1]
 
       def expand(t):
