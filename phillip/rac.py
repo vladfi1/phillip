@@ -49,10 +49,7 @@ class RecurrentActorCritic(Default):
         with tf.variable_scope("rnn_layer_%d" % i):
           cells.append(tfl.GRUCell(prev_size, next_size))
         prev_size = next_size
-      if cells:
-        self.rnn = tf.nn.rnn_cell.MultiRNNCell(cells)
-      else:
-        self.rnn = cells
+      self.rnn = tf.nn.rnn_cell.MultiRNNCell(cells)
       
       with tf.variable_scope("out"):
         self.actor_out = tfl.makeAffineLayer(prev_size, action_size, tf.nn.log_softmax)

@@ -35,9 +35,9 @@ def add_param(param, value, name=True):
   params[param] = value
 
 #model = 'DQN'
-#model = 'RecurrentDQN'
+model = 'RecurrentDQN'
 #model = 'ActorCritic'
-model = 'RecurrentActorCritic'
+#model = 'RecurrentActorCritic'
 
 exp_name += model
 
