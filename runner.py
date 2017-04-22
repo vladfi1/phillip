@@ -110,8 +110,10 @@ add_param('action_space', 0, False)
 add_param('player_space', 0, False)
 
 #add_param('critic_layers', [128] * 1)
-add_param('actor_fc_layers', [128] * 2)
-add_param('actor_rnn_layers', [128] * 1)
+#add_param('actor_fc_layers', [128] * 2)
+#add_param('actor_rnn_layers', [128] * 1)
+add_param('q_fc_layers', [128] * 2)
+add_param('q_rnn_layers', [128] * 1)
 add_param('nl', 'elu')
 
 add_param('action_type', 'custom', False)
