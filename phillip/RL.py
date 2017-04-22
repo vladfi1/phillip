@@ -91,6 +91,7 @@ class RL(Default):
       
       if mode == Mode.TRAIN:
         if self.train_policy or self.train_critic:
+          print("Creating critic.")
           self.critic = Critic(self.embedGame, embedAction, **kwargs)
 
         with tf.name_scope('train'):
@@ -216,7 +217,6 @@ class RL(Default):
 
   def train(self, experiences, batch_steps=1, **kwargs):
     experiences = util.deepZip(*experiences)
-    experiences = util.deepMap(np.array, experiences)
     
     input_dict = dict(util.deepValues(util.deepZip(self.experience, experiences)))
     

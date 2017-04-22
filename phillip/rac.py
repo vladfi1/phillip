@@ -15,6 +15,7 @@ class RecurrentActorCritic(Default):
     Option('entropy_scale', type=float, default=0.001),
     
     Option('dynamic', type=int, default=1, help='dynamically unroll rnn'),
+    Option('initial', type=str, default='zero', choices=['zero', 'train', 'agent'])
   ]
 
   _members = [
@@ -55,13 +56,31 @@ class RecurrentActorCritic(Default):
       
       with tf.variable_scope("out"):
         self.actor_out = tfl.makeAffineLayer(prev_size, action_size, tf.nn.log_softmax)
-    
-    self.hidden_size = self.rnn.state_size
+
+    if self.initial == 'agent':
+      self.hidden_size = self.rnn.state_size
+    else:
+      self.hidden_size = tuple()
+
+      self.initial_state = tuple(tf.Variable(tf.zeros(shape),
+                                             trainable=self.initial=='train',
+                                             name='hidden_%d'%i)
+                                 for i, shape in enumerate(self.rnn.state_size))
 
   def train(self, state, prev_action, action, advantages, initial, **unused):
     embedded_state = self.embedGame(state)
     embedded_prev_action = self.embedAction(prev_action)
     history = RL.makeHistory(embedded_state, embedded_prev_action, self.rlConfig.memory)
+
+    if self.initial != 'agent':
+      batch_size = tf.shape(history)[:1]
+
+      def expand(t):
+        ones = tf.ones_like(tf.shape(t), tf.int32)
+        multiples = tf.concat(0, [batch_size, ones])
+        return tf.tile(tf.expand_dims(t, 0), multiples)
+
+      initial = util.deepMap(expand, self.initial_state)
     
     history = self.actor_fc(history)
     if self.dynamic:
@@ -95,11 +114,19 @@ class RecurrentActorCritic(Default):
 
   def getPolicy(self, state, hidden, **unused):
     state = tf.expand_dims(state, 0)
+
+    if self.initial != 'agent':
+      hidden = self.initial_state
+    
     hidden = util.deepMap(lambda x: tf.expand_dims(x, 0), hidden)
     
     actor_output, actor_hidden = self.rnn(self.actor_fc(state), hidden)
     
     hidden = util.deepMap(lambda x: tf.squeeze(x, [0]), hidden)
+
+    if self.initial != 'agent':
+      hidden = util.deepZipWith(tf.assign, self.initial_state, hidden)
+    
     log_actor_probs = tf.squeeze(self.actor_out(actor_output), [0])
     return tf.exp(log_actor_probs), hidden
 

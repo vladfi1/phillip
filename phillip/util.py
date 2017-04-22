@@ -4,6 +4,10 @@ import operator
 from threading import Thread
 import hashlib
 import os
+import pprint
+
+
+pp = pprint.PrettyPrinter(indent=2)
 
 def foldl(f, init, l):
   for x in l:
@@ -80,6 +84,27 @@ def deepZip(*objs):
   if isinstance(first, (list, tuple)):
     return zipWith(deepZip, *objs)
   return objs
+
+def deepZipWith(f, *objs):
+  if len(objs) == 0:
+    return []
+  
+  first = objs[0]
+  if isinstance(first, dict):
+    return {k : deepZipWith(f, *[obj[k] for obj in objs]) for k in first}
+  if isinstance(first, (list, tuple)):
+    return type(first)(deepZipWith(f, *vals) for vals in zip(*objs))
+  return f(*objs)
+
+def deepItems(obj, path=[]):
+  if isinstance(obj, dict):
+    for k, v in obj.items():
+      yield from deepItems(v, path=path+[k])
+  elif isinstance(obj, list):
+    for i, v in enumerate(obj):
+      yield from deepItems(v, path=path+[i])
+  else:
+    yield (path, obj)
 
 def flip(p):
   return random.binomial(1, p)

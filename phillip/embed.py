@@ -248,6 +248,7 @@ class PlayerEmbedding(StructEmbedding, Default):
     Option('shield_scale', type=float, default=0.01),
     Option('speed_scale', type=float, default=0.5),
     Option('omit_char', type=bool, default=False),
+    Option('stun_scale', type=float, default=1., help="multiply hitstun frames"),
   ]
   
   def __init__(self, **kwargs):
@@ -271,7 +272,7 @@ class PlayerEmbedding(StructEmbedding, Default):
       ("character", nullEmbedding if self.omit_char else OneHotEmbedding("character", maxCharacter)),
       ("invulnerable", embedFloat),
       ("hitlag_frames_left", embedFloat),
-      ("hitstun_frames_left", embedFloat),
+      ("hitstun_frames_left", FloatEmbedding("hitstun", scale=self.stun_scale)),
       ("jumps_used", embedFloat),
       ("charging_smash", embedFloat),
       ("shield_size", FloatEmbedding("shield_size", scale=self.shield_scale)),
