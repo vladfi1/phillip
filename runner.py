@@ -41,9 +41,10 @@ model = 'RecurrentActorCritic'
 
 exp_name += model
 
-recurrent = model.count('RecurrentActorCritic')
-dqn = model.count('DQN')
-ac = model.count('ActorCritic')
+ac = model.count('RecurrentActorCritic')
+dqn = model.count('RecurrentDQN')
+#dqn = model.count('DQN')
+#ac = model.count('ActorCritic')
 
 add_param('policy', model, False)
 add_param('epsilon', 0.02, False)
@@ -70,10 +71,7 @@ if dqn:
   add_param('temperature', 0.002)
 elif ac:
   #add_param('entropy_power', 0)
-  if natural:
-    add_param('entropy_scale', 2e-4, True)
-  else:
-    add_param('entropy_scale', 1e-2, True)
+  add_param('entropy_scale', 2e-4)
 
 if natural:
   add_param('natural', True, False)
@@ -91,14 +89,17 @@ if natural:
   add_param('cg_iters', 15, False)
   #add_param('optimizer', 'Adam', True)
 else:
-  add_param('learning_rate', 1e-4, True)
+  add_param('learning_rate', 1e-4)
   add_param('optimizer', 'Adam', False)
 
 #if recurrent:
 #  add_param('clip', 0.05)
 
 for k, v in train_settings:
-  add_param(k, v, False)
+  if (k == 'reward_halflife'):
+    add_param(k, v)
+  else:
+    add_param(k, v, False)
 
 # embed params
 
@@ -111,9 +112,9 @@ add_param('player_space', 0, False)
 #add_param('critic_layers', [128] * 1)
 add_param('actor_fc_layers', [128] * 2)
 add_param('actor_rnn_layers', [128] * 1)
-add_param('nl', 'elu', False)
+add_param('nl', 'elu')
 
-add_param('action_type', 'custom')
+add_param('action_type', 'custom', False)
 
 add_param('fix_scopes', True, False)
 
@@ -145,15 +146,12 @@ add_param('act_every', act_every)#, False)
 delay = 0
 if delay:
   add_param('delay', delay)
-if not recurrent:
-  #add_param('memory', 1 + delay)
-  add_param('memory', 0, False)
 
 stage = 'battlefield'
 #stage = 'final_destination'
-add_param('stage', stage, False)
+add_param('stage', stage)
 
-add_param('char', char, True)
+add_param('char', char)
 
 #enemies = None
 enemies = "cpu"
@@ -167,8 +165,8 @@ add_param('enemies', enemies)
 add_param('enemy_reload', 3600, False)
 
 # total number of agents
-agents = 150
-params['agents'] = agents
+agents = 80
+add_param('agents', agents)
 
 if args.name is not None:
   exp_name = args.name
