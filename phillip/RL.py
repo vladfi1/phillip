@@ -144,18 +144,13 @@ class RL(Default):
           
           tf.scalar_summary('reward', tf.reduce_mean(self.experience['reward']))
           
-          merged = tf.merge_all_summaries()
+          self.summarize = tf.merge_all_summaries()
           
-          increment = tf.assign_add(self.global_step, 1)
+          self.increment = tf.assign_add(self.global_step, 1)
           
-          misc = tf.group(increment)
+          self.misc = tf.group(self.increment)
           
-          self.run_dict = dict(
-            summary=merged,
-            global_step=self.global_step,
-            train=tf.group(*train_ops),
-            misc=misc
-          )
+          self.train_ops = tf.group(*train_ops)
           
           print("Creating summary writer at logs/%s." % self.name)
           self.writer = tf.train.SummaryWriter('logs/' + self.name)#, self.graph)
@@ -215,7 +210,7 @@ class RL(Default):
     feed_dict = dict(util.deepValues(util.deepZip(self.input, history)))
     return self.policy.act(self.sess.run(self.run_policy, feed_dict), verbose)
 
-  def train(self, experiences, batch_steps=1, **kwargs):
+  def train(self, experiences, batch_steps=1, train=True, log=True, **kwargs):
     experiences = util.deepZip(*experiences)
     
     input_dict = dict(util.deepValues(util.deepZip(self.experience, experiences)))
@@ -230,9 +225,20 @@ class RL(Default):
     if self.debug:
       self.debugGrads(input_dict)
     
+    run_dict = dict(
+      global_step = self.global_step,
+      misc = self.misc
+    )
+    
+    if train:
+      run_dict.update(train=self.train_ops)
+    
+    if log:
+      run_dict.update(summary=self.summarize)
+    
     for _ in range(batch_steps):
       try:
-        results = self.sess.run(self.run_dict, input_dict)
+        results = self.sess.run(run_dict, input_dict)
       except tf.errors.InvalidArgumentError as e:
         import pickle
         with open(self.path + 'error', 'wb') as f:
@@ -240,9 +246,10 @@ class RL(Default):
         raise e
       #print('After run: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
       
-      summary_str = results['summary']
-      global_step = results['global_step']
-      self.writer.add_summary(summary_str, global_step)
+      if log:
+        summary_str = results['summary']
+        global_step = results['global_step']
+        self.writer.add_summary(summary_str, global_step)
       #print('After summary: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
 
   def save(self):
