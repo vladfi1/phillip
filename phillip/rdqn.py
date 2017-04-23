@@ -115,9 +115,13 @@ class RecurrentDQN(Default):
   def getPolicy(self, state, hidden, **unused):
     #return [self.epsilon, tf.argmax(self.getQValues(state), 1)]
     state = tf.expand_dims(state, 0)
+
+    if self.initial != 'agent':
+      hidden = self.initial_state
+
     hidden = util.deepMap(lambda x: tf.expand_dims(x, 0), hidden)
     
-    outputs, hidden = self.q_rnn(state, hidden)
+    outputs, hidden = self.q_rnn(self.q_fc(state), hidden)
     qValues = self.q_out(outputs)
     
     action_probs = tf.nn.softmax(qValues / self.temperature)
@@ -125,6 +129,9 @@ class RecurrentDQN(Default):
     action_probs = tf.squeeze(action_probs, [0])
     
     hidden = util.deepMap(lambda x: tf.squeeze(x, [0]), hidden)
+
+    if self.initial != 'agent':
+      hidden = util.deepZipWith(tf.assign, self.initial_state, hidden)
     
     log_action_probs = tf.log(action_probs)
     entropy = - tfl.dot(action_probs, log_action_probs)
