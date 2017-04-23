@@ -12,8 +12,9 @@ Check Vlad's repository for original Readme
 - sq | grep Vlad
 - scontrol show job [job #]
 - scancel [job #]
-- ./scancel RecurrentActorCritic
+- ./scancel.sh RecurrentActorCritic
 - scancel -u vladfi1
+- squeue -u vladfi1 -o %j
 
 ## TODO
 - Edit RDQN to have same architecture as rac (2 Q layers, followed by GRU cell)
