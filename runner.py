@@ -110,13 +110,13 @@ add_param('action_space', 0, False)
 add_param('player_space', 0, False)
 
 #add_param('critic_layers', [128] * 1)
-add_param('actor_fc_layers', [128] * 2)
-add_param('actor_rnn_layers', [128] * 1)
-#add_param('q_fc_layers', [128] * 2)
-#add_param('q_rnn_layers', [128] * 1)
+#add_param('actor_fc_layers', [128] * 2)
+#add_param('actor_rnn_layers', [128] * 1)
+add_param('q_fc_layers', [128] * 2)
+add_param('q_rnn_layers', [128] * 1)
 add_param('nl', 'elu')
 
-add_param('initial', 'agent')
+add_param('initial', 'zero')
 
 add_param('action_type', 'custom', False)
 
@@ -169,7 +169,7 @@ add_param('enemies', enemies)
 add_param('enemy_reload', 3600, False)
 
 # total number of agents
-agents = 80
+agents = 160
 add_param('agents', agents)
 
 if args.name is not None:
