@@ -35,9 +35,9 @@ def add_param(param, value, name=True):
   params[param] = value
 
 #model = 'DQN'
-model = 'RecurrentDQN'
+#model = 'RecurrentDQN'
 #model = 'ActorCritic'
-#model = 'RecurrentActorCritic'
+model = 'RecurrentActorCritic'
 
 exp_name += model
 
@@ -110,11 +110,13 @@ add_param('action_space', 0, False)
 add_param('player_space', 0, False)
 
 #add_param('critic_layers', [128] * 1)
-#add_param('actor_fc_layers', [128] * 2)
-#add_param('actor_rnn_layers', [128] * 1)
-add_param('q_fc_layers', [128] * 2)
-add_param('q_rnn_layers', [128] * 1)
+add_param('actor_fc_layers', [128] * 2)
+add_param('actor_rnn_layers', [128] * 1)
+#add_param('q_fc_layers', [128] * 2)
+#add_param('q_rnn_layers', [128] * 1)
 add_param('nl', 'elu')
+
+add_param('initial', 'agent')
 
 add_param('action_type', 'custom', False)
 
@@ -145,7 +147,7 @@ from phillip import data
 act_every = data.short_hop[char]
 add_param('act_every', act_every)#, False)
 
-delay = 0
+delay = 1
 if delay:
   add_param('delay', delay)
 
