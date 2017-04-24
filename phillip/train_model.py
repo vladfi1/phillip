@@ -69,7 +69,7 @@ class ModelTrainer(Default):
     
     if parallel:
       for paths in util.chunk(data_paths, 100):
-        self.experiences = util.async_map(load_experience, paths)()
+        self.experiences.extend(util.async_map(load_experience, paths)())
     else:
       for path in data_paths:
         with open(path, 'rb') as f:
