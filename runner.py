@@ -14,7 +14,7 @@ parser.add_argument("--prefix", type=str, help="experiment prefix")
 parser.add_argument("--model", type=str, default="RecurrentDQN", help="RecurrentDQN or RecurrentActorCritic")
 
 parser.add_argument("--temperature", type=float, default=0.002, help="DQN temperature")
-parser.add_argument("--entropy_scale", type=float, default=0.01, help="AC entropy scale")
+parser.add_argument("--entropy_scale", type=float, default=2e-4, help="AC entropy scale")
 parser.add_argument("--learning_rate", type=float, default=0.0001, help="Learning Rate")
 parser.add_argument("--reward_halflife", type=int, default=2, help="# steps until reward decreases by 0.5")
 parser.add_argument("--fc_layers", type=int, nargs="+", default=[128], help="dimensions of fully-connected layers")
