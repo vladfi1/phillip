@@ -147,7 +147,7 @@ from phillip import data
 act_every = data.short_hop[char]
 add_param('act_every', act_every)#, False)
 
-delay = 1
+delay = 2
 if delay:
   add_param('delay', delay)
 
