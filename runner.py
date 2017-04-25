@@ -45,9 +45,10 @@ def add_param(param, value, name=True):
       exp_name += "_" + param + "_" + toStr(value)
   params[param] = value
 
-#model = 'DQN'
 model = args.model
+#model = 'DQN'
 #model = 'ActorCritic'
+#model = 'RecurrentDQN'
 #model = 'RecurrentActorCritic'
 
 exp_name += model
