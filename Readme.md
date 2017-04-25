@@ -15,7 +15,7 @@ If you just want to see how it will call runner.py without actually executing ru
 
 After you call `gridsearch.py`, you can run `batcher.py`:
 
-`python batcher.py`,
+`python batcher.py`
 
 which should launch the jobs one by one at 4 hour intervals.
 
