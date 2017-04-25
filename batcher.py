@@ -23,19 +23,19 @@ def get_jobs():
 def get_jobid(job):
   logs = os.listdir(LOG_DIR)
   for log in logs:
-    if "trainer" in log and ".out" in log and job in logs:
+    if job in log:
       l = log.rfind("_")
       r = log.rfind(".")
-      return int(s[l+1:r])
-  return None
+      return int(log[l+1:r])
+  return 4294967294  # Seems like this is the default job id
 
 def get_trainnode(job_id):
   cmd = "squeue --job {0}".format(job_id)
   output = subprocess.check_output(cmd, shell=True).splitlines()
   if len(output) != 2:
     return None, None
-  output = output.split()
-  if len(output) != 7:
+  output = output[1].split()
+  if len(output) != 8:
     return None, None
   status = output[4]
   node = output[7][4:]
@@ -53,27 +53,34 @@ def main():
     job = queue.pop()
 
     # start training
-    print("Running train command " + job)
     train_cmd  = "python launcher.py {0}/{1} --init".format(SAVE_DIR,job)
+    print("Running train command:" train_cmd)
     os.system(train_cmd)
 
     # make sure the job started
+    time.sleep(5)
     job_id = get_jobid(job)
+    print("Waiting for job id",str(job_id),"to start.")
+
+    time.sleep(5)
     status = "PD"
     while status == "PD":
       time.sleep(5)
       status, train_machine = get_trainnode(job_id)
 
+    print("Done waiting status =",status,"train machine =",str(train_machine))
     if status == None:
       continue
 
-    print("Running agent command")
     agent_cmd = "python launcher.py {0}/{1} --trainer {2}".format(SAVE_DIR, job, train_machine)
+    print("Running agent command:",agent_cmd)
     os.system(agent_cmd)
 
+    print("Waiting ",TRAIN_TIME/3600,"hours for training...")
     time.sleep(TRAIN_TIME)
 
     # stop training
+    print("Stopping job",job)
     stop_cmd = "./scancel.sh {0}".format(job)
     os.system(stop_cmd)
 
