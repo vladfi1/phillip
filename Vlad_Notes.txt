@@ -143,3 +143,23 @@ Consider making output layer recurrent
 Only difference is temperature vs entropy scale, (and epsilon)
 	Temperature - Divide Q values by the temperature, and use that as a probability distribution over your actions
 		Temperature and Entropy Scale have same units (reward)
+
+
+
+
+Make sure recurrent net is actually making a difference, especially at higher delay
+Strategy -
+	Succeed against cpu at human-level delay -> Train and succeed against strong enemies at human-level delay -> Make sure agent passes the eye test -> Play against humans, and get qualitative responses regarding the action delay problem
+
+Using conv layers because they have pixels, don't need fc layers before recurrent layer
+
+Trainer
+	Buffer of experiences, sweep through it in batches, writes out parameters, sent through agents, listens for new experiences, adds those in buffer. (train.py print outs)
+		Never looked at what performrance curve looks like with # of agents (more agents, more varied data, more exploration)
+		You can lower the sweep size
+	Here, experience buffer stores entire episode
+
+	tail -F
+	Iterations, Batch size, New Experiences, Collect Time, Training Time, Save Time
+	Experierence length - 60, might want to try shorter experience lengths (8 is what it is here)
+	Might want to try only taking gradients on second half
