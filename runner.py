@@ -10,6 +10,17 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--tag", action="store_true", help="generate random tag for this experiment")
 parser.add_argument("--name", type=str, help="experiment name")
 parser.add_argument("--prefix", type=str, help="experiment prefix")
+
+parser.add_argument("--model", type=str, default="RecurrentDQN", help="RecurrentDQN or RecurrentActorCritic")
+
+parser.add_argument("--temperature", type=float, default=0.002, help="DQN temperature")
+parser.add_argument("--entropy_scale", type=float, default=0.01, help="AC entropy scale")
+parser.add_argument("--learning_rate", type=float, default=0.0001, help="Learning Rate")
+parser.add_argument("--reward_halflife", type=int, default=2, help="# steps until reward decreases by 0.5")
+parser.add_argument("--fc_layers", type=int, nargs="+", default=[128], help="dimensions of fully-connected layers")
+parser.add_argument("--rnn_layers", type=int, nargs="+", default=[128,128], help="dimensions of rnn layers")
+parser.add_argument("--nl", type=str, default="elu", help="nonlinearity")
+
 args = parser.parse_args()
 
 if args.prefix:
@@ -35,7 +46,7 @@ def add_param(param, value, name=True):
   params[param] = value
 
 #model = 'DQN'
-model = 'RecurrentDQN'
+model = args.model
 #model = 'ActorCritic'
 #model = 'RecurrentActorCritic'
 
@@ -54,9 +65,9 @@ natural = False
 #natural = ac
 
 train_settings = [
-  #('learning_rate', 0.0002),
+  #('learning_rate', args.learning_rate),
   ('tdN', 20),
-  ('reward_halflife', 2),
+  ('reward_halflife', args.reward_halflife),
   ('sweeps', 1),
   ('batches', 1 if natural else 5),
   ('batch_size', 2000),
@@ -68,10 +79,10 @@ if dqn:
     ('sarsa', 1),
     #('target_delay', 4000),
   ]
-  add_param('temperature', 0.002)
+  add_param('temperature', args.temperature)
 elif ac:
   #add_param('entropy_power', 0)
-  add_param('entropy_scale', 2e-4)
+  add_param('entropy_scale', args.entropy_scale)
 
 if natural:
   add_param('natural', True, False)
@@ -89,7 +100,7 @@ if natural:
   add_param('cg_iters', 15, False)
   #add_param('optimizer', 'Adam', True)
 else:
-  add_param('learning_rate', 1e-4)
+  add_param('learning_rate', args.learning_rate)
   add_param('optimizer', 'Adam', False)
 
 #if recurrent:
@@ -109,12 +120,15 @@ add_param('xy_scale', 0.05, False)
 add_param('action_space', 0, False)
 add_param('player_space', 0, False)
 
-#add_param('critic_layers', [128] * 1)
-#add_param('actor_fc_layers', [128] * 2)
-#add_param('actor_rnn_layers', [128] * 1)
-add_param('q_fc_layers', [128] * 2)
-add_param('q_rnn_layers', [128] * 1)
-add_param('nl', 'elu')
+if dqn:
+	add_param('q_fc_layers', args.fc_layers)
+	add_param('q_rnn_layers', args.rnn_layers)
+elif ac:
+	add_param('critic_layers', [128] * 1)
+	add_param('actor_fc_layers', args.fc_layers)
+	add_param('actor_rnn_layers', args.rnn_layers)
+
+add_param('nl', args.nl)
 
 add_param('initial', 'zero')
 
@@ -179,9 +193,13 @@ add_param('name', exp_name, False)
 path = "saves/%s/" % exp_name
 #add_param('path', path, False)
 
-print("Writing to", path)
-util.makedirs(path)
+# only write if it doesn't exist
+if not os.path.exists(path):
+	print("Writing to", path)
+	util.makedirs(path)
 
-import json
-with open(path + "params", 'w') as f:
-  json.dump(params, f, indent=2)
+	import json
+	with open(path + "params", 'w') as f:
+		json.dump(params, f, indent=2)
+else:
+	print("!!!ERROR!!!\nPath already exists. Not writing to",path)

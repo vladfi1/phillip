@@ -1,6 +1,16 @@
 from itertools import product
+import numpy as np
+import argparse
 import os
 
+parser = argparse.ArgumentParser()
+parser.add_argument("--model", type=str, default="RecurrentDQN", help="RecurrentDQN or RecurrentActorCritic")
+parser.add_argument("--num_samples", type=int, default=50, help="Instead of using the whole grid, sample randomly")
+parser.add_argument("--dry_run", action="store_true", help="Don't actually run runner.py, just print out the cmds")
+args = parser.parse_args()
+
+
+# Choose the parameters you want to grid search over
 shared_params = {
   "learning_rate": [0.0001, 0.001, 0.01],
   "reward_halflife": [1,2,3,4],
@@ -9,7 +19,7 @@ shared_params = {
 }
 
 
-dqn_model = "RecurrentDQN"
+# These parameters are unique to DQN
 dqn_params = {
   "model": ["RecurrentDQN"],
   "temperature": [0.002, 0.02, 0.2],
@@ -17,8 +27,9 @@ dqn_params = {
 dqn_params.update(shared_params)
 
 
-rac_model = "RecurrentActorCritic"
+# These parameters are unique to ActorCritic
 rac_params = {
+  "model": ["RecurrentActorCritic"],
   "entropy_scale": [0.001, 0.01, 0.1],
 }
 rac_params.update(shared_params)
@@ -51,11 +62,26 @@ def run_runner(params):
   return cmd
 
 def main():
-  dqn_grid = create_grid(dqn_params)
-  for dqn_run in dqn_grid:
-    cmd = run_runner(dqn_run)
-    print(cmd)
-    # os.system(cmd)  # TODO uncomment to run runner.py
+  """Loop through the parameter dictionaries and run the command.
+  """
+  if args.model.find("DQN"):
+    params = dqn_params
+  else:
+    params = rac_params
+
+  grid = create_grid(params)
+  if args.num_samples > len(grid):
+    args.num_samples = len(grid)
+  sample_idx = np.random.choice(range(len(grid)), size=args.num_samples, replace=False)
+  for i, run in enumerate(grid):
+    if i not in sample_idx: continue
+    cmd = run_runner(run)
+    cmd += " --prefix batch"
+
+    if args.dry_run:
+      print(cmd)
+    else:
+      os.system(cmd)
 
 if __name__ == "__main__":
   main()
