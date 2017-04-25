@@ -86,10 +86,10 @@ def launch(name, command, cpus=2, mem=1000, gpu=False, log=True, qos=None, array
     f.write("#!/bin/bash\n")
     f.write("#SBATCH --job-name " + name + "\n")
     if log:
-      f.write("#SBATCH --output slurm_logs/" + name + "_%a.out\n")
+      f.write("#SBATCH --output slurm_logs/" + name + "_%j.out\n")
     else:
       f.write("#SBATCH --output /dev/null")
-    f.write("#SBATCH --error slurm_logs/" + name + "_%a.err\n")
+    f.write("#SBATCH --error slurm_logs/" + name + "_%j.err\n")
     f.write("#SBATCH -c %d\n" % cpus)
     f.write("#SBATCH --mem %d\n" % mem)
     f.write("#SBATCH --time 7-0\n")
