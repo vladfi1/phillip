@@ -82,9 +82,10 @@ class RL(Default):
       
       history_size = (1+self.config.memory) * (state_size+embedAction.size)
       print("History size:", history_size)
-      
-      print("Creating policy:", self.policy)
-      self.policy = policyType(self.embedGame, embedAction, self.global_step, self.config, **kwargs)
+
+      if mode == Mode.PLAY or self.train_policy:
+        print("Creating policy:", self.policy)
+        self.policy = policyType(self.embedGame, embedAction, self.global_step, self.config, **kwargs)
       
       if self.train_model:
         self.model = Model(**kwargs)
@@ -101,7 +102,10 @@ class RL(Default):
           
           # initial state for recurrent networks
           #self.experience['initial'] = tuple(tf.placeholder(tf.float32, [None, size], name='experience/initial/%d' % i) for i, size in enumerate(self.policy.hidden_size))
-          self.experience['initial'] = util.deepMap(lambda size: tf.placeholder(tf.float32, [None, size], name="experience/initial"), self.policy.hidden_size)
+          if self.train_policy:
+            self.experience['initial'] = util.deepMap(lambda size: tf.placeholder(tf.float32, [None, size], name="experience/initial"), self.policy.hidden_size)
+          else:
+            self.experience['initial'] = []
           
           delay_length = self.config.experience_length - self.config.delay
           
