@@ -51,8 +51,12 @@ class Critic(Default):
     lastV = values[:,-1]
     
     rewards = reward[:,self.rlConfig.memory:]
+    deltaVs = reward + self.rlConfig.discount * values[:,1:] - trainVs
+    
+    # errorVs = 
+    
     # TODO: implement GAE, or some TD(N) weighting scheme
-    targets = tfl.discount(rewards, self.rlConfig.discount, lastV)
+    targets = tfl.discount2(rewards, self.rlConfig.discount, lastV)
     targets = tf.stop_gradient(targets)
     
     advantages = targets - trainVs
