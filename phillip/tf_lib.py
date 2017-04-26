@@ -383,10 +383,10 @@ def discount2(values, gamma, initial=None):
   
   def body(i, prev, returns):
     next = values[:,i] + gamma * prev
-    next.set_shape([None])
+    next.set_shape(prev.get_shape())
     
     returns = returns.write(i, next)
-    
+
     return (i-1, next, returns)
 
   def cond(i, prev, returns):
@@ -406,16 +406,19 @@ def discount2(values, gamma, initial=None):
 def testDiscounts():
   values = tf.constant([[1, 2, 3]])
   gamma = 2
-  initial = 4
+  initial = tf.constant([4])
   
   correct = [[49, 24, 11]]
   
   fs = [discount, discount2]
   
   fetches = [f(values, gamma, initial) for f in fs]
-  
+
+  sess = tf.Session()
   returns = sess.run(fetches)
   
   for r in returns:
-    assert(r == correct)
+    assert((r == correct).all())
+
+  print("Passed testDiscount()")
 
