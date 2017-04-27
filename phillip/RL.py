@@ -114,7 +114,7 @@ class RL(Default):
 
           with tf.name_scope('live'):
             #live = {k: util.deepMap(lambda t: t[:,:delay_length] for k in ['state', 'action', 'prev_action']}
-            live = process_experiences(lambda t: t[:,:delay_length], ['state', 'action', 'prev_action'])
+            live = process_experiences(lambda t: t[:,:delay_length], ['state', 'action', 'prev_action', 'prob'])
             live['initial'] = self.experience['initial']
 
           with tf.name_scope('delayed'):

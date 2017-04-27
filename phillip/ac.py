@@ -50,7 +50,7 @@ class ActorCritic(Default):
     
     self.actor = net
 
-  def train(self, state, prev_action, action, advantages, **unused):
+  def train(self, state, prev_action, action, prob, advantages, **unused):
     embedded_state = self.embedGame(state)
     embedded_prev_action = self.embedAction(prev_action)
     history = RL.makeHistory(embedded_state, embedded_prev_action, self.rlConfig.memory)
@@ -65,6 +65,11 @@ class ActorCritic(Default):
     tf.histogram_summary('entropy', entropy)
 
     actions = self.embedAction(action[:,self.rlConfig.memory:])
+
+    real_actor_probs = tfl.batch_dot(actions, actor_probs)
+    prob_ratios = prob[:,self.rlConfig.memory:] / real_actor_probs
+    tf.scalar_summary('kl', tf.reduce_mean(tf.log(prob_ratios)))
+
     real_log_actor_probs = tfl.batch_dot(actions, log_actor_probs)
     train_log_actor_probs = real_log_actor_probs[:,:-1] # last state has no advantage
     actor_gain = tf.reduce_mean(tf.mul(train_log_actor_probs, tf.stop_gradient(advantages)))
