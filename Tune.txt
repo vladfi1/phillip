@@ -22,6 +22,8 @@ Recurrent Architecture
 	width of each recurrent layer
 	arrangement
 
+Make experience length smaller, 60 currently, 8 is what they used in tutorial
+
 Send only last half of gradients back for a given trace (https://arxiv.org/pdf/1609.05521.pdf)
 
 Gradient Clipping (Trust Region Policy Optimization) -  "The use of more sophisticated policies, including recurrent policies with hidden state, could further make it possible to rolls state estimation and control into the same policy in the partially-observed setting"

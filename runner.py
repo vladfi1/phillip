@@ -162,7 +162,7 @@ from phillip import data
 act_every = data.short_hop[char]
 add_param('act_every', act_every)#, False)
 
-delay = 2
+delay = 4
 if delay:
   add_param('delay', delay)
 
@@ -173,7 +173,8 @@ add_param('stage', stage)
 add_param('char', char)
 
 #enemies = None
-enemies = "cpu"
+#enemies = "cpu"
+enemies = "self"
 #enemies = "easy"
 #enemies = "delay0"
 #enemies = "delay%d" % delay
