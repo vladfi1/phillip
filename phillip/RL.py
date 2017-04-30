@@ -245,7 +245,7 @@ class RL(Default):
         results = self.sess.run(run_dict, input_dict)
       except tf.errors.InvalidArgumentError as e:
         import pickle
-        with open(self.path + 'error', 'wb') as f:
+        with open(os.join(self.path, 'error_frame'), 'wb') as f:
           pickle.dump(experiences, f)
         raise e
       #print('After run: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
