@@ -10,6 +10,7 @@ class Critic(Default):
     Option('critic_learning_rate', type=float, default=1e-4),
     Option('gae_lambda', type=float, default=1., help="Generalized Advantage Estimation"),
     Option('fix_scopes', type=bool, default=False),
+    Option('retrace', type=bool, default=True, help="Retrace(lambda) - correct for off-policy behavior"),
   ]
   
   _members = [
@@ -41,7 +42,7 @@ class Critic(Default):
     
     self.variables = self.net.getVariables()
   
-  def __call__(self, state, prev_action, reward, **unused):
+  def __call__(self, state, prev_action, reward, ratios, **unused):
     embedded_state = self.embedGame(state)
     embedded_prev_action = self.embedAction(prev_action)
     history = makeHistory(embedded_state, embedded_prev_action, self.rlConfig.memory)
@@ -53,7 +54,13 @@ class Critic(Default):
     rewards = reward[:,self.rlConfig.memory:]
     deltaVs = rewards + self.rlConfig.discount * values[:,1:] - trainVs
     
-    advantages = tfl.discount2(deltaVs, self.rlConfig.discount * self.gae_lambda)
+    if self.retrace:
+      discounts = tf.minimum(1., ratios[:,:-1])
+    else:
+      discounts = tf.ones_like(trainVs)
+    
+    discounts *= self.rlConfig.discount * self.gae_lambda
+    advantages = tfl.discount2(deltaVs, discounts)
 
     targets = trainVs + advantages
     # targets = tfl.discount2(rewards, self.rlConfig.discount, lastV)

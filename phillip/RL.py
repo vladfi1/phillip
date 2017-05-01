@@ -121,23 +121,24 @@ class RL(Default):
             delayed = live.copy()
             delayed.update(process_experiences(lambda t: t[:,self.config.delay:], ['state', 'reward']))
           
-          policy_args = live
-          critic_args = delayed
+          policy_args = live.copy()
+          critic_args = delayed.copy()
           
           print("Creating train ops")
           
           train_ops = []
           
-          if self.train_policy or self.train_critic:
-            train_critic, targets, advantages = self.critic(**critic_args)
-          
-          if self.train_critic:
-            train_ops.append(train_critic)
-          
           if self.train_policy:
-            policy_args.update(advantages=tf.stop_gradient(advantages), targets=targets)
-            train_ops.append(self.policy.train(**policy_args))
-
+            probs = self.policy.probs(**policy_args)
+            critic_args.update(**probs)
+            
+            train_critic, targets, advantages = self.critic(**critic_args)
+            train_ops.append(train_critic)
+            
+            probs.update(advantages=advantages)
+            train_policy = self.policy.train(**probs)
+            train_ops.append(train_policy)
+          
           if self.train_model:
             train_ops.append(self.model.train(**delayed))
           

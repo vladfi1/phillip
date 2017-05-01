@@ -367,7 +367,7 @@ def discount(values, gamma, initial=None):
   
   return tf.pack(values, axis=1)
 
-def discount2(values, gamma, initial=None):
+def discount2(values, gammas, initial=None):
   """Compute returns from rewards.
   
   Uses tf.while_loop instead of unrolling in python.
@@ -382,7 +382,7 @@ def discount2(values, gamma, initial=None):
   """
   
   def body(i, prev, returns):
-    next = values[:,i] + gamma * prev
+    next = values[:,i] + gammas[:,i] * prev
     next.set_shape(prev.get_shape())
     
     returns = returns.write(i, next)
