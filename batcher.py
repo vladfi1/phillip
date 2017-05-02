@@ -4,7 +4,7 @@ import time
 
 SAVE_DIR = "saves/"
 LOG_DIR = "slurm_logs/"
-TRAIN_TIME = 3600 * 4  # 4 hours
+TRAIN_TIME = 3600 * 10  # 4 hours
 
 def get_jobs():
   not_ran = set()
@@ -21,25 +21,28 @@ def get_jobs():
   return not_ran
 
 def get_jobid(job):
-  logs = os.listdir(LOG_DIR)
-  for log in logs:
-    if job in log:
-      l = log.rfind("_")
-      r = log.rfind(".")
-      return int(log[l+1:r])
-  return 4294967294  # Seems like this is the default job id
+  cmd = "squeue -u vladfi1 -o '%i %j %t' | grep {0}".format(job)
+  output = subprocess.check_output(cmd, shell=True).strip().split()
+  return int(output[0])
 
-def get_trainnode(job_id):
-  cmd = "squeue --job {0}".format(job_id)
+def get_status(job_id):
+  cmd = "squeue --job {0} -o '%t'".format(job_id)
   output = subprocess.check_output(cmd, shell=True).splitlines()
   if len(output) != 2:
-    return None, None
-  output = output[1].split()
-  if len(output) != 8:
-    return None, None
-  status = output[4]
-  node = output[7][4:]
-  return status, int(node)
+    raise ValueError("Bad output:" + str(output))
+
+  status = output[1]
+  if type(status)==bytes:
+    status = status.decode("utf-8")
+  return status
+
+def get_trainnode(job_id):
+  cmd = "squeue --job {0} -o '%N'".format(job_id)
+  output = subprocess.check_output(cmd, shell=True).splitlines()
+  if len(output) != 2:
+    raise ValueError("Bad output:" + str(output))
+  node = output[1][4:]
+  return int(node)
 
 def main():
   queue = set()
@@ -54,7 +57,7 @@ def main():
 
     # start training
     train_cmd  = "python launcher.py {0}/{1} --init".format(SAVE_DIR,job)
-    print("Running train command:" train_cmd)
+    print("Running train command:", train_cmd)
     os.system(train_cmd)
 
     # make sure the job started
@@ -66,10 +69,15 @@ def main():
     status = "PD"
     while status == "PD":
       time.sleep(5)
-      status, train_machine = get_trainnode(job_id)
+      status = get_status(job_id)
+
+    if status != "R":
+      raise ValueError("Bad Status: " + str(status))
+
+    train_machine = get_trainnode(job_id)
 
     print("Done waiting status =",status,"train machine =",str(train_machine))
-    if status == None:
+    if status is None:
       continue
 
     agent_cmd = "python launcher.py {0}/{1} --trainer {2}".format(SAVE_DIR, job, train_machine)
