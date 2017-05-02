@@ -353,8 +353,6 @@ def rnn(cell, inputs, initial_state, time=1):
     outputs.append(output)
   return tf.pack(outputs, axis=time), state
 
-# TODO: implement this more efficiently, with
-# a tf.while_loop instead of manually unrolling
 def discount(values, gamma, initial=None):
   values = tf.unpack(values, axis=1)
   
@@ -368,4 +366,59 @@ def discount(values, gamma, initial=None):
     values[i] = current
   
   return tf.pack(values, axis=1)
+
+def discount2(values, gammas, initial=None):
+  """Compute returns from rewards.
+  
+  Uses tf.while_loop instead of unrolling in python.
+  
+  Arguments:
+    values: Tensor with shape [batch, time]
+    gamma: Discount factor.
+    initial: Value past the end.
+  
+  Returns:
+    A tensor of discounted returns.
+  """
+  
+  def body(i, prev, returns):
+    next = values[:,i] + gammas[:,i] * prev
+    next.set_shape(prev.get_shape())
+    
+    returns = returns.write(i, next)
+
+    return (i-1, next, returns)
+
+  def cond(i, prev, returns):
+    return i >= 0
+  
+  if initial is None:
+    initial = tf.zeros(tf.shape(values)[:1], values.dtype)
+
+  timesteps = tf.shape(values)[1]
+
+  ta = tf.TensorArray(values.dtype, timesteps)
+  
+  _, _, returns = tf.while_loop(cond, body, (timesteps-1, initial, ta))
+  
+  return tf.transpose(returns.pack())
+
+def testDiscounts():
+  values = tf.constant([[1, 2, 3]])
+  gamma = 2
+  initial = tf.constant([4])
+  
+  correct = [[49, 24, 11]]
+  
+  fs = [discount, discount2]
+  
+  fetches = [f(values, gamma, initial) for f in fs]
+
+  sess = tf.Session()
+  returns = sess.run(fetches)
+  
+  for r in returns:
+    assert((r == correct).all())
+
+  print("Passed testDiscount()")
 

@@ -82,9 +82,10 @@ class RL(Default):
       
       history_size = (1+self.config.memory) * (state_size+embedAction.size)
       print("History size:", history_size)
-      
-      print("Creating policy:", self.policy)
-      self.policy = policyType(self.embedGame, embedAction, self.global_step, self.config, **kwargs)
+
+      if mode == Mode.PLAY or self.train_policy:
+        print("Creating policy:", self.policy)
+        self.policy = policyType(self.embedGame, embedAction, self.global_step, self.config, **kwargs)
       
       if self.train_model:
         self.model = Model(**kwargs)
@@ -101,7 +102,10 @@ class RL(Default):
           
           # initial state for recurrent networks
           #self.experience['initial'] = tuple(tf.placeholder(tf.float32, [None, size], name='experience/initial/%d' % i) for i, size in enumerate(self.policy.hidden_size))
-          self.experience['initial'] = util.deepMap(lambda size: tf.placeholder(tf.float32, [None, size], name="experience/initial"), self.policy.hidden_size)
+          if self.train_policy:
+            self.experience['initial'] = util.deepMap(lambda size: tf.placeholder(tf.float32, [None, size], name="experience/initial"), self.policy.hidden_size)
+          else:
+            self.experience['initial'] = []
           
           delay_length = self.config.experience_length - self.config.delay
           
@@ -110,30 +114,31 @@ class RL(Default):
 
           with tf.name_scope('live'):
             #live = {k: util.deepMap(lambda t: t[:,:delay_length] for k in ['state', 'action', 'prev_action']}
-            live = process_experiences(lambda t: t[:,:delay_length], ['state', 'action', 'prev_action'])
+            live = process_experiences(lambda t: t[:,:delay_length], ['state', 'action', 'prev_action', 'prob'])
             live['initial'] = self.experience['initial']
 
           with tf.name_scope('delayed'):
             delayed = live.copy()
             delayed.update(process_experiences(lambda t: t[:,self.config.delay:], ['state', 'reward']))
           
-          policy_args = live
-          critic_args = delayed
+          policy_args = live.copy()
+          critic_args = delayed.copy()
           
           print("Creating train ops")
           
           train_ops = []
           
-          if self.train_policy or self.train_critic:
-            train_critic, targets, advantages = self.critic(**critic_args)
-          
-          if self.train_critic:
-            train_ops.append(train_critic)
-          
           if self.train_policy:
-            policy_args.update(advantages=tf.stop_gradient(advantages), targets=targets)
-            train_ops.append(self.policy.train(**policy_args))
-
+            probs = self.policy.probs(**policy_args)
+            critic_args.update(**probs)
+            
+            train_critic, targets, advantages = self.critic(**critic_args)
+            train_ops.append(train_critic)
+            
+            probs.update(advantages=advantages)
+            train_policy = self.policy.train(**probs)
+            train_ops.append(train_policy)
+          
           if self.train_model:
             train_ops.append(self.model.train(**delayed))
           
@@ -144,18 +149,13 @@ class RL(Default):
           
           tf.scalar_summary('reward', tf.reduce_mean(self.experience['reward']))
           
-          merged = tf.merge_all_summaries()
+          self.summarize = tf.merge_all_summaries()
           
-          increment = tf.assign_add(self.global_step, 1)
+          self.increment = tf.assign_add(self.global_step, 1)
           
-          misc = tf.group(increment)
+          self.misc = tf.group(self.increment)
           
-          self.run_dict = dict(
-            summary=merged,
-            global_step=self.global_step,
-            train=tf.group(*train_ops),
-            misc=misc
-          )
+          self.train_ops = tf.group(*train_ops)
           
           print("Creating summary writer at logs/%s." % self.name)
           self.writer = tf.train.SummaryWriter('logs/' + self.name)#, self.graph)
@@ -215,7 +215,7 @@ class RL(Default):
     feed_dict = dict(util.deepValues(util.deepZip(self.input, history)))
     return self.policy.act(self.sess.run(self.run_policy, feed_dict), verbose)
 
-  def train(self, experiences, batch_steps=1, **kwargs):
+  def train(self, experiences, batch_steps=1, train=True, log=True, **kwargs):
     experiences = util.deepZip(*experiences)
     
     input_dict = dict(util.deepValues(util.deepZip(self.experience, experiences)))
@@ -230,19 +230,31 @@ class RL(Default):
     if self.debug:
       self.debugGrads(input_dict)
     
+    run_dict = dict(
+      global_step = self.global_step,
+      misc = self.misc
+    )
+    
+    if train:
+      run_dict.update(train=self.train_ops)
+    
+    if log:
+      run_dict.update(summary=self.summarize)
+    
     for _ in range(batch_steps):
       try:
-        results = self.sess.run(self.run_dict, input_dict)
+        results = self.sess.run(run_dict, input_dict)
       except tf.errors.InvalidArgumentError as e:
         import pickle
-        with open(self.path + 'error', 'wb') as f:
+        with open(os.join(self.path, 'error_frame'), 'wb') as f:
           pickle.dump(experiences, f)
         raise e
       #print('After run: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
       
-      summary_str = results['summary']
-      global_step = results['global_step']
-      self.writer.add_summary(summary_str, global_step)
+      if log:
+        summary_str = results['summary']
+        global_step = results['global_step']
+        self.writer.add_summary(summary_str, global_step)
       #print('After summary: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
 
   def save(self):

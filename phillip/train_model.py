@@ -19,6 +19,7 @@ class ModelTrainer(Default):
     Option('init', action='store_true'),
     Option('batch_size', type=int, default=1),
     Option('valid_batches', type=int, default=1),
+    Option('file_limit', type=int, default=0, help="0 means no limit"),
     Option('epochs', type=int, default=1000000),
   ]
   
@@ -33,9 +34,6 @@ class ModelTrainer(Default):
       args = util.load_params(load, 'train')
     
     kwargs.update(
-        train_model=1,
-        train_policy=0,
-        train_critic=0,
         experience_length=6000,
     )
     util.update(args,
@@ -57,6 +55,10 @@ class ModelTrainer(Default):
     print("Loading experiences from", self.data)
      
     files = os.listdir(self.data)
+    
+    if self.file_limit:
+      files = files[:self.file_limit]
+    
     data_paths = [os.path.join(self.data, f) for f in files]
     
     print("Loading %d experiences." % len(files))
@@ -67,7 +69,7 @@ class ModelTrainer(Default):
     
     if parallel:
       for paths in util.chunk(data_paths, 100):
-        self.experiences = util.async_map(load_experience, paths)()
+        self.experiences.extend(util.async_map(load_experience, paths)())
     else:
       for path in data_paths:
         with open(path, 'rb') as f:
@@ -89,9 +91,12 @@ class ModelTrainer(Default):
       batches = util.chunk(train_set, self.batch_size)
       
       for batch in batches:
-        self.rl.train(batch)
+        self.rl.train(batch, log=False)
       
       print(time.time() - start_time) 
+      
+      for batch in valid_batches:
+        self.rl.train(batch, train=False)
       
       self.rl.save()
 
