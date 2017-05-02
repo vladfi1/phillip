@@ -1,0 +1,38 @@
+{
+  "policy": "RecurrentDQN",
+  "epsilon": 0.02,
+  "temperature": 0.002,
+  "learning_rate": 0.0001,
+  "optimizer": "Adam",
+  "tdN": 20,
+  "reward_halflife": 2,
+  "sweeps": 1,
+  "batches": 5,
+  "batch_size": 2000,
+  "batch_steps": 1,
+  "sarsa": 1,
+  "xy_scale": 0.05,
+  "action_space": 0,
+  "player_space": 0,
+  "q_fc_layers": [
+    128,
+    128
+  ],
+  "q_rnn_layers": [
+    128
+  ],
+  "nl": "elu",
+  "initial": "zero",
+  "action_type": "custom",
+  "fix_scopes": true,
+  "experience_length": 60,
+  "reload": 1,
+  "act_every": 3,
+  "delay": 4,
+  "stage": "battlefield",
+  "char": "falcon",
+  "enemies": "cpu",
+  "enemy_reload": 3600,
+  "agents": 160,
+  "name": "yash_RecurrentDQN_temperature_0.002_learning_rate_0.0001_reward_halflife_2_q_fc_layers_128_128_q_rnn_layers_128_nl_elu_initial_zero_act_every_3_delay_4_stage_battlefield_char_falcon_enemies_cpu_agents_160"
+}
