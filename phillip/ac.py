@@ -52,7 +52,7 @@ class ActorCritic(Default):
 
   def train(self, target_log_probs, advantages, entropy, **_):
     train_log_probs = target_log_probs[:,:-1] # last state has no advantage
-    actor_gain = tf.reduce_mean(tf.mul(train_log_probs, advantages)) + entropy
+    actor_gain = tf.reduce_mean(tf.mul(train_log_probs, advantages)) + self.entropy_scale * entropy
     
     actor_params = self.actor.getVariables()
       
