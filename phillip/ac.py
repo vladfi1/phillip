@@ -50,9 +50,9 @@ class ActorCritic(Default):
     
     self.actor = net
 
-  def train(self, target_log_probs, advantages, **unused):
+  def train(self, target_log_probs, advantages, entropy, **_):
     train_log_probs = target_log_probs[:,:-1] # last state has no advantage
-    actor_gain = tf.reduce_mean(tf.mul(train_log_probs, advantages - self.entropy_scale))
+    actor_gain = tf.reduce_mean(tf.mul(train_log_probs, advantages)) + entropy
     
     actor_params = self.actor.getVariables()
       
@@ -69,17 +69,18 @@ class ActorCritic(Default):
     actions = self.embedAction(action[:,self.rlConfig.memory:])
 
     actor_probs = self.actor(history)
+    log_actor_probs = tf.log(actor_probs)
     real_actor_probs = tfl.batch_dot(actions, actor_probs)
+    real_log_actor_probs = tfl.batch_dot(actions, log_actor_probs)
     
-    """
     entropy = - tfl.batch_dot(actor_probs, log_actor_probs)
+    
     entropy_avg = tfl.power_mean(self.entropy_power, entropy)
     tf.scalar_summary('entropy_avg', entropy_avg)
     tf.scalar_summary('entropy_min', tf.reduce_min(entropy))
     tf.histogram_summary('entropy', entropy)
-    """
     
-    tf.scalar_summary('entropy_avg', -tf.reduce_mean(tf.log(prob)))
+    # tf.scalar_summary('entropy_avg', -tf.reduce_mean(tf.log(prob)))
     
     behavior_probs = prob[:,self.rlConfig.memory:]
     ratios = real_actor_probs / behavior_probs
@@ -88,8 +89,9 @@ class ActorCritic(Default):
     
     return dict(
       target_probs = real_actor_probs,
-      target_log_probs = tf.log(real_actor_probs),
-      ratios = ratios
+      target_log_probs = real_log_actor_probs,
+      ratios = ratios,
+      entropy = entropy_avg,
     )
   
   def getPolicy(self, state, **unused):
