@@ -1,6 +1,7 @@
 import tensorflow as tf
 from . import tf_lib as tfl, util, ssbm
 from .default import *
+import math
 
 floatType = tf.float32
 
@@ -20,7 +21,7 @@ class FloatEmbedding(object):
     self.upper = upper
     self.size = 1
   
-  def __call__(self, t):
+  def __call__(self, t, **_):
     if t.dtype is not floatType:
       t = tf.cast(t, floatType)
     
@@ -51,6 +52,9 @@ class FloatEmbedding(object):
     #return t
     return tf.squeeze(t, [-1])
   
+  def to_input(self, t):
+    return t
+  
   def distance(self, predicted, target):
     if target.dtype is not floatType:
       target = tf.cast(target, floatType)
@@ -71,9 +75,17 @@ class OneHotEmbedding(object):
     self.name = name
     self.size = size
   
-  def __call__(self, t):
-    #t = tf.cast(t, tf.int64)
-    return tf.one_hot(t, self.size, 1.0, 0.0)
+  def __call__(self, t, residual=False, **_):
+    one_hot = tf.one_hot(t, self.size, 1., 0.)
+    
+    if residual:
+      logits = math.log(self.size * 10) * one_hot
+      return logits
+    else:
+      return one_hot
+  
+  def to_input(self, logits):
+    return tf.nn.softmax(logits)
   
   def extract(self, embedded):
     # TODO: pick a random sample?
@@ -93,12 +105,14 @@ class StructEmbedding(object):
     for _, op in embedding:
       self.size += op.size
   
-  def __call__(self, struct):
+  def __call__(self, struct, **kwargs):
     embed = []
+    
     rank = None
     for field, op in self.embedding:
       with tf.name_scope(field):
-        t = op(struct[field])
+        t = op(struct[field], **kwargs)
+        
         if rank is None:
           rank = len(t.get_shape())
         else:
@@ -106,6 +120,21 @@ class StructEmbedding(object):
         
         embed.append(t)
     return tf.concat(rank-1, embed)
+  
+  def to_input(self, embedded):
+    rank = len(embedded.get_shape())
+    begin = (rank-1) * [0]
+    size = (rank-1) * [-1]
+    
+    inputs = []
+    offset = 0
+    
+    for _, op in self.embedding:
+      t = tf.slice(embedded, begin + [offset], size + [op.size])
+      inputs.append(op.to_input(t))
+      offset += op.size
+    
+    return tf.concat(rank-1, inputs)
   
   def extract(self, embedded):
     rank = len(embedded.get_shape())
@@ -144,12 +173,12 @@ class ArrayEmbedding(object):
     self.permutation = permutation
     self.size = len(permutation) * op.size
   
-  def __call__(self, array):
+  def __call__(self, array, **kwargs):
     embed = []
     rank = None
     for i in self.permutation:
       with tf.name_scope(str(i)):
-        t = self.op(array[i])
+        t = self.op(array[i], **kwargs)
         if rank is None:
           rank = len(t.get_shape())
         else:
@@ -157,6 +186,12 @@ class ArrayEmbedding(object):
         
         embed.append(t)
     return tf.concat(rank-1, embed)
+  
+  def to_input(self, embedded):
+    rank = len(embedded.get_shape())
+    ts = tf.split(rank-1, len(self.permutation), embedded)
+    inputs = list(map(self.op.to_input, ts))
+    return tf.concat(rank-1, inputs)
   
   def extract(self, embedded):
     # a bit suspect here, we can't recreate the original array,

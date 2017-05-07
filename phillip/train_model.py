@@ -6,8 +6,6 @@ from random import shuffle
 import time
 import os
 
-experience_length = 6000
-
 def load_experience(path):
   with open(path, 'rb') as f:
     return pickle.load(f)
@@ -33,9 +31,6 @@ class ModelTrainer(Default):
     else:
       args = util.load_params(load, 'train')
     
-    kwargs.update(
-        experience_length=6000,
-    )
     util.update(args,
         mode=RL.Mode.TRAIN,
         **kwargs

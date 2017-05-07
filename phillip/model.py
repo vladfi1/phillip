@@ -71,7 +71,8 @@ class Model(Default):
     length = combined.get_shape()[-2].value - memory
     history = [tf.slice(combined, [0, i, 0], [-1, length, -1]) for i in range(memory+1)]
 
-    last_states = states[:,memory:,:]
+    residuals = self.embedGame(state, residual=True)
+    last_states = residuals[:,memory:,:]
 
     totals = []
 
@@ -90,7 +91,8 @@ class Model(Default):
       # prepare for the next frame
       last_states = predicted_states
       next_actions = prev_actions[:,memory+step+1:,:]
-      history.append(tf.concat(2, [predicted_states, next_actions]))
+      next_inputs = self.embedGame.to_input(predicted_states)
+      history.append(tf.concat(2, [next_inputs, next_actions]))
       
       # compute losses on this frame
       target_states = util.deepMap(lambda t: t[:,memory+1+step:], state)
