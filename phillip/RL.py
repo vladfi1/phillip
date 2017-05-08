@@ -41,6 +41,7 @@ class RL(Default):
     Option('train_model', type=int, default=0),
     Option('train_policy', type=int, default=1),
     Option('train_critic', type=int, default=1),
+    Option('predict', type=int, default=0),
   ]
   
   _members = [
@@ -87,7 +88,7 @@ class RL(Default):
         print("Creating policy:", self.policy)
         self.policy = policyType(self.embedGame, embedAction, self.global_step, self.config, **kwargs)
       
-      if self.train_model:
+      if self.train_model or self.predict:
         self.model = Model(**kwargs)
       
       if mode == Mode.TRAIN:
@@ -128,6 +129,12 @@ class RL(Default):
           
           train_ops = []
           
+          if self.train_model or self.predict:
+            train_model, history = self.model.train(**delayed)
+          
+          if self.train_model:
+            train_ops.append(train_model)
+          
           if self.train_policy or self.train_critic:
             train_critic, targets, advantages = self.critic(**critic_args)
           
@@ -137,9 +144,6 @@ class RL(Default):
           if self.train_policy:
             policy_args.update(advantages=tf.stop_gradient(advantages), targets=targets)
             train_ops.append(self.policy.train(**policy_args))
-
-          if self.train_model:
-            train_ops.append(self.model.train(**delayed))
           
           print("Created train ops")
 
@@ -149,11 +153,8 @@ class RL(Default):
           tf.scalar_summary('reward', tf.reduce_mean(self.experience['reward']))
           
           self.summarize = tf.merge_all_summaries()
-          
           self.increment = tf.assign_add(self.global_step, 1)
-          
           self.misc = tf.group(self.increment)
-          
           self.train_ops = tf.group(*train_ops)
           
           print("Creating summary writer at logs/%s." % self.name)

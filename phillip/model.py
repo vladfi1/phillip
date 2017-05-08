@@ -110,10 +110,12 @@ class Model(Default):
       totals.append(total)
     
     total_distance = tf.add_n(totals)
-    return tf.train.AdamOptimizer(self.model_learning_rate).minimize(total_distance)
+    
+    train_op = tf.train.AdamOptimizer(self.model_learning_rate).minimize(total_distance)
+    
+    return train_op, history
   
-  """
-  def predict(self, experience, action, extract=False):
+  def predict(self, experience, action, steps=1):
     input = tf.concat(0, [history, action])
     output = self.apply(input)
     
@@ -121,4 +123,4 @@ class Model(Default):
       output = embedGame.extract(output)
     
     return output
-  """
+
