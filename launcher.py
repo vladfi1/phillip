@@ -86,10 +86,10 @@ def launch(name, command, cpus=2, mem=1000, gpu=False, log=True, qos=None, array
     f.write("#!/bin/bash\n")
     f.write("#SBATCH --job-name " + name + "\n")
     if log:
-      f.write("#SBATCH --output slurm_logs/" + name + "_%a.out\n")
+      f.write("#SBATCH --output slurm_logs/" + name + "_%j.out\n")
     else:
       f.write("#SBATCH --output /dev/null")
-    f.write("#SBATCH --error slurm_logs/" + name + "_%a.err\n")
+    f.write("#SBATCH --error slurm_logs/" + name + "_%j.err\n")
     f.write("#SBATCH -c %d\n" % cpus)
     f.write("#SBATCH --mem %d\n" % mem)
     f.write("#SBATCH --time 7-0\n")
@@ -102,7 +102,7 @@ def launch(name, command, cpus=2, mem=1000, gpu=False, log=True, qos=None, array
       f.write("#SBATCH --qos %s\n" % qos)
     if array:
       f.write("#SBATCH --array=1-%d\n" % array)
-    f.write("source activate vlad\n")
+    f.write("source activate yash\n")
     f.write(command)
 
   #command = "screen -S %s -dm srun --job-name %s --pty singularity exec -B $OM_USER/phillip -B $HOME/phillip/ -H ../home phillip.img gdb -ex r --args %s" % (name[:10], name, command)
@@ -110,7 +110,7 @@ def launch(name, command, cpus=2, mem=1000, gpu=False, log=True, qos=None, array
 
 if run_trainer:
   train_name = "trainer_" + params['name']
-  train_command = "python3 -u phillip/train.py --load " + args.path
+  train_command = "python3 -u -m phillip.train --load " + args.path
   train_command += " --dump " + trainer_dump
 
   if not args.local: # TODO: support LD_PRELOAD for local args too
@@ -123,7 +123,7 @@ if run_trainer:
 
   launch(train_name, train_command,
     gpu=True,
-    #qos='tenenbaum',
+    qos='tenenbaum',
     mem=16000
   )
 

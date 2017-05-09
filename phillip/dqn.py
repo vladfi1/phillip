@@ -8,7 +8,7 @@ class DQN(Default):
   hidden_size = []
   
   _options = [
-    Option('q_layers', type=int, nargs='+', default=[128, 128], help="sizes of the dqn hidden layers"),
+    Option('q_fc_layers', type=int, nargs='+', default=[128, 128], help="sizes of the dqn hidden layers"),
     Option('epsilon', type=float, default=0.02, help="pick random action with probability EPSILON"),
     Option('temperature', type=float, default=0.01, help="Boltzmann distribution over actions"),
     Option('sarsa', type=bool, default=True, help="use action taken instead of max when computing target Q-values"),
@@ -32,7 +32,7 @@ class DQN(Default):
     with tf.variable_scope(scope):
       self.net = tfl.Sequential()
       prev_size = history_size
-      for i, size in enumerate(self.q_layers):
+      for i, size in enumerate(self.q_fc_layers):
         with tf.variable_scope("layer_%d" % i):
           self.net.append(tfl.FCLayer(prev_size, size, self.nl))
         prev_size = size

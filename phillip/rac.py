@@ -6,7 +6,8 @@ from . import rl_common as RL
 
 class RecurrentActorCritic(Default):
   _options = [
-    Option('actor_layers', type=int, nargs='+', default=[128, 128]),
+    Option('actor_fc_layers', type=int, nargs='+', default=[128]),
+    Option('actor_rnn_layers', type=int, nargs='+', default=[128]),
 
     Option('epsilon', type=float, default=0.02),
 
@@ -34,11 +35,18 @@ class RecurrentActorCritic(Default):
     
     name = 'actor'
 
+    net = tfl.Sequential()
     with tf.variable_scope(name):
-      cells = []
       prev_size = history_size
-      for i, next_size in enumerate(getattr(self, name + "_layers")):
-        with tf.variable_scope("layer_%d" % i):
+      for i, next_size in enumerate(getattr(self, name + "_fc_layers")):
+        with tf.variable_scope("fc_layer_%d" % i):
+          net.append(tfl.FCLayer(prev_size, next_size, self.nl))
+        prev_size = next_size
+      self.actor_fc = net
+
+      cells = []
+      for i, next_size in enumerate(getattr(self, name + "_rnn_layers")):
+        with tf.variable_scope("rnn_layer_%d" % i):
           cells.append(tfl.GRUCell(prev_size, next_size))
         prev_size = next_size
       self.rnn = tf.nn.rnn_cell.MultiRNNCell(cells)
@@ -71,6 +79,7 @@ class RecurrentActorCritic(Default):
 
       initial = util.deepMap(expand, self.initial_state)
     
+    history = self.actor_fc(history)
     if self.dynamic:
       actor_outputs, actor_hidden = tf.nn.dynamic_rnn(self.rnn, history, initial_state=initial)
     else:
@@ -108,7 +117,7 @@ class RecurrentActorCritic(Default):
     
     hidden = util.deepMap(lambda x: tf.expand_dims(x, 0), hidden)
     
-    actor_output, actor_hidden = self.rnn(state, hidden)
+    actor_output, actor_hidden = self.rnn(self.actor_fc(state), hidden)
     
     hidden = util.deepMap(lambda x: tf.squeeze(x, [0]), hidden)
 

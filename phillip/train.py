@@ -91,6 +91,7 @@ class Trainer(Default):
         print(e, file=sys.stderr)
   
   def train(self):
+    print("begin training...")
     before = count_objects()
     
     sweeps = 0
@@ -104,6 +105,7 @@ class Trainer(Default):
       start_time = time.time()
       
       #print('Start: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+      print('Starting.')
 
       for _ in range(self.min_collect):
         self.buffer.push(self.experience_socket.recv_pyobj())
