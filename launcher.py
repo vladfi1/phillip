@@ -18,6 +18,8 @@ parser.add_argument('--agents', type=int, help="number of agents to run")
 parser.add_argument('--log_agents', action='store_true', help='log agent outputs')
 parser.add_argument('--profile', action='store_true', help='heap profile trainer')
 parser.add_argument('--disk', action='store_true', help='run agents and dump experiences to disk')
+parser.add_argument('--tenenbaum', action='store_true', help='run trainer on higher priority')
+parser.add_argument('--use_everything', action='store_true', help='run agents on lower priority')
 
 args = parser.parse_args()
 
@@ -123,7 +125,7 @@ if run_trainer:
 
   launch(train_name, train_command,
     gpu=True,
-    #qos='tenenbaum',
+    qos='tenenbaum' if args.tenenbaum else None,
     mem=16000
   )
 
@@ -146,7 +148,7 @@ if run_agents:
   agents //= len(enemies)
 
   agent_count = 0
-  agent_command = "phillip --load " + args.path
+  agent_command = "python3 -u phillip/run.py --load " + args.path
   if args.disk:
     agent_command += " --disk 1"
 
@@ -162,6 +164,7 @@ if run_agents:
   agent_command += " --zmq 1"
   agent_command += " --pipe_count 1"
   agent_command += " --random_swap"
+  # agent_command += " --help"
 
   for enemy in enemies:
     command = agent_command
@@ -177,7 +180,7 @@ if run_agents:
     agent_name = "agent_%d_%s" % (agent_count, params['name'])
     launch(agent_name, command,
       log=args.log_agents,
-      #qos='use-everything',
+      qos='use-everything' if args.use_everything else None,
       array=agents
     )
     agent_count += 1
