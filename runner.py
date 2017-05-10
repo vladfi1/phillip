@@ -1,3 +1,4 @@
+#!/bin/env python
 import os
 import sys
 import subprocess
@@ -51,13 +52,13 @@ natural = False
 
 train_settings = [
   #('learning_rate', 0.0002),
-  ('tdN', 20),
-  ('reward_halflife', 4),
   ('sweeps', 1),
-  ('batches', 1 if natural else 5),
   ('batch_size', 2000),
   ('batch_steps', 1),
 ]
+
+add_param('reward_halflife', 2)
+add_param('batches', 1 if natural else 2)
 
 if dqn:
   train_settings += [
@@ -91,11 +92,17 @@ else:
   add_param('learning_rate', 1e-5 if recurrent else 1e-4, True)
   add_param('optimizer', 'Adam', False)
 
-#if recurrent:
+if recurrent:
 #  add_param('clip', 0.05)
+  add_param('initial', 'train')
+
+  add_param('dynamic', not natural, False)
 
 for k, v in train_settings:
   add_param(k, v, False)
+
+add_param('gae_lambda', 0.9)
+add_param('retrace', True)
 
 # embed params
 
@@ -109,7 +116,7 @@ add_param('player_space', 0, False)
 #add_param('actor_layers', [128] * 3)
 add_param('nl', 'elu', False)
 
-add_param('action_type', 'custom')
+add_param('action_type', 'custom', False)
 
 add_param('fix_scopes', True, False)
 
@@ -124,8 +131,8 @@ add_param('reload', 1, False)
 
 #char = 'falco'
 #char = 'sheik'
-#char = 'falcon'
-char = 'marth'
+char = 'falcon'
+#char = 'marth'
 #char = 'fox'
 #char = 'peach'
 #char = 'luigi'
@@ -138,7 +145,7 @@ act_every = 2
 act_every = data.short_hop[char]
 add_param('act_every', act_every)#, False)
 
-delay = 1
+delay = 0
 if delay:
   add_param('delay', delay)
 if not recurrent:
@@ -152,18 +159,18 @@ add_param('stage', stage, False)
 add_param('char', char, True)
 
 enemies = None
-#enemies = "cpu"
+enemies = "cpu"
 #enemies = "easy"
 #enemies = "delay0"
 #enemies = "delay%d" % delay
-enemies = ['self']
+#enemies = ['self']
 
 add_param('enemies', enemies)
 
 add_param('enemy_reload', 3600, False)
 
 # total number of agents
-agents = 120
+agents = 90
 params['agents'] = agents
 
 if args.name is not None:
