@@ -100,6 +100,9 @@ class RL(Default):
           self.experience = ct.inputCType(ssbm.SimpleStateAction, [None, self.config.experience_length], "experience")
           # instantaneous rewards for all but the last state
           self.experience['reward'] = tf.placeholder(tf.float32, [None, self.config.experience_length-1], name='experience/reward')
+
+          # manipulating time along the first axis is much more efficient
+          experience_swapped = util.deepMap(tf.transpose, self.experience)
           
           # initial state for recurrent networks
           #self.experience['initial'] = tuple(tf.placeholder(tf.float32, [None, size], name='experience/initial/%d' % i) for i, size in enumerate(self.policy.hidden_size))
@@ -107,45 +110,54 @@ class RL(Default):
             self.experience['initial'] = util.deepMap(lambda size: tf.placeholder(tf.float32, [None, size], name="experience/initial"), self.policy.hidden_size)
           else:
             self.experience['initial'] = []
-          
-          delay_length = self.config.experience_length - self.config.delay
+
+          delay = self.config.delay
+          delay_length = self.config.experience_length - delay
           
           def process_experiences(f, keys):
             return {k: util.deepMap(f, self.experience[k]) for k in keys}
 
           with tf.name_scope('live'):
-            #live = {k: util.deepMap(lambda t: t[:,:delay_length] for k in ['state', 'action', 'prev_action']}
             live = process_experiences(lambda t: t[:,:delay_length], ['state', 'action', 'prev_action', 'prob'])
             live['initial'] = self.experience['initial']
 
           with tf.name_scope('delayed'):
             delayed = live.copy()
-            delayed.update(process_experiences(lambda t: t[:,self.config.delay:], ['state', 'reward']))
+            delayed.update(process_experiences(lambda t: t[:,delay:], ['state', 'reward']))
           
           policy_args = live
           critic_args = delayed
           
           print("Creating train ops")
-          
+
           train_ops = []
+          losses = []
           
           if self.train_model or self.predict:
-            train_model, history = self.model.train(**delayed)
-          
+            model_loss, history = self.model.train(**delayed)
           if self.train_model:
-            train_ops.append(train_model)
+            losses.append(model_loss)
           
           if self.train_policy or self.train_critic:
             train_critic, targets, advantages = self.critic(**critic_args)
-          
           if self.train_critic:
             train_ops.append(train_critic)
           
           if self.train_policy:
-            policy_args.update(advantages=tf.stop_gradient(advantages), targets=targets)
-            train_ops.append(self.policy.train(**policy_args))
+            if self.predict:
+              policy_args = process_experiences(lambda t: t[:,delay+self.config.memory:delay_length], ['action', 'prob'])
+              policy_args['history'] = [h[:,:delay_length-1] for h in history]
+              policy_args['advantages'] = advantages[:,delay:]
+              policy_args['targets'] = targets[:,delay:]
+            else:
+              policy_args.update(advantages=advantages, targets=targets)
+            losses.append(self.policy.train(**policy_args))
+
+          total_loss = tf.add_n(losses)
+          opt = tf.train.AdamOptimizer(1.)
+          train_ops.append(opt.minimize(total_loss))
           
-          print("Created train ops")
+          print("Created train op(s)")
 
           #tf.scalar_summary("loss", loss)
           #tf.scalar_summary('learning_rate', tf.log(self.learning_rate))
