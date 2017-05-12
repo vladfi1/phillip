@@ -115,7 +115,7 @@ class Model(Default):
     
     return train_op, history
   
-  def predict(self, experience, action, steps=1):
+  def predict(self, state, prev_action, delayed_action):
     input = tf.concat(0, [history, action])
     output = self.apply(input)
     

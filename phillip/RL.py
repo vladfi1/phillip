@@ -100,6 +100,9 @@ class RL(Default):
           self.experience = ct.inputCType(ssbm.SimpleStateAction, [None, self.config.experience_length], "experience")
           # instantaneous rewards for all but the last state
           self.experience['reward'] = tf.placeholder(tf.float32, [None, self.config.experience_length-1], name='experience/reward')
+          
+          # actions not yet taken at the end
+          self.experience['delayed_actions'] = tf.placeholder(tf.int64, [None, self.config.delay], name="delayed_actions")
 
           # manipulating time along the first axis is much more efficient
           experience_swapped = util.deepMap(tf.transpose, self.experience)
@@ -134,12 +137,12 @@ class RL(Default):
           losses = []
           
           if self.train_model or self.predict:
-            model_loss, history = self.model.train(**delayed)
+            model_loss, history = self.model.train(**self.experience)
           if self.train_model:
             losses.append(model_loss)
           
           if self.train_policy or self.train_critic:
-            train_critic, targets, advantages = self.critic(**critic_args)
+            train_critic, targets, advantages = self.critic(**self.experience)
           if self.train_critic:
             train_ops.append(train_critic)
           
@@ -174,22 +177,13 @@ class RL(Default):
       else:
         with tf.name_scope('policy'):
           self.input = ct.inputCType(ssbm.SimpleStateAction, [self.config.memory+1], "input")
-          
+          self.input['delayed_action'] = tf.placeholder(tf.int32, [self.config.delay], "delayed_action")
           #self.input['hidden'] = [tf.placeholder(tf.float32, [size], name='input/hidden/%d' % i) for i, size in enumerate(self.policy.hidden_size)]
           self.input['hidden'] = util.deepMap(lambda size: tf.placeholder(tf.float32, [size], name="input/hidden"), self.policy.hidden_size)
           
-          states = self.embedGame(self.input['state'])
-          prev_actions = embedAction(self.input['prev_action'])
           
-          history = tf.concat(1, [states, prev_actions])
-          history = tf.reshape(history, [history_size])
           
-          policy_args = dict(
-            hidden=self.input['hidden'],
-            state=history,
-          )
-          
-          self.run_policy = self.policy.getPolicy(**policy_args)
+          self.run_policy = self.policy.getPolicy(**self.input)
       
       self.debug = debug
       
@@ -223,7 +217,7 @@ class RL(Default):
         config=tf.ConfigProto(**tf_config),
       )
 
-  def act(self, history, verbose=False):
+  def act(self, history, actions, verbose=False):
     feed_dict = dict(util.deepValues(util.deepZip(self.input, history)))
     return self.policy.act(self.sess.run(self.run_policy, feed_dict), verbose)
 

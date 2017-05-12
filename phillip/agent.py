@@ -35,6 +35,7 @@ class Agent(Default):
     self.action_counter = 0
     self.action = 0
     self.actions = util.CircularQueue(self.rl.config.delay+1, 0)
+    self.probs = util.CircularQueue(self.rl.config.delay+1, 1.)
     self.history = util.CircularQueue(array=((self.rl.config.memory+1) * ssbm.SimpleStateAction)())
     
     self.hidden = util.deepMap(np.zeros, self.rl.policy.hidden_size)
@@ -127,23 +128,22 @@ class Agent(Default):
 
     self.history.increment()
     history = self.history.as_list()
-    
     history = ct.vectorizeCTypes(ssbm.SimpleStateAction, history)
     history['hidden'] = self.hidden
+    history['delayed_actions'] = self.actions.as_list()[:-1]
     
-    self.action, p, self.hidden = self.rl.act(history, verbose)
-    
-    current.prob = p
-    current.action = self.action
+    action, prob, self.hidden = self.rl.act(history, verbose=verbose)
 
     #if verbose:
     #  pp.pprint(ct.toDict(state.players[1]))
-    #  print(self.action)
+    #  print(action)
     
     # the delayed action
-    action = self.actions.push(self.action)
+    self.action = self.actions.push(action)
+    current.action = self.action
+    current.prob = self.probs.push(prob)
     
-    self.rl.actionType.send(action, pad, self.char)
+    self.rl.actionType.send(self.action, pad, self.char)
     
     self.action_counter += 1
     
