@@ -73,7 +73,7 @@ class Model(Default):
       # stack memory frames and current action
       # history_concat = tf.concat(2, history[step:])
       current_action = actions[:,step:-1]
-      inputs = tf.concat(2, history[step:] + current_action)
+      inputs = tf.concat(2, history[step:] + [current_action])
       
       predicted_states = self.apply(inputs, last_states)
       
