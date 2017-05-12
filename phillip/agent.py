@@ -128,11 +128,11 @@ class Agent(Default):
 
     self.history.increment()
     history = self.history.as_list()
-    history = ct.vectorizeCTypes(ssbm.SimpleStateAction, history)
-    history['hidden'] = self.hidden
-    history['delayed_actions'] = self.actions.as_list()[:-1]
+    input_dict = ct.vectorizeCTypes(ssbm.SimpleStateAction, history)
+    input_dict['hidden'] = self.hidden
+    input_dict['delayed_action'] = self.actions.as_list()[:-1]
     
-    action, prob, self.hidden = self.rl.act(history, verbose=verbose)
+    action, prob, self.hidden = self.rl.act(input_dict, verbose=verbose)
 
     #if verbose:
     #  pp.pprint(ct.toDict(state.players[1]))

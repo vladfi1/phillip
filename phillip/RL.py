@@ -80,29 +80,32 @@ class RL(Default):
       
       self.embedGame = embed.GameEmbedding(**kwargs)
       state_size = self.embedGame.size
-      
-      history_size = (1+self.config.memory) * (state_size+embedAction.size)
+      combined_size = state_size + embedAction.size
+      history_size = (1+self.config.memory) * combined_size
       print("History size:", history_size)
+      
+      if self.train_model or self.predict:
+        print("Creating model.")
+        self.model = Model(self.embedGame, embedAction.size, self.config, **kwargs)
 
       if mode == Mode.PLAY or self.train_policy:
         print("Creating policy:", self.policy)
-        self.policy = policyType(self.embedGame, embedAction, self.global_step, self.config, **kwargs)
-      
-      if self.train_model or self.predict:
-        self.model = Model(**kwargs)
-      
+
+        effective_delay = self.config.delay
+        if self.predict:
+          effective_delay -= self.model.predict_steps
+        input_size = history_size + effective_delay * embedAction.size
+        self.policy = policyType(input_size, embedAction.size, self.config, **kwargs)
+            
       if mode == Mode.TRAIN:
         if self.train_policy or self.train_critic:
           print("Creating critic.")
-          self.critic = Critic(self.embedGame, embedAction, **kwargs)
+          self.critic = Critic(history_size, **kwargs)
 
         with tf.name_scope('train'):
           self.experience = ct.inputCType(ssbm.SimpleStateAction, [None, self.config.experience_length], "experience")
           # instantaneous rewards for all but the last state
           self.experience['reward'] = tf.placeholder(tf.float32, [None, self.config.experience_length-1], name='experience/reward')
-          
-          # actions not yet taken at the end
-          self.experience['delayed_actions'] = tf.placeholder(tf.int64, [None, self.config.delay], name="delayed_actions")
 
           # manipulating time along the first axis is much more efficient
           experience_swapped = util.deepMap(tf.transpose, self.experience)
@@ -114,22 +117,20 @@ class RL(Default):
           else:
             self.experience['initial'] = []
 
+          states = self.embedGame(self.experience['state'])
+          prev_actions = embedAction(self.experience['prev_action'])
+          combined = tf.concat(2, [states, prev_actions])
+          actions = embedAction(self.experience['action'])
+
+          memory = self.config.memory
           delay = self.config.delay
-          delay_length = self.config.experience_length - delay
-          
-          def process_experiences(f, keys):
-            return {k: util.deepMap(f, self.experience[k]) for k in keys}
+          length = self.config.experience_length - memory
+          history = []
+          for i in range(memory+1):
+            history.append(combined[:,i:i+length])
 
-          with tf.name_scope('live'):
-            live = process_experiences(lambda t: t[:,:delay_length], ['state', 'action', 'prev_action', 'prob'])
-            live['initial'] = self.experience['initial']
-
-          with tf.name_scope('delayed'):
-            delayed = live.copy()
-            delayed.update(process_experiences(lambda t: t[:,delay:], ['state', 'reward']))
-          
-          policy_args = live
-          critic_args = delayed
+          actions = actions[:,memory:]
+          rewards = self.experience['reward'][:,memory:]
           
           print("Creating train ops")
 
@@ -137,22 +138,30 @@ class RL(Default):
           losses = []
           
           if self.train_model or self.predict:
-            model_loss, history = self.model.train(**self.experience)
+            model_loss, predicted_history = self.model.train(history, actions, self.experience['state'])
           if self.train_model:
             losses.append(model_loss)
           
           if self.train_policy or self.train_critic:
-            train_critic, targets, advantages = self.critic(**self.experience)
+            train_critic, targets, advantages = self.critic(history, rewards)
           if self.train_critic:
             train_ops.append(train_critic)
           
           if self.train_policy:
             if self.predict:
-              policy_args = process_experiences(lambda t: t[:,delay+self.config.memory:delay_length], ['action', 'prob'])
-              policy_args['history'] = [h[:,:delay_length-1] for h in history]
-              policy_args['advantages'] = advantages[:,delay:]
-              policy_args['targets'] = targets[:,delay:]
+              delayed_actions = []
+              delay_length = length - delay
+              for i in range(self.model.predict_steps, delay+1):
+                delayed_actions.append(actions[:,i:i+delay_length])
+              policy_args = dict(
+                history=[h[:,:delay_length] for h in predicted_history],
+                actions=delayed_actions,
+                prob=self.experience['prob'][:,memory+delay:],
+                advantages=advantages[:,delay:],
+                targets=targets[:,delay:]
+              )
             else:
+              # FIXME: broken
               policy_args.update(advantages=advantages, targets=targets)
             losses.append(self.policy.train(**policy_args))
 
@@ -175,15 +184,23 @@ class RL(Default):
           print("Creating summary writer at logs/%s." % self.name)
           self.writer = tf.train.SummaryWriter('logs/' + self.name)#, self.graph)
       else:
-        with tf.name_scope('policy'):
-          self.input = ct.inputCType(ssbm.SimpleStateAction, [self.config.memory+1], "input")
-          self.input['delayed_action'] = tf.placeholder(tf.int32, [self.config.delay], "delayed_action")
-          #self.input['hidden'] = [tf.placeholder(tf.float32, [size], name='input/hidden/%d' % i) for i, size in enumerate(self.policy.hidden_size)]
-          self.input['hidden'] = util.deepMap(lambda size: tf.placeholder(tf.float32, [size], name="input/hidden"), self.policy.hidden_size)
-          
-          
-          
-          self.run_policy = self.policy.getPolicy(**self.input)
+        # with tf.name_scope('policy'):
+        self.input = ct.inputCType(ssbm.SimpleStateAction, [self.config.memory+1], "input")
+        self.input['delayed_action'] = tf.placeholder(tf.int64, [self.config.delay], "delayed_action")
+        self.input['hidden'] = util.deepMap(lambda size: tf.placeholder(tf.float32, [size], name="input/hidden"), self.policy.hidden_size)
+
+        states = self.embedGame(self.input['state'])
+        prev_actions = embedAction(self.input['prev_action'])
+        combined = tf.concat(1, [states, prev_actions])
+        history = tf.unpack(combined)
+        actions = embedAction(self.input['delayed_action'])
+        
+        if self.predict:
+          predict_actions = actions[:self.model.predict_steps]
+          delayed_actions = actions[self.model.predict_steps:]
+          history = self.model.predict(history, predict_actions, self.input['state'])
+        
+        self.run_policy = self.policy.getPolicy(history, delayed_actions)
       
       self.debug = debug
       
@@ -217,8 +234,8 @@ class RL(Default):
         config=tf.ConfigProto(**tf_config),
       )
 
-  def act(self, history, actions, verbose=False):
-    feed_dict = dict(util.deepValues(util.deepZip(self.input, history)))
+  def act(self, input_dict, verbose=False):
+    feed_dict = dict(util.deepValues(util.deepZip(self.input, input_dict)))
     return self.policy.act(self.sess.run(self.run_policy, feed_dict), verbose)
 
   def train(self, experiences, batch_steps=1, train=True, log=True, **kwargs):

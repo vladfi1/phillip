@@ -8,23 +8,18 @@ class Model(Default):
   _options = [
     Option("model_layers", type=int, nargs='+', default=[256]),
 
-    Option('action_type', type=str, default="diagonal", choices=ssbm.actionTypes.keys()),
     Option('model_learning_rate', type=float, default=1e-4),
     Option('predict_steps', type=int, default=1, help="number of future frames to predict")
   ]
   
   _members = [
-    ('embedGame', embed.GameEmbedding),
     ('nl', tfl.NL),
-    ('rlConfig', RLConfig),
   ]
   
-  def __init__(self, scope="model", **kwargs):
+  def __init__(self, embedGame, action_size, config, scope="model", **kwargs):
     Default.__init__(self, **kwargs)
-    
-    self.actionType = ssbm.actionTypes[self.action_type]
-    action_size = self.actionType.size # TODO: use the actual controller embedding
-    self.embedAction = embed.OneHotEmbedding("action", action_size)
+    self.embedGame = embedGame
+    self.rlConfig = config
     
     history_size = (1+self.rlConfig.memory) * (self.embedGame.size + action_size)
     input_size = action_size + history_size
@@ -61,42 +56,36 @@ class Model(Default):
     
     return forget * (last + delta) + (1. - forget) * new
   
-  def train(self, state, action, prev_action, **unused):
-    states = self.embedGame(state)
-    prev_actions = self.embedAction(prev_action)
-    combined = tf.concat(2, [states, prev_actions])
-    actions = self.embedAction(action)
-    
+  def train(self, history, actions, state, **unused):
     memory = self.rlConfig.memory
-    length = combined.get_shape()[-2].value - memory
-    history = [tf.slice(combined, [0, i, 0], [-1, length, -1]) for i in range(memory+1)]
+    length = self.rlConfig.experience_length - memory
 
-    residuals = self.embedGame(state, residual=True)
-    last_states = residuals[:,memory:,:]
+    state = util.deepMap(lambda t: t[:,memory:], state)
+    last_states = self.embedGame(state, residual=True)
 
     totals = []
 
     for step in range(self.predict_steps):
       # remove last time step from histories
-      history = [t[:,:-1,:] for t in history]
-      last_states = last_states[:,:-1,:]
+      history = [t[:,:-1] for t in history]
+      last_states = last_states[:,:-1]
       
       # stack memory frames and current action
-      history_concat = tf.concat(2, history[step:])
-      current_action = actions[:,memory+step:-1,:]
-      inputs = tf.concat(2, [history_concat, current_action])
+      # history_concat = tf.concat(2, history[step:])
+      current_action = actions[:,step:-1]
+      inputs = tf.concat(2, history[step:] + current_action)
       
       predicted_states = self.apply(inputs, last_states)
       
       # prepare for the next frame
       last_states = predicted_states
-      next_actions = prev_actions[:,memory+step+1:,:]
+      # next_actions = prev_actions[:,memory+step+1:,:]
       next_inputs = self.embedGame.to_input(predicted_states)
-      history.append(tf.concat(2, [next_inputs, next_actions]))
+      history.append(tf.concat(2, [next_inputs, current_action]))
       
       # compute losses on this frame
-      target_states = util.deepMap(lambda t: t[:,memory+1+step:], state)
-    
+      target_states = util.deepMap(lambda t: t[:,1+step:], state)
+      # predictions = predicted_states[:,:-1-step]
       distances = self.embedGame.distance(predicted_states, target_states)
       distances = util.deepMap(tf.reduce_mean, distances)
       
@@ -110,17 +99,20 @@ class Model(Default):
       totals.append(total)
     
     total_distance = tf.add_n(totals)
-    
-    train_op = tf.train.AdamOptimizer(self.model_learning_rate).minimize(total_distance)
-    
-    return train_op, history
+    loss = total_distance * self.model_learning_rate
+    return loss, history
   
-  def predict(self, state, prev_action, delayed_action):
-    input = tf.concat(0, [history, action])
-    output = self.apply(input)
-    
-    if extract:
-      output = embedGame.extract(output)
-    
-    return output
+  def predict(self, history, actions, raw_state):
+    last_state = util.deepMap(lambda t: t[-1], raw_state)
+    last_state = self.embedGame(last_state, residual=True)
 
+    for step, action in enumerate(tf.unpack(actions)):
+      input_ = tf.concat(0, history[step:] + [action])
+      predicted_state = self.apply(input_, last_state)
+      
+      # prepare for the next frame
+      last_state = predicted_state
+      next_input = self.embedGame.to_input(predicted_state)
+      history.append(tf.concat(0, [next_input, action]))
+    
+    return history
