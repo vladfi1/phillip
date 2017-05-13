@@ -17,6 +17,9 @@ characters = dict(
   peach = (-2, 18),
   ganon = (23, 18),
   samus = (3, 11),
+  bowser = (-9, 19),
+  yoshi = (5, 18),
+  dk = (11, 18),
 )
 
 settings = (0, 24)
