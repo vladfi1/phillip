@@ -125,9 +125,7 @@ class RL(Default):
           memory = self.config.memory
           delay = self.config.delay
           length = self.config.experience_length - memory
-          history = []
-          for i in range(memory+1):
-            history.append(combined[:,i:i+length])
+          history = [combined[:,i:i+length] for i in range(memory+1)]
 
           actions = actions[:,memory:]
           rewards = self.experience['reward'][:,memory:]
@@ -166,8 +164,8 @@ class RL(Default):
             losses.append(self.policy.train(**policy_args))
 
           total_loss = tf.add_n(losses)
-          opt = tf.train.AdamOptimizer(1.)
-          train_ops.append(opt.minimize(total_loss))
+          opt = tf.train.AdamOptimizer(1e-4)
+          train_ops.append(opt.minimize(1e4 * total_loss))
           
           print("Created train op(s)")
 
@@ -199,6 +197,8 @@ class RL(Default):
           predict_actions = actions[:self.model.predict_steps]
           delayed_actions = actions[self.model.predict_steps:]
           history = self.model.predict(history, predict_actions, self.input['state'])
+        else:
+          delayed_actions = actions
         
         self.run_policy = self.policy.getPolicy(history, delayed_actions)
       
@@ -238,8 +238,9 @@ class RL(Default):
     feed_dict = dict(util.deepValues(util.deepZip(self.input, input_dict)))
     return self.policy.act(self.sess.run(self.run_policy, feed_dict), verbose)
 
-  def train(self, experiences, batch_steps=1, train=True, log=True, **kwargs):
-    experiences = util.deepZip(*experiences)
+  def train(self, experiences, batch_steps=1, train=True, log=True, zipped=False, **kwargs):
+    if not zipped:
+      experiences = util.deepZip(*experiences)
     
     input_dict = dict(util.deepValues(util.deepZip(self.experience, experiences)))
     
