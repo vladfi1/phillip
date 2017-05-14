@@ -103,7 +103,7 @@ class PlayerMemory(Structure):
 @pretty_struct
 class GameMemory(Structure):
   _fields = [
-    ('players', PlayerMemory * 4),
+    ('players', PlayerMemory * 2),
 
     ('frame', c_uint),
     ('menu', c_uint),
@@ -204,11 +204,9 @@ def prepareStateActions(state_actions):
   """prepares an experience for pickling"""
 
   vectorized = vectorizeCTypes(SimpleStateAction, state_actions)
-
+  
   rewards = computeRewards(state_actions)
-  
   vectorized['reward'] = rewards
-  
   return vectorized
 
 # TODO: replace pickle with hdf5
