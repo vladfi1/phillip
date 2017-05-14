@@ -42,6 +42,7 @@ class RL(Default):
     Option('train_policy', type=int, default=1),
     Option('train_critic', type=int, default=1),
     Option('predict', type=int, default=0),
+    Option('profile', type=int, default=0, help='profile tensorflow graph execution'),
   ]
   
   _members = [
@@ -250,9 +251,6 @@ class RL(Default):
     
     saved_dict = dict(zip(self.placeholders, handles))
     """
-
-    if self.debug:
-      self.debugGrads(input_dict)
     
     run_dict = dict(
       global_step = self.global_step,
@@ -262,12 +260,21 @@ class RL(Default):
     if train:
       run_dict.update(train=self.train_ops)
     
+    if self.profile:
+      run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+      run_metadata = tf.RunMetadata()
+    else:
+      run_options = None
+      run_metadata = None
+      log = False # logging eats time?
+
     if log:
       run_dict.update(summary=self.summarize)
     
     for _ in range(batch_steps):
       try:
-        results = self.sess.run(run_dict, input_dict)
+        results = self.sess.run(run_dict, input_dict,
+            options=run_options, run_metadata=run_metadata)
       except tf.errors.InvalidArgumentError as e:
         import pickle
         with open(os.join(self.path, 'error_frame'), 'wb') as f:
@@ -275,11 +282,20 @@ class RL(Default):
         raise e
       #print('After run: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
       
+      global_step = results['global_step']
       if log:
         summary_str = results['summary']
-        global_step = results['global_step']
         self.writer.add_summary(summary_str, global_step)
-      #print('After summary: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+      if self.profile:
+        # Create the Timeline object, and write it to a json
+        from tensorflow.python.client import timeline
+        tl = timeline.Timeline(run_metadata.step_stats)
+        ctf = tl.generate_chrome_trace_format()
+        path = 'timelines/%s' % self.name
+        util.makedirs(path)
+        with open('%s/%d.json' % (path, global_step), 'w') as f:
+          f.write(ctf)
+        #self.writer.add_run_metadata(run_metadata, 'step %d' % global_step, global_step)
 
   def save(self):
     util.makedirs(self.path)
