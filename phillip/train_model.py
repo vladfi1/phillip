@@ -1,7 +1,7 @@
 import tensorflow as tf
 from phillip import ssbm, util, RL
 from phillip.default import *
-import pickle
+import hickle
 from random import shuffle
 import time
 import os
@@ -12,7 +12,7 @@ def load_experience(path):
 
 class ModelTrainer(Default):
   _options = [
-    Option('data', type=str, help='path to experience folder'),
+    Option('data', type=str, help='path to experience file'),
     Option('load', type=str, help='path to params + snapshot'),
     Option('init', action='store_true'),
     Option('batch_size', type=int, default=1),
@@ -44,54 +44,36 @@ class ModelTrainer(Default):
     else:
       self.rl.restore()
     
-    if self.data is None:
-      self.data = os.path.join(self.rl.path, 'experience')
-    
     print("Loading experiences from", self.data)
-     
-    files = os.listdir(self.data)
     
-    if self.file_limit:
-      files = files[:self.file_limit]
-    
-    data_paths = [os.path.join(self.data, f) for f in files]
-    
-    print("Loading %d experiences." % len(files))
-    
-
-    self.experiences = []
-    parallel = True
-    
-    if parallel:
-      for paths in util.chunk(data_paths, 100):
-        self.experiences.extend(util.async_map(load_experience, paths)())
-    else:
-      for path in data_paths:
-        with open(path, 'rb') as f:
-          self.experiences.append(pickle.load(f))
-
-    self.valid_size = self.valid_batches * self.batch_size  
+    start_time = time.time()
+    self.experiences = hickle.load(self.data)
+    print("Loaded experiences in %d seconds." % (time.time() - start_time))
+    if 'initial' not in self.experiences:
+      self.experiences['initial'] = []
 
   def train(self):
-    valid_set = self.experiences[:self.valid_size]
-    train_set = self.experiences[self.valid_size:]
+    shape = self.experiences['action'].shape
+    data_size = shape[0]
     
-    valid_batches = util.chunk(valid_set, self.batch_size)
+    batches = []
+    for i in range(0, data_size, self.batch_size):
+      batches.append(util.deepMap(lambda t: t[i:i+self.batch_size], self.experiences))
+  
+    valid_batches = batches[:self.valid_batches]
+    train_batches = batches[self.valid_batches:]
     
     for epoch in range(self.epochs):
       print("Epoch", epoch)
       start_time = time.time()
       
-      shuffle(train_set)
-      batches = util.chunk(train_set, self.batch_size)
-      
-      for batch in batches:
-        self.rl.train(batch, log=False)
+      for batch in train_batches:
+        self.rl.train(batch, log=False, zipped=True)
       
       print(time.time() - start_time) 
       
       for batch in valid_batches:
-        self.rl.train(batch, train=False)
+        self.rl.train(batch, train=False, zipped=True)
       
       self.rl.save()
 

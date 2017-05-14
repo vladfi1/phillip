@@ -22,12 +22,12 @@ def prune_experience(experience):
 
 prune_load = util.compose(prune_experience, load_experience)
 
-paths = glob.glob(path+'/*')[:10]
+paths = glob.glob(path+'/*')[:100]
 experiences = []
-size = 10
-for i, ps in enumerate(util.chunk(paths, size)):
-  print('reading %d/%d' % (i * size, len(paths)))
-  experiences.extend(map(prune_load, ps))
+for i, p in enumerate(paths):
+  if i % 10 == 0:
+    print('reading %d/%d' % (i, len(paths)))
+  experiences.append(prune_load(p))
 
 def to_array(*xs):
   return np.array(xs)
