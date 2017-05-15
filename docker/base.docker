@@ -1,23 +1,19 @@
-FROM phusion/baseimage:0.9.21
+FROM ubuntu:16.04
 
-# Use baseimage-docker's init system.
-CMD ["/sbin/my_init"]
-
-# ...put your own build instructions here...
 RUN apt-get update
 RUN apt-get install -y \
     git wget unzip \
     python3-numpy python3-pip \
     build-essential cmake libevdev-dev libudev-dev libgl1-mesa-dev libusb-1.0.0-dev libao-dev libpulse-dev libxrandr-dev libopenal-dev libasound2-dev libzmq3-dev libgtk2.0-dev libpng12-dev
 
-# Clean up APT when done.`
+# Clean up APT when done.
 RUN apt-get clean
 
 ENV TF_BINARY_URL https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-0.11.0-cp35-cp35m-linux_x86_64.whl
 RUN pip3 install $TF_BINARY_URL
 
 WORKDIR /
-# RUN git clone https://github.com/vladfi1/dolphin
+# RUN git clone --depth 1 https://github.com/vladfi1/dolphin
 RUN wget https://github.com/vladfi1/dolphin/archive/oldmaster.zip
 RUN unzip oldmaster.zip
 
@@ -32,6 +28,4 @@ RUN unzip master.zip
 
 WORKDIR /phillip-master
 RUN pip3 install -e .
-
-ADD SSBM.iso /phillip-master
 
