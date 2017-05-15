@@ -148,20 +148,22 @@ class RL(Default):
           
           if self.train_policy:
             if self.predict:
-              delayed_actions = []
-              delay_length = length - delay
-              for i in range(self.model.predict_steps, delay+1):
-                delayed_actions.append(actions[:,i:i+delay_length])
-              policy_args = dict(
-                history=[h[:,:delay_length] for h in predicted_history],
-                actions=delayed_actions,
-                prob=self.experience['prob'][:,memory+delay:],
-                advantages=advantages[:,delay:],
-                targets=targets[:,delay:]
-              )
+              predict_steps = self.model.predict_steps
+              history = predicted_history
             else:
-              # FIXME: broken
-              policy_args.update(advantages=advantages, targets=targets)
+              predict_steps = 0
+
+            delayed_actions = []
+            delay_length = length - delay
+            for i in range(predict_steps, delay+1):
+              delayed_actions.append(actions[:,i:i+delay_length])
+            policy_args = dict(
+              history=[h[:,:delay_length] for h in history],
+              actions=delayed_actions,
+              prob=self.experience['prob'][:,memory+delay:],
+              advantages=advantages[:,delay:],
+              targets=targets[:,delay:]
+            )
             losses.append(self.policy.train(**policy_args))
 
           total_loss = tf.add_n(losses)
