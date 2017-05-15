@@ -34,6 +34,7 @@ class Trainer(Default):
     Option("batch_size", type=int, default=1, help="number of trajectories per batch"),
     Option("batch_steps", type=int, default=1, help="number of gradient steps to take on each batch"),
     Option("min_collect", type=int, default=1, help="minimum number of experiences to collect between sweeps"),
+    Option("log_interval", type=int, default=10),
 
     Option("dump", type=str, default="lo", help="interface to listen on for experience dumps"),
     
@@ -93,12 +94,13 @@ class Trainer(Default):
   def train(self):
     before = count_objects()
     
-    sweeps = 0
-    
     for _ in range(self.sweep_size):
       self.buffer.push(self.experience_socket.recv_pyobj())
     
     print("Buffer filled")
+
+    sweeps = 0
+    step = 0
     
     while True:
       start_time = time.time()
@@ -127,7 +129,8 @@ class Trainer(Default):
         shuffle(experiences)
         
         for batch in util.chunk(experiences, self.batch_size):
-          self.model.train(batch, self.batch_steps)
+          self.model.train(batch, self.batch_steps, log=(step%self.log_interval==0))
+          step += 1
       
       print('After train: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
       train_time = time.time()

@@ -263,10 +263,11 @@ class RL(Default):
     if self.profile:
       run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
       run_metadata = tf.RunMetadata()
+      print('Profiling enabled, disabling logging!')
+      log = False # logging eats time?
     else:
       run_options = None
       run_metadata = None
-      log = False # logging eats time?
 
     if log:
       run_dict.update(summary=self.summarize)
@@ -284,6 +285,7 @@ class RL(Default):
       
       global_step = results['global_step']
       if log:
+        print('add_summary')
         summary_str = results['summary']
         self.writer.add_summary(summary_str, global_step)
       if self.profile:
