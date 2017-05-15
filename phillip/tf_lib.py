@@ -63,6 +63,9 @@ def sample_variance(xs):
 def apply_grads(params, grads):
   return tf.group(*[tf.assign_add(p, g) for p, g in zip(params, grads)])
 
+def scale_gradient(t, scale):
+  return (1.-scale) * tf.stop_gradient(t) + scale * t
+
 def scaled_weight_variable(shape):
     '''
     Generates a TensorFlow Tensor. This Tensor gets initialized with values sampled from the truncated normal

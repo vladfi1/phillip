@@ -9,7 +9,8 @@ class Model(Default):
     Option("model_layers", type=int, nargs='+', default=[256]),
 
     Option('model_learning_rate', type=float, default=1e-4),
-    Option('predict_steps', type=int, default=1, help="number of future frames to predict")
+    Option('predict_steps', type=int, default=1, help="number of future frames to predict"),
+    Option('predict_scale', type=float, default=1., help="scale incoming gradients"),
   ]
   
   _members = [
@@ -97,6 +98,8 @@ class Model(Default):
       total = tf.add_n(list(util.deepValues(distances)))
       tf.scalar_summary("model/%d/total" % step, total)
       totals.append(total)
+
+    history = [tfl.scale_gradient(h, self.predict_scale) for h in history]
     
     total_distance = tf.add_n(totals)
     loss = total_distance * self.model_learning_rate
