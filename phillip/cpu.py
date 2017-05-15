@@ -4,7 +4,7 @@ from .menu_manager import *
 import os
 from .pad import *
 import time
-from .ctype_util import copy
+from . import ctype_util as ct
 from numpy import random
 from .reward import computeRewards
 from .default import *
@@ -21,6 +21,7 @@ class CPU(Default):
       Option('start', type=int, default=1, help="start game in endless time mode"),
       Option('netplay', type=str),
       Option('frame_limit', type=int, help="stop after a given number of frames"),
+      Option('debug', type=int, default=0),
     ] + [Option('p%d' % i, type=str, choices=characters.keys(), default="falcon", help="character for player %d" % i) for i in [1, 2]]
     
     _members = [
@@ -225,8 +226,13 @@ class CPU(Default):
         if self.state.menu == Menu.Game.value:
             self.game_frame += 1
             
+            if self.debug and self.game_frame % 60 == 0:
+              print('action_frame', self.state.players[0].action_frame)
+              items = list(util.deepItems(ct.toDict(self.state.players)))
+              print('max value', max(items, key=lambda x: abs(x[1])))
+            
             if self.game_frame <= 120:
-                return # wait for game to properly load
+              return # wait for game to properly load
             
             for pid, pad in zip(self.pids, self.pads):
                 agent = self.agents[pid]
