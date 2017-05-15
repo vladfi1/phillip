@@ -13,7 +13,7 @@ def nullEmbedding(t):
 nullEmbedding.size = 0
 
 class FloatEmbedding(object):
-  def __init__(self, name, scale=None, bias=None, lower=-250., upper=250.):
+  def __init__(self, name, scale=None, bias=None, lower=-10., upper=10.):
     self.name = name
     self.scale = scale
     self.bias = bias
@@ -283,7 +283,7 @@ class PlayerEmbedding(StructEmbedding, Default):
     Option('shield_scale', type=float, default=0.01),
     Option('speed_scale', type=float, default=0.5),
     Option('omit_char', type=bool, default=False),
-    Option('stun_scale', type=float, default=1., help="multiply hitstun frames"),
+    Option('frame_scale', type=float, default=.1, help="scale frames"),
   ]
   
   def __init__(self, **kwargs):
@@ -295,6 +295,7 @@ class PlayerEmbedding(StructEmbedding, Default):
     
     embedXY = FloatEmbedding("xy", scale=self.xy_scale)
     embedSpeed = FloatEmbedding("speed", scale=self.speed_scale)
+    embedFrame = FloatEmbedding("frame", scale=self.frame_scale)
 
     playerEmbedding = [
       ("percent", FloatEmbedding("percent", scale=0.01)),
@@ -306,8 +307,8 @@ class PlayerEmbedding(StructEmbedding, Default):
       ("action_frame", FloatEmbedding("action_frame", scale=0.02)),
       ("character", nullEmbedding if self.omit_char else OneHotEmbedding("character", maxCharacter)),
       ("invulnerable", embedFloat),
-      ("hitlag_frames_left", embedFloat),
-      ("hitstun_frames_left", FloatEmbedding("hitstun", scale=self.stun_scale)),
+      ("hitlag_frames_left", embedFrame),
+      ("hitstun_frames_left", embedFrame),
       ("jumps_used", embedFloat),
       ("charging_smash", embedFloat),
       ("shield_size", FloatEmbedding("shield_size", scale=self.shield_scale)),
