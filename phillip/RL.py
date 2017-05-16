@@ -85,7 +85,7 @@ class RL(Default):
       history_size = (1+self.config.memory) * combined_size
       print("History size:", history_size)
       
-      if self.train_model or self.predict:
+      if self.predict or (mode == Mode.TRAIN and self.train_model):
         print("Creating model.")
         self.model = Model(self.embedGame, embedAction.size, self.config, **kwargs)
 
