@@ -20,6 +20,7 @@ parser.add_argument('--profile', action='store_true', help='heap profile trainer
 parser.add_argument('--disk', action='store_true', help='run agents and dump experiences to disk')
 parser.add_argument('--tenenbaum', action='store_true', help='run trainer on higher priority')
 parser.add_argument('--use_everything', action='store_true', help='run agents on lower priority')
+parser.add_argument('--any_gpu', action='store_true', help='run with any gpu (default is titan-x)')
 
 args = parser.parse_args()
 
@@ -63,7 +64,7 @@ if not os.path.exists("slurm_scripts"):
 
 pids = []
 
-def launch(name, command, cpus=2, mem=1000, gpu=False, log=True, qos=None, array=None):
+def launch(name, command, cpus=2, mem=1, gpu=False, log=True, qos=None, array=None):
   #command = "LD_PRELOAD=$OM_USER/lib/libtcmalloc.so.4 " + command
   if gpu:
     command += " --gpu"
@@ -93,18 +94,24 @@ def launch(name, command, cpus=2, mem=1000, gpu=False, log=True, qos=None, array
       f.write("#SBATCH --output /dev/null")
     f.write("#SBATCH --error slurm_logs/" + name + "_%a.err\n")
     f.write("#SBATCH -c %d\n" % cpus)
-    f.write("#SBATCH --mem %d\n" % mem)
-    f.write("#SBATCH --time 7-0\n")
+    f.write("#SBATCH --mem %dG\n" % mem)
+    f.write("#SBATCH --time 3-0\n")
     #f.write("#SBATCH --cpu_bind=verbose,cores\n")
     #f.write("#SBATCH --cpu_bind=threads\n")
     if gpu:
-      f.write("#SBATCH --gres gpu:titan-x:1\n")
-      #f.write("#SBATCH --gres gpu:1\n")
+      if args.any_gpu:
+        f.write("#SBATCH --gres gpu:1\n")
+      else:
+        f.write("#SBATCH --gres gpu:titan-x:1\n")
     if qos:
       f.write("#SBATCH --qos %s\n" % qos)
     if array:
       f.write("#SBATCH --array=1-%d\n" % array)
-    f.write("source activate vlad\n")
+
+    if gpu:
+      f.write("source activate tf-gpu-src\n")
+    else:
+      f.write("source activate tf-cpu-src\n")
     f.write(command)
 
   #command = "screen -S %s -dm srun --job-name %s --pty singularity exec -B $OM_USER/phillip -B $HOME/phillip/ -H ../home phillip.img gdb -ex r --args %s" % (name[:10], name, command)
@@ -126,7 +133,7 @@ if run_trainer:
   launch(train_name, train_command,
     gpu=True,
     qos='tenenbaum' if args.tenenbaum else None,
-    mem=16000
+    mem=32
   )
 
 if run_agents:
