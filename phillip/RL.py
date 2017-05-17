@@ -120,7 +120,7 @@ class RL(Default):
 
           states = self.embedGame(self.experience['state'])
           prev_actions = embedAction(self.experience['prev_action'])
-          combined = tf.concat(2, [states, prev_actions])
+          combined = tf.concat(axis=2, values=[states, prev_actions])
           actions = embedAction(self.experience['action'])
 
           memory = self.config.memory
@@ -175,15 +175,15 @@ class RL(Default):
           #tf.scalar_summary("loss", loss)
           #tf.scalar_summary('learning_rate', tf.log(self.learning_rate))
           
-          tf.scalar_summary('reward', tf.reduce_mean(self.experience['reward']))
+          tf.summary.scalar('reward', tf.reduce_mean(self.experience['reward']))
           
-          self.summarize = tf.merge_all_summaries()
+          self.summarize = tf.summary.merge_all()
           self.increment = tf.assign_add(self.global_step, 1)
           self.misc = tf.group(self.increment)
           self.train_ops = tf.group(*train_ops)
           
           print("Creating summary writer at logs/%s." % self.name)
-          self.writer = tf.train.SummaryWriter('logs/' + self.name)#, self.graph)
+          self.writer = tf.summary.FileWriter('logs/' + self.name)#, self.graph)
       else:
         # with tf.name_scope('policy'):
         self.input = ct.inputCType(ssbm.SimpleStateAction, [self.config.memory+1], "input")
@@ -192,8 +192,8 @@ class RL(Default):
 
         states = self.embedGame(self.input['state'])
         prev_actions = embedAction(self.input['prev_action'])
-        combined = tf.concat(1, [states, prev_actions])
-        history = tf.unpack(combined)
+        combined = tf.concat(axis=1, values=[states, prev_actions])
+        history = tf.unstack(combined)
         actions = embedAction(self.input['delayed_action'])
         
         if self.predict:
@@ -207,8 +207,8 @@ class RL(Default):
       
       self.debug = debug
       
-      self.variables = tf.all_variables()
-      self.initializer = tf.initialize_all_variables()
+      self.variables = tf.global_variables()
+      self.initializer = tf.global_variables_initializer()
       
       self.saver = tf.train.Saver(self.variables)
       

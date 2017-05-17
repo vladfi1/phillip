@@ -7,7 +7,7 @@ floatType = tf.float32
 
 def nullEmbedding(t):
   shape = tf.shape(t)
-  shape = tf.concat(0, [shape, [0]])
+  shape = tf.concat(axis=0, values=[shape, [0]])
   return tf.zeros(shape)
 
 nullEmbedding.size = 0
@@ -119,7 +119,7 @@ class StructEmbedding(object):
           assert(rank == len(t.get_shape()))
         
         embed.append(t)
-    return tf.concat(rank-1, embed)
+    return tf.concat(axis=rank-1, values=embed)
   
   def to_input(self, embedded):
     rank = len(embedded.get_shape())
@@ -134,7 +134,7 @@ class StructEmbedding(object):
       inputs.append(op.to_input(t))
       offset += op.size
     
-    return tf.concat(rank-1, inputs)
+    return tf.concat(axis=rank-1, values=inputs)
   
   def extract(self, embedded):
     rank = len(embedded.get_shape())
@@ -185,20 +185,20 @@ class ArrayEmbedding(object):
           assert(rank == len(t.get_shape()))
         
         embed.append(t)
-    return tf.concat(rank-1, embed)
+    return tf.concat(axis=rank-1, values=embed)
   
   def to_input(self, embedded):
     rank = len(embedded.get_shape())
-    ts = tf.split(rank-1, len(self.permutation), embedded)
+    ts = tf.split(axis=rank-1, num_or_size_splits=len(self.permutation), value=embedded)
     inputs = list(map(self.op.to_input, ts))
-    return tf.concat(rank-1, inputs)
+    return tf.concat(axis=rank-1, values=inputs)
   
   def extract(self, embedded):
     # a bit suspect here, we can't recreate the original array,
     # only the bits that were embedded. oh well
     array = max(self.permutation) * [None]
     
-    ts = tf.split(tf.rank(embedded)-1, len(self.permutation), embedded)
+    ts = tf.split(axis=tf.rank(embedded)-1, num_or_size_splits=len(self.permutation), value=embedded)
     
     for i, t in zip(self.permutation, ts):
       array[i] = self.op.extract(t)
@@ -208,7 +208,7 @@ class ArrayEmbedding(object):
   def distance(self, embedded, target):
     distances = []
   
-    ts = tf.split(tf.rank(embedded)-1, len(self.permutation), embedded)
+    ts = tf.split(axis=tf.rank(embedded)-1, num_or_size_splits=len(self.permutation), value=embedded)
     
     for i, t in zip(self.permutation, ts):
       distances.append(self.op.distance(t, target[i]))

@@ -31,7 +31,7 @@ class NL(Default):
       return getattr(tf.nn, self.nl)(x)
 
 def batch_dot(xs, ys):
-  return tf.reduce_sum(tf.mul(xs, ys), -1)
+  return tf.reduce_sum(tf.multiply(xs, ys), -1)
 
 def dot(x, y):
   return tf.reduce_sum(x * y)
@@ -40,7 +40,7 @@ def power(x, p):
   if p == 1:
     return x
   if p == -1:
-    return tf.inv(x)
+    return tf.reciprocal(x)
   return tf.pow(x, p)
 
 def geometric_mean(xs):
@@ -162,7 +162,7 @@ def matmul(v, m):
   rank = shape.get_shape()[0].value
   v = tf.expand_dims(v, rank)
   
-  vm = tf.mul(v, m)
+  vm = tf.multiply(v, m)
   
   return tf.reduce_sum(vm, rank-1)
 
@@ -175,7 +175,7 @@ def matmul2(x, m, bias=None, nl=None):
   input_shape_tf = tf.shape(x)
   batch_rank = len(input_shape_py) - 1
   batch_shape_tf = input_shape_tf[:batch_rank]
-  output_shape_tf = tf.concat(0, [batch_shape_tf, [output_size]])
+  output_shape_tf = tf.concat(axis=0, values=[batch_shape_tf, [output_size]])
   
   squashed = tf.reshape(x, [-1, input_size])
   y = tf.matmul(squashed, m)
@@ -317,7 +317,7 @@ def run(session, fetches, feed_dict):
     else:
         return session.run(fetches, feed_dict)
 
-class GRUCell(tf.nn.rnn_cell.RNNCell):
+class GRUCell(tf.contrib.rnn.RNNCell):
   def __init__(self, input_size, hidden_size, nl=tf.tanh, name=None):
     with tf.variable_scope(name or type(self).__name__):
       with tf.variable_scope("Gates"):
@@ -338,26 +338,26 @@ class GRUCell(tf.nn.rnn_cell.RNNCell):
     return self._num_units  
   
   def __call__(self, inputs, state):
-    ru = tf.sigmoid(tf.matmul(tf.concat(1, [inputs, state]), self.Wru) + self.bru)
-    r, u = tf.split(1, 2, ru)
+    ru = tf.sigmoid(tf.matmul(tf.concat(axis=1, values=[inputs, state]), self.Wru) + self.bru)
+    r, u = tf.split(axis=1, num_or_size_splits=2, value=ru)
     
-    c = self.nl(tf.matmul(tf.concat(1, [inputs, r * state]), self.Wc) + self.bc)
+    c = self.nl(tf.matmul(tf.concat(axis=1, values=[inputs, r * state]), self.Wc) + self.bc)
     new_h = u * state + (1 - u) * c
     
     return new_h, new_h
 
 # auto unpacks and repacks inputs
 def rnn(cell, inputs, initial_state, time=1):
-  inputs = tf.unpack(inputs, axis=time)
+  inputs = tf.unstack(inputs, axis=time)
   outputs = []
   state = initial_state
   for i, input_ in enumerate(inputs):
     output, state = cell(input_, state)
     outputs.append(output)
-  return tf.pack(outputs, axis=time), state
+  return tf.stack(outputs, axis=time), state
 
 def discount(values, gamma, initial=None):
-  values = tf.unpack(values, axis=1)
+  values = tf.unstack(values, axis=1)
   
   if initial is None:
     current = tf.zeros_like(values[0])
@@ -368,7 +368,7 @@ def discount(values, gamma, initial=None):
     current = values[i] + gamma * current
     values[i] = current
   
-  return tf.pack(values, axis=1)
+  return tf.stack(values, axis=1)
 
 def discount2(values, gamma, initial=None):
   """Compute returns from rewards.
@@ -404,7 +404,7 @@ def discount2(values, gamma, initial=None):
   
   _, _, returns = tf.while_loop(cond, body, (timesteps-1, initial, ta))
   
-  return tf.transpose(returns.pack())
+  return tf.transpose(returns.stack())
 
 def testDiscounts():
   values = tf.constant([[1, 2, 3]])

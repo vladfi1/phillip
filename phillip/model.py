@@ -74,7 +74,7 @@ class Model(Default):
       # stack memory frames and current action
       # history_concat = tf.concat(2, history[step:])
       current_action = actions[:,step:-1]
-      inputs = tf.concat(2, history[step:] + [current_action])
+      inputs = tf.concat(axis=2, values=history[step:] + [current_action])
       
       predicted_states = self.apply(inputs, last_states)
       
@@ -82,7 +82,7 @@ class Model(Default):
       last_states = predicted_states
       # next_actions = prev_actions[:,memory+step+1:,:]
       next_inputs = self.embedGame.to_input(predicted_states)
-      history.append(tf.concat(2, [next_inputs, current_action]))
+      history.append(tf.concat(axis=2, values=[next_inputs, current_action]))
       
       # compute losses on this frame
       target_states = util.deepMap(lambda t: t[:,1+step:], state)
@@ -93,10 +93,10 @@ class Model(Default):
       # log all the individual distances
       for path, tensor in util.deepItems(distances):
         tag = "model/%d/" % step + "/".join(map(str, path))
-        tf.scalar_summary(tag, tensor)
+        tf.summary.scalar(tag, tensor)
     
       total = tf.add_n(list(util.deepValues(distances)))
-      tf.scalar_summary("model/%d/total" % step, total)
+      tf.summary.scalar("model/%d/total" % step, total)
       totals.append(total)
 
     history = [tfl.scale_gradient(h, self.predict_scale) for h in history]
@@ -109,13 +109,13 @@ class Model(Default):
     last_state = util.deepMap(lambda t: t[-1], raw_state)
     last_state = self.embedGame(last_state, residual=True)
 
-    for step, action in enumerate(tf.unpack(actions)):
-      input_ = tf.concat(0, history[step:] + [action])
+    for step, action in enumerate(tf.unstack(actions)):
+      input_ = tf.concat(axis=0, values=history[step:] + [action])
       predicted_state = self.apply(input_, last_state)
       
       # prepare for the next frame
       last_state = predicted_state
       next_input = self.embedGame.to_input(predicted_state)
-      history.append(tf.concat(0, [next_input, action]))
+      history.append(tf.concat(axis=0, values=[next_input, action]))
     
     return history

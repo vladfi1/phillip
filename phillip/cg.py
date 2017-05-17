@@ -61,9 +61,9 @@ class ConjugateGradient(Default):
       
       n, x, p, r, rr = tf.while_loop(cond, body, (n, x, p, r, rr), back_prop=False)
       
-      tf.scalar_summary('cg_iters', n)
-      tf.scalar_summary('cg_error', tf.sqrt(rr / mag2(b)))
-      tf.scalar_summary('cg_loss', -0.5 * tfl.dot(x, b+r))
+      tf.summary.scalar('cg_iters', n)
+      tf.summary.scalar('cg_error', tf.sqrt(rr / mag2(b)))
+      tf.summary.scalar('cg_loss', -0.5 * tfl.dot(x, b+r))
       
       if debug:
         return n, x, p, r, rr

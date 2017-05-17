@@ -30,7 +30,7 @@ class Optimizer(Default):
     
     grads = [tf.check_numerics(g, "NaN gradient in param %d" % i) for i, g in enumerate(grads)]
     
-    flat_params, flat_grads = [tf.abs(tf.concat(0, [tf.reshape(t, [-1]) for t in ts])) for ts in (params, grads)]
+    flat_params, flat_grads = [tf.abs(tf.concat(axis=0, values=[tf.reshape(t, [-1]) for t in ts])) for ts in (params, grads)]
     
     #flat_ratios = flat_grads / flat_params
     #tf.scalar_summary('grad_param_max', tf.reduce_max(flat_ratios))
@@ -38,8 +38,8 @@ class Optimizer(Default):
     
     grad_max = tf.reduce_max(flat_grads)
     
-    tf.scalar_summary('grad_max', grad_max)
-    tf.scalar_summary('grad_avg', tf.reduce_mean(flat_grads))
+    tf.summary.scalar('grad_max', grad_max)
+    tf.summary.scalar('grad_avg', tf.reduce_mean(flat_grads))
     
     if self.clip:
       clip = tf.minimum(self.clip, grad_max) / grad_max

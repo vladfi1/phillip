@@ -39,7 +39,7 @@ class Critic(Default):
   
   def __call__(self, history, rewards, **unused):
     history = history[-self.rlConfig.memory-1:]
-    input_ = tf.concat(2, history)
+    input_ = tf.concat(axis=2, values=history)
 
     values = tf.squeeze(self.net(input_), [-1])
     trainVs = values[:,:-1]
@@ -54,12 +54,12 @@ class Critic(Default):
     
     # advantages = targets - trainVs
     advantage_avg = tf.reduce_mean(advantages)
-    tf.scalar_summary('advantage_avg', advantage_avg)
-    tf.scalar_summary('advantage_std', tf.sqrt(tfl.sample_variance(advantages)))
+    tf.summary.scalar('advantage_avg', advantage_avg)
+    tf.summary.scalar('advantage_std', tf.sqrt(tfl.sample_variance(advantages)))
     
     vLoss = tf.reduce_mean(tf.square(advantages))
-    tf.scalar_summary('v_loss', vLoss)
-    tf.scalar_summary("v_uev", vLoss / tfl.sample_variance(targets))
+    tf.summary.scalar('v_loss', vLoss)
+    tf.summary.scalar("v_uev", vLoss / tfl.sample_variance(targets))
     
     opt = tf.train.AdamOptimizer(self.critic_learning_rate)
 

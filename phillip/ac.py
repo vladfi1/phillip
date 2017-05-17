@@ -50,7 +50,7 @@ class ActorCritic(Default):
   def train(self, history, actions, prob, advantages, **unused):
     history = history[-self.rlConfig.memory-1:]
     delayed_actions = actions[:-1]
-    input_ = tf.concat(2, history + delayed_actions)
+    input_ = tf.concat(axis=2, values=history + delayed_actions)
     actions = actions[-1]
     
     actor_probs = self.actor(input_)
@@ -58,17 +58,17 @@ class ActorCritic(Default):
 
     entropy = - tfl.batch_dot(actor_probs, log_actor_probs)
     entropy_avg = tfl.power_mean(self.entropy_power, entropy)
-    tf.scalar_summary('entropy_avg', entropy_avg)
-    tf.scalar_summary('entropy_min', tf.reduce_min(entropy))
-    tf.histogram_summary('entropy', entropy)
+    tf.summary.scalar('entropy_avg', entropy_avg)
+    tf.summary.scalar('entropy_min', tf.reduce_min(entropy))
+    tf.summary.histogram('entropy', entropy)
 
     real_actor_probs = tfl.batch_dot(actions, actor_probs)
     prob_ratios = prob / real_actor_probs
-    tf.scalar_summary('kl', tf.reduce_mean(tf.log(prob_ratios)))
+    tf.summary.scalar('kl', tf.reduce_mean(tf.log(prob_ratios)))
 
     real_log_actor_probs = tfl.batch_dot(actions, log_actor_probs)
     train_log_actor_probs = real_log_actor_probs[:,:-1] # last state has no advantage
-    actor_gain = tf.reduce_mean(tf.mul(train_log_actor_probs, tf.stop_gradient(advantages)))
+    actor_gain = tf.reduce_mean(tf.multiply(train_log_actor_probs, tf.stop_gradient(advantages)))
     #tf.scalar_summary('actor_gain', actor_gain)
     
     actor_loss = - (actor_gain + self.entropy_scale * entropy_avg)
@@ -76,7 +76,7 @@ class ActorCritic(Default):
   
   def getPolicy(self, history, delayed_actions, **unused):
     history = history[-self.rlConfig.memory-1:]
-    input_ = tf.concat(0, history + tf.unpack(delayed_actions))
+    input_ = tf.concat(axis=0, values=history + tf.unstack(delayed_actions))
     return self.actor(input_)
 
   def act(self, policy, verbose=False):
