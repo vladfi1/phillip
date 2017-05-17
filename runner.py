@@ -44,7 +44,7 @@ dqn = model.count('DQN')
 ac = model.count('ActorCritic')
 
 add_param('policy', model, False)
-add_param('epsilon', 0.02, False)
+add_param('epsilon', 0.01, False)
 
 natural = True
 natural = False
@@ -53,12 +53,30 @@ natural = False
 train_settings = [
   #('learning_rate', 0.0002),
   ('sweeps', 1),
-  ('batch_size', 2000),
+  ('batch_size', 500),
   ('batch_steps', 1),
+  ('min_collect', 50)
 ]
 
-add_param('reward_halflife', 2)
-add_param('batches', 1 if natural else 2)
+add_param('reward_halflife', 2, False)
+add_param('batches', 1 if natural else 2, False)
+
+predict = False
+predict = True
+add_param('predict', predict, False)
+
+delay = 3
+if predict:
+  add_param('predict_steps', delay)
+  add_param('predict_scale', 1e-5)
+  #add_param('model_learning_rate', 1e-4)
+  add_param('model_layers', [512])
+  add_param('train_model', True, False)
+
+#add_param('actor_learning_rate', )
+
+#add_param('train_policy', True)
+#add_param('train_critic', False)
 
 if dqn:
   train_settings += [
@@ -71,7 +89,7 @@ elif ac:
   if natural:
     add_param('entropy_scale', 2e-4, True)
   else:
-    add_param('entropy_scale', 1e-2 if recurrent else 2e-3, True)
+    add_param('entropy_scale', 1e-2 if recurrent else 2e-3, False)
 
 if natural:
   add_param('natural', True, False)
@@ -89,7 +107,7 @@ if natural:
   add_param('cg_iters', 15, False)
   #add_param('optimizer', 'Adam', True)
 else:
-  add_param('learning_rate', 1e-5 if recurrent else 1e-4, True)
+  #add_param('learning_rate', 1e-5 if recurrent else 1e-4, True)
   add_param('optimizer', 'Adam', False)
 
 if recurrent:
@@ -101,8 +119,8 @@ if recurrent:
 for k, v in train_settings:
   add_param(k, v, False)
 
-add_param('gae_lambda', 0.9)
-add_param('retrace', True)
+add_param('gae_lambda', 0.9, False)
+#add_param('retrace', True)
 
 # embed params
 
@@ -139,21 +157,22 @@ char = 'falcon'
 #char = 'samus'
 #char = 'ganon'
 #char = 'puff'
+#char = 'bowser'
+#char = 'dk'
 
 from phillip import data
-act_every = 2
+#act_every = 2
 act_every = data.short_hop[char]
-add_param('act_every', act_every)#, False)
+add_param('act_every', act_every, False)
 
-delay = 0
 if delay:
   add_param('delay', delay)
 if not recurrent:
-  #add_param('memory', 1 + delay)
-  add_param('memory', 0, False)
+  add_param('memory', 1)
+  #add_param('memory', 0, False)
 
-stage = 'battlefield'
-#stage = 'final_destination'
+#stage = 'battlefield'
+stage = 'final_destination'
 add_param('stage', stage, False)
 
 add_param('char', char, True)
@@ -164,13 +183,13 @@ enemies = "cpu"
 #enemies = "delay0"
 #enemies = "delay%d" % delay
 #enemies = ['self']
-
+#enemies = 'hard-self'
 add_param('enemies', enemies)
 
 add_param('enemy_reload', 3600, False)
 
 # total number of agents
-agents = 90
+agents = 80
 params['agents'] = agents
 
 if args.name is not None:
