@@ -8,7 +8,6 @@ from collections import defaultdict
 import zmq
 import resource
 import gc
-import objgraph
 import tensorflow as tf
 
 # some helpers for debugging memory leaks
@@ -41,6 +40,8 @@ class Trainer(Default):
     Option("save_interval", type=float, default=10, help="length of time between saves to disk, in minutes"),
 
     Option("load", type=str, help="path to a json file from which to load params"),
+
+    Option('objgraph', type=int, default=0, help='use objgraph to track memory usage'),
   ]
   
   _members = [
@@ -156,9 +157,11 @@ class Trainer(Default):
       
       print(sweeps, self.sweep_size, collected, collect_time, train_time, save_time)
       print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
-      
-      #gc.collect()  # don't care about stuff that would be garbage collected properly
-      #objgraph.show_growth()
+
+      if self.objgraph:
+        import objgraph
+        gc.collect()  # don't care about stuff that would be garbage collected properly
+        objgraph.show_growth()
 
 if __name__ == '__main__':
   from argparse import ArgumentParser
