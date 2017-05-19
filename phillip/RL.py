@@ -2,15 +2,11 @@ import os
 import tensorflow as tf
 import numpy as np
 from enum import Enum
-import os
-import random
 from . import ssbm, tf_lib as tfl, util, embed, ctype_util as ct
-import ctypes
-from .default import *
+from .default import Default, Option
 from .rl_common import *
 from .dqn import DQN
 from .ac import ActorCritic
-from .reward import computeRewards
 from .rac import RecurrentActorCritic
 from .rdqn import RecurrentDQN
 from .critic import Critic
@@ -43,6 +39,7 @@ class RL(Default):
     Option('train_critic', type=int, default=1),
     Option('predict', type=int, default=0),
     Option('profile', type=int, default=0, help='profile tensorflow graph execution'),
+    Option('save_cpu', type=int, default=0),
   ]
   
   _members = [
@@ -50,6 +47,7 @@ class RL(Default):
     ('embedGame', embed.GameEmbedding),
     ('critic', Critic),
     ('model', Model),
+    #('opt', Optimizer),
   ]
   
   def __init__(self, mode = Mode.TRAIN, debug = False, **kwargs):
@@ -84,10 +82,13 @@ class RL(Default):
       combined_size = state_size + embedAction.size
       history_size = (1+self.config.memory) * combined_size
       print("History size:", history_size)
+
+      self.components = {}
       
       if self.predict or (mode == Mode.TRAIN and self.train_model):
         print("Creating model.")
         self.model = Model(self.embedGame, embedAction.size, self.config, **kwargs)
+        self.components['model'] = self.model
 
       if mode == Mode.PLAY or self.train_policy:
         print("Creating policy:", self.policy)
@@ -97,49 +98,54 @@ class RL(Default):
           effective_delay -= self.model.predict_steps
         input_size = history_size + effective_delay * embedAction.size
         self.policy = policyType(input_size, embedAction.size, self.config, **kwargs)
-            
+        self.components['policy'] = self.policy
+      
       if mode == Mode.TRAIN:
         if self.train_policy or self.train_critic:
           print("Creating critic.")
           self.critic = Critic(history_size, **kwargs)
+          self.components['critic'] = self.critic
 
-        with tf.name_scope('train'):
-          self.experience = ct.inputCType(ssbm.SimpleStateAction, [None, self.config.experience_length], "experience")
-          # instantaneous rewards for all but the last state
-          self.experience['reward'] = tf.placeholder(tf.float32, [None, self.config.experience_length-1], name='experience/reward')
+        self.experience = ct.inputCType(ssbm.SimpleStateAction, [None, self.config.experience_length], "experience")
+        # instantaneous rewards for all but the last state
+        self.experience['reward'] = tf.placeholder(tf.float32, [None, self.config.experience_length-1], name='experience/reward')
 
-          # manipulating time along the first axis is much more efficient
-          experience_swapped = util.deepMap(tf.transpose, self.experience)
-          
-          # initial state for recurrent networks
-          #self.experience['initial'] = tuple(tf.placeholder(tf.float32, [None, size], name='experience/initial/%d' % i) for i, size in enumerate(self.policy.hidden_size))
-          if self.train_policy:
-            self.experience['initial'] = util.deepMap(lambda size: tf.placeholder(tf.float32, [None, size], name="experience/initial"), self.policy.hidden_size)
-          else:
-            self.experience['initial'] = []
+        # manipulating time along the first axis is much more efficient
+        # experience_swapped = util.deepMap(tf.transpose, self.experience)
+        
+        # initial state for recurrent networks
+        #self.experience['initial'] = tuple(tf.placeholder(tf.float32, [None, size], name='experience/initial/%d' % i) for i, size in enumerate(self.policy.hidden_size))
+        if self.train_policy:
+          self.experience['initial'] = util.deepMap(lambda size: tf.placeholder(tf.float32, [None, size], name="experience/initial"), self.policy.hidden_size)
+        else:
+          self.experience['initial'] = []
 
-          states = self.embedGame(self.experience['state'])
-          prev_actions = embedAction(self.experience['prev_action'])
-          combined = tf.concat(axis=2, values=[states, prev_actions])
-          actions = embedAction(self.experience['action'])
+        states = self.embedGame(self.experience['state'])
+        prev_actions = embedAction(self.experience['prev_action'])
+        combined = tf.concat(axis=2, values=[states, prev_actions])
+        actions = embedAction(self.experience['action'])
 
-          memory = self.config.memory
-          delay = self.config.delay
-          length = self.config.experience_length - memory
-          history = [combined[:,i:i+length] for i in range(memory+1)]
+        memory = self.config.memory
+        delay = self.config.delay
+        length = self.config.experience_length - memory
+        history = [combined[:,i:i+length] for i in range(memory+1)]
 
-          actions = actions[:,memory:]
-          rewards = self.experience['reward'][:,memory:]
-          
-          print("Creating train ops")
+        actions = actions[:,memory:]
+        rewards = self.experience['reward'][:,memory:]
+        
+        print("Creating train ops")
 
+        with tf.variable_scope('train'):
           train_ops = []
-          losses = []
-          
+          #losses = []
+          #loss_vars = []
+  
           if self.train_model or self.predict:
-            model_loss, predicted_history = self.model.train(history, actions, self.experience['state'])
+            train_model, predicted_history = self.model.train(history, actions, self.experience['state'])
           if self.train_model:
-            losses.append(model_loss)
+            train_ops.append(train_model)
+            #losses.append(model_loss)
+            #loss_vars.extend(self.model.getVariables())
           
           if self.train_policy or self.train_critic:
             train_critic, targets, advantages = self.critic(history, rewards)
@@ -152,7 +158,7 @@ class RL(Default):
               history = predicted_history
             else:
               predict_steps = 0
-
+  
             delayed_actions = []
             delay_length = length - delay
             for i in range(predict_steps, delay+1):
@@ -164,26 +170,29 @@ class RL(Default):
               advantages=advantages[:,delay:],
               targets=targets[:,delay:]
             )
-            losses.append(self.policy.train(**policy_args))
+            train_ops.append(self.policy.train(**policy_args))
 
+          """
           total_loss = tf.add_n(losses)
-          opt = tf.train.AdamOptimizer(1e-4)
-          train_ops.append(opt.minimize(1e4 * total_loss))
+          self.opt = Optimizer(**kwargs)
+          op = self.opt.optimize(total_loss / self.opt.learning_rate)
+          train_ops.append(op)
+          """
           
-          print("Created train op(s)")
+        print("Created train op(s)")
 
-          #tf.scalar_summary("loss", loss)
-          #tf.scalar_summary('learning_rate', tf.log(self.learning_rate))
-          
-          tf.summary.scalar('reward', tf.reduce_mean(self.experience['reward']))
-          
-          self.summarize = tf.summary.merge_all()
-          self.increment = tf.assign_add(self.global_step, 1)
-          self.misc = tf.group(self.increment)
-          self.train_ops = tf.group(*train_ops)
-          
-          print("Creating summary writer at logs/%s." % self.name)
-          self.writer = tf.summary.FileWriter('logs/' + self.name)#, self.graph)
+        #tf.scalar_summary("loss", loss)
+        #tf.scalar_summary('learning_rate', tf.log(self.learning_rate))
+        
+        tf.summary.scalar('reward', tf.reduce_mean(self.experience['reward']))
+        
+        self.summarize = tf.summary.merge_all()
+        self.increment = tf.assign_add(self.global_step, 1)
+        self.misc = tf.group(self.increment)
+        self.train_ops = tf.group(*train_ops)
+        
+        print("Creating summary writer at logs/%s." % self.name)
+        self.writer = tf.summary.FileWriter('logs/' + self.name)#, self.graph)
       else:
         # with tf.name_scope('policy'):
         self.input = ct.inputCType(ssbm.SimpleStateAction, [self.config.memory+1], "input")
@@ -222,14 +231,10 @@ class RL(Default):
         #log_device_placement=True,
       )
       
-      if mode == Mode.PLAY: # don't eat up cpu cores
+      if self.save_cpu:
         tf_config.update(
           inter_op_parallelism_threads=1,
           intra_op_parallelism_threads=1,
-        )
-      else:
-        tf_config.update(
-          #gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.3),
         )
       
       self.sess = tf.Session(

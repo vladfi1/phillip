@@ -99,11 +99,13 @@ class Model(Default):
       tf.summary.scalar("model/%d/total" % step, total)
       totals.append(total)
 
-    history = [tfl.scale_gradient(h, self.predict_scale) for h in history]
+    #history = [tfl.scale_gradient(h, self.predict_scale) for h in history]
     
     total_distance = tf.add_n(totals)
-    loss = total_distance * self.model_learning_rate
-    return loss, history
+    #loss = total_distance * self.model_learning_rate
+    self.opt = tf.train.AdamOptimizer(self.model_learning_rate)
+    train_op = self.opt.minimize(total_distance, var_list=self.variables)
+    return train_op, history
   
   def predict(self, history, actions, raw_state):
     last_state = util.deepMap(lambda t: t[-1], raw_state)

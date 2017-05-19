@@ -20,7 +20,7 @@ class ActorCritic(Default):
   ]
 
   _members = [
-    ('optimizer', opt.Optimizer),
+    #('optimizer', opt.Optimizer),
     ('nl', tfl.NL),
   ]
   
@@ -72,7 +72,12 @@ class ActorCritic(Default):
     #tf.scalar_summary('actor_gain', actor_gain)
     
     actor_loss = - (actor_gain + self.entropy_scale * entropy_avg)
-    return self.actor_learning_rate * actor_loss
+    self.opt = tf.train.AdamOptimizer(self.actor_learning_rate)
+    train_op = self.opt.minimize(actor_loss, var_list=self.getVariables())
+    return train_op
+
+  def getVariables(self):
+    return self.actor.getVariables()
   
   def getPolicy(self, history, delayed_actions, **unused):
     history = history[-self.rlConfig.memory-1:]
