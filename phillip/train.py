@@ -106,7 +106,7 @@ class Trainer(Default):
     while True:
       start_time = time.time()
       
-      #print('Start: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+      print('Start: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
 
       for _ in range(self.min_collect):
         self.buffer.push(self.experience_socket.recv_pyobj())
@@ -120,7 +120,7 @@ class Trainer(Default):
         except zmq.ZMQError as e:
           break
       
-      #print('After collect: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+      print('After collect: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
       collect_time = time.time()
       
       experiences = self.buffer.as_list()
@@ -137,8 +137,11 @@ class Trainer(Default):
       train_time = time.time()
       
       #self.params_socket.send_string("", zmq.SNDMORE)
-      self.params_socket.send_pyobj(self.model.blob())
-      
+      params = self.model.blob()
+      print('After blob: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+      self.params_socket.send_pyobj(params)
+      print('After send: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+
       self.save()
       
       #print('After save: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
@@ -160,7 +163,7 @@ class Trainer(Default):
 
       if self.objgraph:
         import objgraph
-        gc.collect()  # don't care about stuff that would be garbage collected properly
+        #gc.collect()  # don't care about stuff that would be garbage collected properly
         objgraph.show_growth()
 
 if __name__ == '__main__':

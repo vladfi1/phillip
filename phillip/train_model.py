@@ -1,14 +1,7 @@
-import tensorflow as tf
 from phillip import ssbm, util, RL
-from phillip.default import *
+from phillip.default import Default, Option
 import hickle
-from random import shuffle
 import time
-import os
-
-def load_experience(path):
-  with open(path, 'rb') as f:
-    return pickle.load(f)
 
 class ModelTrainer(Default):
   _options = [
@@ -74,8 +67,11 @@ class ModelTrainer(Default):
       
       for batch in valid_batches:
         self.rl.train(batch, train=False, zipped=True)
-      
+
       self.rl.save()
+
+      import resource
+      print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
 
 def main(**kwargs):
   ModelTrainer(**kwargs).train()
