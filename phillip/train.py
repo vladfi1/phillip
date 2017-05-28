@@ -9,6 +9,7 @@ import zmq
 import resource
 import gc
 import tensorflow as tf
+#from memory_profiler import profile
 
 # some helpers for debugging memory leaks
 
@@ -29,6 +30,7 @@ class Trainer(Default):
     Option("init", action="store_true", help="initialize variables"),
 
     Option("sweeps", type=int, default=1, help="number of sweeps between saves"),
+    Option("sweep_limit", type=int, default=-1),
     Option("batches", type=int, default=1, help="number of batches per sweep"),
     Option("batch_size", type=int, default=1, help="number of trajectories per batch"),
     Option("batch_steps", type=int, default=1, help="number of gradient steps to take on each batch"),
@@ -91,7 +93,7 @@ class Trainer(Default):
         self.last_save = current_time
       except tf.errors.InternalError as e:
         print(e, file=sys.stderr)
-  
+
   def train(self):
     before = count_objects()
     
@@ -103,7 +105,7 @@ class Trainer(Default):
     sweeps = 0
     step = 0
     
-    while True:
+    while sweeps != self.sweep_limit:
       start_time = time.time()
       
       print('Start: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
