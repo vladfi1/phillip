@@ -38,7 +38,7 @@ class Trainer(Default):
     Option("log_interval", type=int, default=10),
 
     Option("dump", type=str, default="lo", help="interface to listen on for experience dumps"),
-    
+    Option('send', type=int, default=1, help="send the network parameters on a zmq PUB socket"),
     Option("save_interval", type=float, default=10, help="length of time between saves to disk, in minutes"),
 
     Option("load", type=str, help="path to a json file from which to load params"),
@@ -71,11 +71,12 @@ class Trainer(Default):
     self.experience_socket = context.socket(zmq.PULL)
     experience_addr = "tcp://%s:%d" % (self.dump, util.port(self.model.name + "/experience"))
     self.experience_socket.bind(experience_addr)
-    
-    self.params_socket = context.socket(zmq.PUB)
-    params_addr = "tcp://%s:%d" % (self.dump, util.port(self.model.name + "/params"))
-    print("Binding params socket to", params_addr)
-    self.params_socket.bind(params_addr)
+
+    if self.send:
+      self.params_socket = context.socket(zmq.PUB)
+      params_addr = "tcp://%s:%d" % (self.dump, util.port(self.model.name + "/params"))
+      print("Binding params socket to", params_addr)
+      self.params_socket.bind(params_addr)
 
     self.sweep_size = self.batches * self.batch_size
     print("Sweep size", self.sweep_size)
@@ -137,12 +138,13 @@ class Trainer(Default):
       
       print('After train: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
       train_time = time.time()
-      
-      #self.params_socket.send_string("", zmq.SNDMORE)
-      params = self.model.blob()
-      print('After blob: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
-      self.params_socket.send_pyobj(params)
-      print('After send: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+
+      if self.send:
+        #self.params_socket.send_string("", zmq.SNDMORE)
+        params = self.model.blob()
+        print('After blob: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+        self.params_socket.send_pyobj(params)
+        print('After send: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
 
       self.save()
       
