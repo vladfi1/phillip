@@ -154,12 +154,14 @@ class Agent(Default):
       if self.listen:
         import zmq
         blob = None
+        num_blobs = 0
         
         # get the latest update from the trainer
         while True:
           try:
             #topic = self.socket.recv_string(zmq.NOBLOCK)
             blob = self.params_socket.recv_pyobj(zmq.NOBLOCK)
+            num_blobs += 1
           except zmq.ZMQError as e:
             if e.errno == zmq.EAGAIN:
               # nothing to receive
@@ -168,10 +170,9 @@ class Agent(Default):
             raise e
         
         if blob is not None:
-          print("unblobbing")
           self.rl.unblob(blob)
-        else:
-          print("no blob received")
+
+        print("num_blobs", num_blobs)
       else:
         self.rl.restore()
 
