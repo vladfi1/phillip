@@ -345,6 +345,9 @@ class GRUCell(tf.contrib.rnn.RNNCell):
     new_h = u * state + (1 - u) * c
     
     return new_h, new_h
+  
+  def getVariables(self):
+    return [self.Wru, self.bru, self.Wc, self.bc]
 
 # auto unpacks and repacks inputs
 def rnn(cell, inputs, initial_state, time=1):
