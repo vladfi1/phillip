@@ -1,5 +1,4 @@
-import os
-import sys
+import os, sys
 import time
 from phillip import RL, util
 from phillip.default import *
@@ -10,6 +9,7 @@ import resource
 import gc
 import tensorflow as tf
 #from memory_profiler import profile
+import netifaces
 
 # some helpers for debugging memory leaks
 
@@ -60,29 +60,34 @@ class Trainer(Default):
     util.update(args, mode=RL.Mode.TRAIN, **kwargs)
     util.pp.pprint(args)
     Default.__init__(self, **args)
-    
-    if self.init:
-      self.model.init()
-      self.model.save()
-    else:
-      self.model.restore()
+
+    addresses = netifaces.ifaddresses(self.dump)
+    address = addresses[netifaces.AF_INET][0]['addr']
+
+    with open(os.path.join(self.model.path, 'ip'), 'w') as f:
+      f.write(address)
 
     context = zmq.Context.instance()
 
     self.experience_socket = context.socket(zmq.PULL)
-    experience_addr = "tcp://%s:%d" % (self.dump, util.port(self.model.name + "/experience"))
+    experience_addr = "tcp://%s:%d" % (address, util.port(self.model.name + "/experience"))
     self.experience_socket.bind(experience_addr)
 
     if self.send:
-      self.params_socket = context.socket(zmq.PUB)
-      params_addr = "tcp://%s:%d" % (self.dump, util.port(self.model.name + "/params"))
+      import nnpy
+      self.params_socket = nnpy.Socket(nnpy.AF_SP, nnpy.PUB)
+      params_addr = "tcp://%s:%d" % (address, util.port(self.model.name + "/params"))
       print("Binding params socket to", params_addr)
       self.params_socket.bind(params_addr)
 
     self.sweep_size = self.batches * self.batch_size
     print("Sweep size", self.sweep_size)
     
-    self.buffer = util.CircularQueue(self.sweep_size)
+    if self.init:
+      self.model.init()
+      self.model.save()
+    else:
+      self.model.restore()
     
     self.last_save = time.time()
   
@@ -148,8 +153,9 @@ class Trainer(Default):
       if self.send:
         #self.params_socket.send_string("", zmq.SNDMORE)
         params = self.model.blob()
+        blob = pickle.dumps(params)
         print('After blob: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
-        self.params_socket.send_pyobj(params)
+        self.params_socket.send(blob)
         print('After send: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
 
       self.save()
