@@ -35,8 +35,9 @@ class Trainer(Default):
     Option("batch_size", type=int, default=1, help="number of trajectories per batch"),
     Option("batch_steps", type=int, default=1, help="number of gradient steps to take on each batch"),
     Option("min_collect", type=int, default=1, help="minimum number of experiences to collect between sweeps"),
+    Option("max_age", type=int, default=10, help="how old an experience can be before we discard it"),
+    
     Option("log_interval", type=int, default=10),
-
     Option("dump", type=str, default="lo", help="interface to listen on for experience dumps"),
     Option('send', type=int, default=1, help="send the network parameters on a zmq PUB socket"),
     Option("save_interval", type=float, default=10, help="length of time between saves to disk, in minutes"),
@@ -97,42 +98,47 @@ class Trainer(Default):
 
   def train(self):
     before = count_objects()
-    
-    for _ in range(self.sweep_size):
-      self.buffer.push(self.experience_socket.recv_pyobj())
-    
-    print("Buffer filled")
 
     sweeps = 0
     step = 0
+
+    experiences = []
     
     while sweeps != self.sweep_limit:
       start_time = time.time()
       
       print('Start: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
 
-      for _ in range(self.min_collect):
-        self.buffer.push(self.experience_socket.recv_pyobj())
-
-      collected = self.min_collect
+      age_limit = self.model.get_global_step() - self.max_age
+      is_valid = lambda exp: exp['global_step'] >= age_limit
+      experiences = list(filter(is_valid, experiences))
       
-      while True:
-        try:
-          self.buffer.push(self.experience_socket.recv_pyobj(zmq.NOBLOCK))
+      collected = 0
+      while len(experiences) < self.sweep_size:
+        exp = self.experience_socket.recv_pyobj()
+        if is_valid(exp):
+          experiences.append(exp)
           collected += 1
-        except zmq.ZMQError as e:
+
+      # pull in all the extra experiences
+      for _ in range(self.sweep_size):
+        try:
+          exp = self.experience_socket.recv_pyobj(zmq.NOBLOCK)
+          if is_valid(exp):
+            experiences.append(exp)
+            collected += 1
+        except zmq.ZMQError:
           break
       
       print('After collect: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
       collect_time = time.time()
       
-      experiences = self.buffer.as_list()
-      
       for _ in range(self.sweeps):
         from random import shuffle
         shuffle(experiences)
-        
-        for batch in util.chunk(experiences, self.batch_size):
+
+        batch_size = len(experiences) // self.batches
+        for batch in util.chunk(experiences, batch_size):
           self.model.train(batch, self.batch_steps, log=(step%self.log_interval==0))
           step += 1
       
@@ -162,7 +168,7 @@ class Trainer(Default):
       train_time -= collect_time
       collect_time -= start_time
       
-      print(sweeps, self.sweep_size, collected, collect_time, train_time, save_time)
+      print(sweeps, len(experiences), collected, collect_time, train_time, save_time)
       print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
 
       if self.objgraph:

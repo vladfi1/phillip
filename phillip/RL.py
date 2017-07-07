@@ -242,6 +242,9 @@ class RL(Default):
         config=tf.ConfigProto(**tf_config),
       )
 
+  def get_global_step(self):
+    return self.sess.run(self.global_step)
+
   def act(self, input_dict, verbose=False):
     feed_dict = dict(util.deepValues(util.deepZip(self.input, input_dict)))
     return self.policy.act(self.sess.run(self.run_policy, feed_dict), verbose)
@@ -285,7 +288,7 @@ class RL(Default):
             options=run_options, run_metadata=run_metadata)
       except tf.errors.InvalidArgumentError as e:
         import pickle
-        with open(os.join(self.path, 'error_frame'), 'wb') as f:
+        with open(os.path.join(self.path, 'error_frame'), 'wb') as f:
           pickle.dump(experiences, f)
         raise e
       #print('After run: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)

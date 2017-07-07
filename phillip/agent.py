@@ -84,6 +84,7 @@ class Agent(Default):
     
     if self.dump_frame == 0:
       self.initial = self.hidden
+      self.global_step = self.rl.get_global_step()
 
     self.dump_frame += 1
 
@@ -98,6 +99,7 @@ class Agent(Default):
       
       prepared = ssbm.prepareStateActions(self.dump_state_actions)
       prepared['initial'] = self.initial
+      prepared['global_step'] = self.global_step
       
       if self.dump:
         self.dump_socket.send_pyobj(prepared)
