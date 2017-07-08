@@ -58,13 +58,16 @@ class ActorCritic(Default):
 
     entropy = - tfl.batch_dot(actor_probs, log_actor_probs)
     entropy_avg = tfl.power_mean(self.entropy_power, entropy)
+    #entropy_avg = tf.Print(entropy_avg, [entropy_avg], "entropy_avg:")
     tf.summary.scalar('entropy_avg', entropy_avg)
     tf.summary.scalar('entropy_min', tf.reduce_min(entropy))
     tf.summary.histogram('entropy', entropy)
 
     real_actor_probs = tfl.batch_dot(actions, actor_probs)
     prob_ratios = prob / real_actor_probs
-    tf.summary.scalar('kl', tf.reduce_mean(tf.log(prob_ratios)))
+    kl = tf.reduce_mean(tf.log(prob_ratios))
+    kl = tf.Print(kl, [kl], "kl: ")
+    tf.summary.scalar('kl', kl)
 
     real_log_actor_probs = tfl.batch_dot(actions, log_actor_probs)
     train_log_actor_probs = real_log_actor_probs[:,:-1] # last state has no advantage
