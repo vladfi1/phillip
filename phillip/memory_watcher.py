@@ -17,17 +17,22 @@ def parseMessage(message):
   return diffs
 
 class MemoryWatcherZMQ:
-  def __init__(self, path):
+  def __init__(self, path=None, port=None):
     try:
       import zmq
     except ImportError as err:
       print("ImportError: {0}".format(err))
-      sys.exit("Either install pyzmq or run with the --nozmq option")
+      sys.exit("Need zmq installed.")
 
     context = zmq.Context()
 
     self.socket = context.socket(zmq.REP)
-    self.socket.bind("ipc://" + path)
+    if path:
+      self.socket.bind("ipc://" + path)
+    elif port:
+      self.socket.bind("tcp://lo:%d" % port)
+    else:
+      raise Exception("Must specify path or port.")
     
     self.messages = None
   
