@@ -48,7 +48,7 @@ class Pad:
             f.write(str(port))
 
           self.socket = context.socket(zmq.PUSH)
-          address = "tcp://lo:%d" % port
+          address = "tcp://127.0.0.1:%d" % port
           print("Binding pad %s to address %s" % (path, address))
           self.socket.bind(address)
         else:

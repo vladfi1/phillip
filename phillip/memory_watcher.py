@@ -30,7 +30,7 @@ class MemoryWatcherZMQ:
     if path:
       self.socket.bind("ipc://" + path)
     elif port:
-      self.socket.bind("tcp://lo:%d" % port)
+      self.socket.bind("tcp://127.0.0.1:%d" % port)
     else:
       raise Exception("Must specify path or port.")
     
