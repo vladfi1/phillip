@@ -16,8 +16,9 @@ class Agent(Default):
     Option('char', type=str, choices=characters.keys(), help="character that this agent plays as"),
     Option('verbose', action="store_true", default=False, help="print stuff while running"),
     Option('reload', type=int, default=60, help="reload model every RELOAD seconds"),
-    Option('dump', type=str, help="dump experiences to ip address via zmq"),
-    Option('listen', type=str, help="address to listen on for model updates"),
+    Option('dump', type=int, help="dump experiences and receive parameters"),
+    Option('trainer_id', type=str, help="trainer slurm job id"),
+    Option('trainer_ip', type=str, help="trainer ip address"),
     Option('swap', type=int, default=0, help="swap players 1 and 2"),
     Option('disk', type=int, default=0, help="dump experiences to disk"),
   ]
@@ -35,27 +36,53 @@ class Agent(Default):
     self.action_counter = 0
     self.action = 0
     self.actions = util.CircularQueue(self.rl.config.delay+1, 0)
+    self.probs = util.CircularQueue(self.rl.config.delay+1, 1.)
     self.history = util.CircularQueue(array=((self.rl.config.memory+1) * ssbm.SimpleStateAction)())
     
     self.hidden = util.deepMap(np.zeros, self.rl.policy.hidden_size)
     
     self.rl.restore()
+
+    self.dump = self.dump or self.trainer_id or self.trainer_ip
     
-    # TODO: merge dump and listen, they should always use the same address?
     if self.dump:
       try:
         import zmq
+        import nnpy
       except ImportError as err:
         print("ImportError: {0}".format(err))
         sys.exit("Install pyzmq to dump experiences")
+
+      if not self.trainer_ip:
+        ip_path = os.path.join(self.rl.path, 'ip')
+        if os.path.exists(ip_path):
+          with open(ip_path, 'r') as f:
+            self.trainer_ip = f.read()
+          print("Read ip from disk", self.dump)
+        elif self.trainer_id:
+          from . import om
+          self.trainer_ip = om.get_job_ip(self.trainer_id)
+          print("Got ip from trainer jobid", self.trainer_ip)
+        else:
+          import sys
+          sys.exit("No trainer ip!")
       
       context = zmq.Context.instance()
 
       self.dump_socket = context.socket(zmq.PUSH)
-      sock_addr = "tcp://%s:%d" % (self.dump, util.port(self.rl.name + "/experience"))
+      sock_addr = "tcp://%s:%d" % (self.trainer_ip, util.port(self.rl.name + "/experience"))
       print("Connecting experience socket to " + sock_addr)
       self.dump_socket.connect(sock_addr)
-    
+
+      self.params_socket = nnpy.Socket(nnpy.AF_SP, nnpy.SUB)
+      self.params_socket.setsockopt(nnpy.SUB, nnpy.SUB_SUBSCRIBE, b"")
+      self.params_socket.setsockopt(nnpy.SOL_SOCKET, nnpy.RCVMAXSIZE, -1)
+      
+      address = "tcp://%s:%d" % (self.trainer_ip, util.port(self.rl.name + "/params"))
+      print("Connecting params socket to", address)
+      self.params_socket.connect(address)
+
+    # prepare experience buffer
     if self.dump or self.disk:
       self.dump_size = self.rl.config.experience_length
       self.dump_state_actions = (self.dump_size * ssbm.SimpleStateAction)()
@@ -68,21 +95,13 @@ class Agent(Default):
       print("Dumping to", self.dump_dir)
       util.makedirs(self.dump_dir)
       self.dump_tag = uuid.uuid4().hex
-    
-    if self.listen:
-      import zmq
-      context = zmq.Context.instance()
-      self.params_socket = context.socket(zmq.SUB)
-      self.params_socket.setsockopt(zmq.SUBSCRIBE, b"")
-      address = "tcp://%s:%d" % (self.listen, util.port(self.rl.name + "/params"))
-      print("Connecting params socket to", address)
-      self.params_socket.connect(address)
 
   def dump_state(self, state_action):
     self.dump_state_actions[self.dump_frame] = state_action
     
     if self.dump_frame == 0:
       self.initial = self.hidden
+      self.global_step = self.rl.get_global_step()
 
     self.dump_frame += 1
 
@@ -97,6 +116,7 @@ class Agent(Default):
       
       prepared = ssbm.prepareStateActions(self.dump_state_actions)
       prepared['initial'] = self.initial
+      prepared['global_step'] = self.global_step
       
       if self.dump:
         self.dump_socket.send_pyobj(prepared)
@@ -127,23 +147,22 @@ class Agent(Default):
 
     self.history.increment()
     history = self.history.as_list()
+    input_dict = ct.vectorizeCTypes(ssbm.SimpleStateAction, history)
+    input_dict['hidden'] = self.hidden
+    input_dict['delayed_action'] = self.actions.as_list()[:-1]
     
-    history = ct.vectorizeCTypes(ssbm.SimpleStateAction, history)
-    history['hidden'] = self.hidden
-    
-    self.action, p, self.hidden = self.rl.act(history, verbose)
-    
-    current.prob = p
-    current.action = self.action
+    action, prob, self.hidden = self.rl.act(input_dict, verbose=verbose)
 
     #if verbose:
     #  pp.pprint(ct.toDict(state.players[1]))
-    #  print(self.action)
+    #  print(action)
     
     # the delayed action
-    action = self.actions.push(self.action)
+    self.action = self.actions.push(action)
+    current.action = self.action
+    current.prob = self.probs.push(prob)
     
-    self.rl.actionType.send(action, pad, self.char)
+    self.rl.actionType.send(self.action, pad, self.char)
     
     self.action_counter += 1
     
@@ -151,27 +170,29 @@ class Agent(Default):
       self.dump_state(current)
     
     if self.reload and self.action_counter % (self.reload * self.rl.config.fps) == 0:
-      if self.listen:
-        import zmq
+      if self.dump:
+        import nnpy
         blob = None
+        num_blobs = 0
         
         # get the latest update from the trainer
         while True:
           try:
             #topic = self.socket.recv_string(zmq.NOBLOCK)
-            blob = self.params_socket.recv_pyobj(zmq.NOBLOCK)
-          except zmq.ZMQError as e:
-            if e.errno == zmq.EAGAIN:
+            blob = self.params_socket.recv(nnpy.DONTWAIT)
+            num_blobs += 1
+          except nnpy.NNError as e:
+            if e.error_no == nnpy.EAGAIN:
               # nothing to receive
               break
             # a real error
             raise e
         
         if blob is not None:
-          print("unblobbing")
-          self.rl.unblob(blob)
-        else:
-          print("no blob received")
+          params = pickle.loads(blob)
+          self.rl.unblob(params)
+
+        print("num_blobs", num_blobs)
       else:
         self.rl.restore()
 

@@ -60,8 +60,8 @@ class RecurrentDQN(Default):
     trainQs = takenQs[:,:-1]
     
     qLoss = tf.reduce_mean(tf.squared_difference(trainQs, targets))
-    tf.scalar_summary("q_loss", qLoss)
-    tf.scalar_summary("q_uev", qLoss / tfl.sample_variance(targets))
+    tf.summary.scalar("q_loss", qLoss)
+    tf.summary.scalar("q_uev", qLoss / tfl.sample_variance(targets))
     
     # all this just to log entropy statistics
     flatQs = tf.reshape(predictedQs, [-1, self.action_size])
@@ -69,11 +69,11 @@ class RecurrentDQN(Default):
     action_probs = (1.0 - self.epsilon) * action_probs + self.epsilon / self.action_size
     log_action_probs = tf.log(action_probs)
     entropy = -tfl.batch_dot(action_probs, log_action_probs)
-    tf.scalar_summary("entropy_avg", tf.reduce_mean(entropy))
-    tf.histogram_summary("entropy", entropy)
+    tf.summary.scalar("entropy_avg", tf.reduce_mean(entropy))
+    tf.summary.histogram("entropy", entropy)
     
     meanQs = tfl.batch_dot(action_probs, flatQs)
-    tf.scalar_summary("q_mean", tf.reduce_mean(meanQs))
+    tf.summary.scalar("q_mean", tf.reduce_mean(meanQs))
     
     params = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='q')
     

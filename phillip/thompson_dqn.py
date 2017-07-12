@@ -70,7 +70,7 @@ class ThompsonDQN:
   def getPolicy(self, state, policy=None, temperature=1, **kwargs):
     qMeans, qLogVariances = self.getQDists(state)
     qSTDs = tf.exp(qLogVariances / 2) * temperature
-    qDists = tf.concat(2, [tf.expand_dims(x, 2) for x in [qMeans, qSTDs]])
+    qDists = tf.concat(axis=2, values=[tf.expand_dims(x, 2) for x in [qMeans, qSTDs]])
     return qDists
   
   def act(self, policy, verbose=False):

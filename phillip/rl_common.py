@@ -19,9 +19,9 @@ class RLConfig(Default):
     #self.experience_length = self.experience_time * self.fps
 
 def makeHistory(state, prev_action, memory=0, **unused):
-  combined = tf.concat(2, [state, prev_action])
+  combined = tf.concat(axis=2, values=[state, prev_action])
   #length = tf.shape(combined)[-2] - memory
   length = combined.get_shape()[-2].value - memory
   history = [tf.slice(combined, [0, i, 0], [-1, length, -1]) for i in range(memory+1)]
-  return tf.concat(2, history)
+  return tf.concat(axis=2, values=history)
 

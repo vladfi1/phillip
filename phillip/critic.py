@@ -17,16 +17,12 @@ class Critic(Default):
     ('nl', tfl.NL),
   ]
   
-  def __init__(self, embedGame, embedAction, scope='critic', **kwargs):
+  def __init__(self, input_size, scope='critic', **kwargs):
     Default.__init__(self, **kwargs)
-    
-    self.embedGame = embedGame
-    self.embedAction = embedAction
-    history_size = (1+self.rlConfig.memory) * (embedGame.size+embedAction.size)
     
     self.net = tfl.Sequential()
     with tf.variable_scope(scope):
-      prev_size = history_size
+      prev_size = input_size
       for i, next_size in enumerate(self.critic_layers):
         with tf.variable_scope("layer_%d" % i):
           self.net.append(tfl.FCLayer(prev_size, next_size, self.nl))
@@ -41,18 +37,15 @@ class Critic(Default):
     
     self.variables = self.net.getVariables()
   
-  def __call__(self, state, prev_action, reward, **unused):
-    embedded_state = self.embedGame(state)
-    embedded_prev_action = self.embedAction(prev_action)
-    history = makeHistory(embedded_state, embedded_prev_action, self.rlConfig.memory)
+  def __call__(self, history, rewards, **unused):
+    history = history[-self.rlConfig.memory-1:]
+    input_ = tf.concat(axis=2, values=history)
 
-    values = tf.squeeze(self.net(history), [-1])
+    values = tf.squeeze(self.net(input_), [-1])
     trainVs = values[:,:-1]
     # lastV = values[:,-1]
     
-    rewards = reward[:,self.rlConfig.memory:]
     deltaVs = rewards + self.rlConfig.discount * values[:,1:] - trainVs
-    
     advantages = tfl.discount2(deltaVs, self.rlConfig.discount * self.gae_lambda)
 
     targets = trainVs + advantages
@@ -61,12 +54,12 @@ class Critic(Default):
     
     # advantages = targets - trainVs
     advantage_avg = tf.reduce_mean(advantages)
-    tf.scalar_summary('advantage_avg', advantage_avg)
-    tf.scalar_summary('advantage_std', tf.sqrt(tfl.sample_variance(advantages)))
+    tf.summary.scalar('advantage_avg', advantage_avg)
+    tf.summary.scalar('advantage_std', tf.sqrt(tfl.sample_variance(advantages)))
     
     vLoss = tf.reduce_mean(tf.square(advantages))
-    tf.scalar_summary('v_loss', vLoss)
-    tf.scalar_summary("v_uev", vLoss / tfl.sample_variance(targets))
+    tf.summary.scalar('v_loss', vLoss)
+    tf.summary.scalar("v_uev", vLoss / tfl.sample_variance(targets))
     
     opt = tf.train.AdamOptimizer(self.critic_learning_rate)
 

@@ -66,7 +66,7 @@ class RecurrentActorCritic(Default):
 
       def expand(t):
         ones = tf.ones_like(tf.shape(t), tf.int32)
-        multiples = tf.concat(0, [batch_size, ones])
+        multiples = tf.concat(axis=0, values=[batch_size, ones])
         return tf.tile(tf.expand_dims(t, 0), multiples)
 
       initial = util.deepMap(expand, self.initial_state)
@@ -80,14 +80,14 @@ class RecurrentActorCritic(Default):
 
     entropy = - tfl.batch_dot(actor_probs, log_actor_probs)
     entropy_avg = tfl.power_mean(self.entropy_power, entropy)
-    tf.scalar_summary('entropy_avg', entropy_avg)
-    tf.scalar_summary('entropy_min', tf.reduce_min(entropy))
-    tf.histogram_summary('entropy', entropy)
+    tf.summary.scalar('entropy_avg', entropy_avg)
+    tf.summary.scalar('entropy_min', tf.reduce_min(entropy))
+    tf.summary.histogram('entropy', entropy)
 
     actions = self.embedAction(action[:,self.rlConfig.memory:])
     real_log_actor_probs = tfl.batch_dot(actions, log_actor_probs)
     train_log_actor_probs = real_log_actor_probs[:,:-1] # last state has no advantage
-    actor_gain = tf.reduce_mean(tf.mul(train_log_actor_probs, tf.stop_gradient(advantages)))
+    actor_gain = tf.reduce_mean(tf.multiply(train_log_actor_probs, tf.stop_gradient(advantages)))
     #tf.scalar_summary('actor_gain', actor_gain)
     
     actor_loss = - (actor_gain + self.entropy_scale * entropy_avg)

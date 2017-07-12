@@ -1,13 +1,15 @@
-from . import ssbm, state_manager, memory_watcher, agent, util, RL, movie
+from . import ssbm, state_manager, agent, util, RL, movie
+from . import memory_watcher as mw
 from .state import *
 from .menu_manager import *
 import os
 from .pad import *
 import time
-from .ctype_util import copy
+from . import ctype_util as ct
 from numpy import random
 from .reward import computeRewards
 from .default import *
+import functools
 
 class CPU(Default):
     _options = [
@@ -21,6 +23,8 @@ class CPU(Default):
       Option('start', type=int, default=1, help="start game in endless time mode"),
       Option('netplay', type=str),
       Option('frame_limit', type=int, help="stop after a given number of frames"),
+      Option('debug', type=int, default=0),
+      Option('tcp', type=int, default=0, help="use zmq over tcp for memory watcher and pipe input"),
     ] + [Option('p%d' % i, type=str, choices=characters.keys(), default="falcon", help="character for player %d" % i) for i in [1, 2]]
     
     _members = [
@@ -70,11 +74,13 @@ class CPU(Default):
             self.cpus[enemy_pid] = self.cpu
             self.characters[enemy_pid] = self.p1
 
+        
         print('Creating MemoryWatcher.')
-        mwType = memory_watcher.MemoryWatcher
-        if self.zmq:
-          mwType = memory_watcher.MemoryWatcherZMQ
-        self.mw = mwType(self.user + '/MemoryWatcher/MemoryWatcher')
+        if self.tcp:
+          self.mw = mw.MemoryWatcherZMQ(port=5555)
+        else:
+          mwType = mw.MemoryWatcherZMQ if self.zmq else mw.MemoryWatcher
+          self.mw = mwType(path=self.user + '/MemoryWatcher/MemoryWatcher')
         
         pipe_dir = self.user + '/Pipes/'
         print('Creating Pads at %s. Open dolphin now.' % pipe_dir)
@@ -85,7 +91,9 @@ class CPU(Default):
           pads = [0]
         
         paths = [pipe_dir + 'phillip%d' % i for i in pads]
-        self.get_pads = util.async_map(Pad, paths)
+        
+        makePad = functools.partial(Pad, tcp=self.tcp)
+        self.get_pads = util.async_map(makePad, paths)
 
         self.init_stats()
 
@@ -225,8 +233,13 @@ class CPU(Default):
         if self.state.menu == Menu.Game.value:
             self.game_frame += 1
             
+            if self.debug and self.game_frame % 60 == 0:
+              print('action_frame', self.state.players[0].action_frame)
+              items = list(util.deepItems(ct.toDict(self.state.players)))
+              print('max value', max(items, key=lambda x: abs(x[1])))
+            
             if self.game_frame <= 120:
-                return # wait for game to properly load
+              return # wait for game to properly load
             
             for pid, pad in zip(self.pids, self.pads):
                 agent = self.agents[pid]

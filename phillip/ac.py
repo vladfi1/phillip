@@ -15,27 +15,24 @@ class ActorCritic(Default):
 
     Option('entropy_power', type=float, default=1),
     Option('entropy_scale', type=float, default=0.001),
+
+    Option('actor_learning_rate', type=float, default=1e-4),
   ]
 
   _members = [
-    ('optimizer', opt.Optimizer),
+    #('optimizer', opt.Optimizer),
     ('nl', tfl.NL),
   ]
   
-  def __init__(self, embedGame, embedAction, global_step, rlConfig, **kwargs):
+  def __init__(self, input_size, action_size, rlConfig, **kwargs):
     Default.__init__(self, **kwargs)
+    self.action_size = action_size
     self.rlConfig = rlConfig
-    
-    self.embedGame = embedGame
-    self.embedAction = embedAction
-    action_size = embedAction.size
-    
-    history_size = (1+rlConfig.memory) * (embedGame.size+embedAction.size)
     
     name = "actor"
     net = tfl.Sequential()
     with tf.variable_scope(name):
-      prev_size = history_size
+      prev_size = input_size
       for i, next_size in enumerate(getattr(self, name + "_layers")):
         with tf.variable_scope("layer_%d" % i):
           net.append(tfl.FCLayer(prev_size, next_size, self.nl))
@@ -50,44 +47,44 @@ class ActorCritic(Default):
     
     self.actor = net
 
-  def train(self, state, prev_action, action, prob, advantages, **unused):
-    embedded_state = self.embedGame(state)
-    embedded_prev_action = self.embedAction(prev_action)
-    history = RL.makeHistory(embedded_state, embedded_prev_action, self.rlConfig.memory)
+  def train(self, history, actions, prob, advantages, **unused):
+    history = history[-self.rlConfig.memory-1:]
+    delayed_actions = actions[:-1]
+    input_ = tf.concat(axis=2, values=history + delayed_actions)
+    actions = actions[-1]
     
-    actor_probs = self.actor(history)
+    actor_probs = self.actor(input_)
     log_actor_probs = tf.log(actor_probs)
 
     entropy = - tfl.batch_dot(actor_probs, log_actor_probs)
     entropy_avg = tfl.power_mean(self.entropy_power, entropy)
-    tf.scalar_summary('entropy_avg', entropy_avg)
-    tf.scalar_summary('entropy_min', tf.reduce_min(entropy))
-    tf.histogram_summary('entropy', entropy)
-
-    actions = self.embedAction(action[:,self.rlConfig.memory:])
+    tf.summary.scalar('entropy_avg', entropy_avg)
+    tf.summary.scalar('entropy_min', tf.reduce_min(entropy))
+    tf.summary.histogram('entropy', entropy)
 
     real_actor_probs = tfl.batch_dot(actions, actor_probs)
-    prob_ratios = prob[:,self.rlConfig.memory:] / real_actor_probs
-    tf.scalar_summary('kl', tf.reduce_mean(tf.log(prob_ratios)))
+    prob_ratios = prob / real_actor_probs
+    tf.summary.scalar('kl', tf.reduce_mean(tf.log(prob_ratios)))
 
     real_log_actor_probs = tfl.batch_dot(actions, log_actor_probs)
     train_log_actor_probs = real_log_actor_probs[:,:-1] # last state has no advantage
-    actor_gain = tf.reduce_mean(tf.mul(train_log_actor_probs, tf.stop_gradient(advantages)))
+    actor_gain = tf.reduce_mean(tf.multiply(train_log_actor_probs, tf.stop_gradient(advantages)))
     #tf.scalar_summary('actor_gain', actor_gain)
     
     actor_loss = - (actor_gain + self.entropy_scale * entropy_avg)
-    
-    actor_params = self.actor.getVariables()
-      
-    def metric(p1, p2):
-      return tf.reduce_mean(tfl.kl(p1, p2))
-    
-    return self.optimizer.optimize(actor_loss, actor_params, log_actor_probs, metric)
+    self.opt = tf.train.AdamOptimizer(self.actor_learning_rate)
+    train_op = self.opt.minimize(actor_loss, var_list=self.getVariables())
+    return train_op
+
+  def getVariables(self):
+    return self.actor.getVariables()
   
-  def getPolicy(self, state, **unused):
-    return self.actor(state)
+  def getPolicy(self, history, delayed_actions, **unused):
+    history = history[-self.rlConfig.memory-1:]
+    input_ = tf.concat(axis=0, values=history + tf.unstack(delayed_actions))
+    return self.actor(input_)
 
   def act(self, policy, verbose=False):
-    action = random.choice(range(self.embedAction.size), p=policy)
+    action = random.choice(range(self.action_size), p=policy)
     return action, policy[action], []
 
