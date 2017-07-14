@@ -1,29 +1,24 @@
-#The Phillip AI
+# The Phillip AI
 An SSBM player based on Deep Reinforcement Learning.
 
 ## Requirements
 
-Tested on: Ubuntu >=14.04, OSX. If you want Windows support, go [bug](https://bugs.dolphin-emu.org/issues/10126) the dolphin developers to support MemoryWatcher and Pipe Input on Windows - a fork that supports this is also under works.
+Tested on: Ubuntu >=14.04, OSX, Windows 7/8/10.
 
-1. A recent version of dolphin. Probably need to compile from source on Linux.
+1. The dolphin emulator. Probably need to compile from source on Linux. On Windows you'll need to install a [custom dolphin version](https://github.com/vladfi1/dolphin/releases/tag/v5.1-alpha) - just unpack the zip somewhere.
 2. The SSBM iso image. Must be NTSC 1.02.
 3. Python 3.
-4. [Tensorflow 0.11](https://www.tensorflow.org/versions/r0.11/get_started/os_setup).
-5. A few python packages
-
-    pip3 install attrs
-
-6. Install phillip:
+4. Install phillip. This should pull in python dependencies like tensorflow.
 
     pip3 install -e .
 
 ## Play
 
-Trained agents are stored in the `agents` directory. 
+You will need to know where dolphin is located. On Mac the dolphin path will be `~/../../Applications/Dolphin.app/Contents/MacOS/Dolphin`. On Windows it will be the path to the `.exe` you unzipped.
 
-    phillip --gui --human --start 0 --load agents/FalconFalconBF [--iso path/to/SSBM.iso]
+    python3 phillip/run.py --gui --human --start 0 --load agents/FalconFalconBF [--iso path/to/SSBM.iso] [--exe path/to/dolphin]
 
-On Mac you will need to add `--exe ~/../../Applications/Dolphin.app/Contents/MacOS/Dolphin`.
+Trained agents are stored in the `agents` directory. Aside from FalconFalconBF, the agents in `agents/delay0/` are also fairly strong.
 
 ## Train
 
