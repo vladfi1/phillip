@@ -16,9 +16,9 @@ Tested on: Ubuntu >=14.04, OSX, Windows 7/8/10.
 
 You will need to know where dolphin is located. On Mac the dolphin path will be `~/../../Applications/Dolphin.app/Contents/MacOS/Dolphin`. On Windows it will be the path to the `.exe` you unzipped.
 
-    python3 phillip/run.py --gui --human --start 0 --load agents/FalconFalconBF [--iso path/to/SSBM.iso] [--exe path/to/dolphin]
+    python3 phillip/run.py --gui --human --start 0 --load agents/FalconFalconBF --iso path/to/SSBM.iso --exe path/to/dolphin
 
-Trained agents are stored in the `agents` directory. Aside from FalconFalconBF, the agents in `agents/delay0/` are also fairly strong.
+Trained agents are stored in the `agents` directory. Aside from `FalconFalconBF`, the agents in `agents/delay0/` are also fairly strong. Run with `--help` to see all options.
 
 ## Train
 
@@ -47,6 +47,6 @@ Come to the [Discord](https://discord.gg/KQ8vhd6)!
 
 I've been streaming practice play over at http://twitch.tv/x_pilot. There are also some recordings on my [youtube channel](https://www.youtube.com/channel/UCzpDWSOtWpDaNPC91dqmPQg).
 
-##Credits
+## Credits
 
 Big thanks to https://github.com/altf4/SmashBot for getting me started, and to https://github.com/spxtr/p3 for a python memory watcher. Some code for dolphin interaction has been borrowed from both projects (mostly the latter now that I've switched to pure python).
