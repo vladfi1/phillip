@@ -14,9 +14,9 @@ Tested on: Ubuntu >=14.04, OSX, Windows 7/8/10.
 
 ## Play
 
-You will need to know where dolphin is located. On Mac the dolphin path will be `~/../../Applications/Dolphin.app/Contents/MacOS/Dolphin`. On Windows it will be the path to the `.exe` you unzipped.
+You will need to know where dolphin is located. On Mac the dolphin path will be `~/../../Applications/Dolphin.app/Contents/MacOS/Dolphin`. On Windows it will be the path to the `.exe` you unzipped, and you will need the `--tcp 1` option.
 
-    python3 phillip/run.py --gui --human --start 0 --load agents/FalconFalconBF --iso path/to/SSBM.iso --exe path/to/dolphin
+    python3 phillip/run.py --gui --human --start 0 --load agents/FalconFalconBF --iso path/to/SSBM.iso --exe path/to/dolphin [--tcp 1]
 
 Trained agents are stored in the `agents` directory. Aside from `FalconFalconBF`, the agents in `agents/delay0/` are also fairly strong. Run with `--help` to see all options.
 
