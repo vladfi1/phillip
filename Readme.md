@@ -11,13 +11,15 @@ Tested on: Ubuntu >=14.04, OSX, Windows 7/8/10.
 4. Install (phillip)[https://github.com/vladfi1/phillip/archive/master.zip]. This will pull in python dependencies like tensorflow.
 
     cd path/to/phillip # future commands should be run from here
-    pip3 install -e .
+    pip3 install [-e] .
+
+Installing in editable mode (`-e`) allows you to make local changes without reinstalling, which is useful if you are using a cloned repo and want to update by pulling. If cloning, you may wish to use `--depth 1` to avoid downloading large files from phillip's history (most of which are now gone and should be purged from git).
 
 ## Play
 
 You will need to know where dolphin is located. On Mac the dolphin path will be `~/../../Applications/Dolphin.app/Contents/MacOS/Dolphin`. If `dolphin-emu` is already on your `PATH` then you can omit this.
 
-    python3 phillip/run.py --gui --human --start 0 --load agents/FalconFalconBF --iso path/to/SSBM.iso --exe path/to/dolphin [--tcp 1]
+    python3 phillip/run.py --gui --human --start 0 --reload 0 --epsilon 0 --load agents/FalconFalconBF --iso path/to/SSBM.iso --exe path/to/dolphin [--tcp 1]
 
 Trained agents are stored in the `agents` directory. Aside from `FalconFalconBF`, the agents in `agents/delay0/` are also fairly strong. Run with `--help` to see all options.
 
