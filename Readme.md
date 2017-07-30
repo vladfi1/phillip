@@ -5,20 +5,29 @@ An SSBM player based on Deep Reinforcement Learning.
 
 Tested on: Ubuntu >=14.04, OSX, Windows 7/8/10.
 
-1. The dolphin emulator. Probably need to compile from source on Linux. On Windows you'll need to install a [custom dolphin version](https://github.com/vladfi1/dolphin/releases/tag/v5.1-alpha) - just unpack the zip somewhere.
-2. The SSBM iso image. Must be NTSC 1.02.
-3. Python 3.
-4. Install phillip. This should pull in python dependencies like tensorflow.
+1. The dolphin emulator. You will probably need to compile from source on Linux. On Windows you'll need to install a [custom dolphin version](https://github.com/vladfi1/dolphin/releases/tag/v5.1-alpha) - just unpack the zip somewhere.
+2. The SSBM iso image. Must be NTSC 1.02. Mods like netplay community builds and 20XX may also work, but automatic character and stage selection may not work properly (you can still do it manually).
+3. Python 3. On Windows, you can use (Anaconda)[https://repo.continuum.io/archive/Anaconda3-4.4.0-Windows-x86_64.exe] which sets up the necessary paths.
+4. Install (phillip)[https://github.com/vladfi1/phillip/archive/master.zip]. This will pull in python dependencies like tensorflow.
 
+    cd path/to/phillip # future commands should be run from here
     pip3 install -e .
 
 ## Play
 
-You will need to know where dolphin is located. On Mac the dolphin path will be `~/../../Applications/Dolphin.app/Contents/MacOS/Dolphin`. On Windows it will be the path to the `.exe` you unzipped, and you will need the `--tcp 1` option.
+You will need to know where dolphin is located. On Mac the dolphin path will be `~/../../Applications/Dolphin.app/Contents/MacOS/Dolphin`. If `dolphin-emu` is already on your `PATH` then you can omit this.
 
     python3 phillip/run.py --gui --human --start 0 --load agents/FalconFalconBF --iso path/to/SSBM.iso --exe path/to/dolphin [--tcp 1]
 
 Trained agents are stored in the `agents` directory. Aside from `FalconFalconBF`, the agents in `agents/delay0/` are also fairly strong. Run with `--help` to see all options.
+
+### Windows Notes
+
+The `--exe` will be the path to the `Binary\x64\Dolphin.exe` you unzipped. In general, the forward `/`s should be back `\`s for all paths, unless you are using MinGW, Cygwin, git bash, or some other unix shell emulator.
+
+Because communication with dolphin is done over the local loopback interface, you will need to add the `--tcp 1` flag, and you may need to open port 5555 in your firewall.
+
+You may need to omit the `3` from commands like `python3` and `pip3`.
 
 ## Train
 
@@ -39,6 +48,8 @@ The trainer and (optionally) agents redirect their stdout/err to `slurm_logs/`. 
 
 To resume training run `launcher.py` again, but omit the `--init` (it will overwrite your old network).
 
+Training on Windows is not supported.
+
 ## Support
 
 Come to the [Discord](https://discord.gg/KQ8vhd6)!
@@ -49,4 +60,5 @@ I've been streaming practice play over at http://twitch.tv/x_pilot. There are al
 
 ## Credits
 
-Big thanks to https://github.com/altf4/SmashBot for getting me started, and to https://github.com/spxtr/p3 for a python memory watcher. Some code for dolphin interaction has been borrowed from both projects (mostly the latter now that I've switched to pure python).
+Big thanks to (altf4)[https://github.com/altf4/SmashBot] for getting me started, and to (spxtr)[https://github.com/spxtr/p3] for a python memory watcher. Some code for dolphin interaction has been borrowed from both projects (mostly the latter now that I've switched to pure python).
+
