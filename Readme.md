@@ -10,8 +10,10 @@ Tested on: Ubuntu >=14.04, OSX, Windows 7/8/10.
 3. Python 3. On Windows, you can use [Anaconda](https://repo.continuum.io/archive/Anaconda3-4.4.0-Windows-x86_64.exe) which sets up the necessary paths.
 4. Install [phillip](https://github.com/vladfi1/phillip/archive/master.zip). This will pull in python dependencies like tensorflow.
 
-    cd path/to/phillip # future commands should be run from here
-    pip3 install [-e] .
+```bash
+cd path/to/phillip # future commands should be run from here
+pip3 install [-e] .
+```
 
 Installing in editable mode (`-e`) allows you to make local changes without reinstalling, which is useful if you are using a cloned repo and want to update by pulling. If cloning, you may wish to use `--depth 1` to avoid downloading large files from phillip's history (most of which are now gone and should be purged from git).
 
@@ -61,5 +63,5 @@ I've been streaming practice play over at http://twitch.tv/x_pilot. There are al
 
 ## Credits
 
-Big thanks to (altf4)[https://github.com/altf4/SmashBot] for getting me started, and to (spxtr)[https://github.com/spxtr/p3] for a python memory watcher. Some code for dolphin interaction has been borrowed from both projects (mostly the latter now that I've switched to pure python).
+Big thanks to [altf4](https://github.com/altf4/SmashBot) for getting me started, and to [spxtr](https://github.com/spxtr/p3) for a python memory watcher. Some code for dolphin interaction has been borrowed from both projects (mostly the latter now that I've switched to pure python).
 
