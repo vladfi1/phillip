@@ -108,6 +108,9 @@ class Agent(Default):
         path = os.path.join(self.dump_dir, self.dump_tag + '_%d' % self.dump_count)
         with open(path, 'wb') as f:
           pickle.dump(prepared, f)
+      
+      print(prepared['prob'])
+      import ipdb; ipdb.set_trace()
 
 
   def act(self, state, pad):

@@ -139,8 +139,9 @@ class Model(Default):
   def test_train_predict(self):
     dummy_input = tf.zeros([self.embedGame.size + self.action_size])
     history = [dummy_input] * (self.rlConfig.memory + 1)
+    raw_state = [self.embedGame.extract(dummy_input)] * self.predict_steps
     actions = [tf.constant(0)] * self.predict_steps
-    raw_state = 
     
-    predictions = 
+    predictions = self.predict(history, actions, raw_state)
+    
     

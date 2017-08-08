@@ -54,6 +54,8 @@ class ActorCritic(Default):
     actions = actions[-1]
     
     actor_probs = self.actor(input_)
+    actor_probs = tf.Print(actor_probs, [actor_probs, prob], "probs: ")
+    
     log_actor_probs = tf.log(actor_probs)
 
     entropy = - tfl.batch_dot(actor_probs, log_actor_probs)
