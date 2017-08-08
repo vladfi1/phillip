@@ -50,16 +50,19 @@ natural = True
 natural = False
 #natural = ac
 
-train_settings = [
-  #('learning_rate', 0.0002),
-  ('sweeps', 1),
-  ('batch_size', 500),
-  ('batch_steps', 1),
-  ('min_collect', 50)
-]
+#add_param('optimizer', 'Adam', False)
+#add_param('learning_rate', 1e-4, False),
+add_param('sweeps', 1, False)
+add_param('batch_size', 100, False)
+add_param('batches', 1, False)
+add_param('batch_steps', 1, False)
+#add_param('min_collect', 20)
+add_param('max_age', 1)
+
+sweep_size = params['batch_size'] * params['batches']
+add_param('sweep_size', sweep_size) # only for experiment name
 
 add_param('reward_halflife', 2, False)
-add_param('batches', 1 if natural else 2, False)
 
 predict = False
 predict = True
@@ -68,28 +71,15 @@ add_param('predict', predict, False)
 delay = 3
 if predict:
   add_param('predict_steps', delay)
-  add_param('predict_scale', 1e-5)
-  #add_param('model_learning_rate', 1e-4)
-  add_param('model_layers', [512])
+  #add_param('predict_scale', 1e-5)
+  add_param('model_learning_rate', 2e-5)
+  add_param('model_layers', [512], False)
   add_param('train_model', True, False)
 
-#add_param('actor_learning_rate', )
+#add_param('actor_learning_rate', 2e-5)
 
 #add_param('train_policy', True)
 #add_param('train_critic', False)
-
-if dqn:
-  train_settings += [
-    ('sarsa', 1),
-    #('target_delay', 4000),
-  ]
-  add_param('temperature', 0.002)
-elif ac:
-  #add_param('entropy_power', 0)
-  if natural:
-    add_param('entropy_scale', 2e-4, True)
-  else:
-    add_param('entropy_scale', 1e-2 if recurrent else 2e-3, False)
 
 if natural:
   add_param('natural', True, False)
@@ -106,9 +96,19 @@ if natural:
   ]
   add_param('cg_iters', 15, False)
   #add_param('optimizer', 'Adam', True)
-else:
-  #add_param('learning_rate', 1e-5 if recurrent else 1e-4, True)
-  add_param('optimizer', 'Adam', False)
+
+if dqn:
+  train_settings += [
+    ('sarsa', 1),
+    #('target_delay', 4000),
+  ]
+  add_param('temperature', 0.002)
+elif ac:
+  #add_param('entropy_power', 0)
+  if natural:
+    add_param('entropy_scale', 2e-4, True)
+  else:
+    add_param('entropy_scale', 1e-2 if recurrent else 2e-3, False)
 
 if recurrent:
 #  add_param('clip', 0.05)
@@ -116,11 +116,11 @@ if recurrent:
 
   add_param('dynamic', not natural, False)
 
-for k, v in train_settings:
-  add_param(k, v, False)
-
 add_param('gae_lambda', 0.9, False)
 #add_param('retrace', True)
+
+add_param('gae_lambda', 0.9)
+add_param('retrace', True)
 
 # embed params
 
@@ -142,9 +142,7 @@ add_param('fix_scopes', True, False)
 
 #add_param('dolphin', True, False)
 
-#add_param('experience_length', 40 + params['tdN'], False)
 add_param('experience_length', 60, False)
-
 add_param('reload', 1, False)
 
 #char = 'falco'

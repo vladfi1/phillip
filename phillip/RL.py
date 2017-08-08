@@ -12,7 +12,7 @@ from .rdqn import RecurrentDQN
 from .critic import Critic
 from .model import Model
 
-import resource
+#import resource
 
 class Mode(Enum):
   TRAIN = 0
