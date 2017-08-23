@@ -54,7 +54,7 @@ class ActorCritic(Default):
     actions = actions[-1]
     
     actor_probs = self.actor(input_)
-    actor_probs = tf.Print(actor_probs, [actor_probs, prob], "probs: ")
+    actor_probs = tf.Print(actor_probs, [actor_probs[0]], "probs: ", summarize=100)
     
     log_actor_probs = tf.log(actor_probs)
 
