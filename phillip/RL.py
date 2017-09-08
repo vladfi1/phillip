@@ -169,7 +169,7 @@ class RL(Default):
             policy_args = dict(
               history=[h[:,:delay_length] for h in history],
               actions=delayed_actions,
-              prob=self.experience['prob'][:,memory+delay:],
+              behavior_prob=self.experience['prob'][:,memory+delay:],
               advantages=advantages[:,delay:],
               targets=targets[:,delay:]
             )
