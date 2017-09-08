@@ -149,7 +149,8 @@ class Agent(Default):
     history = self.history.as_list()
     input_dict = ct.vectorizeCTypes(ssbm.SimpleStateAction, history)
     input_dict['hidden'] = self.hidden
-    input_dict['delayed_action'] = self.actions.as_list()[:-1]
+    input_dict['delayed_action'] = self.actions.as_list()[1:]
+    #print(input_dict['delayed_action'])
     
     action, prob, self.hidden = self.rl.act(input_dict, verbose=verbose)
 

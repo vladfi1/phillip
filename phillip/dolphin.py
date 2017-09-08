@@ -180,6 +180,7 @@ class DolphinRunner(Default):
     if self.movie is not None:
       args += ["--movie", self.movie]
     
+    print(args)
     process = subprocess.Popen(args)
     
     if self.netplay:

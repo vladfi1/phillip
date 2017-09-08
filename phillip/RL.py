@@ -12,7 +12,7 @@ from .rdqn import RecurrentDQN
 from .critic import Critic
 from .model import Model
 
-import resource
+#import resource
 
 class Mode(Enum):
   TRAIN = 0
@@ -159,6 +159,9 @@ class RL(Default):
             else:
               predict_steps = 0
   
+            # delayed actions is a D+1-P length list of shape [B, T-M-D] tensors
+            # The valid state indices are [M+P, T+P-D)
+            # Element i corresponds to the i'th queued up action: 0 is the action about to be taken, D-P was the action chosen on this frame.
             delayed_actions = []
             delay_length = length - delay
             for i in range(predict_steps, delay+1):
@@ -166,7 +169,7 @@ class RL(Default):
             policy_args = dict(
               history=[h[:,:delay_length] for h in history],
               actions=delayed_actions,
-              prob=self.experience['prob'][:,memory+delay:],
+              behavior_prob=self.experience['prob'][:,memory+delay:],
               advantages=advantages[:,delay:],
               targets=targets[:,delay:]
             )

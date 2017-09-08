@@ -119,6 +119,9 @@ if recurrent:
 add_param('gae_lambda', 0.9, False)
 #add_param('retrace', True)
 
+add_param('gae_lambda', 0.9)
+add_param('retrace', True)
+
 # embed params
 
 add_param('xy_scale', 0.05, False)
