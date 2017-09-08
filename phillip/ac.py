@@ -72,7 +72,7 @@ class ActorCritic(Default):
 
     with tf.control_dependencies([kl]):
       real_log_actor_probs = tfl.batch_dot(actions, log_actor_probs)
-    train_log_actor_probs = real_log_actor_probs[:,:-1] # last state has no advantage
+    train_log_actor_probs = real_log_actor_probs[:-1] # last state has no advantage
     actor_gain = tf.reduce_mean(tf.multiply(train_log_actor_probs, tf.stop_gradient(advantages)))
     #tf.scalar_summary('actor_gain', actor_gain)
     

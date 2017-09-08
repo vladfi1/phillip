@@ -379,7 +379,7 @@ def discount2(values, gamma, initial=None):
   Uses tf.while_loop instead of unrolling in python.
   
   Arguments:
-    values: Tensor with shape [batch, time]
+    values: Tensor with shape [time, batch]
     gamma: Discount factor.
     initial: Value past the end.
   
@@ -388,7 +388,7 @@ def discount2(values, gamma, initial=None):
   """
   
   def body(i, prev, returns):
-    next = values[:,i] + gamma * prev
+    next = values[i] + gamma * prev
     next.set_shape(prev.get_shape())
     
     returns = returns.write(i, next)
@@ -399,15 +399,15 @@ def discount2(values, gamma, initial=None):
     return i >= 0
   
   if initial is None:
-    initial = tf.zeros(tf.shape(values)[:1], values.dtype)
+    initial = tf.zeros(tf.shape(values)[1:], values.dtype)
 
-  timesteps = tf.shape(values)[1]
+  timesteps = tf.shape(values)[0]
 
   ta = tf.TensorArray(values.dtype, timesteps)
   
   _, _, returns = tf.while_loop(cond, body, (timesteps-1, initial, ta))
   
-  return tf.transpose(returns.stack())
+  return returns.stack()
 
 def testDiscounts():
   values = tf.constant([[1, 2, 3]])

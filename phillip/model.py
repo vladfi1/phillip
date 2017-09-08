@@ -75,32 +75,32 @@ class Model(Default):
     memory = self.rlConfig.memory
     length = self.rlConfig.experience_length - memory
 
-    state = util.deepMap(lambda t: t[:,memory:], state)
+    state = util.deepMap(lambda t: t[memory:], state)
     last_states = self.embedGame(state, residual=True)
 
     totals = []
 
     for step in range(self.predict_steps):
       # remove last time step from histories
-      history = [t[:,:-1] for t in history]
-      last_states = last_states[:,:-1]
+      history = [t[:-1] for t in history]
+      last_states = last_states[:-1]
       
       # stack memory frames and current action
       # history_concat = tf.concat(2, history[step:])
-      current_action = actions[:,step:-1]
+      current_action = actions[step:-1]
       inputs = tf.concat(axis=2, values=history[step:] + [current_action])
       
       predicted_states = self.apply(inputs, last_states)
       
       # prepare for the next frame
       last_states = predicted_states
-      # next_actions = prev_actions[:,memory+step+1:,:]
+      # next_actions = prev_actions[memory+step+1:,:]
       next_inputs = self.embedGame.to_input(predicted_states)
       history.append(tf.concat(axis=2, values=[next_inputs, current_action]))
       
       # compute losses on this frame
-      target_states = util.deepMap(lambda t: t[:,1+step:], state)
-      # predictions = predicted_states[:,:-1-step]
+      target_states = util.deepMap(lambda t: t[1+step:], state)
+      # predictions = predicted_states[:-1-step]
       distances = self.embedGame.distance(predicted_states, target_states)
       distances = util.deepMap(tf.reduce_mean, distances)
       
