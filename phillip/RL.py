@@ -50,7 +50,7 @@ class RL(Default):
     #('opt', Optimizer),
   ]
   
-  def __init__(self, mode=Mode.TRAIN, debug=False, batch_size=None, **kwargs):
+  def __init__(self, mode=Mode.TRAIN, debug=False, **kwargs):
     Default.__init__(self, init_members=False, **kwargs)
     self.config = RLConfig(**kwargs)
     
@@ -106,9 +106,9 @@ class RL(Default):
           self.critic = Critic(history_size, **kwargs)
           self.components['critic'] = self.critic
 
-        self.experience = ct.inputCType(ssbm.SimpleStateAction, [batch_size, self.config.experience_length], "experience")
+        self.experience = ct.inputCType(ssbm.SimpleStateAction, [None, self.config.experience_length], "experience")
         # instantaneous rewards for all but the last state
-        self.experience['reward'] = tf.placeholder(tf.float32, [batch_size, self.config.experience_length-1], name='experience/reward')
+        self.experience['reward'] = tf.placeholder(tf.float32, [None, self.config.experience_length-1], name='experience/reward')
 
         # manipulating time along the first axis is much more efficient
         experience = util.deepMap(tf.transpose, self.experience)
@@ -116,7 +116,7 @@ class RL(Default):
         # initial state for recurrent networks
         #self.experience['initial'] = tuple(tf.placeholder(tf.float32, [None, size], name='experience/initial/%d' % i) for i, size in enumerate(self.policy.hidden_size))
         if self.train_policy:
-          self.experience['initial'] = util.deepMap(lambda size: tf.placeholder(tf.float32, [batch_size, size], name="experience/initial"), self.policy.hidden_size)
+          self.experience['initial'] = util.deepMap(lambda size: tf.placeholder(tf.float32, [None, size], name="experience/initial"), self.policy.hidden_size)
         else:
           self.experience['initial'] = []
         
