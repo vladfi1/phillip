@@ -4,7 +4,7 @@ from phillip import RL, util
 from phillip.default import *
 import numpy as np
 from collections import defaultdict
-import zmq
+import nnpy
 import resource
 import gc
 import tensorflow as tf
@@ -39,7 +39,7 @@ class Trainer(Default):
     
     Option("log_interval", type=int, default=10),
     Option("dump", type=str, default="lo", help="interface to listen on for experience dumps"),
-    Option('send', type=int, default=1, help="send the network parameters on a zmq PUB socket"),
+    Option('send', type=int, default=1, help="send the network parameters on an nnpy PUB socket"),
     Option("save_interval", type=float, default=10, help="length of time between saves to disk, in minutes"),
 
     Option("load", type=str, help="path to a json file from which to load params"),
@@ -67,14 +67,11 @@ class Trainer(Default):
     with open(os.path.join(self.model.path, 'ip'), 'w') as f:
       f.write(address)
 
-    context = zmq.Context.instance()
-
-    self.experience_socket = context.socket(zmq.PULL)
+    self.experience_socket = nnpy.Socket(nnpy.AF_SP, nnpy.PULL)
     experience_addr = "tcp://%s:%d" % (address, util.port(self.model.name + "/experience"))
     self.experience_socket.bind(experience_addr)
 
     if self.send:
-      import nnpy
       self.params_socket = nnpy.Socket(nnpy.AF_SP, nnpy.PUB)
       params_addr = "tcp://%s:%d" % (address, util.port(self.model.name + "/params"))
       print("Binding params socket to", params_addr)
@@ -118,9 +115,13 @@ class Trainer(Default):
       is_valid = lambda exp: exp['global_step'] >= age_limit
       experiences = list(filter(is_valid, experiences))
       
+      def pull_experience(block=True):
+        exp = self.experience_socket.recv(flags=0 if block else nnpy.DONTWAIT)
+        return pickle.loads(exp)
+      
       collected = 0
       while len(experiences) < self.sweep_size:
-        exp = self.experience_socket.recv_pyobj()
+        exp = pull_experience()
         if is_valid(exp):
           experiences.append(exp)
           collected += 1
@@ -128,13 +129,17 @@ class Trainer(Default):
       # pull in all the extra experiences
       for _ in range(self.sweep_size):
         try:
-          exp = self.experience_socket.recv_pyobj(zmq.NOBLOCK)
+          exp = pull_experience(False)
           if is_valid(exp):
             experiences.append(exp)
             collected += 1
-        except zmq.ZMQError:
-          break
-      
+        except nnpy.NNError as e:
+          if e.error_no == nnpy.EAGAIN:
+            # nothing to receive
+            break
+          # a real error
+          raise e
+
       print('After collect: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
       collect_time = time.time()
       
