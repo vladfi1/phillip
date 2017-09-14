@@ -53,26 +53,26 @@ natural = False
 #add_param('optimizer', 'Adam', False)
 #add_param('learning_rate', 1e-4, False),
 add_param('sweeps', 1, False)
-add_param('batch_size', 100, False)
+add_param('batch_size', 64, False)
 add_param('batches', 1, False)
 add_param('batch_steps', 1, False)
-#add_param('min_collect', 20)
-add_param('max_age', 1)
+add_param('max_age', 16)
 
 sweep_size = params['batch_size'] * params['batches']
 add_param('sweep_size', sweep_size) # only for experiment name
+add_param('min_collect', 8, False)
 
 add_param('reward_halflife', 2, False)
 
 predict = False
-predict = True
+#predict = True
 add_param('predict', predict, False)
 
 delay = 3
 if predict:
   add_param('predict_steps', delay)
   #add_param('predict_scale', 1e-5)
-  add_param('model_learning_rate', 2e-5)
+  add_param('model_learning_rate', 2e-5, False)
   add_param('model_layers', [512], False)
   add_param('train_model', True, False)
 
@@ -119,9 +119,6 @@ if recurrent:
 add_param('gae_lambda', 0.9, False)
 #add_param('retrace', True)
 
-add_param('gae_lambda', 0.9)
-add_param('retrace', True)
-
 # embed params
 
 add_param('xy_scale', 0.05, False)
@@ -147,8 +144,8 @@ add_param('reload', 1, False)
 
 #char = 'falco'
 #char = 'sheik'
-char = 'falcon'
-#char = 'marth'
+#char = 'falcon'
+char = 'marth'
 #char = 'fox'
 #char = 'peach'
 #char = 'luigi'
@@ -169,16 +166,16 @@ if not recurrent:
   add_param('memory', 1)
   #add_param('memory', 0, False)
 
-#stage = 'battlefield'
-stage = 'final_destination'
+stage = 'battlefield'
+#stage = 'final_destination'
 add_param('stage', stage, False)
 
 add_param('char', char, True)
 
 enemies = None
-enemies = "cpu"
+#enemies = "cpu"
 #enemies = "easy"
-#enemies = "delay0"
+enemies = "delay0"
 #enemies = "delay%d" % delay
 #enemies = ['self']
 #enemies = 'hard-self'

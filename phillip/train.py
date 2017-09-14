@@ -112,14 +112,15 @@ class Trainer(Default):
     while sweeps != self.sweep_limit:
       start_time = time.time()
       
-      print('Start: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+      #print('Start: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
 
-      age_limit = self.model.get_global_step() - self.max_age
+      global_step = self.model.get_global_step()
+      age_limit = global_step - self.max_age
       is_valid = lambda exp: exp['global_step'] >= age_limit
       experiences = list(filter(is_valid, experiences))
       
       collected = 0
-      while len(experiences) < self.sweep_size:
+      while len(experiences) < self.sweep_size or collected < self.min_collect:
         exp = self.experience_socket.recv_pyobj()
         if is_valid(exp):
           experiences.append(exp)
@@ -134,8 +135,11 @@ class Trainer(Default):
             collected += 1
         except zmq.ZMQError:
           break
-      
-      print('After collect: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+
+      ages = np.array([global_step - exp['global_step'] for exp in experiences])
+      print("Mean age:", ages.mean())
+            
+      #print('After collect: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
       collect_time = time.time()
       
       for _ in range(self.sweeps):
@@ -147,16 +151,16 @@ class Trainer(Default):
           self.model.train(batch, self.batch_steps, log=(step%self.log_interval==0))
           step += 1
       
-      print('After train: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+      #print('After train: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
       train_time = time.time()
 
       if self.send:
         #self.params_socket.send_string("", zmq.SNDMORE)
         params = self.model.blob()
         blob = pickle.dumps(params)
-        print('After blob: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+        #print('After blob: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
         self.params_socket.send(blob)
-        print('After send: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+        #print('After send: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
 
       self.save()
       
