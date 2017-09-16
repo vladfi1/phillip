@@ -44,7 +44,6 @@ class RL(Default):
   
   _members = [
     ('config', RLConfig),
-    ('embedGame', embed.GameEmbedding),
     ('critic', Critic),
     ('model', Model),
     #('opt', Optimizer),

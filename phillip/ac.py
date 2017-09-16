@@ -22,9 +22,12 @@ class ActorCritic(Default):
   _members = [
     #('optimizer', opt.Optimizer),
     ('nl', tfl.NL),
+    ('embedGame', embed.GameEmbedding),
+    ('model', Model),
+
   ]
   
-  def __init__(self, input_size, action_size, rlConfig, **kwargs):
+  def __init__(self, action_size, rlConfig, **kwargs):
     Default.__init__(self, **kwargs)
     self.action_size = action_size
     self.rlConfig = rlConfig
