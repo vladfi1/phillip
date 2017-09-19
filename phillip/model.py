@@ -17,19 +17,18 @@ class Model(Default):
     ('nl', tfl.NL),
   ]
   
-  def __init__(self, embedGame, action_size, config, scope="model", **kwargs):
+  def __init__(self, embedGame, torso, action_size, config, scope="model", **kwargs):
     Default.__init__(self, **kwargs)
     self.embedGame = embedGame
+    self.torso = torso
     self.rlConfig = config
     self.action_size = action_size
     
-    
-    history_size = (1+self.rlConfig.memory) * (self.embedGame.size + action_size)
-    self.input_size = action_size + history_size
+    #history_size = (1+self.rlConfig.memory) * (self.embedGame.size + action_size)
+    self.input_size = self.torso.getSize() + action_size
     
     with tf.variable_scope(scope):
       net = tfl.Sequential()
-      
       prev_size = self.input_size
       
       for i, next_size in enumerate(self.model_layers):
@@ -51,7 +50,7 @@ class Model(Default):
     return self.variables
 
   def apply(self, history, last):
-    outputs = self.net(history)
+    outputs = self.net(self.torso(history))
     
     delta = self.delta_layer(outputs)
     new = self.new_layer(outputs)

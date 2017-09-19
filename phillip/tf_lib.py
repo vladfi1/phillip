@@ -167,6 +167,7 @@ def matmul(v, m):
   return tf.reduce_sum(vm, rank-1)
 
 # I think this is the more efficient version?
+# TODO: switch to tensordot!
 def matmul2(x, m, bias=None, nl=None):
   [input_size, output_size] = m.get_shape().as_list()
   input_shape_py = x.get_shape().as_list()
@@ -236,6 +237,9 @@ class FCLayer(Default):
   
   def getVariables(self):
     return [self.weight, self.bias]
+  
+  def getSize(self):
+    return self.output_size
 
 class Sequential:
   def __init__(self, *layers):
@@ -260,6 +264,9 @@ class Sequential:
   def getVariables(self):
     variables = [layer.getVariables() for layer in self.layers]
     return list(itertools.chain(*variables))
+  
+  def getSize(self):
+    return self.layers[-1].getSize()
 
 def affineLayer(x, output_size, nl=None):
   W = weight_variable([x.get_shape()[-1].value, output_size])

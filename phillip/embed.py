@@ -198,7 +198,9 @@ class ArrayEmbedding(object):
     # only the bits that were embedded. oh well
     array = max(self.permutation) * [None]
     
-    ts = tf.split(axis=tf.rank(embedded)-1, num_or_size_splits=len(self.permutation), value=embedded)
+    # use a reshape here instead?
+    # no, because we need to return a python structure
+    ts = tf.split(axis=-1, num_or_size_splits=len(self.permutation), value=embedded)
     
     for i, t in zip(self.permutation, ts):
       array[i] = self.op.extract(t)
