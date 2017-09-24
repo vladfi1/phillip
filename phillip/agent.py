@@ -170,8 +170,8 @@ class Agent(Default):
     if self.dump or self.disk:
       self.dump_state(current)
     
-    if self.reload and self.action_counter % (self.reload * self.rl.config.fps) == 0:
-      if self.dump:
+    if self.reload:
+      if self.dump and self.dump_frame == 0:
         import nnpy
         blob = None
         num_blobs = 0
@@ -194,6 +194,6 @@ class Agent(Default):
           self.rl.unblob(params)
 
         print("num_blobs", num_blobs)
-      else:
+      elif self.action_counter % (self.reload * self.rl.config.fps) == 0:
         self.rl.restore()
 

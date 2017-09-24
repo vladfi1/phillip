@@ -35,7 +35,8 @@ class Trainer(Default):
     Option("batch_size", type=int, default=1, help="number of trajectories per batch"),
     Option("batch_steps", type=int, default=1, help="number of gradient steps to take on each batch"),
     Option("min_collect", type=int, default=1, help="minimum number of experiences to collect between sweeps"),
-    Option("max_age", type=int, default=10, help="how old an experience can be before we discard it"),
+    Option("max_age", type=int, help="how old an experience can be before we discard it"),
+    Option("max_kl", type=float, help="how off-policy an experience can be before we discard it"),
     
     Option("log_interval", type=int, default=10),
     Option("dump", type=str, default="lo", help="interface to listen on for experience dumps"),
@@ -64,6 +65,7 @@ class Trainer(Default):
     addresses = netifaces.ifaddresses(self.dump)
     address = addresses[netifaces.AF_INET][0]['addr']
 
+    util.makedirs(self.model.path)
     with open(os.path.join(self.model.path, 'ip'), 'w') as f:
       f.write(address)
 
@@ -106,7 +108,8 @@ class Trainer(Default):
 
     sweeps = 0
     step = 0
-
+    global_step = self.model.get_global_step()
+      
     experiences = []
     
     while sweeps != self.sweep_limit:
@@ -114,17 +117,23 @@ class Trainer(Default):
       
       #print('Start: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
 
-      global_step = self.model.get_global_step()
-      age_limit = global_step - self.max_age
-      is_valid = lambda exp: exp['global_step'] >= age_limit
-      experiences = list(filter(is_valid, experiences))
+      if self.max_age is not None:
+        age_limit = global_step - self.max_age
+        is_valid = lambda exp: exp['global_step'] >= age_limit
+        experiences = list(filter(is_valid, experiences))
+      else:
+        is_valid = lambda _: True
       
       collected = 0
       while len(experiences) < self.sweep_size or collected < self.min_collect:
+        #print("Waiting for experience")
         exp = self.experience_socket.recv_pyobj()
         if is_valid(exp):
           experiences.append(exp)
           collected += 1
+        else:
+          #print("Experience invalid")
+          pass
 
       # pull in all the extra experiences
       for _ in range(self.sweep_size):
@@ -146,10 +155,27 @@ class Trainer(Default):
         from random import shuffle
         shuffle(experiences)
 
-        batch_size = len(experiences) // self.batches
+        batches = len(experiences) // self.batch_size
+        batch_size = (len(experiences) + batches - 1) // batches
+        
+        use_kls = self.max_kl is not None
+        if use_kls:
+          kls = []
+        
         for batch in util.chunk(experiences, batch_size):
-          self.model.train(batch, self.batch_steps, log=(step%self.log_interval==0))
+          train_out = self.model.train(batch, self.batch_steps,
+                                       log=(step%self.log_interval==0),
+                                       kls=use_kls)[-1]
+          global_step = train_out['global_step']
+          
+          if use_kls:
+            kls.extend(train_out['kls'])
+          
           step += 1
+        
+        if use_kls:
+          print("Mean KL", np.mean(kls))
+          experiences = [exp for kl, exp in zip(kls, experiences) if kl <= self.max_kl]
       
       #print('After train: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
       train_time = time.time()

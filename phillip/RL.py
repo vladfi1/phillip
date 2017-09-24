@@ -175,7 +175,8 @@ class RL(Default):
               advantages=advantages[delay:],
               targets=targets[delay:]
             )
-            train_ops.append(self.policy.train(**policy_args))
+            train_policy, self.kls = self.policy.train(**policy_args)
+            train_ops.append(train_policy)
 
           """
           total_loss = tf.add_n(losses)
@@ -254,7 +255,13 @@ class RL(Default):
     feed_dict = dict(util.deepValues(util.deepZip(self.input, input_dict)))
     return self.policy.act(self.sess.run(self.run_policy, feed_dict), verbose)
 
-  def train(self, experiences, batch_steps=1, train=True, log=True, zipped=False, **kwargs):
+  def train(self, experiences,
+            batch_steps=1,
+            train=True,
+            log=True,
+            zipped=False,
+            kls=False,
+            **kwargs):
     if not zipped:
       experiences = util.deepZip(*experiences)
     
@@ -275,6 +282,9 @@ class RL(Default):
     if train:
       run_dict.update(train=self.train_ops)
     
+    if kls:
+      run_dict.update(kls=self.kls)
+    
     if self.profile:
       run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
       run_metadata = tf.RunMetadata()
@@ -287,6 +297,8 @@ class RL(Default):
     if log:
       run_dict.update(summary=self.summarize)
     
+    outputs = []
+    
     for _ in range(batch_steps):
       try:
         results = self.sess.run(run_dict, input_dict,
@@ -298,6 +310,7 @@ class RL(Default):
         raise e
       #print('After run: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
       
+      outputs.append(results)
       global_step = results['global_step']
       if log:
         print('add_summary')
@@ -313,6 +326,8 @@ class RL(Default):
         with open('%s/%d.json' % (path, global_step), 'w') as f:
           f.write(ctf)
         #self.writer.add_run_metadata(run_metadata, 'step %d' % global_step, global_step)
+    
+    return outputs
 
   def save(self):
     util.makedirs(self.path)

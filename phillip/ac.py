@@ -66,12 +66,13 @@ class ActorCritic(Default):
     real_actor_probs = tfl.batch_dot(actions, actor_probs)
     prob_ratios = behavior_prob / real_actor_probs
     #prob_ratios = tf.Print(prob_ratios, [prob_ratios], "prob_ratios: ", summarize=20)
-    kl = tf.reduce_mean(tf.log(prob_ratios))
+    kls = tf.reduce_mean(tf.log(prob_ratios), 0)
+    kl = tf.reduce_mean(kls)
     #kl = tf.Print(kl, [kl], "kl: ")
     tf.summary.scalar('kl', kl)
 
-    with tf.control_dependencies([kl]):
-      real_log_actor_probs = tfl.batch_dot(actions, log_actor_probs)
+    #with tf.control_dependencies([kl]):
+    real_log_actor_probs = tfl.batch_dot(actions, log_actor_probs)
     train_log_actor_probs = real_log_actor_probs[:-1] # last state has no advantage
     actor_gain = tf.reduce_mean(tf.multiply(train_log_actor_probs, tf.stop_gradient(advantages)))
     #tf.scalar_summary('actor_gain', actor_gain)
@@ -79,7 +80,7 @@ class ActorCritic(Default):
     actor_loss = - (actor_gain + self.entropy_scale * entropy_avg)
     self.opt = tf.train.AdamOptimizer(self.actor_learning_rate)
     train_op = self.opt.minimize(actor_loss, var_list=self.getVariables())
-    return train_op
+    return train_op, kls
 
   def getVariables(self):
     return self.actor.getVariables()
