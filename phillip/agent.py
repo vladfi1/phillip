@@ -47,11 +47,10 @@ class Agent(Default):
     
     if self.dump:
       try:
-        import zmq
         import nnpy
       except ImportError as err:
         print("ImportError: {0}".format(err))
-        sys.exit("Install pyzmq to dump experiences")
+        sys.exit("Install nnpy to dump experiences")
 
       if not self.trainer_ip:
         ip_path = os.path.join(self.rl.path, 'ip')
@@ -67,9 +66,7 @@ class Agent(Default):
           import sys
           sys.exit("No trainer ip!")
       
-      context = zmq.Context.instance()
-
-      self.dump_socket = context.socket(zmq.PUSH)
+      self.dump_socket = nnpy.Socket(nnpy.AF_SP, nnpy.PUSH)
       sock_addr = "tcp://%s:%d" % (self.trainer_ip, util.port(self.rl.name + "/experience"))
       print("Connecting experience socket to " + sock_addr)
       self.dump_socket.connect(sock_addr)
@@ -119,7 +116,7 @@ class Agent(Default):
       prepared['global_step'] = self.global_step
       
       if self.dump:
-        self.dump_socket.send_pyobj(prepared)
+        self.dump_socket.send(pickle.dumps(prepared))
       
       if self.disk:
         path = os.path.join(self.dump_dir, self.dump_tag + '_%d' % self.dump_count)
