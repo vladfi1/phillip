@@ -313,7 +313,6 @@ class RL(Default):
       outputs.append(results)
       global_step = results['global_step']
       if log:
-        print('add_summary')
         summary_str = results['summary']
         self.writer.add_summary(summary_str, global_step)
       if self.profile:
