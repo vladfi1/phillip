@@ -42,6 +42,7 @@ class Agent(Default):
     self.hidden = util.deepMap(np.zeros, self.rl.policy.hidden_size)
     
     self.rl.restore()
+    self.global_step = self.rl.get_global_step()
 
     self.dump = self.dump or self.trainer_id or self.trainer_ip
     
@@ -98,7 +99,6 @@ class Agent(Default):
     
     if self.dump_frame == 0:
       self.initial = self.hidden
-      self.global_step = self.rl.get_global_step()
 
     self.dump_frame += 1
 
@@ -170,14 +170,22 @@ class Agent(Default):
     if self.reload:
       if self.dump and self.dump_frame == 0:
         import nnpy
-        blob = None
         num_blobs = 0
+        latest = None
         
         # get the latest update from the trainer
         while True:
           try:
             #topic = self.socket.recv_string(zmq.NOBLOCK)
             blob = self.params_socket.recv(nnpy.DONTWAIT)
+            params = pickle.loads(blob)
+            global_step = params['global_step:0']
+            if global_step > self.global_step:
+              self.global_step = global_step
+              latest = params
+            else:
+              print("OUT OF ORDER?")
+            
             num_blobs += 1
           except nnpy.NNError as e:
             if e.error_no == nnpy.EAGAIN:
@@ -186,11 +194,11 @@ class Agent(Default):
             # a real error
             raise e
         
-        if blob is not None:
-          params = pickle.loads(blob)
-          self.rl.unblob(params)
+        if latest is not None:
+          self.rl.unblob(latest)
 
         print("num_blobs", num_blobs)
       elif self.action_counter % (self.reload * self.rl.config.fps) == 0:
         self.rl.restore()
+        self.global_step = self.rl.get_global_step()
 

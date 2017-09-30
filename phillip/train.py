@@ -114,12 +114,14 @@ class Trainer(Default):
       
       #print('Start: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
 
+      old_len = len(experiences)
       if self.max_age is not None:
         age_limit = global_step - self.max_age
         is_valid = lambda exp: exp['global_step'] >= age_limit
         experiences = list(filter(is_valid, experiences))
       else:
         is_valid = lambda _: True
+      dropped = old_len - len(experiences)
       
       def pull_experience(block=True):
         exp = self.experience_socket.recv(flags=0 if block else nnpy.DONTWAIT)
@@ -133,7 +135,7 @@ class Trainer(Default):
           experiences.append(exp)
           collected += 1
         else:
-          #print("Experience invalid")
+          dropped += 1
           pass
 
       # pull in all the extra experiences
@@ -180,7 +182,9 @@ class Trainer(Default):
         
         if use_kls:
           print("Mean KL", np.mean(kls))
+          old_len = len(experiences)
           experiences = [exp for kl, exp in zip(kls, experiences) if kl <= self.max_kl]
+          dropped += old_len - len(experiences)
       
       #print('After train: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
       train_time = time.time()
@@ -209,7 +213,7 @@ class Trainer(Default):
       train_time -= collect_time
       collect_time -= start_time
       
-      print(sweeps, len(experiences), collected, collect_time, train_time, save_time)
+      print(sweeps, len(experiences), collected, dropped, collect_time, train_time, save_time)
       print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
 
       if self.objgraph:
