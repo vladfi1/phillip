@@ -46,6 +46,19 @@ stages = dict(
     (20, pushButton(Button.START)),
     (1, releaseButton(Button.START)),
   ],
+
+  dream_land = [
+    (0, up),
+    (2, neutral),
+    (0, right),
+    (7, neutral),
+    
+    #(60 * 60, neutral),
+    
+    # start game
+    (20, pushButton(Button.START)),
+    (1, releaseButton(Button.START)),
+  ],
   
   final_destination = [
     (0, tiltStick(Stick.MAIN, 1, 0.8)),
@@ -56,7 +69,45 @@ stages = dict(
     # start game
     (20, pushButton(Button.START)),
     (1, releaseButton(Button.START)),
-  ]
+  ],
+
+  fountain_of_dreams = [
+    (0, up),
+    (18, right),
+    (5, neutral),
+    
+    #(60 * 60, neutral),
+    
+    # start game
+    (20, pushButton(Button.START)),
+    (1, releaseButton(Button.START)),
+  ],
+
+  pokemon_stadium = [
+    (0, up),
+    (10, right),
+    (9, neutral),
+    
+    #(60 * 60, neutral),
+    
+    # start game
+    (20, pushButton(Button.START)),
+    (1, releaseButton(Button.START)),
+  ],
+
+  yoshis_story = [
+    (0, up),
+    (18, right),
+    (1, neutral),
+    
+    #(60 * 60, neutral),
+    
+    # start game
+    (20, pushButton(Button.START)),
+    (1, releaseButton(Button.START)),
+  ],
+
+  
 )
 
 class Movie:
