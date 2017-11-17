@@ -50,7 +50,7 @@ class RL(Default):
     #('opt', Optimizer),
   ]
   
-  def __init__(self, mode = Mode.TRAIN, debug = False, **kwargs):
+  def __init__(self, mode=Mode.TRAIN, debug=False, batch_size=None, **kwargs):
     Default.__init__(self, init_members=False, **kwargs)
     self.config = RLConfig(**kwargs)
     
@@ -106,32 +106,34 @@ class RL(Default):
           self.critic = Critic(history_size, **kwargs)
           self.components['critic'] = self.critic
 
-        self.experience = ct.inputCType(ssbm.SimpleStateAction, [None, self.config.experience_length], "experience")
+        self.experience = ct.inputCType(ssbm.SimpleStateAction, [batch_size, self.config.experience_length], "experience")
         # instantaneous rewards for all but the last state
-        self.experience['reward'] = tf.placeholder(tf.float32, [None, self.config.experience_length-1], name='experience/reward')
+        self.experience['reward'] = tf.placeholder(tf.float32, [batch_size, self.config.experience_length-1], name='experience/reward')
 
         # manipulating time along the first axis is much more efficient
-        # experience_swapped = util.deepMap(tf.transpose, self.experience)
+        experience = util.deepMap(tf.transpose, self.experience)
         
         # initial state for recurrent networks
         #self.experience['initial'] = tuple(tf.placeholder(tf.float32, [None, size], name='experience/initial/%d' % i) for i, size in enumerate(self.policy.hidden_size))
         if self.train_policy:
-          self.experience['initial'] = util.deepMap(lambda size: tf.placeholder(tf.float32, [None, size], name="experience/initial"), self.policy.hidden_size)
+          self.experience['initial'] = util.deepMap(lambda size: tf.placeholder(tf.float32, [batch_size, size], name="experience/initial"), self.policy.hidden_size)
         else:
           self.experience['initial'] = []
+        
+        experience['initial'] = self.experience['initial']
 
-        states = self.embedGame(self.experience['state'])
-        prev_actions = embedAction(self.experience['prev_action'])
+        states = self.embedGame(experience['state'])
+        prev_actions = embedAction(experience['prev_action'])
         combined = tf.concat(axis=2, values=[states, prev_actions])
-        actions = embedAction(self.experience['action'])
+        actions = embedAction(experience['action'])
 
         memory = self.config.memory
         delay = self.config.delay
         length = self.config.experience_length - memory
-        history = [combined[:,i:i+length] for i in range(memory+1)]
+        history = [combined[i:i+length] for i in range(memory+1)]
 
-        actions = actions[:,memory:]
-        rewards = self.experience['reward'][:,memory:]
+        actions = actions[memory:]
+        rewards = experience['reward'][memory:]
         
         print("Creating train ops")
 
@@ -141,7 +143,7 @@ class RL(Default):
           #loss_vars = []
   
           if self.train_model or self.predict:
-            train_model, predicted_history = self.model.train(history, actions, self.experience['state'])
+            train_model, predicted_history = self.model.train(history, actions, experience['state'])
           if self.train_model:
             train_ops.append(train_model)
             #losses.append(model_loss)
@@ -159,16 +161,19 @@ class RL(Default):
             else:
               predict_steps = 0
   
+            # delayed actions is a D+1-P length list of shape [B, T-M-D] tensors
+            # The valid state indices are [M+P, T+P-D)
+            # Element i corresponds to the i'th queued up action: 0 is the action about to be taken, D-P was the action chosen on this frame.
             delayed_actions = []
             delay_length = length - delay
             for i in range(predict_steps, delay+1):
-              delayed_actions.append(actions[:,i:i+delay_length])
+              delayed_actions.append(actions[i:i+delay_length])
             policy_args = dict(
-              history=[h[:,:delay_length] for h in history],
+              history=[h[:delay_length] for h in history],
               actions=delayed_actions,
-              prob=self.experience['prob'][:,memory+delay:],
-              advantages=advantages[:,delay:],
-              targets=targets[:,delay:]
+              behavior_prob=experience['prob'][memory+delay:],
+              advantages=advantages[delay:],
+              targets=targets[delay:]
             )
             train_ops.append(self.policy.train(**policy_args))
 
@@ -184,7 +189,7 @@ class RL(Default):
         #tf.scalar_summary("loss", loss)
         #tf.scalar_summary('learning_rate', tf.log(self.learning_rate))
         
-        tf.summary.scalar('reward', tf.reduce_mean(self.experience['reward']))
+        tf.summary.scalar('reward', tf.reduce_mean(experience['reward']))
         
         self.summarize = tf.summary.merge_all()
         self.increment = tf.assign_add(self.global_step, 1)

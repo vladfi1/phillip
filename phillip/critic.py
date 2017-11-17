@@ -42,10 +42,10 @@ class Critic(Default):
     input_ = tf.concat(axis=2, values=history)
 
     values = tf.squeeze(self.net(input_), [-1])
-    trainVs = values[:,:-1]
-    # lastV = values[:,-1]
+    trainVs = values[:-1]
+    # lastV = values[-1]
     
-    deltaVs = rewards + self.rlConfig.discount * values[:,1:] - trainVs
+    deltaVs = rewards + self.rlConfig.discount * values[1:] - trainVs
     advantages = tfl.discount2(deltaVs, self.rlConfig.discount * self.gae_lambda)
 
     targets = trainVs + advantages

@@ -1,4 +1,4 @@
-#!/bin/env python
+#!/usr/bin/env python
 
 import os
 import sys
@@ -23,6 +23,7 @@ parser.add_argument('-p', '--tenenbaum', action='store_true', help='run trainer 
 parser.add_argument('-u' ,'--use_everything', action='store_true', help='run agents on lower priority')
 parser.add_argument('-g', '--any_gpu', action='store_true', help='run with any gpu (default is titan-x)')
 parser.add_argument('-t', '--time', type=str, default="7-0", help='job runtime in days-hours')
+parser.add_argument('--nogpu', action='store_true', help="don't run trainer on a gpu")
 parser.add_argument('--send', type=int, default=1, help='send params with zmq PUB/SUB')
 
 args = parser.parse_args()
@@ -124,7 +125,7 @@ if run_trainer:
   train_command += " --send %d" % args.send
   
   trainer_id = launch(train_name, train_command,
-    gpu=True,
+    gpu=not args.nogpu,
     qos='tenenbaum' if args.tenenbaum else None,
     mem=16
   )

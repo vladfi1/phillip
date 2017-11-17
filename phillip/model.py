@@ -21,14 +21,16 @@ class Model(Default):
     Default.__init__(self, **kwargs)
     self.embedGame = embedGame
     self.rlConfig = config
+    self.action_size = action_size
+    
     
     history_size = (1+self.rlConfig.memory) * (self.embedGame.size + action_size)
-    input_size = action_size + history_size
+    self.input_size = action_size + history_size
     
     with tf.variable_scope(scope):
       net = tfl.Sequential()
       
-      prev_size = input_size
+      prev_size = self.input_size
       
       for i, next_size in enumerate(self.model_layers):
         with tf.variable_scope("layer_%d" % i):
@@ -58,35 +60,47 @@ class Model(Default):
     return forget * (last + delta) + (1. - forget) * new
   
   def train(self, history, actions, state, **unused):
+    """Computes the model's loss on a given set of transitions.
+    
+    Args:
+      history: List of game states from past to present, of length M+1. Each element is a tensor of shape [B, T-M, F].
+        The states with valid histories are indexed [M, T).
+      actions: Integer tensor of actions taken, of shape [B, T-M].
+      state: Raw, unembedded state structure of shape [B, T] tensors.
+    
+    Returns:
+      A tuple of (train_op, history). The history is extended by P steps into the future,
+      and is now an M+P length list of shape [B, T-M-P, F] tensors. Valid time steps are [M+P, T)
+    """
     memory = self.rlConfig.memory
     length = self.rlConfig.experience_length - memory
 
-    state = util.deepMap(lambda t: t[:,memory:], state)
+    state = util.deepMap(lambda t: t[memory:], state)
     last_states = self.embedGame(state, residual=True)
 
     totals = []
 
     for step in range(self.predict_steps):
       # remove last time step from histories
-      history = [t[:,:-1] for t in history]
-      last_states = last_states[:,:-1]
+      history = [t[:-1] for t in history]
+      last_states = last_states[:-1]
       
       # stack memory frames and current action
       # history_concat = tf.concat(2, history[step:])
-      current_action = actions[:,step:-1]
+      current_action = actions[step:-1]
       inputs = tf.concat(axis=2, values=history[step:] + [current_action])
       
       predicted_states = self.apply(inputs, last_states)
       
       # prepare for the next frame
       last_states = predicted_states
-      # next_actions = prev_actions[:,memory+step+1:,:]
+      # next_actions = prev_actions[memory+step+1:,:]
       next_inputs = self.embedGame.to_input(predicted_states)
       history.append(tf.concat(axis=2, values=[next_inputs, current_action]))
       
       # compute losses on this frame
-      target_states = util.deepMap(lambda t: t[:,1+step:], state)
-      # predictions = predicted_states[:,:-1-step]
+      target_states = util.deepMap(lambda t: t[1+step:], state)
+      # predictions = predicted_states[:-1-step]
       distances = self.embedGame.distance(predicted_states, target_states)
       distances = util.deepMap(tf.reduce_mean, distances)
       
@@ -121,3 +135,13 @@ class Model(Default):
       history.append(tf.concat(axis=0, values=[next_input, action]))
     
     return history
+  
+  def test_train_predict(self):
+    dummy_input = tf.zeros([self.embedGame.size + self.action_size])
+    history = [dummy_input] * (self.rlConfig.memory + 1)
+    raw_state = [self.embedGame.extract(dummy_input)] * self.predict_steps
+    actions = [tf.constant(0)] * self.predict_steps
+    
+    predictions = self.predict(history, actions, raw_state)
+    
+    

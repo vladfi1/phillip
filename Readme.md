@@ -53,6 +53,8 @@ To resume training run `launcher.py` again, but omit the `--init` (it will overw
 
 Training on Windows is not supported.
 
+Thanks to [microsoftv](https://github.com/microsoftv) there is now an [instructional video](https://www.youtube.com/watch?v=hxzpK719wV4) as well!
+
 ## Support
 
 Come to the [Discord](https://discord.gg/KQ8vhd6)!
