@@ -49,6 +49,9 @@ DumpFramesAsImages = {dump_ppm}
 DumpFramesToPPM = {dump_ppm}
 DumpFramesCounter = False
 Crop = True
+DumpFormat = {dump_format}
+DumpCodec = {dump_codec}
+DumpPath = {dump_path}
 """
 
 gale01_ini = """
@@ -84,6 +87,9 @@ class SetupUser(Default):
     Option('iso_path', type=str, default="", help="directory where you keep your isos"),
     Option('human', action="store_true", help="set p1 to human"),
     Option('fm', action="store_true", help="set up config for Faster Melee"),
+    Option('dump_format', type=str, default='mp4'),
+    Option('dump_codec', type=str, default='h264'),
+    Option('dump_path', type=str, default=''),
   ]
   
   def __call__(self, user):
@@ -113,7 +119,11 @@ class SetupUser(Default):
       f.write(dolphin_ini.format(**config_args))
     
     with open(configDir + '/GFX.ini', 'w') as f:
-      f.write(gfx_ini.format(dump_ppm=self.dump_ppm))
+      f.write(gfx_ini.format(
+        dump_ppm=self.dump_ppm,
+        dump_path=self.dump_path,
+        dump_codec=self.dump_codec,
+        dump_format=self.dump_format))
 
     gameSettings = user + '/GameSettings'
     util.makedirs(gameSettings)
