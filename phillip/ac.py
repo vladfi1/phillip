@@ -64,9 +64,9 @@ class ActorCritic(Default):
     tf.summary.histogram('entropy', entropy)
 
     real_actor_probs = tfl.batch_dot(actions, actor_probs)
-    prob_ratios = behavior_prob / real_actor_probs
+    prob_ratios = real_actor_probs / behavior_prob
     #prob_ratios = tf.Print(prob_ratios, [prob_ratios], "prob_ratios: ", summarize=20)
-    kls = tf.reduce_mean(tf.log(prob_ratios), 0)
+    kls = -tf.reduce_mean(tf.log(prob_ratios), 0)
     kl = tf.reduce_mean(kls)
     #kl = tf.Print(kl, [kl], "kl: ")
     tf.summary.scalar('kl', kl)
@@ -74,7 +74,9 @@ class ActorCritic(Default):
     #with tf.control_dependencies([kl]):
     real_log_actor_probs = tfl.batch_dot(actions, log_actor_probs)
     train_log_actor_probs = real_log_actor_probs[:-1] # last state has no advantage
-    actor_gain = tf.reduce_mean(tf.multiply(train_log_actor_probs, tf.stop_gradient(advantages)))
+    importance_weights = tf.minimum(prob_ratios[:-1], 5.)
+    weighted_advantages = tf.stop_gradient(importance_weights * advantages)
+    actor_gain = tf.reduce_mean(weighted_advantages * train_log_actor_probs)
     #tf.scalar_summary('actor_gain', actor_gain)
     
     actor_loss = - (actor_gain + self.entropy_scale * entropy_avg)
