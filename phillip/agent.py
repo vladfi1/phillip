@@ -58,7 +58,7 @@ class Agent(Default):
         if os.path.exists(ip_path):
           with open(ip_path, 'r') as f:
             self.trainer_ip = f.read()
-          print("Read ip from disk", self.dump)
+          print("Read ip from disk", self.trainer_ip)
         elif self.trainer_id:
           from . import om
           self.trainer_ip = om.get_job_ip(self.trainer_id)
@@ -168,37 +168,44 @@ class Agent(Default):
       self.dump_state(current)
     
     if self.reload:
-      if self.dump and self.dump_frame == 0:
-        import nnpy
-        num_blobs = 0
-        latest = None
-        
-        # get the latest update from the trainer
-        while True:
-          try:
-            #topic = self.socket.recv_string(zmq.NOBLOCK)
-            blob = self.params_socket.recv(nnpy.DONTWAIT)
-            params = pickle.loads(blob)
-            global_step = params['global_step:0']
-            if global_step > self.global_step:
-              self.global_step = global_step
-              latest = params
-            else:
-              print("OUT OF ORDER?")
-            
-            num_blobs += 1
-          except nnpy.NNError as e:
-            if e.error_no == nnpy.EAGAIN:
-              # nothing to receive
-              break
-            # a real error
-            raise e
-        
-        if latest is not None:
-          self.rl.unblob(latest)
-
-        print("num_blobs", num_blobs)
+      if self.dump:
+        self.recieve_params()
       elif self.action_counter % (self.reload * self.rl.config.fps) == 0:
         self.rl.restore()
         self.global_step = self.rl.get_global_step()
 
+
+  def recieve_params(self):
+    if self.dump_frame != 0:
+      return
+    
+    import nnpy
+    num_blobs = 0
+    latest = None
+    
+    # get the latest update from the trainer
+    while True:
+      try:
+        #topic = self.socket.recv_string(zmq.NOBLOCK)
+        blob = self.params_socket.recv(nnpy.DONTWAIT)
+        params = pickle.loads(blob)
+        global_step = params['global_step:0']
+        if global_step > self.global_step:
+          self.global_step = global_step
+          latest = params
+        else:
+          print("OUT OF ORDER?")
+        
+        num_blobs += 1
+      except nnpy.NNError as e:
+        if e.error_no == nnpy.EAGAIN:
+          # nothing to receive
+          break
+        # a real error
+        raise e
+    
+    if latest is not None:
+      print("Unblobbing", self.global_step)
+      self.rl.unblob(latest)
+
+    print("num_blobs", num_blobs)

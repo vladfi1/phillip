@@ -116,6 +116,7 @@ class Trainer(Default):
 
       old_len = len(experiences)
       if self.max_age is not None:
+        # print("global_step", global_step)
         age_limit = global_step - self.max_age
         is_valid = lambda exp: exp['global_step'] >= age_limit
         experiences = list(filter(is_valid, experiences))
@@ -126,8 +127,10 @@ class Trainer(Default):
       def pull_experience(block=True):
         exp = self.experience_socket.recv(flags=0 if block else nnpy.DONTWAIT)
         return pickle.loads(exp)
-      
+
+      # print("Collecting experiences", len(experiences))
       collected = 0
+      doa = 0 # dead on arrival
       while len(experiences) < self.sweep_size or collected < self.min_collect:
         #print("Waiting for experience")
         exp = pull_experience()
@@ -135,8 +138,10 @@ class Trainer(Default):
           experiences.append(exp)
           collected += 1
         else:
-          dropped += 1
+          doa += 1
           pass
+
+      collect_split = time.time()
 
       # pull in all the extra experiences
       for _ in range(self.sweep_size):
@@ -145,6 +150,8 @@ class Trainer(Default):
           if is_valid(exp):
             experiences.append(exp)
             collected += 1
+          else:
+            doa += 1
         except nnpy.NNError as e:
           if e.error_no == nnpy.EAGAIN:
             # nothing to receive
@@ -211,9 +218,10 @@ class Trainer(Default):
       
       save_time -= train_time
       train_time -= collect_time
-      collect_time -= start_time
+      collect_time -= collect_split
+      collect_split -= start_time
       
-      print(sweeps, len(experiences), collected, dropped, collect_time, train_time, save_time)
+      print(sweeps, len(experiences), collected, dropped, doa, collect_split, collect_time, train_time, save_time)
       print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
 
       if self.objgraph:
