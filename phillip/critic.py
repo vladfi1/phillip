@@ -37,7 +37,7 @@ class Critic(Default):
     
     self.variables = self.net.getVariables()
   
-  def __call__(self, history, rewards, **unused):
+  def __call__(self, history, rewards, prob_ratios, **unused):
     history = history[-self.rlConfig.memory-1:]
     input_ = tf.concat(axis=2, values=history)
 
@@ -45,17 +45,16 @@ class Critic(Default):
     trainVs = values[:-1]
     lastV = values[-1]
     
-    lambda_ = tf.ones_like(rewards) * self.gae_lambda
+    lambda_ = tf.minimum(1., prob_ratios) * self.gae_lambda
     targets = tfl.smoothed_returns(trainVs, rewards, self.rlConfig.discount, lambda_, lastV)
     targets = tf.stop_gradient(targets)
     advantages = targets - trainVs
     
-    # advantages = targets - trainVs
     advantage_avg = tf.reduce_mean(advantages)
     tf.summary.scalar('advantage_avg', advantage_avg)
     tf.summary.scalar('advantage_std', tf.sqrt(tfl.sample_variance(advantages)))
     
-    vLoss = .5 * tf.reduce_mean(tf.square(advantages))
+    vLoss = tf.reduce_mean(tf.square(advantages))
     tf.summary.scalar('v_loss', vLoss)
     tf.summary.scalar("v_uev", vLoss / tfl.sample_variance(targets))
     

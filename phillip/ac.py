@@ -47,14 +47,13 @@ class ActorCritic(Default):
     
     self.actor = net
 
-  def train(self, history, actions, behavior_prob, advantages, **unused):
+  def train_probs(self, history, actions):
     history = history[-self.rlConfig.memory-1:]
     delayed_actions = actions[:-1]
     input_ = tf.concat(axis=2, values=history + delayed_actions)
     actions = actions[-1]
     
     actor_probs = self.actor(input_)
-    
     log_actor_probs = tf.log(actor_probs)
 
     entropy = - tfl.batch_dot(actor_probs, log_actor_probs)
@@ -63,26 +62,15 @@ class ActorCritic(Default):
     tf.summary.scalar('entropy_min', tf.reduce_min(entropy))
     tf.summary.histogram('entropy', entropy)
 
-    real_actor_probs = tfl.batch_dot(actions, actor_probs)
-    prob_ratios = real_actor_probs / behavior_prob
-    #prob_ratios = tf.Print(prob_ratios, [prob_ratios], "prob_ratios: ", summarize=20)
-    kls = -tf.reduce_mean(tf.log(prob_ratios), 0)
-    kl = tf.reduce_mean(kls)
-    #kl = tf.Print(kl, [kl], "kl: ")
-    tf.summary.scalar('kl', kl)
-
-    #with tf.control_dependencies([kl]):
-    real_log_actor_probs = tfl.batch_dot(actions, log_actor_probs)
-    train_log_actor_probs = real_log_actor_probs[:-1] # last state has no advantage
-    importance_weights = tf.minimum(prob_ratios[:-1], 5.)
-    weighted_advantages = tf.stop_gradient(importance_weights * advantages)
-    actor_gain = tf.reduce_mean(weighted_advantages * train_log_actor_probs)
-    #tf.scalar_summary('actor_gain', actor_gain)
+    taken_probs = tfl.batch_dot(actions, actor_probs)
+    taken_log_probs = tfl.batch_dot(actions, log_actor_probs)
     
-    actor_loss = - (actor_gain + self.entropy_scale * entropy_avg)
-    self.opt = tf.train.AdamOptimizer(self.actor_learning_rate)
-    train_op = self.opt.minimize(actor_loss, var_list=self.getVariables())
-    return train_op, kls
+    return taken_probs, taken_log_probs, entropy
+
+  def train(self, taken_log_probs, advantages, entropy):
+    actor_gain = taken_log_probs * tf.stop_gradient(advantages) + self.entropy_scale * entropy
+    optimizer = tf.train.AdamOptimizer(self.actor_learning_rate)
+    return optimizer.minimize(-actor_gain, var_list=self.getVariables())
 
   def getVariables(self):
     return self.actor.getVariables()

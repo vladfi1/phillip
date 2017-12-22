@@ -149,17 +149,13 @@ class RL(Default):
             #losses.append(model_loss)
             #loss_vars.extend(self.model.getVariables())
           
-          if self.train_policy or self.train_critic:
-            train_critic, targets, advantages = self.critic(history, rewards)
-          if self.train_critic:
-            train_ops.append(train_critic)
-          
           if self.train_policy:
             if self.predict:
               predict_steps = self.model.predict_steps
-              history = predicted_history
+              actor_history = [h[:delay_length] for h in predicted_history]
             else:
               predict_steps = 0
+              actor_history = history
   
             # delayed actions is a D+1-P length list of shape [B, T-M-D] tensors
             # The valid state indices are [M+P, T+P-D)
@@ -168,14 +164,24 @@ class RL(Default):
             delay_length = length - delay
             for i in range(predict_steps, delay+1):
               delayed_actions.append(actions[i:i+delay_length])
-            policy_args = dict(
-              history=[h[:delay_length] for h in history],
-              actions=delayed_actions,
-              behavior_prob=experience['prob'][memory+delay:],
-              advantages=advantages[delay:],
-              targets=targets[delay:]
-            )
-            train_policy, self.kls = self.policy.train(**policy_args)
+            train_probs, train_log_probs, entropy = self.policy.train_probs(actor_history, delayed_actions)
+            
+            behavior_probs = experience['prob'][memory+delay:] # these are the states we can compute probabilities for
+            prob_ratios = train_probs / behavior_probs
+            self.kls = -tf.reduce_mean(tf.log(prob_ratios), 0)
+            kl = tf.reduce_mean(self.kls)
+            tf.summary.scalar('kl', kl)
+          else:
+            prob_ratios = tf.ones_like() # todo
+
+          # run the critic
+          if self.train_policy or self.train_critic:
+            train_critic, targets, advantages = self.critic([h[delay:] for h in history], rewards[delay:], prob_ratios[:-1])
+          if self.train_critic:
+            train_ops.append(train_critic)
+          
+          if self.train_policy:
+            train_policy = self.policy.train(train_log_probs[:-1], advantages, entropy[:-1])
             train_ops.append(train_policy)
 
           """
