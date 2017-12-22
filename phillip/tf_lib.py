@@ -428,3 +428,35 @@ def testDiscounts():
 
   print("Passed testDiscount()")
 
+def smoothed_returns(values, rewards, gamma, lambda_, bootstrap):
+  
+  def bellman(future, present):
+    v, r, l = present
+    return (1. - l) * v + l * (r + gamma * future)
+  
+  reversed_sequence = list(map(lambda t: tf.reverse(t, [0]), [values, rewards, lambda_]))
+  returns = tf.scan(bellman, reversed_sequence, bootstrap)
+  returns = tf.reverse(returns, [0])
+  return returns
+
+def test_smoothed_returns():
+  values = tf.zeros([3, 1])
+  rewards = tf.constant([[1.], [2.], [3.]])
+  gamma = 2
+  lambda_ = tf.ones([3, 1])
+  initial = tf.constant([4.])
+  
+  correct = [[49], [24], [11]]
+  
+  fs = [smoothed_returns]
+  
+  fetches = [f(values, rewards, gamma, lambda_, initial) for f in fs]
+
+  sess = tf.Session()
+  returns = sess.run(fetches)
+  
+  for r in returns:
+    assert((r == correct).all())
+
+  print("Passed test_smoothed_returns()")
+

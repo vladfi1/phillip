@@ -43,30 +43,24 @@ class Critic(Default):
 
     values = tf.squeeze(self.net(input_), [-1])
     trainVs = values[:-1]
-    # lastV = values[-1]
+    lastV = values[-1]
     
-    deltaVs = rewards + self.rlConfig.discount * values[1:] - trainVs
-    advantages = tfl.discount2(deltaVs, self.rlConfig.discount * self.gae_lambda)
-
-    targets = trainVs + advantages
-    # targets = tfl.discount2(rewards, self.rlConfig.discount, lastV)
+    lambda_ = tf.ones_like(rewards) * self.gae_lambda
+    targets = tfl.smoothed_returns(trainVs, rewards, self.rlConfig.discount, lambda_, lastV)
     targets = tf.stop_gradient(targets)
+    advantages = targets - trainVs
     
     # advantages = targets - trainVs
     advantage_avg = tf.reduce_mean(advantages)
     tf.summary.scalar('advantage_avg', advantage_avg)
     tf.summary.scalar('advantage_std', tf.sqrt(tfl.sample_variance(advantages)))
     
-    vLoss = tf.reduce_mean(tf.square(advantages))
+    vLoss = .5 * tf.reduce_mean(tf.square(advantages))
     tf.summary.scalar('v_loss', vLoss)
     tf.summary.scalar("v_uev", vLoss / tfl.sample_variance(targets))
     
     opt = tf.train.AdamOptimizer(self.critic_learning_rate)
-
-    # need to negate gradients since the optimizer negates again
-    grads = tf.gradients(trainVs, self.variables, grad_ys=-advantages)
-    train_op = opt.apply_gradients(zip(grads, self.variables))
-    # train_op = opt.minimize(vLoss, var_list=self.variables)
+    train_op = opt.minimize(vLoss, var_list=self.variables)
     
     return train_op, targets, advantages
 
