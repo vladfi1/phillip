@@ -1,5 +1,7 @@
 import tensorflow as tf
 import itertools
+import typing
+
 from phillip.default import *
 
 def leaky_relu(x, alpha=0.01):
@@ -459,4 +461,20 @@ def test_smoothed_returns():
     assert((r == correct).all())
 
   print("Passed test_smoothed_returns()")
+
+primitive_types = {
+  int: tf.int32,
+  float: tf.float32,
+  bool: tf.bool,
+}
+
+def make_placeholders(type_, shape=None, name=""):
+  if type_ in primitive_types:
+    return tf.placeholder(primitive_types[type_], shape, name)
+  elif hasattr(type_, '_field_types'): # typing.NamedTuple
+    return {f : make_placeholders(t, shape, name + "/" + f) for f, t in type_._field_types.items()}
+  elif issubclass(type_, typing.Tuple):
+    return tuple(make_placeholders(t, shape, name + "/" + str(i)) for i, t in enumerate(type_.__args__))
+  else:
+    raise TypeError("Unknown type %s" % type_)
 

@@ -78,7 +78,7 @@ def playerAddresses(player_id, addresses=None):
     if addresses is None:
         addresses = {}
 
-    player_path = ['players', player_id]
+    player_path = ['players', 'p' + str(player_id)]
 
     def playerHandler(field, handler):
         return Handler(player_path + field.split('/'), handler)

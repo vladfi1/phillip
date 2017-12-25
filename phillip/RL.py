@@ -2,7 +2,7 @@ import os
 import tensorflow as tf
 import numpy as np
 from enum import Enum
-from . import ssbm, tf_lib as tfl, util, embed, ctype_util as ct
+from . import ssbm, tf_lib as tfl, util, embed
 from .default import Default, Option
 from .rl_common import *
 from .dqn import DQN
@@ -106,7 +106,7 @@ class RL(Default):
           self.critic = Critic(history_size, **kwargs)
           self.components['critic'] = self.critic
 
-        self.experience = ct.inputCType(ssbm.SimpleStateAction, [None, self.config.experience_length], "experience")
+        self.experience = tfl.make_placeholders(ssbm.SimpleStateAction, [None, self.config.experience_length], "experience")
         # instantaneous rewards for all but the last state
         self.experience['reward'] = tf.placeholder(tf.float32, [None, self.config.experience_length-1], name='experience/reward')
 
@@ -207,7 +207,7 @@ class RL(Default):
         self.writer = tf.summary.FileWriter('logs/' + self.name)#, self.graph)
       else:
         # with tf.name_scope('policy'):
-        self.input = ct.inputCType(ssbm.SimpleStateAction, [self.config.memory+1], "input")
+        self.input = tfl.make_placeholders(ssbm.SimpleStateAction, [self.config.memory+1], "input")
         self.input['delayed_action'] = tf.placeholder(tf.int64, [self.config.delay], "delayed_action")
         self.input['hidden'] = util.deepMap(lambda size: tf.placeholder(tf.float32, [size], name="input/hidden"), self.policy.hidden_size)
 

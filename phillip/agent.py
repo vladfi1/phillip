@@ -37,7 +37,7 @@ class Agent(Default):
     self.action = 0
     self.actions = util.CircularQueue(self.rl.config.delay+1, 0)
     self.probs = util.CircularQueue(self.rl.config.delay+1, 1.)
-    self.history = util.CircularQueue(array=((self.rl.config.memory+1) * ssbm.SimpleStateAction)())
+    self.history = util.CircularQueue(self.rl.config.memory+1, util.default_value(ssbm.SimpleStateAction))
     
     self.hidden = util.deepMap(np.zeros, self.rl.policy.hidden_size)
     

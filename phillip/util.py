@@ -208,3 +208,19 @@ def load_params(path, key=None):
   params.update(path=path)
   return params
 
+primitive_types = {
+  int: 0,
+  float: 0.,
+  bool: False,
+}
+
+def default_value(type_):
+  if type_ in primitive_types:
+    return primitive_types[type_]
+  elif hasattr(type_, '_field_types'): # typing.NamedTuple
+    return type_(**{f : default_value(t) for f, t in type_._field_types.items()})
+  elif issubclass(type_, typing.Tuple):
+    return tuple(default_value(t) for i, t in enumerate(type_.__args__))
+  else:
+    raise TypeError("Unknown type %s" % type_)
+
