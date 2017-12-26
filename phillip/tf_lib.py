@@ -66,6 +66,17 @@ def apply_grads(params, grads):
 def scale_gradient(t, scale):
   return (1.-scale) * tf.stop_gradient(t) + scale * t
 
+def windowed(t, n):
+  """Gives a windowed view into a Tensor.
+  
+  Args:
+    t: The input Tensor with shape [T, ...]
+    n: An integer >= 0.
+  Returns:
+    A Tensor with shape [n+1, T-n, ...]
+  """
+  return tf.stack([t[i:i-n] for i in range(n)] + [t[n:]])
+
 def scaled_weight_variable(shape):
     '''
     Generates a TensorFlow Tensor. This Tensor gets initialized with values sampled from the truncated normal

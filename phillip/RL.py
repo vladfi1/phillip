@@ -34,10 +34,10 @@ class RL(Default):
     Option('gpu', action="store_true", default=False, help="run on gpu"),
     Option('action_type', type=str, default="diagonal", choices=ssbm.actionTypes.keys()),
     Option('name', type=str),
+    Option('predict', type=int, default=0),
     Option('train_model', type=int, default=0),
     Option('train_policy', type=int, default=1),
     Option('train_critic', type=int, default=1),
-    Option('predict', type=int, default=0),
     Option('profile', type=int, default=0, help='profile tensorflow graph execution'),
     Option('save_cpu', type=int, default=0),
   ]
@@ -89,6 +89,7 @@ class RL(Default):
         print("Creating model.")
         self.model = Model(self.embedGame, embedAction.size, self.config, **kwargs)
         self.components['model'] = self.model
+        self.predict = True
 
       if mode == Mode.PLAY or self.train_policy:
         print("Creating policy:", self.policy)
@@ -152,16 +153,18 @@ class RL(Default):
           if self.train_policy:
             if self.predict:
               predict_steps = self.model.predict_steps
-              actor_history = [h[:delay_length] for h in predicted_history]
+              actor_history = predicted_history
             else:
               predict_steps = 0
               actor_history = history
+            
+            delay_length = length - delay
+            actor_history = [h[:delay_length] for h in actor_history]
   
-            # delayed actions is a D+1-P length list of shape [B, T-M-D] tensors
+            # delayed actions is a D+1-P length list of shape [T-M-D, B] tensors
             # The valid state indices are [M+P, T+P-D)
             # Element i corresponds to the i'th queued up action: 0 is the action about to be taken, D-P was the action chosen on this frame.
             delayed_actions = []
-            delay_length = length - delay
             for i in range(predict_steps, delay+1):
               delayed_actions.append(actions[i:i+delay_length])
             train_probs, train_log_probs, entropy = self.policy.train_probs(actor_history, delayed_actions)
