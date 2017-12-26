@@ -216,7 +216,7 @@ class RL(Default):
 
         states = self.embedGame(self.input['state'])
         prev_actions = embedAction(self.input['prev_action'])
-        combined = tf.concat(axis=1, values=[states, prev_actions])
+        combined = tf.concat(axis=-1, values=[states, prev_actions])
         history = tf.unstack(combined)
         actions = embedAction(self.input['delayed_action'])
         

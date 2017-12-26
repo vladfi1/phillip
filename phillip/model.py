@@ -123,6 +123,22 @@ class Model(Default):
     last_state = util.deepMap(lambda t: t[-1], raw_state)
     last_state = self.embedGame(last_state, residual=True)
 
+    def predict_step(i, prev_history, prev_state):
+      current_action = actions[i]
+      inputs = tf.concat(axis=-1, values=prev_history + [current_action])
+      
+      predicted_state = self.apply(inputs, prev_state)
+      
+      next_inputs = self.embedGame.to_input(predicted_state)
+      next_inputs = tf.concat(axis=-1, values=[next_inputs, current_action])
+      next_history = prev_history[1:] + [next_inputs]
+    
+      return i+1, next_history, predicted_state
+
+    loop_vars = (0, history, last_state)
+    cond = lambda i, *_: i < self.predict_steps
+    _, predicted_history, _ = tf.while_loop(cond, predict_step, loop_vars)
+
     for step, action in enumerate(tf.unstack(actions)):
       input_ = tf.concat(axis=0, values=history[step:] + [action])
       predicted_state = self.apply(input_, last_state)
@@ -132,7 +148,13 @@ class Model(Default):
       next_input = self.embedGame.to_input(predicted_state)
       history.append(tf.concat(axis=0, values=[next_input, action]))
     
-    return history
+    difference = tf.abs(predicted_history[-1] - history[-1])
+    same_difference = tf.assert_less(difference, 1e-5)
+    
+    with tf.control_dependencies([same_difference]):
+      history[-1] = tf.identity(history[-1])
+    
+    return predicted_history
   
   def test_train_predict(self):
     dummy_input = tf.zeros([self.embedGame.size + self.action_size])
