@@ -77,7 +77,7 @@ class Model(Default):
     history = [h[:-self.predict_steps] for h in history]
     current_actions = tfl.windowed(actions, self.predict_steps)
     
-    states = util.deepMap(lambda t: tfl.windowed(t, self.predict_steps), state)
+    states = util.deepMap(lambda t: tfl.windowed(t[memory:], self.predict_steps), state)
     begin_states = util.deepMap(lambda t: t[0], states)
     target_states = util.deepMap(lambda t: t[1:], states)
     
