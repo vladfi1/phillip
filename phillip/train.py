@@ -1,6 +1,6 @@
 import os, sys
 import time
-from phillip import RL, util
+from phillip import RL, util, ssbm
 from phillip.default import *
 import numpy as np
 from collections import defaultdict
@@ -233,6 +233,17 @@ class Trainer(Default):
         import objgraph
         #gc.collect()  # don't care about stuff that would be garbage collected properly
         objgraph.show_growth()
+  
+  def fake_train(self):
+    experience = (ssbm.SimpleStateAction * self.model.config.experience_length)()
+    experience = ssbm.prepareStateActions(experience)
+    experience['initial'] = util.deepMap(np.zeros, self.model.core.hidden_size)
+    
+    experiences = [experience] * self.batch_size
+    count = 0
+    while count != self.sweep_limit:
+      self.model.train(experiences, self.batch_steps)
+      count += 1
 
 if __name__ == '__main__':
   from argparse import ArgumentParser
@@ -244,8 +255,13 @@ if __name__ == '__main__':
   for policy in RL.policies.values():
     for opt in policy.full_opts():
       opt.update_parser(parser)
+      
+  parser.add_argument('--fake', action='store_true', help='Train on fake experiences for debugging.')
 
   args = parser.parse_args()
   trainer = Trainer(**args.__dict__)
-  trainer.train()
+  if args.fake:
+    trainer.fake_train()
+  else:
+    trainer.train()
 
