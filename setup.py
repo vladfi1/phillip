@@ -29,7 +29,7 @@ setup(
     long_description=long_description,
 
     # The project's main homepage.
-    url='https://github.com/vladfi1/gym-dolphin',
+    url='https://github.com/vladfi1/phillip',
 
     # Author details
     author='Vlad Firoiu',
@@ -59,10 +59,11 @@ setup(
         'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
     ],
 
     # What does your project relate to?
-    keywords='dolphin ssbm',
+    keywords='ssbm ai ml',
 
     # You can just specify the packages manually here if your project is
     # simple. Or you can use find_packages().
