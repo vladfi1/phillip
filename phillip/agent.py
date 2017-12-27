@@ -8,6 +8,7 @@ import pprint
 import os
 import uuid
 import pickle
+from . import reward
 
 pp = pprint.PrettyPrinter(indent=2)
 
@@ -40,6 +41,8 @@ class Agent(Default):
     self.history = util.CircularQueue(array=((self.rl.config.memory+1) * ssbm.SimpleStateAction)())
     
     self.hidden = util.deepMap(np.zeros, self.rl.policy.hidden_size)
+    self.prev_state = ssbm.GameMemory() # for rewards
+    self.avg_reward = 0.
     
     self.rl.restore()
     self.global_step = self.rl.get_global_step()
@@ -131,6 +134,13 @@ class Agent(Default):
     
     verbose = self.verbose and (self.action_counter % (10 * self.rl.config.fps) == 0)
     #verbose = False
+    
+    r = reward.rewards_np(ct.vectorizeCTypes(ssbm.GameMemory, [self.prev_state, state]))[0]
+    decay = 1e-3
+    self.avg_reward = (1 - decay) * self.avg_reward + decay * r
+    ct.copy(state, self.prev_state)
+    if verbose:
+      print("avg_reward: %f" % self.avg_reward)
     
     current = self.history.peek()
     current.state = state # copy

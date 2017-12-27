@@ -7,7 +7,6 @@ from .pad import *
 import time
 from . import ctype_util as ct
 from numpy import random
-from .reward import computeRewards
 from .default import *
 import functools
 
