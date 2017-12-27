@@ -166,10 +166,7 @@ class CircularQueue:
     self.index %= self.size
   
   def __getitem__(self, index):
-    if index < 0 or index >= self.size:
-      raise IndexError
-    
-    return self.array[(self.index + index) % self.size]
+    return self.array[(self.size + self.index + index) % self.size]
   
   def __len__(self):
     return self.size
