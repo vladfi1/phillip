@@ -108,7 +108,7 @@ class Trainer(Default):
     global_step = self.model.get_global_step()
     
     times = ['min_collect', 'extra_collect', 'train', 'save']
-    averages = {name: util.MovingAverage() for name in times}
+    averages = {name: util.MovingAverage(.9) for name in times}
     
     timer = util.Timer()
     def split(name):
@@ -226,7 +226,7 @@ class Trainer(Default):
       time_avgs = [averages[name].avg for name in times]
       total_time = sum(time_avgs)
       time_avgs = ['%.3f' % (t / total_time) for t in time_avgs]
-      print(sweeps, len(experiences), collected, dropped, doa, *time_avgs)
+      print(sweeps, len(experiences), collected, dropped, doa, total_time, *time_avgs)
       print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
 
       if self.objgraph:
