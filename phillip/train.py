@@ -240,10 +240,30 @@ class Trainer(Default):
     experience['initial'] = util.deepMap(np.zeros, self.model.core.hidden_size)
     
     experiences = [experience] * self.batch_size
-    count = 0
-    while count != self.sweep_limit:
-      self.model.train(experiences, self.batch_steps)
-      count += 1
+    
+    # For more advanced usage, user can control the tracing steps and
+    # dumping steps. User can also run online profiling during training.
+    #
+    # Create options to profile time/memory as well as parameters.
+    builder = tf.profiler.ProfileOptionBuilder
+    opts = builder(builder.time_and_memory()).order_by('micros').build()
+    opts2 = tf.profiler.ProfileOptionBuilder.trainable_variables_parameter()
+
+    # Collect traces of steps 10~20, dump the whole profile (with traces of
+    # step 10~20) at step 20. The dumped profile can be used for further profiling
+    # with command line interface or Web UI.
+    with tf.contrib.tfprof.ProfileContext('/tmp/train_dir',
+                                          trace_steps=range(10, 20),
+                                          dump_steps=[20]) as pctx:
+      # Run online profiling with 'op' view and 'opts' options at step 15, 18, 20.
+      pctx.add_auto_profiling('op', opts, [15, 18, 20])
+      # Run online profiling with 'scope' view and 'opts2' options at step 20.
+      pctx.add_auto_profiling('scope', opts2, [20])
+      # High level API, such as slim, Estimator, etc.
+      count = 0
+      while count != self.sweep_limit:
+        self.model.train(experiences, self.batch_steps)
+        count += 1
 
 if __name__ == '__main__':
   from argparse import ArgumentParser
