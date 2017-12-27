@@ -42,7 +42,7 @@ class Agent(Default):
     
     self.hidden = util.deepMap(np.zeros, self.rl.core.hidden_size)
     self.prev_state = ssbm.GameMemory() # for rewards
-    self.avg_reward = 0.
+    self.avg_reward = util.MovingAverage(.999)
     
     self.rl.restore()
     self.global_step = self.rl.get_global_step()
@@ -136,11 +136,11 @@ class Agent(Default):
     #verbose = False
     
     r = reward.rewards_np(ct.vectorizeCTypes(ssbm.GameMemory, [self.prev_state, state]))[0]
-    decay = 1e-3
-    self.avg_reward = (1 - decay) * self.avg_reward + decay * r
+    self.avg_reward.append(r)
     ct.copy(state, self.prev_state)
+    
     if verbose:
-      print("avg_reward: %f" % self.avg_reward)
+      print("avg_reward: %f" % self.avg_reward.avg)
     
     current = self.history.peek()
     current.state = state # copy

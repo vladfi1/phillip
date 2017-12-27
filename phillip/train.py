@@ -106,11 +106,18 @@ class Trainer(Default):
     sweeps = 0
     step = 0
     global_step = self.model.get_global_step()
-      
+    
+    times = ['min_collect', 'extra_collect', 'train', 'save']
+    averages = {name: util.MovingAverage() for name in times}
+    
+    timer = util.Timer()
+    def split(name):
+      averages[name].append(timer.split())
+    
     experiences = []
     
     while sweeps != self.sweep_limit:
-      start_time = time.time()
+      timer.reset()
       
       #print('Start: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
 
@@ -141,7 +148,7 @@ class Trainer(Default):
           doa += 1
           pass
 
-      collect_split = time.time()
+      split('min_collect')
 
       # pull in all the extra experiences
       for _ in range(self.sweep_size):
@@ -163,7 +170,7 @@ class Trainer(Default):
       print("Mean age:", ages.mean())
             
       #print('After collect: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
-      collect_time = time.time()
+      split('extra_collect')
       
       for _ in range(self.sweeps):
         from random import shuffle
@@ -194,7 +201,7 @@ class Trainer(Default):
           dropped += old_len - len(experiences)
       
       #print('After train: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
-      train_time = time.time()
+      split('train')
 
       if self.send:
         #self.params_socket.send_string("", zmq.SNDMORE)
@@ -207,7 +214,7 @@ class Trainer(Default):
       self.save()
       
       #print('After save: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
-      save_time = time.time()
+      split('save')
       
       sweeps += 1
       
@@ -216,12 +223,10 @@ class Trainer(Default):
         print(diff_objects(after, before))
         before = after
       
-      save_time -= train_time
-      train_time -= collect_time
-      collect_time -= collect_split
-      collect_split -= start_time
-      
-      print(sweeps, len(experiences), collected, dropped, doa, collect_split, collect_time, train_time, save_time)
+      time_avgs = [averages[name].avg for name in times]
+      total_time = sum(time_avgs)
+      time_avgs = ['%.3f' % (t / total_time) for t in time_avgs]
+      print(sweeps, len(experiences), collected, dropped, doa, *time_avgs)
       print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
 
       if self.objgraph:
