@@ -39,7 +39,7 @@ model = 'ActorCritic'
 
 exp_name += model
 
-recurrent = model.count('Recurrent')
+recurrent = True
 dqn = model.count('DQN')
 ac = model.count('ActorCritic')
 
@@ -56,27 +56,28 @@ add_param('sweeps', 1, False)
 add_param('batch_size', 64, False)
 add_param('batches', 1, False)
 add_param('batch_steps', 1, False)
-add_param('max_age', 16)
+add_param('max_age', 32, False)
 
-sweep_size = params['batch_size'] * params['batches']
-add_param('sweep_size', sweep_size) # only for experiment name
+#sweep_size = params['batch_size'] * params['batches']
+#add_param('sweep_size', sweep_size) # only for experiment name
 add_param('min_collect', 8, False)
 
-add_param('reward_halflife', 2, False)
+add_param('reward_halflife', 4, False)
 
 predict = False
-#predict = True
+predict = True
 add_param('predict', predict, False)
 
-delay = 3
+delay = 4
 if predict:
   add_param('predict_steps', delay)
-  #add_param('predict_scale', 1e-5)
-  add_param('model_learning_rate', 2e-5, False)
-  add_param('model_layers', [512], False)
+  add_param('model_weight', .1, True)
+  add_param('model_layers', [256], False)
   add_param('train_model', True, False)
 
-#add_param('actor_learning_rate', 2e-5)
+add_param('core_layers', [256], False)
+add_param('actor_layers', [128], False)
+add_param('critic_layers', [128], False)
 
 #add_param('train_policy', True)
 #add_param('train_critic', False)
@@ -108,15 +109,14 @@ elif ac:
   if natural:
     add_param('entropy_scale', 2e-4, True)
   else:
-    add_param('entropy_scale', 1e-2 if recurrent else 2e-3, False)
+    add_param('entropy_scale', 1e-4, False)
 
 if recurrent:
 #  add_param('clip', 0.05)
-  add_param('initial', 'train')
+  add_param('recurrent', True)
+  add_param('initial', 'train', False)
 
-  add_param('dynamic', not natural, False)
-
-add_param('gae_lambda', 0.9, False)
+add_param('gae_lambda', 0.99, False)
 #add_param('retrace', True)
 
 # embed params
@@ -166,16 +166,16 @@ if not recurrent:
   add_param('memory', 1)
   #add_param('memory', 0, False)
 
-stage = 'battlefield'
-#stage = 'final_destination'
+#stage = 'battlefield'
+stage = 'final_destination'
 add_param('stage', stage, False)
 
 add_param('char', char, True)
 
 enemies = None
-#enemies = "cpu"
+enemies = "cpu"
 #enemies = "easy"
-enemies = "delay0"
+#enemies = "delay0"
 #enemies = "delay%d" % delay
 #enemies = ['self']
 #enemies = 'hard-self'
@@ -184,7 +184,7 @@ add_param('enemies', enemies)
 add_param('enemy_reload', 3600, False)
 
 # total number of agents
-agents = 80
+agents = 120
 params['agents'] = agents
 
 if args.name is not None:
