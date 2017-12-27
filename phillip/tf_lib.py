@@ -169,13 +169,9 @@ def softmax(x):
   return y
 
 def matmul(v, m):
-  shape = tf.shape(v)
-  rank = shape.get_shape()[0].value
-  v = tf.expand_dims(v, rank)
-  
+  v = tf.expand_dims(v, -1)
   vm = tf.multiply(v, m)
-  
-  return tf.reduce_sum(vm, rank-1)
+  return tf.reduce_sum(vm, -2)
 
 # I think this is the more efficient version?
 def matmul2(x, m, bias=None, nl=None):
@@ -305,29 +301,6 @@ def one_hot(size):
 def rank(t):
   return tf.shape(tf.shape(t))[0]
 
-def run(session, fetches, feed_dict):
-    """Wrapper for making Session.run() more user friendly.
-
-    With this function, fetches can be either a list or a dictionary.
-
-    If fetches is a list, this function will behave like
-    tf.session.run() and return a list in the same order as well. If
-    fetches is a dict then this function will also return a dict where
-    the returned values are associated with the corresponding keys from
-    the fetches dict.
-
-    Keyword arguments:
-    session -- An open TensorFlow session.
-    fetches -- A list or dict of ops to fetch.
-    feed_dict -- The dict of values to feed to the computation graph.
-    """
-    if isinstance(fetches, dict):
-        keys, values = fetches.keys(), list(fetches.values())
-        res = session.run(values, feed_dict)
-        return {key: value for key, value in zip(keys, res)}
-    else:
-        return session.run(fetches, feed_dict)
-
 class GRUCell(tf.contrib.rnn.RNNCell):
   def __init__(self, input_size, hidden_size, nl=tf.tanh, name=None):
     with tf.variable_scope(name or type(self).__name__):
@@ -349,10 +322,10 @@ class GRUCell(tf.contrib.rnn.RNNCell):
     return self._num_units  
   
   def __call__(self, inputs, state):
-    ru = tf.sigmoid(tf.matmul(tf.concat(axis=1, values=[inputs, state]), self.Wru) + self.bru)
-    r, u = tf.split(axis=1, num_or_size_splits=2, value=ru)
+    ru = tf.sigmoid(matmul2(tf.concat(axis=-1, values=[inputs, state]), self.Wru) + self.bru)
+    r, u = tf.split(axis=-1, num_or_size_splits=2, value=ru)
     
-    c = self.nl(tf.matmul(tf.concat(axis=1, values=[inputs, r * state]), self.Wc) + self.bc)
+    c = self.nl(matmul2(tf.concat(axis=-1, values=[inputs, r * state]), self.Wc) + self.bc)
     new_h = u * state + (1 - u) * c
     
     return new_h, new_h

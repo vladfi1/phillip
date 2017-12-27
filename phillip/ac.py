@@ -5,8 +5,6 @@ from numpy import random
 from .default import *
 
 class ActorCritic(Default):
-  hidden_size = []
-  
   _options = [
     Option('actor_layers', type=int, nargs='+', default=[128, 128]),
     Option('fix_scopes', type=bool, default=False),
@@ -16,7 +14,7 @@ class ActorCritic(Default):
     Option('entropy_power', type=float, default=1),
     Option('entropy_scale', type=float, default=0.001),
 
-    Option('actor_learning_rate', type=float, default=1e-4),
+    Option('actor_weight', type=float, default=1.),
   ]
 
   _members = [
@@ -27,6 +25,7 @@ class ActorCritic(Default):
   def __init__(self, input_size, action_size, rlConfig, **kwargs):
     Default.__init__(self, **kwargs)
     self.action_size = action_size
+    self.action_set = list(range(action_size))
     self.rlConfig = rlConfig
     
     name = "actor"
@@ -47,13 +46,12 @@ class ActorCritic(Default):
     
     self.actor = net
 
-  def train_probs(self, history, actions):
-    history = history[-self.rlConfig.memory-1:]
+  def train_probs(self, inputs, actions):
     delayed_actions = actions[:-1]
-    input_ = tf.concat(axis=2, values=history + delayed_actions)
+    inputs = tf.concat(axis=2, values=[inputs] + delayed_actions)
     actions = actions[-1]
     
-    actor_probs = self.actor(input_)
+    actor_probs = self.actor(inputs)
     log_actor_probs = tf.log(actor_probs)
 
     entropy = - tfl.batch_dot(actor_probs, log_actor_probs)
@@ -69,18 +67,16 @@ class ActorCritic(Default):
 
   def train(self, taken_log_probs, advantages, entropy):
     actor_gain = taken_log_probs * tf.stop_gradient(advantages) + self.entropy_scale * entropy
-    optimizer = tf.train.AdamOptimizer(self.actor_learning_rate)
-    return optimizer.minimize(-actor_gain, var_list=self.getVariables())
+    return -tf.reduce_mean(actor_gain) * self.actor_weight
 
   def getVariables(self):
     return self.actor.getVariables()
   
-  def getPolicy(self, history, delayed_actions, **unused):
-    history = history[-self.rlConfig.memory-1:]
-    input_ = tf.concat(axis=0, values=history + tf.unstack(delayed_actions))
+  def getPolicy(self, core_output, delayed_actions, **unused):
+    input_ = tf.concat(axis=0, values=[core_output] + tf.unstack(delayed_actions))
     return self.actor(input_)
 
   def act(self, policy, verbose=False):
-    action = random.choice(range(self.action_size), p=policy)
-    return action, policy[action], []
+    action = random.choice(self.action_set, p=policy)
+    return action, policy[action]
 

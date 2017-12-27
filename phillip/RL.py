@@ -11,8 +11,7 @@ from .rac import RecurrentActorCritic
 from .rdqn import RecurrentDQN
 from .critic import Critic
 from .model import Model
-
-#import resource
+from .core import Core
 
 class Mode(Enum):
   TRAIN = 0
@@ -47,6 +46,7 @@ class RL(Default):
     ('embedGame', embed.GameEmbedding),
     ('critic', Critic),
     ('model', Model),
+    ('core', Core),
     #('opt', Optimizer),
   ]
   
@@ -84,10 +84,12 @@ class RL(Default):
       print("History size:", history_size)
 
       self.components = {}
+      self.core = Core(history_size, **kwargs)
+      self.components['core'] = self.core
       
       if self.predict or (mode == Mode.TRAIN and self.train_model):
         print("Creating model.")
-        self.model = Model(self.embedGame, embedAction.size, self.config, **kwargs)
+        self.model = Model(self.embedGame, embedAction.size, self.core, self.config, **kwargs)
         self.components['model'] = self.model
         self.predict = True
 
@@ -97,14 +99,14 @@ class RL(Default):
         effective_delay = self.config.delay
         if self.predict:
           effective_delay -= self.model.predict_steps
-        input_size = history_size + effective_delay * embedAction.size
+        input_size = self.core.output_size + effective_delay * embedAction.size
         self.policy = policyType(input_size, embedAction.size, self.config, **kwargs)
         self.components['policy'] = self.policy
       
       if mode == Mode.TRAIN:
         if self.train_policy or self.train_critic:
           print("Creating critic.")
-          self.critic = Critic(history_size, **kwargs)
+          self.critic = Critic(self.core.output_size, **kwargs)
           self.components['critic'] = self.critic
 
         self.experience = ct.inputCType(ssbm.SimpleStateAction, [None, self.config.experience_length], "experience")
@@ -115,12 +117,7 @@ class RL(Default):
         experience = util.deepMap(tf.transpose, self.experience)
         
         # initial state for recurrent networks
-        #self.experience['initial'] = tuple(tf.placeholder(tf.float32, [None, size], name='experience/initial/%d' % i) for i, size in enumerate(self.policy.hidden_size))
-        if self.train_policy:
-          self.experience['initial'] = util.deepMap(lambda size: tf.placeholder(tf.float32, [None, size], name="experience/initial"), self.policy.hidden_size)
-        else:
-          self.experience['initial'] = []
-        
+        self.experience['initial'] = tuple(tf.placeholder(tf.float32, [None, size], name='experience/initial/%d' % i) for i, size in enumerate(self.core.hidden_size))
         experience['initial'] = self.experience['initial']
 
         states = self.embedGame(experience['state'])
@@ -132,6 +129,15 @@ class RL(Default):
         delay = self.config.delay
         length = self.config.experience_length - memory
         history = [combined[i:i+length] for i in range(memory+1)]
+        inputs = tf.concat(axis=-1, values=history)
+        if self.core.recurrent:
+          def f(prev, current_input):
+            _, prev_state = prev
+            return self.core(current_input, prev_state)
+          dummy_output = tf.placeholder(tf.float32, [None, self.core.output_size], name='dummy_core_output')
+          core_outputs, hidden_states = tf.scan(f, inputs, (dummy_output, experience['initial']))
+        else:
+          core_outputs, hidden_states = self.core(inputs, experience['initial'])
 
         actions = actions[memory:]
         rewards = experience['reward'][memory:]
@@ -140,36 +146,36 @@ class RL(Default):
 
         with tf.variable_scope('train'):
           train_ops = []
-          #losses = []
-          #loss_vars = []
+          losses = []
+          loss_vars = []
   
           if self.train_model or self.predict:
-            train_model, predicted_history = self.model.train(history, actions, experience['state'])
+            model_loss, predicted_core_outputs = self.model.train(history, core_outputs, hidden_states, actions, experience['state'])
           if self.train_model:
-            train_ops.append(train_model)
-            #losses.append(model_loss)
-            #loss_vars.extend(self.model.getVariables())
+            #train_ops.append(train_model)
+            losses.append(model_loss)
+            loss_vars.extend(self.model.getVariables())
           
           if self.train_policy:
             if self.predict:
               predict_steps = self.model.predict_steps
-              actor_history = predicted_history
+              actor_inputs = predicted_core_outputs
             else:
               predict_steps = 0
-              actor_history = history
+              actor_inputs = core_outputs
             
             delay_length = length - delay
-            actor_history = [h[:delay_length] for h in actor_history]
+            actor_inputs = actor_inputs[:delay_length]
   
-            # delayed actions is a D+1-P length list of shape [T-M-D, B] tensors
+            # delayed_actions is a D+1-P length list of shape [T-M-D, B] tensors
             # The valid state indices are [M+P, T+P-D)
             # Element i corresponds to the i'th queued up action: 0 is the action about to be taken, D-P was the action chosen on this frame.
             delayed_actions = []
             for i in range(predict_steps, delay+1):
               delayed_actions.append(actions[i:i+delay_length])
-            train_probs, train_log_probs, entropy = self.policy.train_probs(actor_history, delayed_actions)
+            train_probs, train_log_probs, entropy = self.policy.train_probs(actor_inputs, delayed_actions)
             
-            behavior_probs = experience['prob'][memory+delay:] # these are the states we can compute probabilities for
+            behavior_probs = experience['prob'][memory+delay:] # these are the actions we can compute probabilities for
             prob_ratios = train_probs / behavior_probs
             self.kls = -tf.reduce_mean(tf.log(prob_ratios), 0)
             kl = tf.reduce_mean(self.kls)
@@ -179,20 +185,20 @@ class RL(Default):
 
           # run the critic
           if self.train_policy or self.train_critic:
-            train_critic, targets, advantages = self.critic([h[delay:] for h in history], rewards[delay:], prob_ratios[:-1])
+            critic_loss, targets, advantages = self.critic(core_outputs[delay:], rewards[delay:], prob_ratios[:-1])
           if self.train_critic:
-            train_ops.append(train_critic)
+            losses.append(critic_loss)
+            loss_vars.extend(self.critic.variables)
           
           if self.train_policy:
-            train_policy = self.policy.train(train_log_probs[:-1], advantages, entropy[:-1])
-            train_ops.append(train_policy)
+            policy_loss = self.policy.train(train_log_probs[:-1], advantages, entropy[:-1])
+            losses.append(policy_loss)
+            loss_vars.extend(self.policy.getVariables())
 
-          """
           total_loss = tf.add_n(losses)
-          self.opt = Optimizer(**kwargs)
-          op = self.opt.optimize(total_loss / self.opt.learning_rate)
+          self.opt = tf.train.AdamOptimizer(1e-4)
+          op = self.opt.minimize(total_loss)
           train_ops.append(op)
-          """
           
         print("Created train op(s)")
 
@@ -212,22 +218,24 @@ class RL(Default):
         # with tf.name_scope('policy'):
         self.input = ct.inputCType(ssbm.SimpleStateAction, [self.config.memory+1], "input")
         self.input['delayed_action'] = tf.placeholder(tf.int64, [self.config.delay], "delayed_action")
-        self.input['hidden'] = util.deepMap(lambda size: tf.placeholder(tf.float32, [size], name="input/hidden"), self.policy.hidden_size)
+        self.input['hidden'] = util.deepMap(lambda size: tf.placeholder(tf.float32, [size], name="input/hidden"), self.core.hidden_size)
 
         states = self.embedGame(self.input['state'])
         prev_actions = embedAction(self.input['prev_action'])
         combined = tf.concat(axis=-1, values=[states, prev_actions])
         history = tf.unstack(combined)
+        inputs = tf.concat(axis=-1, values=history)
+        core_output, hidden_state = self.core(inputs, self.input['hidden'])
         actions = embedAction(self.input['delayed_action'])
         
         if self.predict:
           predict_actions = actions[:self.model.predict_steps]
           delayed_actions = actions[self.model.predict_steps:]
-          history = self.model.predict(history, predict_actions, self.input['state'])
+          core_output = self.model.predict(history, core_output, hidden_state, predict_actions, self.input['state'])
         else:
           delayed_actions = actions
         
-        self.run_policy = self.policy.getPolicy(history, delayed_actions)
+        self.run_policy = self.policy.getPolicy(core_output, delayed_actions), hidden_state
       
       self.debug = debug
       
@@ -262,7 +270,8 @@ class RL(Default):
 
   def act(self, input_dict, verbose=False):
     feed_dict = dict(util.deepValues(util.deepZip(self.input, input_dict)))
-    return self.policy.act(self.sess.run(self.run_policy, feed_dict), verbose)
+    policy, hidden = self.sess.run(self.run_policy, feed_dict)
+    return self.policy.act(policy, verbose), hidden
 
   def train(self, experiences,
             batch_steps=1,

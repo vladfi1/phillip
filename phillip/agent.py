@@ -40,7 +40,7 @@ class Agent(Default):
     self.probs = util.CircularQueue(self.rl.config.delay+1, 1.)
     self.history = util.CircularQueue(array=((self.rl.config.memory+1) * ssbm.SimpleStateAction)())
     
-    self.hidden = util.deepMap(np.zeros, self.rl.policy.hidden_size)
+    self.hidden = util.deepMap(np.zeros, self.rl.core.hidden_size)
     self.prev_state = ssbm.GameMemory() # for rewards
     self.avg_reward = 0.
     
@@ -159,7 +159,7 @@ class Agent(Default):
     input_dict['delayed_action'] = self.actions.as_list()[1:]
     #print(input_dict['delayed_action'])
     
-    action, prob, self.hidden = self.rl.act(input_dict, verbose=verbose)
+    (action, prob), self.hidden = self.rl.act(input_dict, verbose=verbose)
 
     #if verbose:
     #  pp.pprint(ct.toDict(state.players[1]))

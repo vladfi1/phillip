@@ -7,7 +7,7 @@ from .rl_common import *
 class Critic(Default):
   _options = [
     Option('critic_layers', type=int, nargs='+', default=[128, 128]),
-    Option('critic_learning_rate', type=float, default=1e-4),
+    Option('critic_weight', type=float, default=.5),
     Option('gae_lambda', type=float, default=1., help="Generalized Advantage Estimation"),
     Option('fix_scopes', type=bool, default=False),
   ]
@@ -37,11 +37,8 @@ class Critic(Default):
     
     self.variables = self.net.getVariables()
   
-  def __call__(self, history, rewards, prob_ratios, **unused):
-    history = history[-self.rlConfig.memory-1:]
-    input_ = tf.concat(axis=2, values=history)
-
-    values = tf.squeeze(self.net(input_), [-1])
+  def __call__(self, inputs, rewards, prob_ratios, **unused):
+    values = tf.squeeze(self.net(inputs), [-1])
     trainVs = values[:-1]
     lastV = values[-1]
     
@@ -58,8 +55,5 @@ class Critic(Default):
     tf.summary.scalar('v_loss', vLoss)
     tf.summary.scalar("v_uev", vLoss / tfl.sample_variance(targets))
     
-    opt = tf.train.AdamOptimizer(self.critic_learning_rate)
-    train_op = opt.minimize(vLoss, var_list=self.variables)
-    
-    return train_op, targets, advantages
+    return vLoss * self.critic_weight, targets, advantages
 
