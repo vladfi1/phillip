@@ -144,58 +144,58 @@ class RL(Default):
         
         print("Creating train ops")
 
-        with tf.variable_scope('train'):
-          train_ops = []
-          losses = []
-          loss_vars = []
-  
-          if self.train_model or self.predict:
-            model_loss, predicted_core_outputs = self.model.train(history, core_outputs, hidden_states, actions, experience['state'])
-          if self.train_model:
-            #train_ops.append(train_model)
-            losses.append(model_loss)
-            loss_vars.extend(self.model.getVariables())
-          
-          if self.train_policy:
-            if self.predict:
-              predict_steps = self.model.predict_steps
-              actor_inputs = predicted_core_outputs
-            else:
-              predict_steps = 0
-              actor_inputs = core_outputs
-            
-            delay_length = length - delay
-            actor_inputs = actor_inputs[:delay_length]
-  
-            # delayed_actions is a D+1-P length list of shape [T-M-D, B] tensors
-            # The valid state indices are [M+P, T+P-D)
-            # Element i corresponds to the i'th queued up action: 0 is the action about to be taken, D-P was the action chosen on this frame.
-            delayed_actions = []
-            for i in range(predict_steps, delay+1):
-              delayed_actions.append(actions[i:i+delay_length])
-            train_probs, train_log_probs, entropy = self.policy.train_probs(actor_inputs, delayed_actions)
-            
-            behavior_probs = experience['prob'][memory+delay:] # these are the actions we can compute probabilities for
-            prob_ratios = train_probs / behavior_probs
-            self.kls = -tf.reduce_mean(tf.log(prob_ratios), 0)
-            kl = tf.reduce_mean(self.kls)
-            tf.summary.scalar('kl', kl)
+        train_ops = []
+        losses = []
+        loss_vars = []
+
+        if self.train_model or self.predict:
+          model_loss, predicted_core_outputs = self.model.train(history, core_outputs, hidden_states, actions, experience['state'])
+        if self.train_model:
+          #train_ops.append(train_model)
+          losses.append(model_loss)
+          loss_vars.extend(self.model.getVariables())
+        
+        if self.train_policy:
+          if self.predict:
+            predict_steps = self.model.predict_steps
+            actor_inputs = predicted_core_outputs
           else:
-            prob_ratios = tf.ones_like() # todo
-
-          # run the critic
-          if self.train_policy or self.train_critic:
-            critic_loss, targets, advantages = self.critic(core_outputs[delay:], rewards[delay:], prob_ratios[:-1])
-          if self.train_critic:
-            losses.append(critic_loss)
-            loss_vars.extend(self.critic.variables)
+            predict_steps = 0
+            actor_inputs = core_outputs
           
-          if self.train_policy:
-            policy_loss = self.policy.train(train_log_probs[:-1], advantages, entropy[:-1])
-            losses.append(policy_loss)
-            loss_vars.extend(self.policy.getVariables())
+          delay_length = length - delay
+          actor_inputs = actor_inputs[:delay_length]
 
-          total_loss = tf.add_n(losses)
+          # delayed_actions is a D+1-P length list of shape [T-M-D, B] tensors
+          # The valid state indices are [M+P, T+P-D)
+          # Element i corresponds to the i'th queued up action: 0 is the action about to be taken, D-P was the action chosen on this frame.
+          delayed_actions = []
+          for i in range(predict_steps, delay+1):
+            delayed_actions.append(actions[i:i+delay_length])
+          train_probs, train_log_probs, entropy = self.policy.train_probs(actor_inputs, delayed_actions)
+          
+          behavior_probs = experience['prob'][memory+delay:] # these are the actions we can compute probabilities for
+          prob_ratios = train_probs / behavior_probs
+          self.kls = -tf.reduce_mean(tf.log(prob_ratios), 0)
+          kl = tf.reduce_mean(self.kls)
+          tf.summary.scalar('kl', kl)
+        else:
+          prob_ratios = tf.ones_like() # todo
+
+        # run the critic
+        if self.train_policy or self.train_critic:
+          critic_loss, targets, advantages = self.critic(core_outputs[delay:], rewards[delay:], prob_ratios[:-1])
+        if self.train_critic:
+          losses.append(critic_loss)
+          loss_vars.extend(self.critic.variables)
+        
+        if self.train_policy:
+          policy_loss = self.policy.train(train_log_probs[:-1], advantages, entropy[:-1])
+          losses.append(policy_loss)
+          loss_vars.extend(self.policy.getVariables())
+
+        total_loss = tf.add_n(losses)
+        with tf.variable_scope('train'):
           self.opt = tf.train.AdamOptimizer(1e-4)
           op = self.opt.minimize(total_loss)
           train_ops.append(op)
@@ -211,7 +211,7 @@ class RL(Default):
         self.increment = tf.assign_add(self.global_step, 1)
         self.misc = tf.group(self.increment)
         self.train_ops = tf.group(*train_ops)
-        
+
         print("Creating summary writer at logs/%s." % self.name)
         self.writer = tf.summary.FileWriter('logs/' + self.name)#, self.graph)
       else:
