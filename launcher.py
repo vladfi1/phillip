@@ -93,6 +93,7 @@ def launch(name, command, cpus=2, mem=1, gpu=False, log=True, qos=None, array=No
     f.write("#SBATCH --time %s\n" % args.time)
     #f.write("#SBATCH --cpu_bind=verbose,cores\n")
     #f.write("#SBATCH --cpu_bind=threads\n")
+    opt("--partition=om_all_nodes,om_test_nodes")
     if gpu:
       if args.any_gpu:
         f.write("#SBATCH --gres gpu:1\n")
