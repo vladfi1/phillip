@@ -25,6 +25,7 @@ class CPU(Default):
       Option('frame_limit', type=int, help="stop after a given number of frames"),
       Option('debug', type=int, default=0),
       Option('tcp', type=int, default=0, help="use zmq over tcp for memory watcher and pipe input"),
+      Option('enemy_dump', type=int, default=0, help="also dump frames for the enemy"),
     ] + [Option('p%d' % i, type=str, choices=characters.keys(), default="falcon", help="character for player %d" % i) for i in [1, 2]]
     
     _members = [
@@ -60,7 +61,7 @@ class CPU(Default):
             enemy_kwargs.update(
                 reload=self.enemy_reload * self.agent.reload,
                 swap=not self.agent.swap,
-                dump=None,
+                dump=self.enemy_dump,
                 pop_id=self.enemy_id,
             )
             enemy = agent.Agent(**enemy_kwargs)

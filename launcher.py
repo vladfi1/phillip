@@ -210,6 +210,7 @@ if run_agents:
       command = ""
       if enemy == "self":
         enemy_path = args.path
+        command += " --enemy_dump 1 --enemy_reload 1"
       else:
         enemy_path = "agents/%s/" % enemy
       command += " --enemy " + enemy_path
