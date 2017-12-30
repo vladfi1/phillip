@@ -155,7 +155,7 @@ if run_trainer:
     if trainer_id:
       trainer_ids.append(trainer_id)
   
-  trainer_depends = ','.join(trainer_ids)
+  trainer_depends = ':'.join(trainer_ids)
 
 class AgentNamer:
   def __init__(self, name):
