@@ -51,6 +51,7 @@ DumpFramesCounter = False
 Crop = True
 DumpFormat = {dump_format}
 DumpCodec = {dump_codec}
+DumpEncoder = {dump_encoder}
 DumpPath = {dump_path}
 """
 
@@ -89,6 +90,7 @@ class SetupUser(Default):
     Option('fm', action="store_true", help="set up config for Faster Melee"),
     Option('dump_format', type=str, default='mp4'),
     Option('dump_codec', type=str, default='h264'),
+    Option('dump_encoder', type=str, default=''),
     Option('dump_path', type=str, default=''),
   ]
   
@@ -123,6 +125,7 @@ class SetupUser(Default):
         dump_ppm=self.dump_ppm,
         dump_path=self.dump_path,
         dump_codec=self.dump_codec,
+        dump_encoder=self.dump_encoder,
         dump_format=self.dump_format))
 
     gameSettings = user + '/GameSettings'
