@@ -64,7 +64,8 @@ class RL(Default):
       self.path = "saves/%s/" % self.name
     
     if self.pop_id >= 0:
-      self.path += '/%d' % self.pop_id
+      self.path = os.path.join(self.path, str(self.pop_id))
+      print(self.path)
     
     self.snapshot = os.path.join(self.path, 'snapshot')
     
