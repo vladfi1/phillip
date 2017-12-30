@@ -71,7 +71,7 @@ class Agent(Default):
           sys.exit("No trainer ip!")
       
       self.dump_socket = nnpy.Socket(nnpy.AF_SP, nnpy.PUSH)
-      sock_addr = "tcp://%s:%d" % (self.trainer_ip, util.port(self.rl.name + "/experience"))
+      sock_addr = "tcp://%s:%d" % (self.trainer_ip, util.port(self.rl.path + "/experience"))
       print("Connecting experience socket to " + sock_addr)
       self.dump_socket.connect(sock_addr)
 
@@ -79,7 +79,7 @@ class Agent(Default):
       self.params_socket.setsockopt(nnpy.SUB, nnpy.SUB_SUBSCRIBE, b"")
       self.params_socket.setsockopt(nnpy.SOL_SOCKET, nnpy.RCVMAXSIZE, -1)
       
-      address = "tcp://%s:%d" % (self.trainer_ip, util.port(self.rl.name + "/params"))
+      address = "tcp://%s:%d" % (self.trainer_ip, util.port(self.rl.path + "/params"))
       print("Connecting params socket to", address)
       self.params_socket.connect(address)
 

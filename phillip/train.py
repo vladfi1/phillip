@@ -44,6 +44,7 @@ class Trainer(Default):
     Option("save_interval", type=float, default=10, help="length of time between saves to disk, in minutes"),
 
     Option("load", type=str, help="path to a json file from which to load params"),
+    Option("pop_size", type=int, default=0),
 
     Option('objgraph', type=int, default=0, help='use objgraph to track memory usage'),
   ]
@@ -70,12 +71,12 @@ class Trainer(Default):
       f.write(address)
 
     self.experience_socket = nnpy.Socket(nnpy.AF_SP, nnpy.PULL)
-    experience_addr = "tcp://%s:%d" % (address, util.port(self.model.name + "/experience"))
+    experience_addr = "tcp://%s:%d" % (address, util.port(self.model.path + "/experience"))
     self.experience_socket.bind(experience_addr)
 
     if self.send:
       self.params_socket = nnpy.Socket(nnpy.AF_SP, nnpy.PUB)
-      params_addr = "tcp://%s:%d" % (address, util.port(self.model.name + "/params"))
+      params_addr = "tcp://%s:%d" % (address, util.port(self.model.path + "/params"))
       print("Binding params socket to", params_addr)
       self.params_socket.bind(params_addr)
 

@@ -18,6 +18,7 @@ class CPU(Default):
       Option('stage', type=str, default="final_destination", choices=movie.stages.keys(), help="which stage to play on"),
       Option('enemy', type=str, help="load enemy agent from file"),
       Option('enemy_reload', type=int, default=0, help="enemy reload interval"),
+      Option('enemy_id', type=int, default=-1, help="enemy population id"),
       Option('cpu', type=int, help="enemy cpu level"),
       Option('start', type=int, default=1, help="start game in endless time mode"),
       Option('netplay', type=str),
@@ -60,6 +61,7 @@ class CPU(Default):
                 reload=self.enemy_reload * self.agent.reload,
                 swap=not self.agent.swap,
                 dump=None,
+                pop_id=self.enemy_id,
             )
             enemy = agent.Agent(**enemy_kwargs)
         

@@ -41,6 +41,7 @@ class RL(Default):
     Option('save_cpu', type=int, default=0),
     Option('learning_rate', type=float, default=1e-4),
     Option('clip_max_grad', type=float, default=1.),
+    Option('pop_id', type=int, default=-1),
   ]
   
   _members = [
@@ -61,6 +62,9 @@ class RL(Default):
     
     if self.path is None:
       self.path = "saves/%s/" % self.name
+    
+    if self.pop_id >= 0:
+      self.path += '/%d' % self.pop_id
     
     self.snapshot = os.path.join(self.path, 'snapshot')
     

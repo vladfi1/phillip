@@ -30,6 +30,7 @@ args = parser.parse_args()
 
 
 params = util.load_params(args.path)
+pop_size = params.get('pop_size')
 
 run_trainer = True
 run_agents = True
@@ -41,13 +42,6 @@ if args.dry_run:
   print("NOT starting jobs:")
 else:
   print("Starting jobs:")
-
-# init model for the first time
-if args.init:
-  from phillip import RL
-  rl = RL.RL(mode=RL.Mode.TRAIN, **params)
-  rl.init()
-  rl.save()
 
 if not os.path.exists("slurm_logs"):
   os.makedirs("slurm_logs")
@@ -62,8 +56,8 @@ def launch(name, command, cpus=2, mem=1, gpu=False, log=True, qos=None, array=No
   if gpu:
     command += " --gpu"
   
+  print(command)
   if args.dry_run:
-    print(command)
     return
   
   if args.local:
@@ -124,13 +118,38 @@ if run_trainer:
   train_command += " --dump " + ("lo" if args.local else "ib0")
   train_command += " --send %d" % args.send
   
+  if args.init:
+    train_command += " --init"
+  
+  if pop_size:
+    train_command += " --pop_id $SLURM_ARRAY_TASK_ID"
+  
   trainer_id = launch(train_name, train_command,
     gpu=not args.nogpu,
     qos='tenenbaum' if args.tenenbaum else None,
-    mem=16
+    mem=16,
+    array=pop_size,
   )
 else:
   trainer_id = None
+
+def get_pop_ids(path):
+  enemy_params = util.load_params(path)
+  enemy_pop_size = enemy_params.get('pop_size')
+  
+  if enemy_pop_size:
+    return list(range(enemy_pop_size))
+  else:
+    return [-1]
+
+class AgentNamer:
+  def __init__(self, name):
+    self.name = name
+    self.counter = 0
+  
+  def __call__(self):
+    self.counter += 1
+    return "agent_%d_%s" % (self.counter, self.name)
 
 if run_agents:
   enemies = 'easy'
@@ -148,50 +167,67 @@ if run_agents:
     agents = args.agents
 
   print("Using %d agents" % agents)
-  agents //= len(enemies)
+  agents_per_enemy = agents // len(enemies)
 
-  agent_count = 0
-  agent_command = "python3 -u phillip/run.py --load " + args.path
+  common_command = "python3 -u phillip/run.py --load " + args.path
   if args.disk:
-    agent_command += " --disk 1"
+    common_command += " --disk 1"
   else:
-    agent_command += " --dump 1"
+    common_command += " --dump 1"
 
   if run_trainer:
     if trainer_id:
-      agent_command += " --trainer_id " + trainer_id
+      common_command += " --trainer_id " + trainer_id
     elif args.local:
-      agent_command += " --trainer_ip 127.0.0.1"
+      common_command += " --trainer_ip 127.0.0.1"
 
   if args.local:
-    agent_command += " --dual_core 0"
+    common_command += " --dual_core 0"
   
-  agent_command += " --dolphin"
-  agent_command += " --exe dolphin-emu-headless"
-  agent_command += " --zmq 1"
-  agent_command += " --pipe_count 1"
-  agent_command += " --random_swap"
-  # agent_command += " --help"
-
+  common_command += " --dolphin"
+  common_command += " --exe dolphin-emu-headless"
+  common_command += " --zmq 1 --pipe_count 1"
+  common_command += " --random_swap"
+  # common_command += " --help"
+  
+  enemy_commands = []
+  
   for enemy in enemies:
-    command = agent_command
     if isinstance(enemy, str):
-      command += " --enemy "
+      command = " --enemy "
       if enemy == "self":
-        command += args.path
+        enemy_path = args.path
       else:
-        command += "agents/%s/" % enemy
+        enemy_path = "agents/%s/" % enemy
+      command += enemy_path
+      
+      enemy_ids = get_pop_ids(enemy_path)
+      agents_per_enemy2 = agents_per_enemy // len(enemy_ids)
+      for pop_id in enemy_ids:
+        enemy_commands.append((command + " --enemy_id %d" % pop_id, agents_per_enemy2))
     else: # cpu dict
-      command += " --cpu {level} --p1 {char}".format(**enemy)
+      command = " --cpu {level} --p1 {char}".format(**enemy)
+      enemy_commands.append((command, agent_per_enemy))
+  
+  pop_ids = [-1]
+  if pop_size:
+    pop_ids = list(range(pop_size))
+  
+  for pop_id in pop_ids:
+    namer = AgentNamer(params['name'] + "_%d" % pop_id)
+    agent_command = common_command
+    agent_command += " --pop_id %d" % pop_id
     
-    agent_name = "agent_%d_%s" % (agent_count, params['name'])
-    launch(agent_name, command,
-      log=args.log_agents,
-      qos='use-everything' if args.use_everything else None,
-      array=agents,
-      depends=trainer_id
-    )
-    agent_count += 1
+    for enemy_command, num_agents in enemy_commands:
+      agent_name = namer()
+      full_command = agent_command + enemy_command
+
+      launch(agent_name, full_command,
+        log=args.log_agents,
+        qos='use-everything' if args.use_everything else None,
+        array=num_agents,
+        depends=trainer_id
+      )
 
 if args.local:
   with open(args.path + '/pids', 'w') as f:
