@@ -74,11 +74,16 @@ def launch(name, command, cpus=2, mem=1, gpu=False, log=True, qos=None, array=No
       f.write("#SBATCH " + s + "\n")
     f.write("#!/bin/bash\n")
     f.write("#SBATCH --job-name " + name + "\n")
+    
+    logname = name
+    if array:
+      logname += "_%a"
     if log:
-      f.write("#SBATCH --output slurm_logs/" + name + "_%a.out\n")
+      f.write("#SBATCH --output slurm_logs/" + logname + ".out\n")
     else:
       f.write("#SBATCH --output /dev/null")
-    f.write("#SBATCH --error slurm_logs/" + name + "_%a.err\n")
+    f.write("#SBATCH --error slurm_logs/" + logname + ".err\n")
+    
     f.write("#SBATCH -c %d\n" % cpus)
     f.write("#SBATCH --mem %dG\n" % mem)
     f.write("#SBATCH --time %s\n" % args.time)
@@ -123,7 +128,7 @@ pop_ids = get_pop_ids(args.path)
 trainer_depends = None
 
 if run_trainer:
-  train_name = "trainer_" + params['name']
+  common_name = "trainer_" + params['name']
   train_command = "python3 -u phillip/train.py --load " + args.path
   train_command += " --dump " + ("lo" if args.local else "ib0")
   train_command += " --send %d" % args.send
@@ -134,6 +139,10 @@ if run_trainer:
   trainer_ids = []
   
   for pop_id in pop_ids:
+    train_name = common_name
+    if pop_id >= 0:
+      train_name += "_%d" % pop_id
+    
     command = train_command
     command += " --pop_id %d" % pop_id
   
