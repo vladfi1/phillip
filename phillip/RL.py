@@ -39,6 +39,8 @@ class RL(Default):
     Option('train_critic', type=int, default=1),
     Option('profile', type=int, default=0, help='profile tensorflow graph execution'),
     Option('save_cpu', type=int, default=0),
+    Option('learning_rate', type=float, default=1e-4),
+    Option('clip_max_grad', type=float, default=1.),
   ]
   
   _members = [
@@ -193,10 +195,12 @@ class RL(Default):
 
         total_loss = tf.add_n(losses)
         with tf.variable_scope('train'):
-          self.opt = tf.train.AdamOptimizer(1e-4)
-          op = self.opt.minimize(total_loss)
-          train_ops.append(op)
-          
+          optimizer = tf.train.AdamOptimizer(self.learning_rate)
+          gvs = optimizer.compute_gradients(total_loss)
+          capped_gvs = [(tf.clip_by_value(grad, -self.clip_max_grad, self.clip_max_grad), var) for grad, var in gvs]
+          train_op = optimizer.apply_gradients(capped_gvs)
+          train_ops.append(train_op)
+        
         print("Created train op(s)")
 
         #tf.scalar_summary("loss", loss)
