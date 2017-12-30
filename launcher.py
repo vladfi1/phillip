@@ -27,10 +27,7 @@ parser.add_argument('--nogpu', action='store_true', help="don't run trainer on a
 parser.add_argument('--send', type=int, default=1, help='send params with zmq PUB/SUB')
 
 args = parser.parse_args()
-
-
 params = util.load_params(args.path)
-pop_size = params.get('pop_size')
 
 run_trainer = True
 run_agents = True
@@ -112,6 +109,19 @@ def launch(name, command, cpus=2, mem=1, gpu=False, log=True, qos=None, array=No
   jobid = output.split()[-1].strip()
   return jobid
 
+def get_pop_ids(path):
+  agent_params = util.load_params(path)
+  agent_pop_size = agent_params.get('pop_size')
+  
+  if agent_pop_size:
+    return list(range(agent_pop_size))
+  else:
+    return [-1]
+
+pop_ids = get_pop_ids(args.path)
+
+trainer_depends = None
+
 if run_trainer:
   train_name = "trainer_" + params['name']
   train_command = "python3 -u phillip/train.py --load " + args.path
@@ -121,26 +131,22 @@ if run_trainer:
   if args.init:
     train_command += " --init"
   
-  if pop_size:
-    train_command += " --pop_id $SLURM_ARRAY_TASK_ID"
+  trainer_ids = []
   
-  trainer_id = launch(train_name, train_command,
-    gpu=not args.nogpu,
-    qos='tenenbaum' if args.tenenbaum else None,
-    mem=16,
-    array=pop_size,
-  )
-else:
-  trainer_id = None
-
-def get_pop_ids(path):
-  enemy_params = util.load_params(path)
-  enemy_pop_size = enemy_params.get('pop_size')
+  for pop_id in pop_ids:
+    command = train_command
+    command += " --pop_id %d" % pop_id
   
-  if enemy_pop_size:
-    return list(range(enemy_pop_size))
-  else:
-    return [-1]
+    trainer_id = launch(train_name, command,
+      gpu=not args.nogpu,
+      qos='tenenbaum' if args.tenenbaum else None,
+      mem=16,
+    )
+    
+    if trainer_id:
+      trainer_ids.append(trainer_id)
+  
+  trainer_depends = ','.join(trainer_ids)
 
 class AgentNamer:
   def __init__(self, name):
@@ -176,9 +182,7 @@ if run_agents:
     common_command += " --dump 1"
 
   if run_trainer:
-    if trainer_id:
-      common_command += " --trainer_id " + trainer_id
-    elif args.local:
+    if args.local:
       common_command += " --trainer_ip 127.0.0.1"
 
   if args.local:
@@ -194,12 +198,12 @@ if run_agents:
   
   for enemy in enemies:
     if isinstance(enemy, str):
-      command = " --enemy "
+      command = ""
       if enemy == "self":
         enemy_path = args.path
       else:
         enemy_path = "agents/%s/" % enemy
-      command += enemy_path
+      command += " --enemy " + enemy_path
       
       enemy_ids = get_pop_ids(enemy_path)
       agents_per_enemy2 = agents_per_enemy // len(enemy_ids)
@@ -208,10 +212,6 @@ if run_agents:
     else: # cpu dict
       command = " --cpu {level} --p1 {char}".format(**enemy)
       enemy_commands.append((command, agent_per_enemy))
-  
-  pop_ids = [-1]
-  if pop_size:
-    pop_ids = list(range(pop_size))
   
   for pop_id in pop_ids:
     namer = AgentNamer(params['name'] + "_%d" % pop_id)
@@ -226,7 +226,7 @@ if run_agents:
         log=args.log_agents,
         qos='use-everything' if args.use_everything else None,
         array=num_agents,
-        depends=trainer_id
+        depends=trainer_depends,
       )
 
 if args.local:
