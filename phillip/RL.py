@@ -197,8 +197,12 @@ class RL(Default):
         with tf.variable_scope('train'):
           optimizer = tf.train.AdamOptimizer(self.learning_rate)
           gvs = optimizer.compute_gradients(total_loss)
-          capped_gvs = [(tf.clip_by_value(grad, -self.clip_max_grad, self.clip_max_grad), var) for grad, var in gvs]
-          train_op = optimizer.apply_gradients(capped_gvs)
+          gs, vs = zip(*gvs)
+          norms = tf.stack([tf.norm(g) for g in gs])
+          max_norm = tf.reduce_max(norms)
+          tf.summary.scalar('max_grad_norm', max_norm)
+          capped_gs = [tf.clip_by_norm(g, self.clip_max_grad) for g in gs]
+          train_op = optimizer.apply_gradients(zip(capped_gs, vs))
           train_ops.append(train_op)
         
         print("Created train op(s)")
