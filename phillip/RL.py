@@ -222,7 +222,8 @@ class RL(Default):
         self.train_ops = tf.group(*train_ops)
 
         print("Creating summary writer at logs/%s." % self.name)
-        self.writer = tf.summary.FileWriter('logs/' + self.name)#, self.graph)
+        #self.writer = tf.summary.FileWriter('logs/' + self.name)#, self.graph)
+        self.writer = tf.summary.FileWriter(self.path)
       else:
         # with tf.name_scope('policy'):
         self.input = ct.inputCType(ssbm.SimpleStateAction, [self.config.memory+1], "input")
