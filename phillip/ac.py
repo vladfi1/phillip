@@ -44,7 +44,7 @@ class ActorCritic(Default):
         net.append(tfl.FCLayer(prev_size, action_size, lambda p: (1. - self.epsilon) * tf.nn.softmax(p) + self.epsilon / action_size))
       
       if self.evolve_entropy:
-        self.entropy_scale = tf.Variable(self.entropy_scale, name='entropy_scale')
+        self.entropy_scale = tf.Variable(self.entropy_scale, trainable=False, name='entropy_scale')
         self.evo_variables.append(("entropy_scale", self.entropy_scale, relative(1.25)))
       
     if not self.fix_scopes:

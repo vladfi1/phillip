@@ -205,7 +205,7 @@ class RL(Default):
           loss_vars.extend(self.policy.getVariables())
 
         if self.evolve_learning_rate:
-          self.learning_rate = tf.Variable(self.learning_rate, name='learning_rate')
+          self.learning_rate = tf.Variable(self.learning_rate, trainable=False, name='learning_rate')
           self.evo_variables.append(('learning_rate', self.learning_rate, relative(1.5)))
 
         total_loss = tf.add_n(losses)
