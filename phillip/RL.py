@@ -42,6 +42,7 @@ class RL(Default):
     Option('learning_rate', type=float, default=1e-4),
     Option('clip_max_grad', type=float, default=1.),
     Option('pop_id', type=int, default=-1),
+    Option('reward_decay', type=float, default=1e-3),
   ]
   
   _members = [
@@ -64,6 +65,7 @@ class RL(Default):
       self.path = "saves/%s/" % self.name
     
     if self.pop_id >= 0:
+      self.root = self.path
       self.path = os.path.join(self.path, str(self.pop_id))
       print(self.path)
     
@@ -215,11 +217,19 @@ class RL(Default):
         #tf.scalar_summary("loss", loss)
         #tf.scalar_summary('learning_rate', tf.log(self.learning_rate))
         
-        tf.summary.scalar('reward', tf.reduce_mean(experience['reward']))
+        avg_reward = tf.reduce_mean(experience['reward'])
+        tf.summary.scalar('reward', avg_reward)
+        
+        misc_ops = []
+        
+        if self.pop_id >= 0:
+          self.reward = tf.Variable(0., trainable=False, name='reward')
+          new_reward = (1. - self.reward_decay) * self.reward + self.reward_decay * avg_reward
+          misc_ops.append(tf.assign(self.reward, new_reward))
         
         self.summarize = tf.summary.merge_all()
-        self.increment = tf.assign_add(self.global_step, 1)
-        self.misc = tf.group(self.increment)
+        misc_ops.append(tf.assign_add(self.global_step, 1))
+        self.misc = tf.group(*misc_ops)
         self.train_ops = tf.group(*train_ops)
 
         print("Creating summary writer at logs/%s." % self.name)
@@ -278,6 +288,9 @@ class RL(Default):
 
   def get_global_step(self):
     return self.sess.run(self.global_step)
+  
+  def get_reward(self):
+    return self.sess.run(self.reward)
 
   def act(self, input_dict, verbose=False):
     feed_dict = dict(util.deepValues(util.deepZip(self.input, input_dict)))
@@ -362,9 +375,11 @@ class RL(Default):
     print("Saving to", self.path)
     self.saver.save(self.sess, self.snapshot, write_meta_graph=False)
 
-  def restore(self):
-    print("Restoring from", self.path)
-    self.saver.restore(self.sess, self.snapshot)
+  def restore(self, path=None):
+    if path is None:
+      path = self.snapshot
+    print("Restoring from", path)
+    self.saver.restore(self.sess, path)
 
   def init(self):
     self.sess.run(self.initializer)

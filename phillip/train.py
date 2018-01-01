@@ -10,6 +10,7 @@ import gc
 import tensorflow as tf
 #from memory_profiler import profile
 import netifaces
+import random
 
 # some helpers for debugging memory leaks
 
@@ -45,6 +46,9 @@ class Trainer(Default):
 
     Option("load", type=str, help="path to a json file from which to load params"),
     Option("pop_size", type=int, default=0),
+    Option('evolve', action="store_true", help="evolve population"),
+    Option("evo_period", type=int, default=1000, help="evolution period"),
+    Option("reward_cutoff", type=float, default=1e-3),
 
     Option('objgraph', type=int, default=0, help='use objgraph to track memory usage'),
   ]
@@ -101,6 +105,25 @@ class Trainer(Default):
       except tf.errors.InternalError as e:
         print(e, file=sys.stderr)
 
+  def selection(self):
+    reward = self.model.get_reward()
+    
+    target_id = random.randint(0, self.pop_size-1)
+    if target_id == self.model.pop_id:
+      return
+    
+    target_path = os.path.join(self.model.root, str(target_id))
+    latest_ckpt = tf.train.latest_checkpoint(target_path)
+    reader = tf.train.NewCheckpointReader(latest_ckpt)
+    target_reward = reader.get_tensor('reward')
+    
+    if target_reward - reward < self.reward_cutoff:
+      print("Target reward too low.")
+      return
+    
+    print("Selecting %d" % target_id)
+    self.model.restore(latest_ckpt)      
+
   def train(self):
     before = count_objects()
 
@@ -118,6 +141,7 @@ class Trainer(Default):
     experiences = []
     
     while sweeps != self.sweep_limit:
+      sweeps += 1
       timer.reset()
       
       #print('Start: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
@@ -204,6 +228,9 @@ class Trainer(Default):
       #print('After train: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
       split('train')
 
+      if self.evolve and sweeps % self.evo_period == 0:
+        self.selection()
+
       if self.send:
         #self.params_socket.send_string("", zmq.SNDMORE)
         params = self.model.blob()
@@ -216,8 +243,6 @@ class Trainer(Default):
       
       #print('After save: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
       split('save')
-      
-      sweeps += 1
       
       if False:
         after = count_objects()
