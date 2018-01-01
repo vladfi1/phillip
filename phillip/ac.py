@@ -3,6 +3,7 @@ from . import tf_lib as tfl, util, opt
 from . import rl_common as RL
 from numpy import random
 from .default import *
+from .mutators import relative
 
 class ActorCritic(Default):
   _options = [
@@ -13,6 +14,7 @@ class ActorCritic(Default):
 
     Option('entropy_power', type=float, default=1),
     Option('entropy_scale', type=float, default=0.001),
+    Option('evolve_entropy', action="store_true"),
 
     Option('actor_weight', type=float, default=1.),
   ]
@@ -27,6 +29,7 @@ class ActorCritic(Default):
     self.action_size = action_size
     self.action_set = list(range(action_size))
     self.rlConfig = rlConfig
+    self.evo_variables = []
     
     name = "actor"
     net = tfl.Sequential()
@@ -40,12 +43,16 @@ class ActorCritic(Default):
       if self.fix_scopes:
         net.append(tfl.FCLayer(prev_size, action_size, lambda p: (1. - self.epsilon) * tf.nn.softmax(p) + self.epsilon / action_size))
       
+      if self.evolve_entropy:
+        self.entropy_scale = tf.Variable(self.entropy_scale, name='entropy_scale')
+        self.evo_variables.append(("entropy_scale", self.entropy_scale, relative(1.25)))
+      
     if not self.fix_scopes:
       with tf.variable_scope('actor'):
         net.append(tfl.FCLayer(prev_size, action_size, lambda p: (1. - self.epsilon) * tf.nn.softmax(p) + self.epsilon / action_size))
     
     self.actor = net
-
+  
   def train_probs(self, inputs, actions):
     delayed_actions = actions[:-1]
     inputs = tf.concat(axis=2, values=[inputs] + delayed_actions)

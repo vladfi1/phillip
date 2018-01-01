@@ -109,8 +109,6 @@ class Trainer(Default):
     reward = self.model.get_reward()
     
     target_id = random.randint(0, self.pop_size-1)
-    if target_id == self.model.pop_id:
-      return
     
     target_path = os.path.join(self.model.root, str(target_id))
     latest_ckpt = tf.train.latest_checkpoint(target_path)
@@ -230,6 +228,7 @@ class Trainer(Default):
 
       if self.evolve and sweeps % self.evo_period == 0:
         self.selection()
+        self.model.mutation()
 
       if self.send:
         #self.params_socket.send_string("", zmq.SNDMORE)

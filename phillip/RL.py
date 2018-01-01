@@ -12,6 +12,7 @@ from .rdqn import RecurrentDQN
 from .critic import Critic
 from .model import Model
 from .core import Core
+from .mutators import relative
 
 class Mode(Enum):
   TRAIN = 0
@@ -43,6 +44,7 @@ class RL(Default):
     Option('clip_max_grad', type=float, default=1.),
     Option('pop_id', type=int, default=-1),
     Option('reward_decay', type=float, default=1e-3),
+    Option('evolve_learning_rate', action="store_true"),
   ]
   
   _members = [
@@ -82,6 +84,7 @@ class RL(Default):
     
     with self.graph.as_default(), tf.device(device):
       self.global_step = tf.Variable(0, name='global_step', trainable=False)
+      self.evo_variables = []
       
       self.embedGame = embed.GameEmbedding(**kwargs)
       state_size = self.embedGame.size
@@ -108,6 +111,7 @@ class RL(Default):
         input_size = self.core.output_size + effective_delay * embedAction.size
         self.policy = policyType(input_size, embedAction.size, self.config, **kwargs)
         self.components['policy'] = self.policy
+        self.evo_variables.extend(self.policy.evo_variables)
       
       if mode == Mode.TRAIN:
         if self.train_policy or self.train_critic:
@@ -200,6 +204,10 @@ class RL(Default):
           losses.append(policy_loss)
           loss_vars.extend(self.policy.getVariables())
 
+        if self.evolve_learning_rate:
+          self.learning_rate = tf.Variable(self.learning_rate, name='learning_rate')
+          self.evo_variables.append(('learning_rate', self.learning_rate, relative(1.5)))
+
         total_loss = tf.add_n(losses)
         with tf.variable_scope('train'):
           optimizer = tf.train.AdamOptimizer(self.learning_rate)
@@ -213,9 +221,6 @@ class RL(Default):
           train_ops.append(train_op)
         
         print("Created train op(s)")
-
-        #tf.scalar_summary("loss", loss)
-        #tf.scalar_summary('learning_rate', tf.log(self.learning_rate))
         
         avg_reward = tf.reduce_mean(experience['reward'])
         tf.summary.scalar('reward', avg_reward)
@@ -226,6 +231,11 @@ class RL(Default):
           self.reward = tf.Variable(0., trainable=False, name='avg_reward')
           new_reward = (1. - self.reward_decay) * self.reward + self.reward_decay * avg_reward
           misc_ops.append(tf.assign(self.reward, new_reward))
+        
+        self.mutators = []
+        for name, evo_variable, mutator in self.evo_variables:
+          tf.summary.scalar(name, evo_variable, family='evolution')
+          self.mutators.append(tf.assign(evo_variable, mutator(evo_variable)))
         
         self.summarize = tf.summary.merge_all()
         misc_ops.append(tf.assign_add(self.global_step, 1))
@@ -291,6 +301,13 @@ class RL(Default):
   
   def get_reward(self):
     return self.sess.run(self.reward)
+
+  def mutation(self, rate=1.):
+    mutations = []
+    for op in self.mutators:
+      if np.random.random() > rate / len(self.mutators):
+        mutations.append(op)
+    self.sess.run(mutations)
 
   def act(self, input_dict, verbose=False):
     feed_dict = dict(util.deepValues(util.deepZip(self.input, input_dict)))
