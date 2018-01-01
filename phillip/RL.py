@@ -223,7 +223,7 @@ class RL(Default):
         misc_ops = []
         
         if self.pop_id >= 0:
-          self.reward = tf.Variable(0., trainable=False, name='reward')
+          self.reward = tf.Variable(0., trainable=False, name='avg_reward')
           new_reward = (1. - self.reward_decay) * self.reward + self.reward_decay * avg_reward
           misc_ops.append(tf.assign(self.reward, new_reward))
         

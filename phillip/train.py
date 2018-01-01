@@ -115,7 +115,7 @@ class Trainer(Default):
     target_path = os.path.join(self.model.root, str(target_id))
     latest_ckpt = tf.train.latest_checkpoint(target_path)
     reader = tf.train.NewCheckpointReader(latest_ckpt)
-    target_reward = reader.get_tensor('reward')
+    target_reward = reader.get_tensor('avg_reward')
     
     if target_reward - reward < self.reward_cutoff:
       print("Target reward too low.")
