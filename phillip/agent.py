@@ -199,13 +199,15 @@ class Agent(Default):
         #topic = self.socket.recv_string(zmq.NOBLOCK)
         blob = self.params_socket.recv(nnpy.DONTWAIT)
         params = pickle.loads(blob)
-        global_step = params['global_step:0']
+        self.global_step = params['global_step:0']
+        latest = params
+        """
         if global_step > self.global_step:
           self.global_step = global_step
           latest = params
         else:
           print("OUT OF ORDER?")
-        
+        """
         num_blobs += 1
       except nnpy.NNError as e:
         if e.error_no == nnpy.EAGAIN:
