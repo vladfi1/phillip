@@ -117,10 +117,11 @@ class Trainer(Default):
     
     if target_reward - reward < self.reward_cutoff:
       print("Target reward too low.")
-      return
+      return False
     
     print("Selecting %d" % target_id)
-    self.model.restore(latest_ckpt)      
+    self.model.restore(latest_ckpt)
+    return True
 
   def train(self):
     before = count_objects()
@@ -165,13 +166,16 @@ class Trainer(Default):
         #print("Waiting for experience")
         exp = pull_experience()
         if is_valid(exp):
+          #print("collected experience", collected)
           experiences.append(exp)
           collected += 1
         else:
+          #print("dead on arrival", doa)
           doa += 1
           pass
 
       split('min_collect')
+      #print('min_collected')
 
       # pull in all the extra experiences
       for _ in range(self.sweep_size):
@@ -227,7 +231,8 @@ class Trainer(Default):
       split('train')
 
       if self.evolve and sweeps % self.evo_period == 0:
-        self.selection()
+        if self.selection():
+          experiences = []
         self.model.mutation()
 
       if self.send:
