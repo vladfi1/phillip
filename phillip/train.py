@@ -11,6 +11,7 @@ import tensorflow as tf
 #from memory_profiler import profile
 import netifaces
 import random
+from random import shuffle
 
 # some helpers for debugging memory leaks
 
@@ -30,14 +31,13 @@ class Trainer(Default):
     #Option("-q", "--quiet", action="store_true", help="don't print status messages to stdout"),
     Option("init", action="store_true", help="initialize variables"),
 
-    Option("sweeps", type=int, default=1, help="number of sweeps between saves"),
     Option("sweep_limit", type=int, default=-1),
-    Option("batches", type=int, default=1, help="number of batches per sweep"),
     Option("batch_size", type=int, default=1, help="number of trajectories per batch"),
     Option("batch_steps", type=int, default=1, help="number of gradient steps to take on each batch"),
     Option("min_collect", type=int, default=1, help="minimum number of experiences to collect between sweeps"),
     Option("max_age", type=int, help="how old an experience can be before we discard it"),
     Option("max_kl", type=float, help="how off-policy an experience can be before we discard it"),
+    Option("max_buffer", type=int, help="maximum size of experience buffer"),
     
     Option("log_interval", type=int, default=10),
     Option("dump", type=str, default="lo", help="interface to listen on for experience dumps"),
@@ -84,7 +84,7 @@ class Trainer(Default):
       print("Binding params socket to", params_addr)
       self.params_socket.bind(params_addr)
 
-    self.sweep_size = self.batches * self.batch_size
+    self.sweep_size = self.batch_size
     print("Sweep size", self.sweep_size)
     
     if self.init:
@@ -199,33 +199,32 @@ class Trainer(Default):
       #print('After collect: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
       split('extra_collect')
       
-      for _ in range(self.sweeps):
-        from random import shuffle
-        shuffle(experiences)
+      shuffle(experiences)
 
-        batches = len(experiences) // self.batch_size
-        batch_size = (len(experiences) + batches - 1) // batches
-        
-        use_kls = self.max_kl is not None
-        if use_kls:
-          kls = []
-        
-        for batch in util.chunk(experiences, batch_size):
-          train_out = self.model.train(batch, self.batch_steps,
-                                       log=(step%self.log_interval==0),
-                                       kls=use_kls)[-1]
-          global_step = train_out['global_step']
-          
-          if use_kls:
-            kls.extend(train_out['kls'])
-          
-          step += 1
-        
-        if use_kls:
-          print("Mean KL", np.mean(kls))
-          old_len = len(experiences)
-          experiences = [exp for kl, exp in zip(kls, experiences) if kl <= self.max_kl]
-          dropped += old_len - len(experiences)
+      batches = len(experiences) // self.batch_size
+      batch_size = (len(experiences) + batches - 1) // batches
+      
+      kls = []
+      
+      for batch in util.chunk(experiences, batch_size):
+        train_out = self.model.train(batch, self.batch_steps,
+                                     log=(step%self.log_interval==0),
+                                     kls=True)[-1]
+        global_step = train_out['global_step']
+        kls.extend(train_out['kls'])
+        step += 1
+      
+      print("Mean KL", np.mean(kls))
+
+      old_len = len(experiences)
+      if self.max_buffer and old_len > self.max_buffer:
+        kl_exps = zip(kls, experiences)
+        kl_exps = sorted(kl_exps)[:self.max_buffer]
+        kls, experiences = zip(*kl_exps)
+        experiences = list(experiences)
+      if self.max_kl:
+        experiences = [exp for kl, exp in zip(kls, experiences) if kl <= self.max_kl]
+      dropped += old_len - len(experiences)
       
       #print('After train: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
       split('train')
