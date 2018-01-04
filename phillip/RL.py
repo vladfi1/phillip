@@ -185,7 +185,7 @@ class RL(Default):
           train_probs, train_log_probs, entropy = self.policy.train_probs(actor_inputs, delayed_actions)
           
           behavior_probs = experience['prob'][memory+delay:] # these are the actions we can compute probabilities for
-          prob_ratios = train_probs / behavior_probs
+          prob_ratios = tf.minimum(train_probs / behavior_probs, 1.)
           self.kls = -tf.reduce_mean(tf.log(prob_ratios), 0)
           kl = tf.reduce_mean(self.kls)
           tf.summary.scalar('kl', kl)
