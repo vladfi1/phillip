@@ -17,7 +17,7 @@
   ],
   "train_model": true,
   "entropy_scale": 0.0005,
-  "gae_lambda": 0.9,
+  "gae_lambda": 0.99,
   "xy_scale": 0.05,
   "action_space": 0,
   "player_space": 0,
