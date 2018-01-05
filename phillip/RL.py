@@ -306,7 +306,7 @@ class RL(Default):
   def mutation(self, rate=1.):
     mutations = []
     for op in self.mutators:
-      if np.random.random() > rate / len(self.mutators):
+      if np.random.random() < rate / len(self.mutators):
         mutations.append(op)
     self.sess.run(mutations)
 
