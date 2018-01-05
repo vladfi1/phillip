@@ -105,7 +105,7 @@ def launch(name, command, cpus=2, mem=1, gpu=False, log=True, qos=None, array=No
     if gpu:
       f.write("source activate tf-gpu-pypi\n")
     else:
-      f.write("source activate tf-cpu-pypi\n")
+      f.write("source activate tf-cpu-opt\n")
     f.write(command)
 
   #command = "screen -S %s -dm srun --job-name %s --pty singularity exec -B $OM_USER/phillip -B $HOME/phillip/ -H ../home phillip.img gdb -ex r --args %s" % (name[:10], name, command)
