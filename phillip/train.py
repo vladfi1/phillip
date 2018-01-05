@@ -211,15 +211,15 @@ class Trainer(Default):
                                      log=(step%self.log_interval==0),
                                      kls=True)[-1]
         global_step = train_out['global_step']
-        kls.extend(train_out['kls'])
+        kls.extend(train_out['kls'].tolist())
         step += 1
-      
+
       print("Mean KL", np.mean(kls))
 
       old_len = len(experiences)
       if self.max_buffer and old_len > self.max_buffer:
         kl_exps = zip(kls, experiences)
-        kl_exps = sorted(kl_exps)[:self.max_buffer]
+        kl_exps = sorted(kl_exps, key=lambda ke: ke[0])[:self.max_buffer]
         kls, experiences = zip(*kl_exps)
         experiences = list(experiences)
       if self.max_kl:
