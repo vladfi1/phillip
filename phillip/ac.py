@@ -31,6 +31,8 @@ class ActorCritic(Default):
     self.rlConfig = rlConfig
     self.evo_variables = []
     
+    policy_nl = lambda logits: (1. - self.epsilon) * tf.nn.softmax(logits) + self.epsilon / action_size
+    
     name = "actor"
     net = tfl.Sequential()
     with tf.variable_scope(name):
@@ -41,7 +43,7 @@ class ActorCritic(Default):
         prev_size = next_size
       
       if self.fix_scopes:
-        net.append(tfl.FCLayer(prev_size, action_size, lambda p: (1. - self.epsilon) * tf.nn.softmax(p) + self.epsilon / action_size))
+        net.append(tfl.FCLayer(prev_size, action_size, policy_nl))
       
       if self.evolve_entropy:
         self.entropy_scale = tf.Variable(self.entropy_scale, trainable=False, name='entropy_scale')
@@ -49,7 +51,7 @@ class ActorCritic(Default):
       
     if not self.fix_scopes:
       with tf.variable_scope('actor'):
-        net.append(tfl.FCLayer(prev_size, action_size, lambda p: (1. - self.epsilon) * tf.nn.softmax(p) + self.epsilon / action_size))
+        net.append(tfl.FCLayer(prev_size, action_size, policy_nl))
     
     self.actor = net
   
