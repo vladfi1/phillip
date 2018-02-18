@@ -159,20 +159,19 @@ class Trainer(Default):
         exp = self.experience_socket.recv(flags=0 if block else nnpy.DONTWAIT)
         return pickle.loads(exp)
 
+      to_collect = max(self.sweep_size - len(experiences), self.min_collect)
+      new_experiences = []
+
       # print("Collecting experiences", len(experiences))
-      collected = 0
       doa = 0 # dead on arrival
-      while len(experiences) < self.sweep_size or collected < self.min_collect:
+      while len(new_experiences) < to_collect:
         #print("Waiting for experience")
         exp = pull_experience()
         if is_valid(exp):
-          #print("collected experience", collected)
-          experiences.append(exp)
-          collected += 1
+          new_experiences.append(exp)
         else:
           #print("dead on arrival", doa)
           doa += 1
-          pass
 
       split('min_collect')
       #print('min_collected')
@@ -182,8 +181,7 @@ class Trainer(Default):
         try:
           exp = pull_experience(False)
           if is_valid(exp):
-            experiences.append(exp)
-            collected += 1
+            new_experiences.append(exp)
           else:
             doa += 1
         except nnpy.NNError as e:
@@ -193,13 +191,15 @@ class Trainer(Default):
           # a real error
           raise e
 
+      experiences += new_experiences
+      
       ages = np.array([global_step - exp['global_step'] for exp in experiences])
       print("Mean age:", ages.mean())
             
       #print('After collect: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
       split('extra_collect')
       
-      shuffle(experiences)
+      #shuffle(experiences)
 
       batches = len(experiences) // self.batch_size
       batch_size = (len(experiences) + batches - 1) // batches
@@ -217,13 +217,13 @@ class Trainer(Default):
       print("Mean KL", np.mean(kls))
 
       old_len = len(experiences)
+      kl_exps = zip(kls, experiences)
       if self.max_buffer and old_len > self.max_buffer:
-        kl_exps = zip(kls, experiences)
-        kl_exps = sorted(kl_exps, key=lambda ke: ke[0])[:self.max_buffer]
-        kls, experiences = zip(*kl_exps)
-        experiences = list(experiences)
+        kl_exps = list(kl_exps)[-self.max_buffer:]
       if self.max_kl:
-        experiences = [exp for kl, exp in zip(kls, experiences) if kl <= self.max_kl]
+        kl_exps = [ke for ke in kl_exps if ke[0] <= self.max_kl]
+      kls, experiences = zip(*kl_exps)
+      experiences = list(experiences)
       dropped += old_len - len(experiences)
       
       #print('After train: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
@@ -255,7 +255,7 @@ class Trainer(Default):
       time_avgs = [averages[name].avg for name in times]
       total_time = sum(time_avgs)
       time_avgs = ['%.3f' % (t / total_time) for t in time_avgs]
-      print(sweeps, len(experiences), collected, dropped, doa, total_time, *time_avgs)
+      print(sweeps, len(experiences), len(new_experiences), dropped, doa, total_time, *time_avgs)
       print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
 
       if self.objgraph:
