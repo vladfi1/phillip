@@ -22,6 +22,7 @@ class Agent(Default):
     Option('trainer_ip', type=str, help="trainer ip address"),
     Option('swap', type=int, default=0, help="swap players 1 and 2"),
     Option('disk', type=int, default=0, help="dump experiences to disk"),
+    Option('real_delay', type=int, default=0, help="amount of delay in environment (due to netplay)"),
   ]
   
   _members = [
@@ -170,7 +171,9 @@ class Agent(Default):
     current.action = self.action
     current.prob = self.probs.push(prob)
     
-    self.rl.actionType.send(self.action, pad, self.char)
+    # send a more recent action if the environment itself is delayed (netplay)
+    real_action = self.actions[self.real_delay]
+    self.rl.actionType.send(real_action, pad, self.char)
     
     self.action_counter += 1
     
