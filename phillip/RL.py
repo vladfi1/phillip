@@ -45,6 +45,7 @@ class RL(Default):
     Option('pop_id', type=int, default=-1),
     Option('reward_decay', type=float, default=1e-3),
     Option('evolve_learning_rate', action="store_true"),
+    Option('explore_scale', type=float, default=0., help='use prediction error as additional reward'),
   ]
   
   _members = [
@@ -99,7 +100,7 @@ class RL(Default):
       self.core = Core(history_size, **kwargs)
       self.components['core'] = self.core
       
-      if self.predict or (mode == Mode.TRAIN and self.train_model):
+      if self.predict or (mode == Mode.TRAIN and (self.train_model or self.explore_scale)):
         print("Creating model.")
         self.model = Model(self.embedGame, embedAction.size, self.core, self.config, **kwargs)
         self.components['model'] = self.model
@@ -194,6 +195,16 @@ class RL(Default):
           tf.summary.scalar('kl', kl)
         else:
           prob_ratios = tf.ones_like() # todo
+
+        if self.explore_scale:
+          self.explore_scale = tf.Variable(self.explore_scale, trainable=False, name='explore_scale')
+          self.evo_variables.append(('explore_scale', self.explore_scale, relative(1.5)))
+          
+          distances, _ = self.model.distances(history, core_outputs, hidden_states, actions, experience['state'], predict_steps=1)
+          distances = tf.add_n(list(util.deepValues(distances))) # sum over different state components
+          explore_rewards = self.explore_scale * distances[0, delay:]
+          explore_rewards = tf.stop_gradient(explore_rewards)
+          rewards += explore_rewards
 
         # run the critic
         if self.train_policy or self.train_critic:
