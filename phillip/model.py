@@ -115,6 +115,7 @@ class Model(Default):
 
   def train(self, history, core_outputs, hidden_states, actions, raw_state, **unused):
     distances, final_core_outputs = self.distances(history, core_outputs, hidden_states, actions, raw_state, self.predict_steps)
+    distances = util.deepMap(lambda t: tf.reduce_mean(t, [1, 2]), distances)
     total_distances = tf.add_n(list(util.deepValues(distances)))
     for step in range(self.predict_steps):
       # log all the individual distances
