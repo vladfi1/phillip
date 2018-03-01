@@ -66,6 +66,9 @@ class RL(Default):
     if self.path is None:
       self.path = "saves/%s/" % self.name
     
+    if self.evolve_learning_rate and self.pop_id < 0:
+      self.pop_id = 0
+    
     if self.pop_id >= 0:
       self.root = self.path
       self.path = os.path.join(self.path, str(self.pop_id))

@@ -61,11 +61,14 @@ $Netplay Community Settings
 """
 
 gale01_ini_fm = """
+[Core]
+CPUThread = True
+GPUDeterminismMode = fake-completion
+PollingMethod = OnSIRead
 [Gecko_Enabled]
 $Faster Melee Netplay Settings
-$60FPS + 4X VRH
-[Core]
-VideoRate = 4
+$Lag Reduction
+$Game Music ON
 """
 
 import os
