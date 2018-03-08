@@ -60,6 +60,11 @@ gale01_ini = """
 $Netplay Community Settings
 """
 
+lcancel_ini = """
+$Flash White on Successful L-Cancel
+$Flash Red on Unsuccessful L-Cancel
+"""
+
 gale01_ini_fm = """
 [Core]
 CPUThread = True
@@ -95,6 +100,7 @@ class SetupUser(Default):
     Option('dump_codec', type=str, default='h264'),
     Option('dump_encoder', type=str, default=''),
     Option('dump_path', type=str, default=''),
+    Option('lcancel_flash', action="store_true", help="flash on lcancel"),
   ]
   
   def __call__(self, user):
@@ -134,7 +140,10 @@ class SetupUser(Default):
     gameSettings = user + '/GameSettings'
     util.makedirs(gameSettings)
     with open(gameSettings + '/GALE01.ini', 'w') as f:
-      f.write(gale01_ini_fm if self.fm else gale01_ini)
+      ini = gale01_ini_fm if self.fm else gale01_ini
+      if self.lcancel_flash:
+        ini += lcancel_ini
+      f.write(ini)
 
     util.makedirs(user + '/Dump/Frames')
 
