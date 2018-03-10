@@ -202,7 +202,7 @@ class RL(Default):
           
           distances, _ = self.model.distances(history, core_outputs, hidden_states, actions, experience['state'], predict_steps=1)
           distances = tf.add_n(list(util.deepValues(distances))) # sum over different state components
-          explore_rewards = self.explore_scale * distances[0, delay:]
+          explore_rewards = self.explore_scale * distances[0]
           explore_rewards = tf.stop_gradient(explore_rewards)
           rewards += explore_rewards
 
