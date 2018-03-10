@@ -7,6 +7,7 @@ with open(error_frame_path, 'rb') as f:
   error_frame = pickle.load(f)
 
 state = error_frame['state']
+del state['frame']
 
 def check_io(checker):
   def wrapper(f):
