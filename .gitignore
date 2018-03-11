@@ -11,3 +11,7 @@ slurm_scripts/
 SSBM.iso
 parallel/
 dolphin/
+
+events.out.*
+error_frame
+ip
