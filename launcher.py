@@ -89,11 +89,14 @@ def launch(name, command, cpus=2, mem=1, gpu=False, log=True, qos=None, array=No
     f.write("#SBATCH --time %s\n" % args.time)
     #f.write("#SBATCH --cpu_bind=verbose,cores\n")
     #f.write("#SBATCH --cpu_bind=threads\n")
-    opt("--partition=om_all_nodes,om_test_nodes")
+    #opt("--partition=om_all_nodes,om_test_nodes")
     if gpu:
-      f.write("#SBATCH --gres gpu:1\n")
-      if not args.any_gpu:  # 31-54 have titan-x, 55-66 have 1080ti
-        f.write("#SBATCH -x node[001-030]\n")
+      if args.any_gpu:
+        f.write("#SBATCH --gres gpu:1\n")
+      else:
+        opt("--gres gpu:GEFORCEGTX1080TI:1")
+      #if not args.any_gpu:  # 31-54 have titan-x, 55-66 have 1080ti
+      #  f.write("#SBATCH -x node[001-030]\n")
     if qos:
       f.write("#SBATCH --qos %s\n" % qos)
     if array:

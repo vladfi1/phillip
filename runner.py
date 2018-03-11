@@ -44,7 +44,7 @@ dqn = model.count('DQN')
 ac = model.count('ActorCritic')
 
 add_param('policy', model, False)
-add_param('epsilon', 0.01, False)
+add_param('epsilon', 0, False)
 
 natural = True
 natural = False
@@ -54,15 +54,22 @@ natural = False
 #add_param('learning_rate', 1e-4, False),
 add_param('sweeps', 1, False)
 add_param('batch_size', 64, False)
-add_param('batches', 1, False)
 add_param('batch_steps', 1, False)
-add_param('max_age', 32, False)
-
-#sweep_size = params['batch_size'] * params['batches']
-#add_param('sweep_size', sweep_size) # only for experiment name
-add_param('min_collect', 8, False)
+add_param("max_buffer", 128, False)
+add_param('min_collect', 24, False)
 
 add_param('reward_halflife', 4, False)
+
+# evolution
+add_param("evolve", True, False)
+add_param("pop_size", 4)
+add_param("reward_cutoff", 5e-4, False)
+add_param("evo_period", 2000, False)
+add_param("evolve_entropy", True, False)
+add_param("evolve_learning_rate", True, False)
+add_param("reward_decay", 1e-4, False)
+
+add_param('explore_scale', 1e-3)
 
 predict = False
 predict = True
@@ -109,7 +116,7 @@ elif ac:
   if natural:
     add_param('entropy_scale', 2e-4, True)
   else:
-    add_param('entropy_scale', 1e-4, False)
+    add_param('entropy_scale', 1e-3, False)
 
 if recurrent:
 #  add_param('clip', 0.05)
@@ -173,18 +180,18 @@ add_param('stage', stage, False)
 add_param('char', char, True)
 
 enemies = None
-enemies = "cpu"
+#enemies = "cpu"
 #enemies = "easy"
 #enemies = "delay0"
 #enemies = "delay%d" % delay
-#enemies = ['self']
+enemies = ['self']
 #enemies = 'hard-self'
 add_param('enemies', enemies)
 
 add_param('enemy_reload', 3600, False)
 
 # total number of agents
-agents = 120
+agents = 80
 params['agents'] = agents
 
 if args.name is not None:
