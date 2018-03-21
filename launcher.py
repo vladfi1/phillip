@@ -224,7 +224,7 @@ if run_agents:
         enemy_commands.append((command + " --enemy_id %d" % pop_id, agents_per_enemy2))
     else: # cpu dict
       command = " --cpu {level} --p1 {char}".format(**enemy)
-      enemy_commands.append((command, agent_per_enemy))
+      enemy_commands.append((command, agents_per_enemy))
   
   for pop_id in pop_ids:
     namer = AgentNamer(params['name'] + "_%d" % pop_id)
