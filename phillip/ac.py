@@ -67,7 +67,7 @@ class ActorCritic(Default):
     entropy_avg = tfl.power_mean(self.entropy_power, entropy)
     tf.summary.scalar('entropy_avg', entropy_avg)
     tf.summary.scalar('entropy_min', tf.reduce_min(entropy))
-    tf.summary.histogram('entropy', entropy)
+    #tf.summary.histogram('entropy', entropy)
 
     taken_probs = tfl.batch_dot(actions, actor_probs)
     taken_log_probs = tfl.batch_dot(actions, log_actor_probs)

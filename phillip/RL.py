@@ -226,7 +226,9 @@ class RL(Default):
         with tf.variable_scope('train'):
           optimizer = tf.train.AdamOptimizer(self.learning_rate)
           gvs = optimizer.compute_gradients(total_loss)
+          gvs = [(tf.check_numerics(g, v.name), v) for g, v in gvs]
           gs, vs = zip(*gvs)
+          
           norms = tf.stack([tf.norm(g) for g in gs])
           max_norm = tf.reduce_max(norms)
           tf.summary.scalar('max_grad_norm', max_norm)
