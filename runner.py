@@ -1,4 +1,4 @@
-#!/bin/env python
+#!/usr/bin/env python
 import os
 import sys
 import subprocess
@@ -39,12 +39,12 @@ model = 'ActorCritic'
 
 exp_name += model
 
-recurrent = model.count('Recurrent')
+recurrent = True
 dqn = model.count('DQN')
 ac = model.count('ActorCritic')
 
 add_param('policy', model, False)
-add_param('epsilon', 0.01, False)
+add_param('epsilon', 0, False)
 
 natural = True
 natural = False
@@ -53,30 +53,41 @@ natural = False
 #add_param('optimizer', 'Adam', False)
 #add_param('learning_rate', 1e-4, False),
 add_param('sweeps', 1, False)
-add_param('batch_size', 100, False)
-add_param('batches', 1, False)
+add_param('batch_size', 64, False)
 add_param('batch_steps', 1, False)
-#add_param('min_collect', 20)
-add_param('max_age', 1)
+add_param("max_buffer", 128, False)
+add_param('min_collect', 24, False)
 
-sweep_size = params['batch_size'] * params['batches']
-add_param('sweep_size', sweep_size) # only for experiment name
+add_param('reward_halflife', 4, False)
 
-add_param('reward_halflife', 2, False)
+# evolution
+evolve = False
+#evolve = True
 
-predict = False
-predict = True
-add_param('predict', predict, False)
+if evolve:
+  add_param("evolve", True, False)
+  add_param("pop_size", 2)
+  add_param("reward_cutoff", 2e-4, False)
+  add_param("evo_period", 2000, False)
+  add_param("evolve_entropy", True, False)
+  add_param("evolve_learning_rate", True, False)
+  add_param("reward_decay", 1e-4, False)
 
-delay = 3
-if predict:
-  add_param('predict_steps', delay)
-  #add_param('predict_scale', 1e-5)
-  add_param('model_learning_rate', 2e-5)
-  add_param('model_layers', [512], False)
+#add_param('explore_scale', 1e-3)
+
+delay = 4
+predict_steps = 4
+
+if predict_steps:
+  add_param('predict_steps', predict_steps)
+  add_param('predict', True, False)
+  add_param('model_weight', .1, False)
+  add_param('model_layers', [256], False)
   add_param('train_model', True, False)
 
-#add_param('actor_learning_rate', 2e-5)
+add_param('core_layers', [256], False)
+add_param('actor_layers', [128], False)
+add_param('critic_layers', [128], False)
 
 #add_param('train_policy', True)
 #add_param('train_critic', False)
@@ -108,19 +119,15 @@ elif ac:
   if natural:
     add_param('entropy_scale', 2e-4, True)
   else:
-    add_param('entropy_scale', 1e-2 if recurrent else 2e-3, False)
+    add_param('entropy_scale', 1e-3, False)
 
 if recurrent:
 #  add_param('clip', 0.05)
-  add_param('initial', 'train')
+  add_param('recurrent', True)
+  add_param('initial', 'train', False)
 
-  add_param('dynamic', not natural, False)
-
-add_param('gae_lambda', 0.9, False)
+add_param('gae_lambda', 1., False)
 #add_param('retrace', True)
-
-add_param('gae_lambda', 0.9)
-add_param('retrace', True)
 
 # embed params
 

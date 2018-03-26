@@ -8,7 +8,8 @@ Tested on: Ubuntu >=14.04, OSX, Windows 7/8/10.
 1. The dolphin emulator. You will probably need to compile from source on Linux. On Windows you'll need to install a [custom dolphin version](https://github.com/vladfi1/dolphin/releases/tag/v5.1-alpha) - just unpack the zip somewhere.
 2. The SSBM iso image. Must be NTSC 1.02. Mods like netplay community builds and 20XX may also work, but automatic character and stage selection may not work properly (you can still do it manually).
 3. Python 3. On Windows, you can use [Anaconda](https://repo.continuum.io/archive/Anaconda3-4.4.0-Windows-x86_64.exe) which sets up the necessary paths.
-4. Install [phillip](https://github.com/vladfi1/phillip/archive/master.zip). This will pull in python dependencies like tensorflow.
+4. `pip3 install tensorflow`, or `tensorflow-gpu` if you plan on training with an nvidia gpu. Phillip doesn't depend on tensorflow so that you can choose which one you want to use.
+5. Install [phillip](https://github.com/vladfi1/phillip/archive/master.zip).
 
 ```bash
 cd path/to/phillip # future commands should be run from here

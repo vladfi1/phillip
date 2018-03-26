@@ -5,7 +5,7 @@ from threading import Thread
 import hashlib
 import os
 import pprint
-
+import time
 
 pp = pprint.PrettyPrinter(indent=2)
 
@@ -139,9 +139,19 @@ class MovingAverage:
     self.rate = rate
     self.avg = initial
   
-  def append(val):
+  def append(self, val):
     self.avg *= self.rate
     self.avg += (1.0 - self.rate) * val
+
+class Timer:
+  def reset(self):
+    self.time = time.time()
+  
+  def split(self):
+    now = time.time()
+    delta = now - self.time
+    self.time = now
+    return delta
 
 class CircularQueue:
   def __init__(self, size=None, init=None, array=None):
@@ -166,10 +176,7 @@ class CircularQueue:
     self.index %= self.size
   
   def __getitem__(self, index):
-    if index < 0 or index >= self.size:
-      raise IndexError
-    
-    return self.array[(self.index + index) % self.size]
+    return self.array[(self.size + self.index + index) % self.size]
   
   def __len__(self):
     return self.size

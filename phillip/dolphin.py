@@ -51,6 +51,10 @@ DumpFramesCounter = False
 Crop = True
 DumpFormat = {dump_format}
 DumpCodec = {dump_codec}
+<<<<<<< HEAD
+=======
+DumpEncoder = {dump_encoder}
+>>>>>>> predict
 DumpPath = {dump_path}
 """
 
@@ -59,12 +63,20 @@ gale01_ini = """
 $Netplay Community Settings
 """
 
+lcancel_ini = """
+$Flash White on Successful L-Cancel
+$Flash Red on Unsuccessful L-Cancel
+"""
+
 gale01_ini_fm = """
+[Core]
+CPUThread = True
+GPUDeterminismMode = fake-completion
+PollingMethod = OnSIRead
 [Gecko_Enabled]
 $Faster Melee Netplay Settings
-$60FPS + 4X VRH
-[Core]
-VideoRate = 4
+$Lag Reduction
+$Game Music ON
 """
 
 import os
@@ -89,7 +101,9 @@ class SetupUser(Default):
     Option('fm', action="store_true", help="set up config for Faster Melee"),
     Option('dump_format', type=str, default='mp4'),
     Option('dump_codec', type=str, default='h264'),
+    Option('dump_encoder', type=str, default=''),
     Option('dump_path', type=str, default=''),
+    Option('lcancel_flash', action="store_true", help="flash on lcancel"),
   ]
   
   def __call__(self, user):
@@ -123,12 +137,19 @@ class SetupUser(Default):
         dump_ppm=self.dump_ppm,
         dump_path=self.dump_path,
         dump_codec=self.dump_codec,
+<<<<<<< HEAD
+=======
+        dump_encoder=self.dump_encoder,
+>>>>>>> predict
         dump_format=self.dump_format))
 
     gameSettings = user + '/GameSettings'
     util.makedirs(gameSettings)
     with open(gameSettings + '/GALE01.ini', 'w') as f:
-      f.write(gale01_ini_fm if self.fm else gale01_ini)
+      ini = gale01_ini_fm if self.fm else gale01_ini
+      if self.lcancel_flash:
+        ini += lcancel_ini
+      f.write(ini)
 
     util.makedirs(user + '/Dump/Frames')
 

@@ -1,8 +1,7 @@
 Instructions:
-1. Smashladder dolphin (FM 4.4)
-2. Use the smashladder configuration (no memory card, cheats on, netplay community settings Gecko code, widescreen hack off)
-3. host a netplay lobby (traversal server)
-4. Go to twitch.tv/x_pilot
+1. Smashladder dolphin (FM 5.8.7)
+2. host a netplay lobby (traversal server)
+3. Go to twitch.tv/x_pilot
 
 commands:
 

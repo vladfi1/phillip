@@ -29,12 +29,12 @@ import os, signal, subprocess
 # I made a file globals.py on my PYTHONPATH for things like this
 from globals import twitch_key, dolphin_iso_path
 
-# should point to FM 4.4
+# should point to FM 5.8.7
 # linux install guide: https://github.com/Ptomerty/FasterMelee-installer
-dolphin_path = 'launch-faster-melee'
+dolphin_path = '/home/vlad/launch-fm'
 
 agent_path = '/home/vlad/Repos/phillip/agents/'
-agent = 'FalconFalconBF'
+agent = 'delay12/FalcoBF'
 
 current_thread = None
 stream_thread = None
@@ -63,10 +63,10 @@ def helloworld(bot, trigger):
 
 @module.commands('dolphin')
 def dolphin(bot, trigger):
-    bot.say("Faster Melee 4.4")
+    bot.say("Faster Melee 4.8.7")
 
 instructions = """
-1. Install dolphin 5.0-2538
+1. Install Faster Melee 5.8.7
 2. Use the smashladder configuration (no memory card, cheats on, netplay community settings Gecko code)
 3. host a netplay lobby (traversal server)
 4. Go to twitch.tv/x_pilot
@@ -123,15 +123,17 @@ def play(bot, trigger):
     netplay=code,
     start=0,
     fullscreen=True,
-    delay=0,
-    act_every=1,
-    reload=60,
+    # delay=0,
+    # act_every=1,
+    real_delay=1,
+    reload=600,
   )
     
   #current_thread = Process(target=run.run, kwargs=args)
   #current_thread.start()
   #return
   
+  # cmd = "python -m ipdb phillip/run.py".split()
   cmd = ["phillip"]
   for k, v in args.items():
     if type(v) is bool and v:
