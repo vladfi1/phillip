@@ -61,24 +61,27 @@ add_param('min_collect', 24, False)
 add_param('reward_halflife', 4, False)
 
 # evolution
-add_param("evolve", True, False)
-add_param("pop_size", 4)
-add_param("reward_cutoff", 5e-4, False)
-add_param("evo_period", 2000, False)
-add_param("evolve_entropy", True, False)
-add_param("evolve_learning_rate", True, False)
-add_param("reward_decay", 1e-4, False)
+evolve = False
+#evolve = True
 
-add_param('explore_scale', 1e-3)
+if evolve:
+  add_param("evolve", True, False)
+  add_param("pop_size", 2)
+  add_param("reward_cutoff", 2e-4, False)
+  add_param("evo_period", 2000, False)
+  add_param("evolve_entropy", True, False)
+  add_param("evolve_learning_rate", True, False)
+  add_param("reward_decay", 1e-4, False)
 
-predict = False
-predict = True
-add_param('predict', predict, False)
+#add_param('explore_scale', 1e-3)
 
 delay = 4
-if predict:
-  add_param('predict_steps', delay)
-  add_param('model_weight', .1, True)
+predict_steps = 4
+
+if predict_steps:
+  add_param('predict_steps', predict_steps)
+  add_param('predict', True, False)
+  add_param('model_weight', .1, False)
   add_param('model_layers', [256], False)
   add_param('train_model', True, False)
 
@@ -123,7 +126,7 @@ if recurrent:
   add_param('recurrent', True)
   add_param('initial', 'train', False)
 
-add_param('gae_lambda', 0.99, False)
+add_param('gae_lambda', 1., False)
 #add_param('retrace', True)
 
 # embed params
@@ -151,8 +154,8 @@ add_param('reload', 1, False)
 
 #char = 'falco'
 #char = 'sheik'
-#char = 'falcon'
-char = 'marth'
+char = 'falcon'
+#char = 'marth'
 #char = 'fox'
 #char = 'peach'
 #char = 'luigi'
@@ -180,11 +183,11 @@ add_param('stage', stage, False)
 add_param('char', char, True)
 
 enemies = None
-#enemies = "cpu"
+enemies = "cpu"
 #enemies = "easy"
 #enemies = "delay0"
 #enemies = "delay%d" % delay
-enemies = ['self']
+#enemies = ['self']
 #enemies = 'hard-self'
 add_param('enemies', enemies)
 
