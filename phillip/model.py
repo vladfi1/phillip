@@ -76,7 +76,7 @@ class Model(Default):
     memory = self.rlConfig.memory
     length = self.rlConfig.experience_length - memory - predict_steps
 
-    cut = lambda t: t[:-predict_steps]
+    cut = (lambda t: t[:-predict_steps]) if predict_steps > 0 else (lambda t: t)
     history = [cut(h) for h in history]
     core_outputs = cut(core_outputs)
     hidden_states = util.deepMap(cut, hidden_states)
