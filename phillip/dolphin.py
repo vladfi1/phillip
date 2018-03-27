@@ -51,10 +51,7 @@ DumpFramesCounter = False
 Crop = True
 DumpFormat = {dump_format}
 DumpCodec = {dump_codec}
-<<<<<<< HEAD
-=======
 DumpEncoder = {dump_encoder}
->>>>>>> predict
 DumpPath = {dump_path}
 """
 
@@ -137,10 +134,7 @@ class SetupUser(Default):
         dump_ppm=self.dump_ppm,
         dump_path=self.dump_path,
         dump_codec=self.dump_codec,
-<<<<<<< HEAD
-=======
         dump_encoder=self.dump_encoder,
->>>>>>> predict
         dump_format=self.dump_format))
 
     gameSettings = user + '/GameSettings'
