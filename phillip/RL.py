@@ -29,6 +29,7 @@ policies = {policy.__name__ : policy for policy in policies}
 
 class RL(Default):
   _options = [
+    Option('tfdbg', action='store_true', help='debug tensorflow session'),
     Option('policy', type=str, default="ActorCritic", choices=policies.keys()),
     Option('path', type=str, help="path to saved policy"),
     Option('gpu', action="store_true", default=False, help="run on gpu"),
@@ -312,6 +313,10 @@ class RL(Default):
         graph=self.graph,
         config=tf.ConfigProto(**tf_config),
       )
+      
+      if self.tfdbg:
+        from tensorflow.python import debug as tf_debug
+        self.sess = tf_debug.LocalCLIDebugWrapperSession(self.sess)
 
   def get_global_step(self):
     return self.sess.run(self.global_step)
