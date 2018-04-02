@@ -10,6 +10,7 @@ class Critic(Default):
     Option('critic_weight', type=float, default=.5),
     Option('gae_lambda', type=float, default=1., help="Generalized Advantage Estimation"),
     Option('fix_scopes', type=bool, default=False),
+    Option('dynamic', type=int, default=1, help='use dynamic loop unrolling'),
   ]
   
   _members = [
@@ -43,7 +44,7 @@ class Critic(Default):
     lastV = values[-1]
     
     lambda_ = tf.minimum(1., prob_ratios) * self.gae_lambda
-    targets = tfl.smoothed_returns(trainVs, rewards, self.rlConfig.discount, lambda_, lastV)
+    targets = tfl.smoothed_returns(trainVs, rewards, self.rlConfig.discount, lambda_, lastV, dynamic=self.dynamic)
     targets = tf.stop_gradient(targets)
     advantages = targets - trainVs
     

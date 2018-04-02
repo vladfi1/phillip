@@ -1,6 +1,7 @@
 import tensorflow as tf
 import itertools
 from phillip.default import *
+from phillip import util
 
 def leaky_relu(x, alpha=0.01):
   return tf.maximum(alpha * x, x)
@@ -350,7 +351,7 @@ def scan(f, inputs, initial_state, axis=0):
   for input_ in inputs:
     output = f(output, input_)
     outputs.append(output)
-  return util.deepZipWith(lambda ts: tf.stack(ts, axis=axis), outputs)
+  return util.deepZipWith(lambda *ts: tf.stack(ts, axis=axis), *outputs)
 
 def while_loop(cond, body, initial):
   while cond(*initial):
@@ -426,14 +427,14 @@ def testDiscounts():
 
   print("Passed testDiscount()")
 
-def smoothed_returns(values, rewards, gamma, lambda_, bootstrap):
-  
+def smoothed_returns(values, rewards, gamma, lambda_, bootstrap, dynamic=True):
   def bellman(future, present):
     v, r, l = present
     return (1. - l) * v + l * (r + gamma * future)
   
-  reversed_sequence = list(map(lambda t: tf.reverse(t, [0]), [values, rewards, lambda_]))
-  returns = tf.scan(bellman, reversed_sequence, bootstrap)
+  reversed_sequence = [tf.reverse(t, [0]) for t in [values, rewards, lambda_]]
+  scan_fn = tf.scan if dynamic else scan
+  returns = scan_fn(bellman, reversed_sequence, bootstrap)
   returns = tf.reverse(returns, [0])
   return returns
 

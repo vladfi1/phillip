@@ -151,8 +151,8 @@ class RL(Default):
             _, prev_state = prev
             return self.core(current_input, prev_state)
           dummy_output = tf.placeholder(tf.float32, [None, self.core.output_size], name='dummy_core_output')
-          scan = tf.scan if self.dynamic else tfl.scan
-          core_outputs, hidden_states = tf.scan(f, inputs, (dummy_output, experience['initial']))
+          scan_fn = tf.scan if self.dynamic else tfl.scan
+          core_outputs, hidden_states = scan_fn(f, inputs, (dummy_output, experience['initial']))
         else:
           core_outputs, hidden_states = self.core(inputs, experience['initial'])
 
@@ -245,6 +245,9 @@ class RL(Default):
         tf.summary.scalar('reward', avg_reward)
         
         misc_ops = []
+        
+        if not self.dynamic:
+          misc_ops.append(tf.add_check_numerics_ops())
         
         if self.pop_id >= 0:
           self.reward = tf.Variable(0., trainable=False, name='avg_reward')
