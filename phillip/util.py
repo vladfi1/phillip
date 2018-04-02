@@ -106,6 +106,19 @@ def deepItems(obj, path=[]):
   else:
     yield (path, obj)
 
+def deepIter(iters):
+  if isinstance(iters, dict):
+    deep_iters = [(k, deepIter(v)) for k, v in iters.items()]
+    while True:
+      try:
+        yield {k: v.next() for k, v in deep_iters}
+      except StopIteration:
+        return
+  elif isinstance(iters, (list, tuple)):
+    yield from zip(*map(deepIter, iters))
+  else:
+    yield from iters
+
 def flip(p):
   return random.binomial(1, p)
 

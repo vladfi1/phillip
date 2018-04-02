@@ -10,6 +10,7 @@ class Model(Default):
 
     Option('model_weight', type=float, default=1.),
     Option('predict_steps', type=int, default=1, help="number of future frames to predict"),
+    Option('dynamic', type=int, default=1, help='use dynamic loop unrolling'),
   ]
   
   _members = [
@@ -106,7 +107,8 @@ class Model(Default):
     
     loop_vars = (0, history, core_outputs, hidden_states, last_states, predicted_ta)
     cond = lambda i, *_: i < predict_steps
-    _, _, final_core_outputs, _, _, predicted_ta = tf.while_loop(cond, predict_step, loop_vars)
+    while_loop = tf.while_loop if self.dynamic else tfl.while_loop
+    _, _, final_core_outputs, _, _, predicted_ta = while_loop(cond, predict_step, loop_vars)
     predicted_states = predicted_ta.stack()
     predicted_states.set_shape([predict_steps, length, None, self.embedGame.size])
     

@@ -343,6 +343,20 @@ def rnn(cell, inputs, initial_state, time=1):
     outputs.append(output)
   return tf.stack(outputs, axis=time), state
 
+def scan(f, inputs, initial_state, axis=0):
+  inputs = util.deepIter(util.deepMap(lambda t: iter(tf.unstack(t, axis=axis)), inputs))
+  outputs = []
+  output = initial_state
+  for input_ in inputs:
+    output = f(output, input_)
+    outputs.append(output)
+  return util.deepZipWith(lambda ts: tf.stack(ts, axis=axis), outputs)
+
+def while_loop(cond, body, initial):
+  while cond(*initial):
+    initial = body(*initial)
+  return initial
+
 def discount(values, gamma, initial=None):
   values = tf.unstack(values, axis=1)
   

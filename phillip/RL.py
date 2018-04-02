@@ -47,6 +47,7 @@ class RL(Default):
     Option('reward_decay', type=float, default=1e-3),
     Option('evolve_learning_rate', action="store_true"),
     Option('explore_scale', type=float, default=0., help='use prediction error as additional reward'),
+    Option('dynamic', type=int, default=1, help='use dynamic loop unrolling'),
   ]
   
   _members = [
@@ -150,6 +151,7 @@ class RL(Default):
             _, prev_state = prev
             return self.core(current_input, prev_state)
           dummy_output = tf.placeholder(tf.float32, [None, self.core.output_size], name='dummy_core_output')
+          scan = tf.scan if self.dynamic else tfl.scan
           core_outputs, hidden_states = tf.scan(f, inputs, (dummy_output, experience['initial']))
         else:
           core_outputs, hidden_states = self.core(inputs, experience['initial'])
