@@ -150,7 +150,8 @@ class RL(Default):
           def f(prev, current_input):
             _, prev_state = prev
             return self.core(current_input, prev_state)
-          dummy_output = tf.placeholder(tf.float32, [None, self.core.output_size], name='dummy_core_output')
+          batch_size = tf.shape(self.experience['reward'])[0]
+          dummy_output = tf.zeros(tf.stack([batch_size, tf.constant(self.core.output_size)]))
           scan_fn = tf.scan if self.dynamic else tfl.scan
           core_outputs, hidden_states = scan_fn(f, inputs, (dummy_output, experience['initial']))
         else:
@@ -194,6 +195,7 @@ class RL(Default):
           behavior_probs = experience['prob'][memory+delay:] # these are the actions we can compute probabilities for
           prob_ratios = tf.minimum(train_probs / behavior_probs, 1.)
           self.kls = -tf.reduce_mean(tf.log(prob_ratios), 0)
+          self.kls = tf.check_numerics(self.kls, 'kl')
           kl = tf.reduce_mean(self.kls)
           tf.summary.scalar('kl', kl)
         else:
@@ -229,7 +231,7 @@ class RL(Default):
         with tf.variable_scope('train'):
           optimizer = tf.train.AdamOptimizer(self.learning_rate)
           gvs = optimizer.compute_gradients(total_loss)
-          gvs = [(tf.check_numerics(g, v.name), v) for g, v in gvs]
+          # gvs = [(tf.check_numerics(g, v.name), v) for g, v in gvs]
           gs, vs = zip(*gvs)
           
           norms = tf.stack([tf.norm(g) for g in gs])
