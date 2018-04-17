@@ -358,6 +358,17 @@ def while_loop(cond, body, initial):
     initial = body(*initial)
   return initial
 
+class TensorArray(object):
+  def __init__(self, dtype, size, element_shape):
+    self.elems = [None] * size
+  
+  def write(self, i, t):
+    self.elems[i] = t
+    return self
+  
+  def stack(self):
+    return tf.stack(self.elems)
+
 def discount(values, gamma, initial=None):
   values = tf.unstack(values, axis=1)
   

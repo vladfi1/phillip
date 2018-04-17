@@ -214,9 +214,10 @@ class Trainer(Default):
           global_step = train_out['global_step']
           kls.extend(train_out['kls'].tolist())
           step += 1
-      except tf.errors.InvalidArgumentError:
+      except tf.errors.InvalidArgumentError as e:
         # always a NaN in histogram summary for entropy - what's up with that?
         experiences = []
+        print(e)
         continue
       
       print("Mean KL", np.mean(kls))

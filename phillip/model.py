@@ -88,7 +88,8 @@ class Model(Default):
     target_states = util.deepMap(lambda t: t[1:], states)
     
     last_states = self.embedGame(begin_states, residual=True)
-    predicted_ta = tf.TensorArray(last_states.dtype, size=predict_steps, element_shape=last_states.get_shape())
+    ta_fn = tf.TensorArray if self.dynamic else tfl.TensorArray
+    predicted_ta = ta_fn(last_states.dtype, size=predict_steps, element_shape=last_states.get_shape())
     
     def predict_step(i, prev_history, prev_core, prev_hidden, prev_state, predicted_ta):
       current_action = current_actions[i]
