@@ -25,6 +25,7 @@ class CPU(Default):
       Option('frame_limit', type=int, help="stop after a given number of frames"),
       Option('debug', type=int, default=0),
       Option('tcp', type=int, default=0, help="use zmq over tcp for memory watcher and pipe input"),
+      Option('windows', action='store_true', help="set defaults for windows"),
       Option('enemy_dump', type=int, default=0, help="also dump frames for the enemy"),
     ] + [Option('p%d' % i, type=str, choices=characters.keys(), default="falcon", help="character for player %d" % i) for i in [1, 2]]
     
@@ -78,6 +79,7 @@ class CPU(Default):
 
         
         print('Creating MemoryWatcher.')
+        self.tcp = self.tcp or self.windows
         if self.tcp:
           self.mw = mw.MemoryWatcherZMQ(port=5555)
         else:
