@@ -158,6 +158,7 @@ class DolphinRunner(Default):
     Option('setup', type=int, default=1, help="setup custom dolphin directory"),
     Option('gui', action="store_true", default=False, help="run with graphics and sound at normal speed"),
     Option('mute', action="store_true", default=False, help="mute game audio"),
+    Option('windows', action='store_true', help="set defaults for windows"),
     Option('netplay', type=str, help="join traversal server"),
   ]
   
@@ -178,21 +179,22 @@ class DolphinRunner(Default):
     #  index = self.exe.rfind('dolphin-emu') + len('dolphin-emu')
     #  self.exe = self.exe[:index]
     
-    if self.gui:
+    if self.gui or self.windows:
       # switch from headless to gui
       if self.exe.endswith("-headless"):
         #self.exe = self.exe[:-9]
         self.exe = self.exe[:-9] + "-nogui"
       
+      # Note: newer dolphins use 'DX11', but win-mw is an old fork.
       kwargs.update(
         speed = 1,
-        gfx = 'OGL',
+        gfx = 'D3D' if self.windows else 'OGL',
       )
       
       if self.mute:
         kwargs.update(audio = 'No audio backend')
       else:
-        kwargs.update(audio = 'Pulse')
+        kwargs.update(audio = 'XAudio2' if self.windows else 'Pulse')
       
     if self.setup:
       self._init_members(**kwargs)
