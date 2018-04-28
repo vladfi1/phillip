@@ -108,8 +108,12 @@ class Trainer(Default):
 
   def selection(self):
     reward = self.model.get_reward()
+    print("Evolving. Current reward %f" % reward)
     
-    target_id = random.randint(0, self.pop_size-1)
+    target_id = random.randint(0, self.pop_size-2)
+    if target_id >= self.model.pop_id:
+      target_id += 1
+    print("Selection candidate: %d" % target_id)
     
     target_path = os.path.join(self.model.root, str(target_id))
     latest_ckpt = tf.train.latest_checkpoint(target_path)
@@ -117,7 +121,7 @@ class Trainer(Default):
     target_reward = reader.get_tensor('avg_reward')
     
     if target_reward - reward < self.reward_cutoff:
-      print("Target reward too low.")
+      print("Target reward %f too low." % target_reward)
       return False
     
     print("Selecting %d" % target_id)
