@@ -51,6 +51,7 @@ class Trainer(Default):
     Option("reward_cutoff", type=float, default=1e-3),
 
     Option('objgraph', type=int, default=0, help='use objgraph to track memory usage'),
+    Option('diff_objects', action='store_true', help='print new objects on each iteration')
   ]
   
   _members = [
@@ -253,7 +254,7 @@ class Trainer(Default):
       #print('After save: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
       split('save')
       
-      if False:
+      if self.diff_objects:
         after = count_objects()
         print(diff_objects(after, before))
         before = after
