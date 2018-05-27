@@ -38,13 +38,19 @@ class RL(Default):
     Option('predict', type=int, default=0),
     Option('train_model', type=int, default=0),
     Option('train_policy', type=int, default=1),
-    Option('train_critic', type=int, default=1),
+    # in theory train_critic should always equal train_policy; keeping them
+    # separate might help for e.g. debugging
+    Option('train_critic', type=int, default=1), 
     Option('profile', type=int, default=0, help='profile tensorflow graph execution'),
     Option('save_cpu', type=int, default=0),
     Option('learning_rate', type=float, default=1e-4),
     Option('clip_max_grad', type=float, default=1.),
-    Option('pop_id', type=int, default=-1),
+    # if pop_id >= 0, then we're doing population-based training, and pop_id 
+    # tracks the worker's id. Else we're not doing PBT and the id is -1. 
+    Option('pop_id', type=int, default=-1), 
     Option('reward_decay', type=float, default=1e-3),
+    # evolve_leraning_rate is false by default; if true, then the learning rate
+    # is included in PBT among the things that get mutated. 
     Option('evolve_learning_rate', action="store_true"),
     Option('explore_scale', type=float, default=0., help='use prediction error as additional reward'),
     Option('dynamic', type=int, default=1, help='use dynamic loop unrolling'),
@@ -63,15 +69,11 @@ class RL(Default):
     Default.__init__(self, init_members=False, **kwargs)
     self.config = RLConfig(**kwargs)
     
-    if self.name is None:
-      self.name = self.policy
-    
-    if self.path is None:
-      self.path = "saves/%s/" % self.name
-    
-    if self.evolve_learning_rate and self.pop_id < 0:
-      self.pop_id = 0
-    
+    if self.name is None: self.name = self.policy
+    if self.path is None: self.path = "saves/%s/" % self.name
+    # the below is a hack that makes it easier to run phillip from the command
+    # line, if we're doing PBT but don't want to specify the population ID. 
+    if self.evolve_learning_rate and self.pop_id < 0: self.pop_id = 0
     if self.pop_id >= 0:
       self.root = self.path
       self.path = os.path.join(self.path, str(self.pop_id))
