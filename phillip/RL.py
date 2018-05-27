@@ -89,7 +89,8 @@ class RL(Default):
     print("Using device " + device)
     
     self.graph = tf.Graph()
-    with self.graph.as_default(), tf.device(device):
+    with self.graph.as_default(), tf.device(device): 
+      # total number of gradient descent steps the learner has taken thus far
       self.global_step = tf.Variable(0, name='global_step', trainable=False)
       self.evo_variables = []
       
@@ -103,6 +104,10 @@ class RL(Default):
       self.core = Core(history_size, **kwargs)
       self.components['core'] = self.core
       
+      # initialize predictive model, if either: 
+      #  * you want to use the predictive model to "undo delay"
+      #  * you want a predictive model to help you explore
+      # note: self.predict is perhaps a misnomer. 
       if self.predict or (mode == Mode.TRAIN and (self.train_model or self.explore_scale)):
         print("Creating model.")
         self.model = Model(self.embedGame, embedAction.size, self.core, self.config, **kwargs)
