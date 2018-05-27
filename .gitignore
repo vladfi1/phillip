@@ -11,6 +11,7 @@ slurm_scripts/
 SSBM.iso
 parallel/
 dolphin/
+env/
 
 events.out.*
 error_frame

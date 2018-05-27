@@ -211,7 +211,7 @@ class RL(Default):
           explore_rewards = tf.stop_gradient(explore_rewards)
           rewards += explore_rewards
 
-        # run the critic
+        # build the critic
         if self.train_policy or self.train_critic:
           critic_loss, targets, advantages = self.critic(core_outputs[delay:], rewards[delay:], prob_ratios[:-1])
         if self.train_critic:
@@ -348,7 +348,7 @@ class RL(Default):
             train=True,
             log=True,
             zipped=False,
-            kls=False,
+            useKls=False, #???
             **kwargs):
     if not zipped:
       experiences = util.deepZip(*experiences)
@@ -370,7 +370,7 @@ class RL(Default):
     if train:
       run_dict.update(train=self.train_ops)
     
-    if kls:
+    if useKls:
       run_dict.update(kls=self.kls)
     
     if self.profile:
