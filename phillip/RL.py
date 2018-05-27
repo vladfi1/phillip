@@ -78,8 +78,8 @@ class RL(Default):
       self.root = self.path
       self.path = os.path.join(self.path, str(self.pop_id))
       print(self.path)
-    
-    self.snapshot = os.path.join(self.path, 'snapshot')
+    # where trained agents get saved onto disk. 
+    self.snapshotPath = os.path.join(self.path, 'snapshot')
     
     policyType = policies[self.policy_name]
     self.actionType = ssbm.actionTypes[self.action_type]
@@ -421,11 +421,11 @@ class RL(Default):
   def save(self):
     util.makedirs(self.path)
     print("Saving to", self.path)
-    self.saver.save(self.sess, self.snapshot, write_meta_graph=False)
+    self.saver.save(self.sess, self.snapshotPath, write_meta_graph=False)
 
   def restore(self, path=None):
     if path is None:
-      path = self.snapshot
+      path = self.snapshotPath
     print("Restoring from", path)
     self.saver.restore(self.sess, path)
 
