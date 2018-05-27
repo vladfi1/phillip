@@ -1,5 +1,5 @@
 {
-  "policy": "ActorCritic",
+  "policy_name": "ActorCritic",
   "epsilon": 0.01,
   "entropy_scale": 0.002,
   "learning_rate": 0.0001,

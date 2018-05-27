@@ -30,7 +30,7 @@ policies = {policy.__name__ : policy for policy in policies}
 class RL(Default):
   _options = [
     Option('tfdbg', action='store_true', help='debug tensorflow session'),
-    Option('policy', type=str, default="ActorCritic", choices=policies.keys()),
+    Option('policy_name', type=str, default="ActorCritic", choices=policies.keys()),
     Option('path', type=str, help="path to saved policy"),
     Option('gpu', action="store_true", default=False, help="run on gpu"),
     Option('action_type', type=str, default="diagonal", choices=ssbm.actionTypes.keys()),
@@ -69,7 +69,7 @@ class RL(Default):
     Default.__init__(self, init_members=False, **kwargs)
     self.config = RLConfig(**kwargs)
     
-    if self.name is None: self.name = self.policy
+    if self.name is None: self.name = self.policy_name
     if self.path is None: self.path = "saves/%s/" % self.name
     # the below is a hack that makes it easier to run phillip from the command
     # line, if we're doing PBT but don't want to specify the population ID. 
@@ -81,7 +81,7 @@ class RL(Default):
     
     self.snapshot = os.path.join(self.path, 'snapshot')
     
-    policyType = policies[self.policy]
+    policyType = policies[self.policy_name]
     self.actionType = ssbm.actionTypes[self.action_type]
     embedAction = embed.OneHotEmbedding("action", self.actionType.size)
 
@@ -111,7 +111,7 @@ class RL(Default):
         self.predict = True
 
       if mode == Mode.PLAY or self.train_policy:
-        print("Creating policy:", self.policy)
+        print("Creating policy:", self.policy_name)
 
         effective_delay = self.config.delay
         if self.predict:
