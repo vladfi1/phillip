@@ -1,6 +1,7 @@
 import os, sys
 import time
 from phillip import RL, util, ssbm
+from .ac import ActorCritic
 from phillip.default import *
 import numpy as np
 from collections import defaultdict
@@ -215,7 +216,7 @@ class Trainer(Default):
         for batch in util.chunk(experiences, batch_size):
           train_out = self.model.train(batch, self.batch_steps,
                                        log=(step%self.log_interval==0),
-                                       kls=True)[-1]
+                                       retrieve_kls=True)[-1]
           global_step = train_out['global_step']
           kls.extend(train_out['kls'].tolist())
           step += 1
@@ -312,9 +313,8 @@ if __name__ == '__main__':
   for opt in Trainer.full_opts():
     opt.update_parser(parser)
 
-  for policy in RL.policies.values():
-    for opt in policy.full_opts():
-      opt.update_parser(parser)
+  for opt in ActorCritic.full_opts():
+    opt.update_parser(parser)
       
   parser.add_argument('--fake', action='store_true', help='Train on fake experiences for debugging.')
 
