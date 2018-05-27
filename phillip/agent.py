@@ -31,7 +31,7 @@ class Agent(Default):
   
   def __init__(self, **kwargs):
     kwargs = kwargs.copy()
-    kwargs.update(mode=RL.Mode.PLAY)
+    kwargs.update(mode=RL.Mode.ACTOR)
     Default.__init__(self, **kwargs)
     
     self.frame_counter = 0

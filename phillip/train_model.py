@@ -25,7 +25,7 @@ class ModelTrainer(Default):
       args = util.load_params(load, 'train')
     
     util.update(args,
-        mode=RL.Mode.TRAIN,
+        mode=RL.Mode.LEARNER,
         **kwargs
     )
     util.pp.pprint(args)

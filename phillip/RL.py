@@ -15,8 +15,8 @@ from .core import Core
 from .mutators import relative
 
 class Mode(Enum):
-  TRAIN = 0
-  PLAY = 1
+  LEARNER = 0
+  ACTOR = 1
 
 policies = [
   DQN,
@@ -65,7 +65,7 @@ class RL(Default):
     #('opt', Optimizer),
   ]
   
-  def __init__(self, mode=Mode.TRAIN, debug=False, **kwargs):
+  def __init__(self, mode=Mode.LEARNER, debug=False, **kwargs):
     Default.__init__(self, init_members=False, **kwargs)
     self.config = RLConfig(**kwargs)
     
@@ -82,13 +82,12 @@ class RL(Default):
     self.snapshot_path = os.path.join(self.path, 'snapshot')
     self.actionType = ssbm.actionTypes[self.action_type]
     
-    # takes in action, returns one-hot vector corresponding to that action. 
+    # takes in action, and returns a one-hot vector corresponding to that action. 
     embedAction = embed.OneHotEmbedding("action", self.actionType.size)
-
-    device = '/gpu:0' if self.gpu else '/cpu:0'
-    print("Using device " + device)
     
     self.graph = tf.Graph()
+    device = '/gpu:0' if self.gpu else '/cpu:0'
+    print("Using device " + device)
     with self.graph.as_default(), tf.device(device): 
       # total number of gradient descent steps the learner has taken thus far
       self.global_step = tf.Variable(0, name='global_step', trainable=False)
@@ -108,13 +107,13 @@ class RL(Default):
       #  * you want to use the predictive model to "undo delay"
       #  * you want a predictive model to help you explore
       # note: self.predict is perhaps a misnomer. 
-      if self.predict or (mode == Mode.TRAIN and (self.train_model or self.explore_scale)):
+      if self.predict or (mode == Mode.LEARNER and (self.train_model or self.explore_scale)):
         print("Creating model.")
         self.model = Model(self.embedGame, embedAction.size, self.core, self.config, **kwargs)
         self.components['model'] = self.model
         self.predict = True
 
-      if mode == Mode.PLAY or self.train_policy:
+      if mode == Mode.ACTOR or self.train_policy:
         print("Creating policy:", self.policy_name)
 
         effective_delay = self.config.delay
@@ -127,19 +126,21 @@ class RL(Default):
         self.components['policy'] = self.policy
         self.evo_variables.extend(self.policy.evo_variables)
       
-      if mode == Mode.TRAIN:
+      if mode == Mode.LEARNER:
+        # to train the the policy, you have to train the critic. (self.train_policy and 
+        # self.train_critic might both be false, if we're only training the predictive
+        # model)
         if self.train_policy or self.train_critic:
           print("Creating critic.")
           self.critic = Critic(self.core.output_size, **kwargs)
           self.components['critic'] = self.critic
 
+        # experience = trajectory. usually a list of SimpleStateAction's. 
         self.experience = ct.inputCType(ssbm.SimpleStateAction, [None, self.config.experience_length], "experience")
         # instantaneous rewards for all but the last state
         self.experience['reward'] = tf.placeholder(tf.float32, [None, self.config.experience_length-1], name='experience/reward')
-
         # manipulating time along the first axis is much more efficient
-        experience = util.deepMap(tf.transpose, self.experience)
-        
+        experience = util.deepMap(tf.transpose, self.experience)       
         # initial state for recurrent networks
         self.experience['initial'] = tuple(tf.placeholder(tf.float32, [None, size], name='experience/initial/%d' % i) for i, size in enumerate(self.core.hidden_size))
         experience['initial'] = self.experience['initial']
@@ -219,9 +220,10 @@ class RL(Default):
           explore_rewards = tf.stop_gradient(explore_rewards)
           rewards += explore_rewards
 
-        # build the critic
+        # build the critic (which you'll also need to train the policy)
         if self.train_policy or self.train_critic:
           critic_loss, targets, advantages = self.critic(core_outputs[delay:], rewards[delay:], prob_ratios[:-1])
+        
         if self.train_critic:
           losses.append(critic_loss)
           loss_vars.extend(self.critic.variables)
