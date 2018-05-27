@@ -418,25 +418,30 @@ class RL(Default):
     
     return outputs
 
+  # save weights to disk
   def save(self):
     util.makedirs(self.path)
     print("Saving to", self.path)
     self.saver.save(self.sess, self.snapshotPath, write_meta_graph=False)
 
+  # restore weights from disk
   def restore(self, path=None):
     if path is None:
       path = self.snapshotPath
     print("Restoring from", path)
     self.saver.restore(self.sess, path)
 
+  # initializes weights
   def init(self):
     self.sess.run(self.initializer)
   
+  # for learner agent to call, to serialize itself to send to actors 
   def blob(self):
     with self.graph.as_default():
       values = self.sess.run(self.variables)
       return {var.name: val for var, val in zip(self.variables, values)}
   
+  # for actors to call, to unserialize updated weights from learners. 
   def unblob(self, blob):
     #self.sess.run(self.unblobber, {self.placeholders[k]: v for k, v in blob.items()})
     self.sess.run(self.unblobber, {v: blob[k] for k, v in self.placeholders.items()})
