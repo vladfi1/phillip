@@ -15,8 +15,8 @@ from .core import Core
 from .mutators import relative
 
 class Mode(Enum):
-  TRAIN = 0
-  PLAY = 1
+  LEARNER = 0
+  ACTOR = 1
 
 policies = [
   DQN,
@@ -30,7 +30,7 @@ policies = {policy.__name__ : policy for policy in policies}
 class RL(Default):
   _options = [
     Option('tfdbg', action='store_true', help='debug tensorflow session'),
-    Option('policy', type=str, default="ActorCritic", choices=policies.keys()),
+    Option('policy_name', type=str, default="ActorCritic", choices=policies.keys()),
     Option('path', type=str, help="path to saved policy"),
     Option('gpu', action="store_true", default=False, help="run on gpu"),
     Option('action_type', type=str, default="diagonal", choices=ssbm.actionTypes.keys()),
@@ -38,13 +38,19 @@ class RL(Default):
     Option('predict', type=int, default=0),
     Option('train_model', type=int, default=0),
     Option('train_policy', type=int, default=1),
-    Option('train_critic', type=int, default=1),
+    # in theory train_critic should always equal train_policy; keeping them
+    # separate might help for e.g. debugging
+    Option('train_critic', type=int, default=1), 
     Option('profile', type=int, default=0, help='profile tensorflow graph execution'),
     Option('save_cpu', type=int, default=0),
     Option('learning_rate', type=float, default=1e-4),
     Option('clip_max_grad', type=float, default=1.),
-    Option('pop_id', type=int, default=-1),
+    # if pop_id >= 0, then we're doing population-based training, and pop_id 
+    # tracks the worker's id. Else we're not doing PBT and the id is -1. 
+    Option('pop_id', type=int, default=-1), 
     Option('reward_decay', type=float, default=1e-3),
+    # evolve_leraning_rate is false by default; if true, then the learning rate
+    # is included in PBT among the things that get mutated. 
     Option('evolve_learning_rate', action="store_true"),
     Option('explore_scale', type=float, default=0., help='use prediction error as additional reward'),
     Option('dynamic', type=int, default=1, help='use dynamic loop unrolling'),
@@ -59,36 +65,31 @@ class RL(Default):
     #('opt', Optimizer),
   ]
   
-  def __init__(self, mode=Mode.TRAIN, debug=False, **kwargs):
+  def __init__(self, mode=Mode.LEARNER, debug=False, **kwargs):
     Default.__init__(self, init_members=False, **kwargs)
     self.config = RLConfig(**kwargs)
     
-    if self.name is None:
-      self.name = self.policy
-    
-    if self.path is None:
-      self.path = "saves/%s/" % self.name
-    
-    if self.evolve_learning_rate and self.pop_id < 0:
-      self.pop_id = 0
-    
+    if self.name is None: self.name = self.policy_name
+    if self.path is None: self.path = "saves/%s/" % self.name
+    # the below is a hack that makes it easier to run phillip from the command
+    # line, if we're doing PBT but don't want to specify the population ID. 
+    if self.evolve_learning_rate and self.pop_id < 0: self.pop_id = 0
     if self.pop_id >= 0:
       self.root = self.path
       self.path = os.path.join(self.path, str(self.pop_id))
       print(self.path)
-    
-    self.snapshot = os.path.join(self.path, 'snapshot')
-    
-    policyType = policies[self.policy]
+    # where trained agents get saved onto disk. 
+    self.snapshot_path = os.path.join(self.path, 'snapshot')
     self.actionType = ssbm.actionTypes[self.action_type]
-    embedAction = embed.OneHotEmbedding("action", self.actionType.size)
-
-    self.graph = tf.Graph()
     
+    # takes in action, and returns a one-hot vector corresponding to that action. 
+    embedAction = embed.OneHotEmbedding("action", self.actionType.size)
+    
+    self.graph = tf.Graph()
     device = '/gpu:0' if self.gpu else '/cpu:0'
     print("Using device " + device)
-    
-    with self.graph.as_default(), tf.device(device):
+    with self.graph.as_default(), tf.device(device): 
+      # total number of gradient descent steps the learner has taken thus far
       self.global_step = tf.Variable(0, name='global_step', trainable=False)
       self.evo_variables = []
       
@@ -102,36 +103,44 @@ class RL(Default):
       self.core = Core(history_size, **kwargs)
       self.components['core'] = self.core
       
-      if self.predict or (mode == Mode.TRAIN and (self.train_model or self.explore_scale)):
+      # initialize predictive model, if either: 
+      #  * you want to use the predictive model to "undo delay"
+      #  * you want a predictive model to help you explore
+      # note: self.predict is perhaps a misnomer. 
+      if self.predict or (mode == Mode.LEARNER and (self.train_model or self.explore_scale)):
         print("Creating model.")
         self.model = Model(self.embedGame, embedAction.size, self.core, self.config, **kwargs)
         self.components['model'] = self.model
         self.predict = True
 
-      if mode == Mode.PLAY or self.train_policy:
-        print("Creating policy:", self.policy)
+      if mode == Mode.ACTOR or self.train_policy:
+        print("Creating policy:", self.policy_name)
 
         effective_delay = self.config.delay
         if self.predict:
           effective_delay -= self.model.predict_steps
         input_size = self.core.output_size + effective_delay * embedAction.size
+        
+        policyType = policies[self.policy_name]
         self.policy = policyType(input_size, embedAction.size, self.config, **kwargs)
         self.components['policy'] = self.policy
         self.evo_variables.extend(self.policy.evo_variables)
       
-      if mode == Mode.TRAIN:
+      if mode == Mode.LEARNER:
+        # to train the the policy, you have to train the critic. (self.train_policy and 
+        # self.train_critic might both be false, if we're only training the predictive
+        # model)
         if self.train_policy or self.train_critic:
           print("Creating critic.")
           self.critic = Critic(self.core.output_size, **kwargs)
           self.components['critic'] = self.critic
 
+        # experience = trajectory. usually a list of SimpleStateAction's. 
         self.experience = ct.inputCType(ssbm.SimpleStateAction, [None, self.config.experience_length], "experience")
         # instantaneous rewards for all but the last state
         self.experience['reward'] = tf.placeholder(tf.float32, [None, self.config.experience_length-1], name='experience/reward')
-
         # manipulating time along the first axis is much more efficient
-        experience = util.deepMap(tf.transpose, self.experience)
-        
+        experience = util.deepMap(tf.transpose, self.experience)       
         # initial state for recurrent networks
         self.experience['initial'] = tuple(tf.placeholder(tf.float32, [None, size], name='experience/initial/%d' % i) for i, size in enumerate(self.core.hidden_size))
         experience['initial'] = self.experience['initial']
@@ -211,9 +220,10 @@ class RL(Default):
           explore_rewards = tf.stop_gradient(explore_rewards)
           rewards += explore_rewards
 
-        # run the critic
+        # build the critic (which you'll also need to train the policy)
         if self.train_policy or self.train_critic:
           critic_loss, targets, advantages = self.critic(core_outputs[delay:], rewards[delay:], prob_ratios[:-1])
+        
         if self.train_critic:
           losses.append(critic_loss)
           loss_vars.extend(self.critic.variables)
@@ -348,7 +358,7 @@ class RL(Default):
             train=True,
             log=True,
             zipped=False,
-            kls=False,
+            retrieve_kls=False, 
             **kwargs):
     if not zipped:
       experiences = util.deepZip(*experiences)
@@ -370,7 +380,7 @@ class RL(Default):
     if train:
       run_dict.update(train=self.train_ops)
     
-    if kls:
+    if retrieve_kls:
       run_dict.update(kls=self.kls)
     
     if self.profile:
@@ -416,25 +426,30 @@ class RL(Default):
     
     return outputs
 
+  # save weights to disk
   def save(self):
     util.makedirs(self.path)
     print("Saving to", self.path)
-    self.saver.save(self.sess, self.snapshot, write_meta_graph=False)
+    self.saver.save(self.sess, self.snapshot_path, write_meta_graph=False)
 
+  # restore weights from disk
   def restore(self, path=None):
     if path is None:
-      path = self.snapshot
+      path = self.snapshot_path
     print("Restoring from", path)
     self.saver.restore(self.sess, path)
 
+  # initializes weights
   def init(self):
     self.sess.run(self.initializer)
   
+  # for learner agent to call, to serialize itself to send to actors 
   def blob(self):
     with self.graph.as_default():
       values = self.sess.run(self.variables)
       return {var.name: val for var, val in zip(self.variables, values)}
   
+  # for actors to call, to unserialize updated weights from learners. 
   def unblob(self, blob):
     #self.sess.run(self.unblobber, {self.placeholders[k]: v for k, v in blob.items()})
     self.sess.run(self.unblobber, {v: blob[k] for k, v in self.placeholders.items()})

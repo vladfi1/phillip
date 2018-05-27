@@ -1,3 +1,13 @@
+"""
+Responsible for interfacing with Dolphin to interface with SSBM, and handles things like:
+* character selection
+* stage selection
+* running Phillip within SSBM
+
+Should probably be renamed from CPU.py
+"""
+
+
 from . import ssbm, state_manager, agent, util, RL, movie
 from . import memory_watcher as mw
 from .state import *

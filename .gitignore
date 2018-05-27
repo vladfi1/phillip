@@ -15,3 +15,6 @@ dolphin/
 events.out.*
 error_frame
 ip
+
+env/
+phillip.egg-info/

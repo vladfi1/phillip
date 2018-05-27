@@ -1,5 +1,5 @@
 {
-  "policy": "ActorCritic",
+  "policy_name": "ActorCritic",
   "epsilon": 0.001,
   "sweeps": 1,
   "batch_size": 64,

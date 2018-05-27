@@ -1,5 +1,5 @@
 {
-  "policy": "ActorCritic",
+  "policy_name": "ActorCritic",
   "fix_scopes": true,
   "char": "falcon",
   "stage": "battlefield",

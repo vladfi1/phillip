@@ -1,3 +1,7 @@
+"""
+Define SSBM types. 
+"""
+
 from ctypes import *
 from .ctype_util import *
 from enum import IntEnum

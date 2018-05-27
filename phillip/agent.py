@@ -31,7 +31,7 @@ class Agent(Default):
   
   def __init__(self, **kwargs):
     kwargs = kwargs.copy()
-    kwargs.update(mode=RL.Mode.PLAY)
+    kwargs.update(mode=RL.Mode.ACTOR)
     Default.__init__(self, **kwargs)
     
     self.frame_counter = 0
@@ -127,8 +127,9 @@ class Agent(Default):
         with open(path, 'wb') as f:
           pickle.dump(prepared, f)
 
-
-  def act(self, state, pad):
+  # Given the current state, determine the action you'll take and send it to the Smash emulator. 
+  # pad is a "game pad" object, for interfacing with the emulator
+  def act(self, state, pad): 
     self.frame_counter += 1
     if self.frame_counter % self.rl.config.act_every != 0:
       return
@@ -188,6 +189,7 @@ class Agent(Default):
         self.global_step = self.rl.get_global_step()
 
 
+  # When called, ask the learner if there are new parameters. 
   def recieve_params(self):
     if self.dump_frame != 0:
       return
