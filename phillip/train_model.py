@@ -1,3 +1,8 @@
+"""
+Alternative to train.py. Not included by default. 
+"""
+
+
 from phillip import ssbm, util, RL
 from phillip.default import Default, Option
 import hickle

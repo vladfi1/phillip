@@ -8,7 +8,7 @@ Should probably be renamed from CPU.py
 """
 
 
-from . import ssbm, state_manager, agent, util, RL, movie
+from . import ssbm, state_manager, agent, util, movie
 from . import memory_watcher as mw
 from .state import *
 from .menu_manager import *
