@@ -11,8 +11,10 @@ slurm_scripts/
 SSBM.iso
 parallel/
 dolphin/
-env/
 
 events.out.*
 error_frame
 ip
+
+env/
+phillip.egg-info/
