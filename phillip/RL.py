@@ -5,10 +5,7 @@ from enum import Enum
 from . import ssbm, tf_lib as tfl, util, embed, ctype_util as ct
 from .default import Default, Option
 from .rl_common import *
-from .dqn import DQN
 from .ac import ActorCritic
-from .rac import RecurrentActorCritic
-from .rdqn import RecurrentDQN
 from .critic import Critic
 from .model import Model
 from .core import Core
@@ -18,19 +15,9 @@ class Mode(Enum):
   LEARNER = 0
   ACTOR = 1
 
-policies = [
-  DQN,
-  ActorCritic,
-  #ThompsonDQN,
-  RecurrentActorCritic,
-  RecurrentDQN,
-]
-policies = {policy.__name__ : policy for policy in policies}
-
 class RL(Default):
   _options = [
     Option('tfdbg', action='store_true', help='debug tensorflow session'),
-    Option('policy_name', type=str, default="ActorCritic", choices=policies.keys()),
     Option('path', type=str, help="path to saved policy"),
     Option('gpu', action="store_true", default=False, help="run on gpu"),
     Option('action_type', type=str, default="diagonal", choices=ssbm.actionTypes.keys()),
@@ -69,7 +56,7 @@ class RL(Default):
     Default.__init__(self, init_members=False, **kwargs)
     self.config = RLConfig(**kwargs)
     
-    if self.name is None: self.name = self.policy_name
+    if self.name is None: self.name = "ActorCritic"
     if self.path is None: self.path = "saves/%s/" % self.name
     # the below is a hack that makes it easier to run phillip from the command
     # line, if we're doing PBT but don't want to specify the population ID. 
@@ -114,15 +101,12 @@ class RL(Default):
         self.predict = True
 
       if mode == Mode.ACTOR or self.train_policy:
-        print("Creating policy:", self.policy_name)
-
         effective_delay = self.config.delay
         if self.predict:
           effective_delay -= self.model.predict_steps
         input_size = self.core.output_size + effective_delay * embedAction.size
         
-        policyType = policies[self.policy_name]
-        self.policy = policyType(input_size, embedAction.size, self.config, **kwargs)
+        self.policy = ActorCritic(input_size, embedAction.size, self.config, **kwargs)
         self.components['policy'] = self.policy
         self.evo_variables.extend(self.policy.evo_variables)
       
