@@ -348,7 +348,7 @@ class RL(Default):
             train=True,
             log=True,
             zipped=False,
-            useKls=False, #???
+            retrieve_kls=False, 
             **kwargs):
     if not zipped:
       experiences = util.deepZip(*experiences)
@@ -370,7 +370,7 @@ class RL(Default):
     if train:
       run_dict.update(train=self.train_ops)
     
-    if useKls:
+    if retrieve_kls:
       run_dict.update(kls=self.kls)
     
     if self.profile:
