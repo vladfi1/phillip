@@ -79,17 +79,16 @@ class RL(Default):
       self.path = os.path.join(self.path, str(self.pop_id))
       print(self.path)
     # where trained agents get saved onto disk. 
-    self.snapshotPath = os.path.join(self.path, 'snapshot')
-    
-    policyType = policies[self.policy_name]
+    self.snapshot_path = os.path.join(self.path, 'snapshot')
     self.actionType = ssbm.actionTypes[self.action_type]
+    
+    # takes in action, returns one-hot vector corresponding to that action. 
     embedAction = embed.OneHotEmbedding("action", self.actionType.size)
 
-    self.graph = tf.Graph()
-    
     device = '/gpu:0' if self.gpu else '/cpu:0'
     print("Using device " + device)
     
+    self.graph = tf.Graph()
     with self.graph.as_default(), tf.device(device):
       self.global_step = tf.Variable(0, name='global_step', trainable=False)
       self.evo_variables = []
@@ -117,6 +116,8 @@ class RL(Default):
         if self.predict:
           effective_delay -= self.model.predict_steps
         input_size = self.core.output_size + effective_delay * embedAction.size
+        
+        policyType = policies[self.policy_name]
         self.policy = policyType(input_size, embedAction.size, self.config, **kwargs)
         self.components['policy'] = self.policy
         self.evo_variables.extend(self.policy.evo_variables)
@@ -422,12 +423,12 @@ class RL(Default):
   def save(self):
     util.makedirs(self.path)
     print("Saving to", self.path)
-    self.saver.save(self.sess, self.snapshotPath, write_meta_graph=False)
+    self.saver.save(self.sess, self.snapshot_path, write_meta_graph=False)
 
   # restore weights from disk
   def restore(self, path=None):
     if path is None:
-      path = self.snapshotPath
+      path = self.snapshot_path
     print("Restoring from", path)
     self.saver.restore(self.sess, path)
 
