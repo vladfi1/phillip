@@ -216,7 +216,7 @@ class Trainer(Default):
         for batch in util.chunk(experiences, batch_size):
           train_out = self.model.train(batch, self.batch_steps,
                                        log=(step%self.log_interval==0),
-                                       kls=True)[-1]
+                                       retrieve_kls=True)[-1]
           global_step = train_out['global_step']
           kls.extend(train_out['kls'].tolist())
           step += 1
