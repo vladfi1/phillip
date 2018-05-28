@@ -1,6 +1,7 @@
 import os, sys
 import time
-from phillip import RL, util, ssbm
+from phillip import learner, util, ssbm
+from phillip.ac import ActorCritic
 from phillip.default import *
 import numpy as np
 from collections import defaultdict
@@ -55,7 +56,7 @@ class Trainer(Default):
   ]
   
   _members = [
-    ("model", RL.RL),
+    ("learner", learner.Learner),
   ]
   
   def __init__(self, load=None, **kwargs):
@@ -63,25 +64,25 @@ class Trainer(Default):
       args = {}
     else:
       args = util.load_params(load, 'train')
-    
-    util.update(args, mode=RL.Mode.TRAIN, **kwargs)
+
+    args.update(**kwargs)
     util.pp.pprint(args)
     Default.__init__(self, **args)
 
     addresses = netifaces.ifaddresses(self.dump)
     address = addresses[netifaces.AF_INET][0]['addr']
 
-    util.makedirs(self.model.path)
-    with open(os.path.join(self.model.path, 'ip'), 'w') as f:
+    util.makedirs(self.learner.path)
+    with open(os.path.join(self.learner.path, 'ip'), 'w') as f:
       f.write(address)
 
     self.experience_socket = nnpy.Socket(nnpy.AF_SP, nnpy.PULL)
-    experience_addr = "tcp://%s:%d" % (address, util.port(self.model.path + "/experience"))
+    experience_addr = "tcp://%s:%d" % (address, util.port(self.learner.path + "/experience"))
     self.experience_socket.bind(experience_addr)
 
     if self.send:
       self.params_socket = nnpy.Socket(nnpy.AF_SP, nnpy.PUB)
-      params_addr = "tcp://%s:%d" % (address, util.port(self.model.path + "/params"))
+      params_addr = "tcp://%s:%d" % (address, util.port(self.learner.path + "/params"))
       print("Binding params socket to", params_addr)
       self.params_socket.bind(params_addr)
 
@@ -89,10 +90,10 @@ class Trainer(Default):
     print("Sweep size", self.sweep_size)
     
     if self.init:
-      self.model.init()
-      self.model.save()
+      self.learner.init()
+      self.learner.save()
     else:
-      self.model.restore()
+      self.learner.restore()
     
     self.last_save = time.time()
   
@@ -101,21 +102,21 @@ class Trainer(Default):
     
     if current_time - self.last_save > 60 * self.save_interval:
       try:
-        self.model.save()
+        self.learner.save()
         self.last_save = current_time
       except tf.errors.InternalError as e:
         print(e, file=sys.stderr)
 
   def selection(self):
-    reward = self.model.get_reward()
+    reward = self.learner.get_reward()
     print("Evolving. Current reward %f" % reward)
     
     target_id = random.randint(0, self.pop_size-2)
-    if target_id >= self.model.pop_id:
+    if target_id >= self.learner.pop_id:
       target_id += 1
     print("Selection candidate: %d" % target_id)
     
-    target_path = os.path.join(self.model.root, str(target_id))
+    target_path = os.path.join(self.learner.root, str(target_id))
     latest_ckpt = tf.train.latest_checkpoint(target_path)
     reader = tf.train.NewCheckpointReader(latest_ckpt)
     target_reward = reader.get_tensor('avg_reward')
@@ -125,7 +126,7 @@ class Trainer(Default):
       return False
     
     print("Selecting %d" % target_id)
-    self.model.restore(latest_ckpt)
+    self.learner.restore(latest_ckpt)
     return True
 
   def train(self):
@@ -133,7 +134,7 @@ class Trainer(Default):
 
     sweeps = 0
     step = 0
-    global_step = self.model.get_global_step()
+    global_step = self.learner.get_global_step()
     
     times = ['min_collect', 'extra_collect', 'train', 'save']
     averages = {name: util.MovingAverage(.9) for name in times}
@@ -213,9 +214,9 @@ class Trainer(Default):
 
       try:
         for batch in util.chunk(experiences, batch_size):
-          train_out = self.model.train(batch, self.batch_steps,
+          train_out = self.learner.train(batch, self.batch_steps,
                                        log=(step%self.log_interval==0),
-                                       kls=True)[-1]
+                                       retrieve_kls=True)[-1]
           global_step = train_out['global_step']
           kls.extend(train_out['kls'].tolist())
           step += 1
@@ -243,11 +244,11 @@ class Trainer(Default):
       if self.evolve and sweeps % self.evo_period == 0:
         if self.selection():
           experiences = []
-        self.model.mutation()
+        self.learner.mutation()
 
       if self.send:
         #self.params_socket.send_string("", zmq.SNDMORE)
-        params = self.model.blob()
+        params = self.learner.blob()
         blob = pickle.dumps(params)
         #print('After blob: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
         self.params_socket.send(blob)
@@ -275,9 +276,9 @@ class Trainer(Default):
         objgraph.show_growth()
   
   def fake_train(self):
-    experience = (ssbm.SimpleStateAction * self.model.config.experience_length)()
+    experience = (ssbm.SimpleStateAction * self.learner.config.experience_length)()
     experience = ssbm.prepareStateActions(experience)
-    experience['initial'] = util.deepMap(np.zeros, self.model.core.hidden_size)
+    experience['initial'] = util.deepMap(np.zeros, self.learner.core.hidden_size)
     
     experiences = [experience] * self.batch_size
     
@@ -302,7 +303,7 @@ class Trainer(Default):
       # High level API, such as slim, Estimator, etc.
       count = 0
       while count != self.sweep_limit:
-        self.model.train(experiences, self.batch_steps)
+        self.learner.train(experiences, self.batch_steps)
         count += 1
 
 if __name__ == '__main__':
@@ -312,9 +313,8 @@ if __name__ == '__main__':
   for opt in Trainer.full_opts():
     opt.update_parser(parser)
 
-  for policy in RL.policies.values():
-    for opt in policy.full_opts():
-      opt.update_parser(parser)
+  for opt in ActorCritic.full_opts():
+    opt.update_parser(parser)
       
   parser.add_argument('--fake', action='store_true', help='Train on fake experiences for debugging.')
 

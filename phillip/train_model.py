@@ -1,4 +1,11 @@
-from phillip import ssbm, util, RL
+"""
+Alternative to train.py. Not run by default. 
+
+(Alex Zhu 5/28/18: not tested, might not run properly)
+"""
+
+
+from phillip import ssbm, util, learner
 from phillip.default import Default, Option
 import hickle
 import time
@@ -15,7 +22,7 @@ class ModelTrainer(Default):
   ]
   
   _members = [
-    ('rl', RL.RL),
+    ('learner', learner.Learner),
   ]
 
   def __init__(self, load=None, **kwargs):
@@ -24,18 +31,14 @@ class ModelTrainer(Default):
     else:
       args = util.load_params(load, 'train')
     
-    util.update(args,
-        mode=RL.Mode.TRAIN,
-        **kwargs
-    )
     util.pp.pprint(args)
     Default.__init__(self, **args)
 
     if self.init:
-      self.rl.init()
-      self.rl.save()
+      self.learner.init()
+      self.learner.save()
     else:
-      self.rl.restore()
+      self.learner.restore()
     
     print("Loading experiences from", self.data)
     
@@ -61,14 +64,14 @@ class ModelTrainer(Default):
       start_time = time.time()
       
       for batch in train_batches:
-        self.rl.train(batch, log=False, zipped=True)
+        self.learner.train(batch, log=False, zipped=True)
       
       print(time.time() - start_time) 
       
       for batch in valid_batches:
-        self.rl.train(batch, train=False, zipped=True)
+        self.learner.train(batch, train=False, zipped=True)
 
-      self.rl.save()
+      self.learner.save()
 
       import resource
       print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
