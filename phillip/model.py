@@ -11,6 +11,7 @@ class Model(Default):
     Option('model_weight', type=float, default=1.),
     Option('predict_steps', type=int, default=1, help="number of future frames to predict"),
     Option('dynamic', type=int, default=1, help='use dynamic loop unrolling'),
+    Option('train_only_last', action="store_true", help="If we predict for k steps, only train on predict^{(k)}."),
   ]
   
   _members = [
@@ -128,8 +129,11 @@ class Model(Default):
     
       tf.summary.scalar("model/%d/total" % step, total_distances[step])
     
-    total_distance = tf.reduce_mean(total_distances) * self.model_weight
-    return total_distance, final_core_outputs
+    if self.train_only_last:
+      total_distance = total_distances[-1]
+    else:
+      total_distance = tf.reduce_mean(total_distances)
+    return total_distance * self.model_weight, final_core_outputs
   
   def predict(self, history, core_outputs, hidden_states, actions, raw_state):
     last_state = util.deepMap(lambda t: t[-1], raw_state)
