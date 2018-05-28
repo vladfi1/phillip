@@ -53,6 +53,7 @@ class RL(Default):
     ('model', Model),
     ('core', Core),
     #('opt', Optimizer),
+    ('policy', ActorCritic),
   ]
   
   def __init__(self, **kwargs):

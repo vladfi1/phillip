@@ -7,7 +7,6 @@ from multiprocessing import Process
 from phillip.cpu import CPU
 from phillip import util
 import tempfile
-from .ac import ActorCritic
 
 pp = pprint.PrettyPrinter(indent=2)
 
@@ -56,9 +55,6 @@ def main():
   parser = ArgumentParser()
 
   for opt in CPU.full_opts():
-    opt.update_parser(parser)
-
-  for opt in ActorCritic.full_opts():
     opt.update_parser(parser)
 
   parser.add_argument("--load", type=str, help="path to folder containing snapshot and params")
