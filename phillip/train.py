@@ -64,7 +64,8 @@ class Trainer(Default):
       args = {}
     else:
       args = util.load_params(load, 'train')
-    
+
+    args.update(**kwargs)
     util.pp.pprint(args)
     Default.__init__(self, **args)
 
