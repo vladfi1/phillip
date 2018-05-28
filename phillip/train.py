@@ -1,7 +1,7 @@
 import os, sys
 import time
 from phillip import RL, util, ssbm
-from .ac import ActorCritic
+from phillip.ac import ActorCritic
 from phillip.default import *
 import numpy as np
 from collections import defaultdict

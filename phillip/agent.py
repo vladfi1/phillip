@@ -1,5 +1,5 @@
 import tensorflow as tf
-from . import ssbm, RL, util, tf_lib as tfl, ctype_util as ct
+from . import ssbm, actor, util, tf_lib as tfl, ctype_util as ct
 import numpy as np
 from numpy import random, exp
 from .default import *
@@ -26,12 +26,12 @@ class Agent(Default):
   ]
   
   _members = [
-    ('rl', RL.RL)
+    ('rl', actor.Actor)
   ]
   
   def __init__(self, **kwargs):
     kwargs = kwargs.copy()
-    kwargs.update(mode=RL.Mode.ACTOR)
+    # kwargs.update(mode=RL.Mode.ACTOR)
     Default.__init__(self, **kwargs)
     
     self.frame_counter = 0

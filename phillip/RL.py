@@ -1,3 +1,9 @@
+"""
+Abstract base class. (If that's a thing in Python?) Should never be 
+publicly exported. 
+??? 
+"""
+
 import os
 import tensorflow as tf
 import numpy as np
@@ -52,7 +58,7 @@ class RL(Default):
     #('opt', Optimizer),
   ]
   
-  def __init__(self, mode=Mode.LEARNER, debug=False, **kwargs):
+  def __init__(self, mode, debug, **kwargs):
     Default.__init__(self, init_members=False, **kwargs)
     self.config = RLConfig(**kwargs)
     
@@ -288,7 +294,7 @@ class RL(Default):
         self.run_policy = self.policy.getPolicy(core_output, delayed_actions), hidden_state
       
       self.debug = debug
-      
+
       self.variables = tf.global_variables()
       self.initializer = tf.global_variables_initializer()
       
