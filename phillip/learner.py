@@ -4,6 +4,8 @@ from . import ssbm, util, ctype_util as ct, embed
 from .core import Core
 from .ac import ActorCritic
 from .critic import Critic
+from phillip import tf_lib as tfl
+from .mutators import relative
 
 class Learner(RL.RL):
   def __init__(self, debug=False, **kwargs):
@@ -112,6 +114,7 @@ class Learner(RL.RL):
         distances = tf.add_n(list(util.deepValues(distances))) # sum over different state components
         explore_rewards = self.explore_scale * distances[0]
         explore_rewards = tf.stop_gradient(explore_rewards)
+        tfl.stats(explore_rewards, 'explore_rewards')
         rewards += explore_rewards
 
       # build the critic (which you'll also need to train the policy)
@@ -147,8 +150,7 @@ class Learner(RL.RL):
       
       print("Created train op(s)")
       
-      avg_reward = tf.reduce_mean(experience['reward'])
-      tf.summary.scalar('reward', avg_reward)
+      avg_reward, _ = tfl.stats(experience['reward'], 'reward')
       
       misc_ops = []
       

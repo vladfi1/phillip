@@ -13,7 +13,6 @@ from .ac import ActorCritic
 from .critic import Critic
 from .model import Model
 from .core import Core
-from .mutators import relative
 
 class Mode(Enum):
   LEARNER = 0
