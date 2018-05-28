@@ -9,7 +9,7 @@ class Actor(RL.RL):
     super(Actor, self).__init__(**kwargs)
 
     with self.graph.as_default(), tf.device(self.device): 
-      if self.predict: self._init_model()
+      if self.predict: self._init_model(**kwargs)
       self._init_policy(**kwargs)
       
       # build computation graph

@@ -15,7 +15,7 @@ class Learner(RL.RL):
       #  * you want a predictive model to help you explore
       # note: self.predict is perhaps a misnomer. 
       if self.predict or (self.train_model or self.explore_scale):
-        self._init_model()
+        self._init_model(**kwargs)
 
       if self.train_policy: 
         self._init_policy(**kwargs)

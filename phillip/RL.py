@@ -134,10 +134,9 @@ class RL(Default):
     self.sess.run(self.unblobber, {v: blob[k] for k, v in self.placeholders.items()})
   
   # helper methods for initialization
-  def _init_model(self):
+  def _init_model(self, **kwargs):
     print("Creating model.")
     self.model = Model(self.embedGame, self.embedAction.size, self.core, self.config, **kwargs)
-    self.predict = True
 
   def _init_policy(self, **kwargs):
     effective_delay = self.config.delay
