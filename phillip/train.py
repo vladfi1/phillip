@@ -40,7 +40,7 @@ class Trainer(Default):
     Option("max_kl", type=float, help="how off-policy an experience can be before we discard it"),
     Option("max_buffer", type=int, help="maximum size of experience buffer"),
     
-    Option("log_interval", type=int, default=10),
+    Option("log_interval", type=int, default=100),
     Option("dump", type=str, default="lo", help="interface to listen on for experience dumps"),
     Option('send', type=int, default=1, help="send the network parameters on an nnpy PUB socket"),
     Option("save_interval", type=float, default=10, help="length of time between saves to disk, in minutes"),
