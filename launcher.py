@@ -23,8 +23,10 @@ parser.add_argument('-p', '--tenenbaum', action='store_true', help='run trainer 
 parser.add_argument('-u' ,'--use_everything', action='store_true', help='run agents on lower priority')
 parser.add_argument('-g', '--any_gpu', action='store_true', help='run with any gpu (default is titan-x)')
 parser.add_argument('-t', '--time', type=str, default="7-0", help='job runtime in days-hours')
-parser.add_argument('--nogpu', action='store_true', help="don't run trainer on a gpu")
+parser.add_argument('--cpu', action='store_true', help="don't run trainer on a gpu")
+parser.add_argument('--gpu', type=str, default='GEFORCEGTX1080TI', help='gpu type')
 parser.add_argument('--send', type=int, default=1, help='send params with zmq PUB/SUB')
+parser.add_argument('--pop_size', type=int, help='max pop size')
 
 args = parser.parse_args()
 params = util.load_params(args.path)
@@ -81,7 +83,7 @@ def launch(name, command, cpus=2, mem=1, gpu=False, log=True, qos=None, array=No
     if log:
       f.write("#SBATCH --output slurm_logs/" + logname + ".out\n")
     else:
-      f.write("#SBATCH --output /dev/null")
+      f.write("#SBATCH --output /dev/null\n")
     f.write("#SBATCH --error slurm_logs/" + logname + ".err\n")
     
     f.write("#SBATCH -c %d\n" % cpus)
@@ -94,7 +96,7 @@ def launch(name, command, cpus=2, mem=1, gpu=False, log=True, qos=None, array=No
       if args.any_gpu:
         f.write("#SBATCH --gres gpu:1\n")
       else:
-        opt("--gres gpu:GEFORCEGTX1080TI:1")
+        opt("--gres gpu:%s:1" % args.gpu)
       #if not args.any_gpu:  # 31-54 have titan-x, 55-66 have 1080ti
       #  f.write("#SBATCH -x node[001-030]\n")
     if qos:
@@ -106,9 +108,11 @@ def launch(name, command, cpus=2, mem=1, gpu=False, log=True, qos=None, array=No
       opt("--dependency after:" + depends)
 
     if gpu:
-      f.write("source activate tf-gpu-pypi\n")
+      f.write("source ~/.cuda\n")
+      f.write("source activate tf-gpu-src\n")
     else:
       f.write("source activate tf-cpu-opt\n")
+      f.write("sleep 20s\n")
     f.write(command)
 
   #command = "screen -S %s -dm srun --job-name %s --pty singularity exec -B $OM_USER/phillip -B $HOME/phillip/ -H ../home phillip.img gdb -ex r --args %s" % (name[:10], name, command)
@@ -119,7 +123,7 @@ def launch(name, command, cpus=2, mem=1, gpu=False, log=True, qos=None, array=No
 
 def get_pop_ids(path):
   agent_params = util.load_params(path)
-  agent_pop_size = agent_params.get('pop_size')
+  agent_pop_size = args.pop_size or agent_params.get('pop_size')
   
   if agent_pop_size:
     return list(range(agent_pop_size))
@@ -150,9 +154,10 @@ if run_trainer:
     command += " --pop_id %d" % pop_id
   
     trainer_id = launch(train_name, command,
-      gpu=not args.nogpu,
+      gpu=not args.cpu,
       qos='tenenbaum' if args.tenenbaum else None,
       mem=16,
+      cpus=4,
     )
     
     if trainer_id:
