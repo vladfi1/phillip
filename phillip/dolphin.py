@@ -62,8 +62,9 @@ $Netplay Community Settings
 
 lcancel_ini = """
 $Flash White on Successful L-Cancel
-$Flash Red on Unsuccessful L-Cancel
 """
+#$Flash Red on Unsuccessful L-Cancel
+
 
 gale01_ini_fm = """
 [Core]
