@@ -1,6 +1,6 @@
 import os, sys
 import time
-from phillip import RL, util, ssbm
+from phillip import learner, util, ssbm
 from phillip.ac import ActorCritic
 from phillip.default import *
 import numpy as np
@@ -56,7 +56,7 @@ class Trainer(Default):
   ]
   
   _members = [
-    ("model", RL.RL),
+    ("model", learner.Learner),
   ]
   
   def __init__(self, load=None, **kwargs):
@@ -65,7 +65,6 @@ class Trainer(Default):
     else:
       args = util.load_params(load, 'train')
     
-    util.update(args, mode=RL.Mode.LEARNER, **kwargs)
     util.pp.pprint(args)
     Default.__init__(self, **args)
 
