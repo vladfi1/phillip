@@ -47,7 +47,6 @@ class Trainer(Default):
 
     Option("load", type=str, help="path to a json file from which to load params"),
     Option("pop_size", type=int, default=0),
-    Option('evolve', action="store_true", help="evolve population"),
     Option("evo_period", type=int, default=1000, help="evolution period"),
     Option("reward_cutoff", type=float, default=1e-3),
 
@@ -241,7 +240,7 @@ class Trainer(Default):
       #print('After train: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
       split('train')
 
-      if self.evolve and sweeps % self.evo_period == 0:
+      if self.pop_size > 1 and sweeps % self.evo_period == 0:
         if self.selection():
           experiences = []
         self.learner.mutation()

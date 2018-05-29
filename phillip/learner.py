@@ -1,4 +1,4 @@
-from phillip import RL
+from phillip.RL import RL
 import tensorflow as tf
 from . import ssbm, util, ctype_util as ct, embed
 from .core import Core
@@ -6,8 +6,24 @@ from .ac import ActorCritic
 from .critic import Critic
 from phillip import tf_lib as tfl
 from .mutators import relative
+from .default import Option
 
-class Learner(RL.RL):
+class Learner(RL):
+  
+  _options = RL._options + [
+    Option('train_model', type=int, default=0),
+    Option('train_policy', type=int, default=1),
+    # in theory train_critic should always equal train_policy; keeping them
+    # separate might help for e.g. debugging
+    Option('train_critic', type=int, default=1),
+    Option('reward_decay', type=float, default=1e-3),
+    Option('learning_rate', type=float, default=1e-4),
+    Option('clip_max_grad', type=float, default=1.),
+    Option('evolve_learning_rate', action="store_true", help="false by default; if true, then" \
+      "the learning rate is included in PBT among the things that get mutated. "),
+    Option('explore_scale', type=float, default=0., help='use prediction error as additional reward'),
+  ]
+
   def __init__(self, debug=False, **kwargs):
     super(Learner, self).__init__(**kwargs)
 
