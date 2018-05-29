@@ -22,6 +22,7 @@ class Learner(RL):
     Option('evolve_learning_rate', action="store_true", help="false by default; if true, then" \
       "the learning rate is included in PBT among the things that get mutated. "),
     Option('explore_scale', type=float, default=0., help='use prediction error as additional reward'),
+    Option('evolve_explore_scale', action="store_true", help='evolve explore_scale with PBT'),
   ]
 
   def __init__(self, debug=False, **kwargs):
@@ -123,8 +124,9 @@ class Learner(RL):
         prob_ratios = tf.ones_like() # todo
 
       if self.explore_scale:
-        self.explore_scale = tf.Variable(self.explore_scale, trainable=False, name='explore_scale')
-        self.evo_variables.append(('explore_scale', self.explore_scale, relative(1.5)))
+        if self.evolve_explore_scale:
+          self.explore_scale = tf.Variable(self.explore_scale, trainable=False, name='explore_scale')
+          self.evo_variables.append(('explore_scale', self.explore_scale, relative(1.5)))
         
         distances, _ = self.model.distances(history, core_outputs, hidden_states, actions, experience['state'], predict_steps=1)
         distances = tf.add_n(list(util.deepValues(distances))) # sum over different state components
