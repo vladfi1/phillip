@@ -23,6 +23,7 @@ class Learner(RL):
       "the learning rate is included in PBT among the things that get mutated. "),
     Option('explore_scale', type=float, default=0., help='use prediction error as additional reward'),
     Option('evolve_explore_scale', action="store_true", help='evolve explore_scale with PBT'),
+    Option('unshift_critic', action='store_true', help="don't shift critic forward in time"),
   ]
 
   def __init__(self, debug=False, **kwargs):
@@ -137,7 +138,8 @@ class Learner(RL):
 
       # build the critic (which you'll also need to train the policy)
       if self.train_policy or self.train_critic:
-        critic_loss, targets, advantages = self.critic(core_outputs[delay:], rewards[delay:], prob_ratios[:-1])
+        shifted_core_outputs = core_outputs[:delay_length] if self.unshift_critic else core_outputs[delay:]
+        critic_loss, targets, advantages = self.critic(shifted_core_outputs, rewards[delay:], prob_ratios[:-1])
       
       if self.train_critic:
         losses.append(critic_loss)

@@ -32,19 +32,14 @@ def add_param(param, value, name=True):
       exp_name += "_" + param + "_" + toStr(value)
   params[param] = value
 
-#model = 'DQN'
-#model = 'RecurrentDQN'
 model = 'ActorCritic'
-#model = 'RecurrentActorCritic'
 
 exp_name += model
 
 recurrent = True
-dqn = model.count('DQN')
-ac = model.count('ActorCritic')
 
-add_param('policy', model, False)
-add_param('epsilon', 0, False)
+# add_param('policy', model, False)
+add_param('epsilon', 0.005, False)
 
 natural = True
 natural = False
@@ -55,10 +50,12 @@ natural = False
 add_param('sweeps', 1, False)
 add_param('batch_size', 64, False)
 add_param('batch_steps', 1, False)
-add_param("max_buffer", 128, False)
-add_param('min_collect', 24, False)
+add_param("max_buffer", 64, False)
+add_param('min_collect', 32, False)
 
 add_param('reward_halflife', 4, False)
+
+#add_param('dynamic', 0)
 
 # evolution
 evolve = False
@@ -66,17 +63,18 @@ evolve = False
 
 if evolve:
   add_param("evolve", True, False)
-  add_param("pop_size", 2)
+  add_param("pop_size", 4)
   add_param("reward_cutoff", 2e-4, False)
-  add_param("evo_period", 2000, False)
+  add_param("evo_period", 4000, False)
   add_param("evolve_entropy", True, False)
   add_param("evolve_learning_rate", True, False)
-  add_param("reward_decay", 1e-4, False)
+  add_param("reward_decay", 2e-4, False)
 
-#add_param('explore_scale', 1e-3)
+# add_param('explore_scale', 1e-4)
 
-delay = 4
-predict_steps = 4
+delay = 2
+predict_steps = 0
+#predict_steps = delay
 
 if predict_steps:
   add_param('predict_steps', predict_steps)
@@ -84,6 +82,7 @@ if predict_steps:
   add_param('model_weight', .1, False)
   add_param('model_layers', [256], False)
   add_param('train_model', True, False)
+  # add_param('train_only_last', True, True)
 
 add_param('core_layers', [256], False)
 add_param('actor_layers', [128], False)
@@ -92,42 +91,18 @@ add_param('critic_layers', [128], False)
 #add_param('train_policy', True)
 #add_param('train_critic', False)
 
-if natural:
-  add_param('natural', True, False)
-  
-  if ac:
-    add_param('target_distance', 1e-6)
-  elif dqn:
-    add_param('target_distance', 1e-8)
-  
-  add_param('learning_rate', 1., False)
-  
-  train_settings += [
-    ('cg_damping', 1e-5),
-  ]
-  add_param('cg_iters', 15, False)
-  #add_param('optimizer', 'Adam', True)
-
-if dqn:
-  train_settings += [
-    ('sarsa', 1),
-    #('target_delay', 4000),
-  ]
-  add_param('temperature', 0.002)
-elif ac:
-  #add_param('entropy_power', 0)
-  if natural:
-    add_param('entropy_scale', 2e-4, True)
-  else:
-    add_param('entropy_scale', 1e-3, False)
+#add_param('entropy_power', 0)
+add_param('entropy_scale', 1e-3, False)
 
 if recurrent:
-#  add_param('clip', 0.05)
+  # add_param('clip', 0.05)
   add_param('recurrent', True)
   add_param('initial', 'train', False)
 
 add_param('gae_lambda', 1., False)
 #add_param('retrace', True)
+
+add_param('unshift_critic', True, True)
 
 # embed params
 
@@ -149,7 +124,7 @@ add_param('fix_scopes', True, False)
 
 #add_param('dolphin', True, False)
 
-add_param('experience_length', 60, False)
+add_param('experience_length', 80, False)
 add_param('reload', 1, False)
 
 #char = 'falco'
@@ -176,8 +151,8 @@ if not recurrent:
   add_param('memory', 1)
   #add_param('memory', 0, False)
 
-#stage = 'battlefield'
-stage = 'final_destination'
+stage = 'battlefield'
+#stage = 'final_destination'
 add_param('stage', stage, False)
 
 add_param('char', char, True)
