@@ -49,6 +49,10 @@ DumpFramesAsImages = {dump_ppm}
 DumpFramesToPPM = {dump_ppm}
 DumpFramesCounter = False
 Crop = True
+DumpFormat = {dump_format}
+DumpCodec = {dump_codec}
+DumpEncoder = {dump_encoder}
+DumpPath = {dump_path}
 """
 
 gale01_ini = """
@@ -56,12 +60,21 @@ gale01_ini = """
 $Netplay Community Settings
 """
 
+lcancel_ini = """
+$Flash White on Successful L-Cancel
+"""
+#$Flash Red on Unsuccessful L-Cancel
+
+
 gale01_ini_fm = """
+[Core]
+CPUThread = True
+GPUDeterminismMode = fake-completion
+PollingMethod = OnSIRead
 [Gecko_Enabled]
 $Faster Melee Netplay Settings
-$60FPS + 4X VRH
-[Core]
-VideoRate = 4
+$Lag Reduction
+$Game Music ON
 """
 
 import os
@@ -84,6 +97,11 @@ class SetupUser(Default):
     Option('iso_path', type=str, default="", help="directory where you keep your isos"),
     Option('human', action="store_true", help="set p1 to human"),
     Option('fm', action="store_true", help="set up config for Faster Melee"),
+    Option('dump_format', type=str, default='mp4'),
+    Option('dump_codec', type=str, default='h264'),
+    Option('dump_encoder', type=str, default=''),
+    Option('dump_path', type=str, default=''),
+    Option('lcancel_flash', action="store_true", help="flash on lcancel"),
   ]
   
   def __call__(self, user):
@@ -113,12 +131,20 @@ class SetupUser(Default):
       f.write(dolphin_ini.format(**config_args))
     
     with open(configDir + '/GFX.ini', 'w') as f:
-      f.write(gfx_ini.format(dump_ppm=self.dump_ppm))
+      f.write(gfx_ini.format(
+        dump_ppm=self.dump_ppm,
+        dump_path=self.dump_path,
+        dump_codec=self.dump_codec,
+        dump_encoder=self.dump_encoder,
+        dump_format=self.dump_format))
 
     gameSettings = user + '/GameSettings'
     util.makedirs(gameSettings)
     with open(gameSettings + '/GALE01.ini', 'w') as f:
-      f.write(gale01_ini_fm if self.fm else gale01_ini)
+      ini = gale01_ini_fm if self.fm else gale01_ini
+      if self.lcancel_flash:
+        ini += lcancel_ini
+      f.write(ini)
 
     util.makedirs(user + '/Dump/Frames')
 
@@ -133,6 +159,7 @@ class DolphinRunner(Default):
     Option('setup', type=int, default=1, help="setup custom dolphin directory"),
     Option('gui', action="store_true", default=False, help="run with graphics and sound at normal speed"),
     Option('mute', action="store_true", default=False, help="mute game audio"),
+    Option('windows', action='store_true', help="set defaults for windows"),
     Option('netplay', type=str, help="join traversal server"),
   ]
   
@@ -153,21 +180,22 @@ class DolphinRunner(Default):
     #  index = self.exe.rfind('dolphin-emu') + len('dolphin-emu')
     #  self.exe = self.exe[:index]
     
-    if self.gui:
+    if self.gui or self.windows:
       # switch from headless to gui
       if self.exe.endswith("-headless"):
         #self.exe = self.exe[:-9]
         self.exe = self.exe[:-9] + "-nogui"
       
+      # Note: newer dolphins use 'DX11', but win-mw is an old fork.
       kwargs.update(
         speed = 1,
-        gfx = 'OGL',
+        gfx = 'D3D' if self.windows else 'OGL',
       )
       
       if self.mute:
         kwargs.update(audio = 'No audio backend')
       else:
-        kwargs.update(audio = 'Pulse')
+        kwargs.update(audio = 'XAudio2' if self.windows else 'Pulse')
       
     if self.setup:
       self._init_members(**kwargs)

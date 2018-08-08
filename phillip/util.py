@@ -5,7 +5,7 @@ from threading import Thread
 import hashlib
 import os
 import pprint
-
+import time
 
 pp = pprint.PrettyPrinter(indent=2)
 
@@ -106,6 +106,19 @@ def deepItems(obj, path=[]):
   else:
     yield (path, obj)
 
+def deepIter(iters):
+  if isinstance(iters, dict):
+    deep_iters = [(k, deepIter(v)) for k, v in iters.items()]
+    while True:
+      try:
+        yield {k: v.next() for k, v in deep_iters}
+      except StopIteration:
+        return
+  elif isinstance(iters, (list, tuple)):
+    yield from zip(*map(deepIter, iters))
+  else:
+    yield from iters
+
 def flip(p):
   return random.binomial(1, p)
 
@@ -139,9 +152,19 @@ class MovingAverage:
     self.rate = rate
     self.avg = initial
   
-  def append(val):
+  def append(self, val):
     self.avg *= self.rate
     self.avg += (1.0 - self.rate) * val
+
+class Timer:
+  def reset(self):
+    self.time = time.time()
+  
+  def split(self):
+    now = time.time()
+    delta = now - self.time
+    self.time = now
+    return delta
 
 class CircularQueue:
   def __init__(self, size=None, init=None, array=None):
@@ -166,10 +189,7 @@ class CircularQueue:
     self.index %= self.size
   
   def __getitem__(self, index):
-    if index < 0 or index >= self.size:
-      raise IndexError
-    
-    return self.array[(self.index + index) % self.size]
+    return self.array[(self.size + self.index + index) % self.size]
   
   def __len__(self):
     return self.size

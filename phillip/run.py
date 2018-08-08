@@ -5,7 +5,7 @@ from phillip.dolphin import DolphinRunner
 from argparse import ArgumentParser
 from multiprocessing import Process
 from phillip.cpu import CPU
-from phillip import RL, util
+from phillip import util
 import tempfile
 
 pp = pprint.PrettyPrinter(indent=2)
@@ -56,10 +56,6 @@ def main():
 
   for opt in CPU.full_opts():
     opt.update_parser(parser)
-
-  for policy in RL.policies.values():
-    for opt in policy.full_opts():
-      opt.update_parser(parser)
 
   parser.add_argument("--load", type=str, help="path to folder containing snapshot and params")
 

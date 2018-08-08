@@ -1,4 +1,14 @@
-from . import ssbm, state_manager, agent, util, RL, movie
+"""
+Responsible for interfacing with Dolphin to interface with SSBM, and handles things like:
+* character selection
+* stage selection
+* running Phillip within SSBM
+
+Should probably be renamed from CPU.py
+"""
+
+
+from . import ssbm, state_manager, agent, util, movie
 from . import memory_watcher as mw
 from .state import *
 from .menu_manager import *
@@ -7,7 +17,6 @@ from .pad import *
 import time
 from . import ctype_util as ct
 from numpy import random
-from .reward import computeRewards
 from .default import *
 import functools
 
@@ -19,12 +28,15 @@ class CPU(Default):
       Option('stage', type=str, default="final_destination", choices=movie.stages.keys(), help="which stage to play on"),
       Option('enemy', type=str, help="load enemy agent from file"),
       Option('enemy_reload', type=int, default=0, help="enemy reload interval"),
+      Option('enemy_id', type=int, default=-1, help="enemy population id"),
       Option('cpu', type=int, help="enemy cpu level"),
       Option('start', type=int, default=1, help="start game in endless time mode"),
       Option('netplay', type=str),
       Option('frame_limit', type=int, help="stop after a given number of frames"),
       Option('debug', type=int, default=0),
       Option('tcp', type=int, default=0, help="use zmq over tcp for memory watcher and pipe input"),
+      Option('windows', action='store_true', help="set defaults for windows"),
+      Option('enemy_dump', type=int, default=0, help="also dump frames for the enemy"),
     ] + [Option('p%d' % i, type=str, choices=characters.keys(), default="falcon", help="character for player %d" % i) for i in [1, 2]]
     
     _members = [
@@ -60,7 +72,8 @@ class CPU(Default):
             enemy_kwargs.update(
                 reload=self.enemy_reload * self.agent.reload,
                 swap=not self.agent.swap,
-                dump=None,
+                dump=self.enemy_dump,
+                pop_id=self.enemy_id,
             )
             enemy = agent.Agent(**enemy_kwargs)
         
@@ -76,6 +89,7 @@ class CPU(Default):
 
         
         print('Creating MemoryWatcher.')
+        self.tcp = self.tcp or self.windows
         if self.tcp:
           self.mw = mw.MemoryWatcherZMQ(port=5555)
         else:

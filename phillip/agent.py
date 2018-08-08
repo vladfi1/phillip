@@ -1,5 +1,5 @@
 import tensorflow as tf
-from . import ssbm, RL, util, tf_lib as tfl, ctype_util as ct
+from . import ssbm, actor, util, tf_lib as tfl, ctype_util as ct
 import numpy as np
 from numpy import random, exp
 from .default import *
@@ -8,6 +8,7 @@ import pprint
 import os
 import uuid
 import pickle
+from . import reward
 
 pp = pprint.PrettyPrinter(indent=2)
 
@@ -21,44 +22,45 @@ class Agent(Default):
     Option('trainer_ip', type=str, help="trainer ip address"),
     Option('swap', type=int, default=0, help="swap players 1 and 2"),
     Option('disk', type=int, default=0, help="dump experiences to disk"),
+    Option('real_delay', type=int, default=0, help="amount of delay in environment (due to netplay)"),
   ]
   
   _members = [
-    ('rl', RL.RL)
+    ('actor', actor.Actor)
   ]
   
   def __init__(self, **kwargs):
-    kwargs = kwargs.copy()
-    kwargs.update(mode=RL.Mode.PLAY)
     Default.__init__(self, **kwargs)
     
     self.frame_counter = 0
     self.action_counter = 0
     self.action = 0
-    self.actions = util.CircularQueue(self.rl.config.delay+1, 0)
-    self.probs = util.CircularQueue(self.rl.config.delay+1, 1.)
-    self.history = util.CircularQueue(array=((self.rl.config.memory+1) * ssbm.SimpleStateAction)())
+    self.actions = util.CircularQueue(self.actor.config.delay+1, 0)
+    self.probs = util.CircularQueue(self.actor.config.delay+1, 1.)
+    self.history = util.CircularQueue(array=((self.actor.config.memory+1) * ssbm.SimpleStateAction)())
     
-    self.hidden = util.deepMap(np.zeros, self.rl.policy.hidden_size)
+    self.hidden = util.deepMap(np.zeros, self.actor.core.hidden_size)
+    self.prev_state = ssbm.GameMemory() # for rewards
+    self.avg_reward = util.MovingAverage(.999)
     
-    self.rl.restore()
+    self.actor.restore()
+    self.global_step = self.actor.get_global_step()
 
     self.dump = self.dump or self.trainer_id or self.trainer_ip
     
     if self.dump:
       try:
-        import zmq
         import nnpy
       except ImportError as err:
         print("ImportError: {0}".format(err))
-        sys.exit("Install pyzmq to dump experiences")
+        sys.exit("Install nnpy to dump experiences")
 
       if not self.trainer_ip:
-        ip_path = os.path.join(self.rl.path, 'ip')
+        ip_path = os.path.join(self.actor.path, 'ip')
         if os.path.exists(ip_path):
           with open(ip_path, 'r') as f:
             self.trainer_ip = f.read()
-          print("Read ip from disk", self.dump)
+          print("Read ip from disk", self.trainer_ip)
         elif self.trainer_id:
           from . import om
           self.trainer_ip = om.get_job_ip(self.trainer_id)
@@ -67,10 +69,8 @@ class Agent(Default):
           import sys
           sys.exit("No trainer ip!")
       
-      context = zmq.Context.instance()
-
-      self.dump_socket = context.socket(zmq.PUSH)
-      sock_addr = "tcp://%s:%d" % (self.trainer_ip, util.port(self.rl.name + "/experience"))
+      self.dump_socket = nnpy.Socket(nnpy.AF_SP, nnpy.PUSH)
+      sock_addr = "tcp://%s:%d" % (self.trainer_ip, util.port(self.actor.path + "/experience"))
       print("Connecting experience socket to " + sock_addr)
       self.dump_socket.connect(sock_addr)
 
@@ -78,20 +78,20 @@ class Agent(Default):
       self.params_socket.setsockopt(nnpy.SUB, nnpy.SUB_SUBSCRIBE, b"")
       self.params_socket.setsockopt(nnpy.SOL_SOCKET, nnpy.RCVMAXSIZE, -1)
       
-      address = "tcp://%s:%d" % (self.trainer_ip, util.port(self.rl.name + "/params"))
+      address = "tcp://%s:%d" % (self.trainer_ip, util.port(self.actor.path + "/params"))
       print("Connecting params socket to", address)
       self.params_socket.connect(address)
 
     # prepare experience buffer
     if self.dump or self.disk:
-      self.dump_size = self.rl.config.experience_length
+      self.dump_size = self.actor.config.experience_length
       self.dump_state_actions = (self.dump_size * ssbm.SimpleStateAction)()
 
       self.dump_frame = 0
       self.dump_count = 0
     
     if self.disk:
-      self.dump_dir = os.path.join(self.rl.path, 'experience')
+      self.dump_dir = os.path.join(self.actor.path, 'experience')
       print("Dumping to", self.dump_dir)
       util.makedirs(self.dump_dir)
       self.dump_tag = uuid.uuid4().hex
@@ -101,7 +101,6 @@ class Agent(Default):
     
     if self.dump_frame == 0:
       self.initial = self.hidden
-      self.global_step = self.rl.get_global_step()
 
     self.dump_frame += 1
 
@@ -119,21 +118,29 @@ class Agent(Default):
       prepared['global_step'] = self.global_step
       
       if self.dump:
-        self.dump_socket.send_pyobj(prepared)
+        self.dump_socket.send(pickle.dumps(prepared))
       
       if self.disk:
         path = os.path.join(self.dump_dir, self.dump_tag + '_%d' % self.dump_count)
         with open(path, 'wb') as f:
           pickle.dump(prepared, f)
 
-
-  def act(self, state, pad):
+  # Given the current state, determine the action you'll take and send it to the Smash emulator. 
+  # pad is a "game pad" object, for interfacing with the emulator
+  def act(self, state, pad): 
     self.frame_counter += 1
-    if self.frame_counter % self.rl.config.act_every != 0:
+    if self.frame_counter % self.actor.config.act_every != 0:
       return
     
-    verbose = self.verbose and (self.action_counter % (10 * self.rl.config.fps) == 0)
+    verbose = self.verbose and (self.action_counter % (10 * self.actor.config.fps) == 0)
     #verbose = False
+    
+    r = reward.rewards_np(ct.vectorizeCTypes(ssbm.GameMemory, [self.prev_state, state]))[0]
+    self.avg_reward.append(r)
+    ct.copy(state, self.prev_state)
+    
+    if verbose:
+      print("avg_reward: %f" % self.avg_reward.avg)
     
     current = self.history.peek()
     current.state = state # copy
@@ -152,7 +159,7 @@ class Agent(Default):
     input_dict['delayed_action'] = self.actions.as_list()[1:]
     #print(input_dict['delayed_action'])
     
-    action, prob, self.hidden = self.rl.act(input_dict, verbose=verbose)
+    (action, prob), self.hidden = self.actor.act(input_dict, verbose=verbose)
 
     #if verbose:
     #  pp.pprint(ct.toDict(state.players[1]))
@@ -163,37 +170,57 @@ class Agent(Default):
     current.action = self.action
     current.prob = self.probs.push(prob)
     
-    self.rl.actionType.send(self.action, pad, self.char)
+    # send a more recent action if the environment itself is delayed (netplay)
+    real_action = self.actions[self.real_delay]
+    self.actor.actionType.send(real_action, pad, self.char)
     
     self.action_counter += 1
     
     if self.dump or self.disk:
       self.dump_state(current)
     
-    if self.reload and self.action_counter % (self.reload * self.rl.config.fps) == 0:
+    if self.reload:
       if self.dump:
-        import nnpy
-        blob = None
-        num_blobs = 0
-        
-        # get the latest update from the trainer
-        while True:
-          try:
-            #topic = self.socket.recv_string(zmq.NOBLOCK)
-            blob = self.params_socket.recv(nnpy.DONTWAIT)
-            num_blobs += 1
-          except nnpy.NNError as e:
-            if e.error_no == nnpy.EAGAIN:
-              # nothing to receive
-              break
-            # a real error
-            raise e
-        
-        if blob is not None:
-          params = pickle.loads(blob)
-          self.rl.unblob(params)
+        self.recieve_params()
+      elif self.action_counter % (self.reload * self.actor.config.fps) == 0:
+        self.actor.restore()
+        self.global_step = self.actor.get_global_step()
 
-        print("num_blobs", num_blobs)
-      else:
-        self.rl.restore()
 
+  # When called, ask the learner if there are new parameters. 
+  def recieve_params(self):
+    if self.dump_frame != 0:
+      return
+    
+    import nnpy
+    num_blobs = 0
+    latest = None
+    
+    # get the latest update from the trainer
+    while True:
+      try:
+        #topic = self.socket.recv_string(zmq.NOBLOCK)
+        blob = self.params_socket.recv(nnpy.DONTWAIT)
+        params = pickle.loads(blob)
+        self.global_step = params['global_step:0']
+        latest = params
+        """
+        if global_step > self.global_step:
+          self.global_step = global_step
+          latest = params
+        else:
+          print("OUT OF ORDER?")
+        """
+        num_blobs += 1
+      except nnpy.NNError as e:
+        if e.error_no == nnpy.EAGAIN:
+          # nothing to receive
+          break
+        # a real error
+        raise e
+    
+    if latest is not None:
+      print("Unblobbing", self.global_step)
+      self.actor.unblob(latest)
+
+    print("num_blobs", num_blobs)

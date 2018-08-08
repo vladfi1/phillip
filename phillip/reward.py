@@ -15,23 +15,41 @@ def processDamages(percents):
 
 # from player 2's perspective
 def computeRewards(state_actions, enemies=[0], allies=[1], damage_ratio=0.01):
-  players = enemies + allies
+  pids = enemies + allies
 
-  deaths = {p : processDeaths([isDying(sa.state.players[p]) for sa in state_actions]) for p in players}
-  damages = {p : processDamages([sa.state.players[p].percent for sa in state_actions]) for p in players}
+  deaths = {p : processDeaths([isDying(sa.state.players[p]) for sa in state_actions]) for p in pids}
+  damages = {p : processDamages([sa.state.players[p].percent for sa in state_actions]) for p in pids}
 
-  losses = {p : deaths[p] + damage_ratio * damages[p] for p in players}
+  losses = {p : deaths[p] + damage_ratio * damages[p] for p in pids}
 
   return sum(losses[p] for p in enemies) - sum(losses[p] for p in allies)
 
-# TODO: unfinished
-def computeRewards_vectorized(states, enemies=[0], allies=[1], damage_ratio=0.01):
-  players = enemies + allies
+def deaths_np(player):
+  deaths = player['action_state'] <= 0xA
+  return np.logical_and(np.logical_not(deaths[:-1]), deaths[1:])
 
-  deaths = {p : processDeaths(list(map(isDyingAction, states['players'][p]['action_state']))) for p in players}
-  damages = {p : processDamages([s.players[p].percent for s in states]) for p in players}
+def damages_np(player):
+  percents = player['percent']
+  return np.maximum(percents[1:] - percents[:-1], 0)
 
-  losses = {p : deaths[p] + damage_ratio * damages[p] for p in players}
+def rewards_np(states, enemies=[0], allies=[1], damage_ratio=0.01):
+  """Computes rewards from a list of state transitions.
+  
+  Args:
+    states: A structure of numpy arrays of length T, as given by ctype_util.vectorizeCTypes.
+    enemies: The list of pids on the enemy team.
+    allies: The list of pids on our team.
+    damage_ratio: How much damage (percent) counts relative to stocks.
+  Returns:
+    A length T numpy array with the rewards on each transition.
+  """
+  
+  players = states['players']
+  pids = enemies + allies
 
+  deaths = {p : deaths_np(players[p]) for p in pids}
+  damages = {p : damages_np(players[p]) for p in pids}
+  losses = {p : deaths[p] + damage_ratio * damages[p] for p in pids}
+  
   return sum(losses[p] for p in enemies) - sum(losses[p] for p in allies)
 

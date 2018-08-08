@@ -1,3 +1,7 @@
+"""
+Define SSBM types. 
+"""
+
 from ctypes import *
 from .ctype_util import *
 from enum import IntEnum
@@ -6,7 +10,7 @@ import tempfile
 import os
 #import h5py
 import pickle
-from .reward import computeRewards
+from . import reward
 import numpy as np
 import itertools
 import attr
@@ -201,11 +205,19 @@ class SimpleStateAction(Structure):
 
 
 def prepareStateActions(state_actions):
-  """prepares an experience for pickling"""
+  """Prepares an experience for pickling.
+  
+  Args:
+    state_actions: A value of type (SimpleStateAction * T), or [SimpleStateAction].
+  Returns:
+    A structure of numpy arrays of length T.
+  """
 
   vectorized = vectorizeCTypes(SimpleStateAction, state_actions)
+  rewards_ = reward.rewards_np(vectorized['state'])
+  rewards = reward.computeRewards(state_actions)
+  assert(np.max(np.abs(rewards_ - rewards)) < 1e-5)
   
-  rewards = computeRewards(state_actions)
   vectorized['reward'] = rewards
   return vectorized
 

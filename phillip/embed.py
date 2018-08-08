@@ -1,3 +1,7 @@
+"""
+Converts SSBM types to Tensorflow types. 
+"""
+
 import tensorflow as tf
 from . import tf_lib as tfl, util, ssbm
 from .default import *

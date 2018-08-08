@@ -1,6 +1,7 @@
 import tensorflow as tf
 import itertools
 from phillip.default import *
+from phillip import util
 
 def leaky_relu(x, alpha=0.01):
   return tf.maximum(alpha * x, x)
@@ -60,11 +61,32 @@ def kl(logp, logq):
 def sample_variance(xs):
   return tf.reduce_mean(tf.squared_difference(xs, tf.reduce_mean(xs)))
 
+def stats(xs, name=None):
+  mean = tf.reduce_mean(xs)
+  std = tf.sqrt(tf.reduce_mean(tf.squared_difference(xs, mean)))
+  
+  if name:
+    tf.summary.scalar(name + '/mean', mean)
+    tf.summary.scalar(name + '/std', std)
+  
+  return mean, std
+
 def apply_grads(params, grads):
   return tf.group(*[tf.assign_add(p, g) for p, g in zip(params, grads)])
 
 def scale_gradient(t, scale):
   return (1.-scale) * tf.stop_gradient(t) + scale * t
+
+def windowed(t, n):
+  """Gives a windowed view into a Tensor.
+  
+  Args:
+    t: The input Tensor with shape [T, ...]
+    n: An integer >= 0.
+  Returns:
+    A Tensor with shape [n+1, T-n, ...]
+  """
+  return tf.stack([t[i:i-n] for i in range(n)] + [t[n:]])
 
 def scaled_weight_variable(shape):
     '''
@@ -158,13 +180,9 @@ def softmax(x):
   return y
 
 def matmul(v, m):
-  shape = tf.shape(v)
-  rank = shape.get_shape()[0].value
-  v = tf.expand_dims(v, rank)
-  
+  v = tf.expand_dims(v, -1)
   vm = tf.multiply(v, m)
-  
-  return tf.reduce_sum(vm, rank-1)
+  return tf.reduce_sum(vm, -2)
 
 # I think this is the more efficient version?
 def matmul2(x, m, bias=None, nl=None):
@@ -294,29 +312,6 @@ def one_hot(size):
 def rank(t):
   return tf.shape(tf.shape(t))[0]
 
-def run(session, fetches, feed_dict):
-    """Wrapper for making Session.run() more user friendly.
-
-    With this function, fetches can be either a list or a dictionary.
-
-    If fetches is a list, this function will behave like
-    tf.session.run() and return a list in the same order as well. If
-    fetches is a dict then this function will also return a dict where
-    the returned values are associated with the corresponding keys from
-    the fetches dict.
-
-    Keyword arguments:
-    session -- An open TensorFlow session.
-    fetches -- A list or dict of ops to fetch.
-    feed_dict -- The dict of values to feed to the computation graph.
-    """
-    if isinstance(fetches, dict):
-        keys, values = fetches.keys(), list(fetches.values())
-        res = session.run(values, feed_dict)
-        return {key: value for key, value in zip(keys, res)}
-    else:
-        return session.run(fetches, feed_dict)
-
 class GRUCell(tf.contrib.rnn.RNNCell):
   def __init__(self, input_size, hidden_size, nl=tf.tanh, name=None):
     with tf.variable_scope(name or type(self).__name__):
@@ -338,10 +333,10 @@ class GRUCell(tf.contrib.rnn.RNNCell):
     return self._num_units  
   
   def __call__(self, inputs, state):
-    ru = tf.sigmoid(tf.matmul(tf.concat(axis=1, values=[inputs, state]), self.Wru) + self.bru)
-    r, u = tf.split(axis=1, num_or_size_splits=2, value=ru)
+    ru = tf.sigmoid(matmul2(tf.concat(axis=-1, values=[inputs, state]), self.Wru) + self.bru)
+    r, u = tf.split(axis=-1, num_or_size_splits=2, value=ru)
     
-    c = self.nl(tf.matmul(tf.concat(axis=1, values=[inputs, r * state]), self.Wc) + self.bc)
+    c = self.nl(matmul2(tf.concat(axis=-1, values=[inputs, r * state]), self.Wc) + self.bc)
     new_h = u * state + (1 - u) * c
     
     return new_h, new_h
@@ -358,6 +353,31 @@ def rnn(cell, inputs, initial_state, time=1):
     output, state = cell(input_, state)
     outputs.append(output)
   return tf.stack(outputs, axis=time), state
+
+def scan(f, inputs, initial_state, axis=0):
+  inputs = util.deepIter(util.deepMap(lambda t: iter(tf.unstack(t, axis=axis)), inputs))
+  outputs = []
+  output = initial_state
+  for input_ in inputs:
+    output = f(output, input_)
+    outputs.append(output)
+  return util.deepZipWith(lambda *ts: tf.stack(ts, axis=axis), *outputs)
+
+def while_loop(cond, body, initial):
+  while cond(*initial):
+    initial = body(*initial)
+  return initial
+
+class TensorArray(object):
+  def __init__(self, dtype, size, element_shape):
+    self.elems = [None] * size
+  
+  def write(self, i, t):
+    self.elems[i] = t
+    return self
+  
+  def stack(self):
+    return tf.stack(self.elems)
 
 def discount(values, gamma, initial=None):
   values = tf.unstack(values, axis=1)
@@ -427,4 +447,36 @@ def testDiscounts():
     assert((r == correct).all())
 
   print("Passed testDiscount()")
+
+def smoothed_returns(values, rewards, gamma, lambda_, bootstrap, dynamic=True):
+  def bellman(future, present):
+    v, r, l = present
+    return (1. - l) * v + l * (r + gamma * future)
+  
+  reversed_sequence = [tf.reverse(t, [0]) for t in [values, rewards, lambda_]]
+  scan_fn = tf.scan if dynamic else scan
+  returns = scan_fn(bellman, reversed_sequence, bootstrap)
+  returns = tf.reverse(returns, [0])
+  return returns
+
+def test_smoothed_returns():
+  values = tf.zeros([3, 1])
+  rewards = tf.constant([[1.], [2.], [3.]])
+  gamma = 2
+  lambda_ = tf.ones([3, 1])
+  initial = tf.constant([4.])
+  
+  correct = [[49], [24], [11]]
+  
+  fs = [smoothed_returns]
+  
+  fetches = [f(values, rewards, gamma, lambda_, initial) for f in fs]
+
+  sess = tf.Session()
+  returns = sess.run(fetches)
+  
+  for r in returns:
+    assert((r == correct).all())
+
+  print("Passed test_smoothed_returns()")
 
