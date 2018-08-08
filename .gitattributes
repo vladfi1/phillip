@@ -1,2 +1,2 @@
 agents/delay12/FalcoBF/** filter=lfs diff=lfs merge=lfs -text
-agents/delay14/FoxBF/ filter=lfs diff=lfs merge=lfs -text
+agents/delay14/FoxBF/** filter=lfs diff=lfs merge=lfs -text
