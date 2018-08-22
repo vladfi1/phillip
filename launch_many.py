@@ -23,8 +23,10 @@ parser.add_argument('-p', '--tenenbaum', action='store_true', help='run trainer 
 parser.add_argument('-u' ,'--use_everything', action='store_true', help='run agents on lower priority')
 parser.add_argument('-g', '--any_gpu', action='store_true', help='run with any gpu (default is titan-x)')
 parser.add_argument('-t', '--time', type=str, default="7-0", help='job runtime in days-hours')
-parser.add_argument('--nogpu', action='store_true', help="don't run trainer on a gpu")
+parser.add_argument('--cpu', action='store_true', help="don't run trainer on a gpu")
+parser.add_argument('--gpu', type=str, default='GEFORCEGTX1080TI', help='gpu type')
 parser.add_argument('--send', type=int, default=1, help='send params with zmq PUB/SUB')
+parser.add_argument('--pop_size', type=int, help='max pop size')
 
 args = parser.parse_args()
 
@@ -72,7 +74,7 @@ def launch(name, command, cpus=2, mem=1, gpu=False, log=True, qos=None, array=No
     def opt(s):
       f.write("#SBATCH " + s + "\n")
     f.write("#!/bin/bash\n")
-    f.write("#SBATCH --job-name " + name + "\n")
+    opt("--job-name " + name)
     
     logname = name
     if array:
@@ -80,7 +82,7 @@ def launch(name, command, cpus=2, mem=1, gpu=False, log=True, qos=None, array=No
     if log:
       f.write("#SBATCH --output slurm_logs/" + logname + ".out\n")
     else:
-      f.write("#SBATCH --output /dev/null")
+      f.write("#SBATCH --output /dev/null\n")
     f.write("#SBATCH --error slurm_logs/" + logname + ".err\n")
     
     f.write("#SBATCH -c %d\n" % cpus)
@@ -93,7 +95,7 @@ def launch(name, command, cpus=2, mem=1, gpu=False, log=True, qos=None, array=No
       if args.any_gpu:
         f.write("#SBATCH --gres gpu:1\n")
       else:
-        opt("--gres gpu:GEFORCEGTX1080TI:1")
+        opt("--gres gpu:%s:1" % args.gpu)
       #if not args.any_gpu:  # 31-54 have titan-x, 55-66 have 1080ti
       #  f.write("#SBATCH -x node[001-030]\n")
     if qos:
@@ -105,9 +107,12 @@ def launch(name, command, cpus=2, mem=1, gpu=False, log=True, qos=None, array=No
       opt("--dependency after:" + depends)
 
     if gpu:
-      f.write("source activate tf-gpu-pypi\n")
+      opt("-x node069,node067")
+      f.write("source ~/.cuda\n")
+      f.write("source activate tf-gpu-src\n")
     else:
       f.write("source activate tf-cpu-opt\n")
+      f.write("sleep 40s\n")
     f.write(command)
 
   #command = "screen -S %s -dm srun --job-name %s --pty singularity exec -B $OM_USER/phillip -B $HOME/phillip/ -H ../home phillip.img gdb -ex r --args %s" % (name[:10], name, command)
@@ -124,9 +129,11 @@ agent_paths = ['agents/' + e for e in agent_paths]
 def get_agents(path):
   params = util.load_params(path)
   pop_size = params.get('pop_size')
+  if pop_size and args.pop_size:
+    pop_size = min(pop_size, args.pop_size)
   
   if pop_size:
-    pop_ids = list(range(pop_size))
+    pop_ids = range(pop_size)
   else:
     pop_ids = [-1]
 
@@ -150,9 +157,11 @@ def run_trainer(path, params, pop_id):
   if pop_id >= 0:
     name += "_%d" % pop_id
     command += " --pop_id %d" % pop_id
+    if args.pop_size:
+      command += " --pop_size %d" % min(args.pop_size, params['pop_size'])
 
   trainer_id = launch(name, command,
-    gpu=not args.nogpu,
+    gpu=not args.cpu,
     qos='tenenbaum' if args.tenenbaum else None,
     mem=16,
   )
@@ -167,20 +176,11 @@ if run_trainer:
   if trainer_ids:
     trainer_depends = ":".join(trainer_ids)
 
-class AgentNamer:
-  def __init__(self, name):
-    self.name = name
-    self.counter = 0
-  
-  def __call__(self):
-    self.counter += 1
-    return "agent_%d_%s" % (self.counter, self.name)
-
 enemy_commands = []
 for enemy_path, _, enemy_id in agents:
   enemy_command = " --enemy %s" % enemy_path
   if enemy_id >= 0:
-    enemy_command += " --enemy_id" % enemy_id
+    enemy_command += " --enemy_id %d" % enemy_id
   enemy_commands.append(enemy_command)
 
 def run_agents(path, params, pop_id):
@@ -202,18 +202,19 @@ def run_agents(path, params, pop_id):
   if args.local:
     common_command += " --dual_core 0"
   
-  common_command += " --dolphin"
-  common_command += " --exe dolphin-emu-headless"
+  common_command += " --dolphin --exe dolphin-emu-headless"
   common_command += " --zmq 1 --pipe_count 1"
   common_command += " --random_swap"
   # common_command += " --help"
   common_command += " --enemy_dump 1 --enemy_reload 1"
 
+  base_name = "actor_" + params['name']
+  if pop_id >= 0:
+    base_name += "_%d" % pop_id
+    common_command += " --pop_id %d" % pop_id
+
   for i, enemy_command in enumerate(enemy_commands):
-    name = params['name']
-    if pop_id >= 0:
-      name += "_%d" % pop_id
-    name += "_%d" % i
+    name = base_name + "_%d" % i
   
     full_command = common_command + enemy_command
 
