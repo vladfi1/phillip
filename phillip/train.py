@@ -142,29 +142,27 @@ class Trainer(Default):
     def split(name):
       averages[name].append(timer.split())
     
-    experiences = []
-    
     while sweeps != self.sweep_limit:
       sweeps += 1
       timer.reset()
       
       #print('Start: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
 
-      old_len = len(experiences)
+      experiences = []
       if self.max_age is not None:
-        # print("global_step", global_step)
         age_limit = global_step - self.max_age
         is_valid = lambda exp: exp['global_step'] >= age_limit
-        experiences = list(filter(is_valid, experiences))
+        # experiences = list(filter(is_valid, experiences))
       else:
         is_valid = lambda _: True
-      dropped = old_len - len(experiences)
+      # dropped = old_len - len(experiences)
       
       def pull_experience(block=True):
         exp = self.experience_socket.recv(flags=0 if block else nnpy.DONTWAIT)
         return pickle.loads(exp)
 
-      to_collect = max(self.sweep_size - len(experiences), self.min_collect)
+      # to_collect = max(self.sweep_size - len(experiences), self.min_collect)
+      to_collect = self.batch_size
       new_experiences = []
 
       # print("Collecting experiences", len(experiences))
@@ -196,7 +194,8 @@ class Trainer(Default):
           # a real error
           raise e
 
-      experiences += new_experiences
+      # experiences += new_experiences
+      experiences = new_experiences[-self.batch_size:]
       
       ages = np.array([global_step - exp['global_step'] for exp in experiences])
       print("Mean age:", ages.mean())
@@ -204,38 +203,21 @@ class Trainer(Default):
       #print('After collect: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
       split('extra_collect')
       
-      #shuffle(experiences)
-
-      batches = len(experiences) // self.batch_size
-      batch_size = (len(experiences) + batches - 1) // batches
-      
-      kls = []
-
       try:
-        for batch in util.chunk(experiences, batch_size):
-          train_out = self.learner.train(batch, self.batch_steps,
-                                       log=(step%self.log_interval==0),
-                                       retrieve_kls=True)[-1]
-          global_step = train_out['global_step']
-          kls.extend(train_out['kls'].tolist())
-          step += 1
+        train_out = self.learner.train(
+            experiences, self.batch_steps,
+            log=(step%self.log_interval==0),
+        )[-1]
+        global_step = train_out['global_step']
+        # print("global_step", global_step)
+        step += 1
       except tf.errors.InvalidArgumentError as e:
         # always a NaN in histogram summary for entropy - what's up with that?
         experiences = []
         print(e)
         continue
       
-      print("Mean KL", np.mean(kls))
-
-      old_len = len(experiences)
-      kl_exps = zip(kls, experiences)
-      if self.max_buffer and old_len > self.max_buffer:
-        kl_exps = list(kl_exps)[-self.max_buffer:]
-      if self.max_kl:
-        kl_exps = [ke for ke in kl_exps if ke[0] <= self.max_kl]
-      kls, experiences = zip(*kl_exps)
-      experiences = list(experiences)
-      dropped += old_len - len(experiences)
+      # print("Mean KL", np.mean(kls))
       
       #print('After train: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
       split('train')
@@ -266,7 +248,7 @@ class Trainer(Default):
       time_avgs = [averages[name].avg for name in times]
       total_time = sum(time_avgs)
       time_avgs = ['%.3f' % (t / total_time) for t in time_avgs]
-      print(sweeps, len(experiences), len(new_experiences), dropped, doa, total_time, *time_avgs)
+      print(sweeps, len(experiences), doa, total_time, *time_avgs)
       print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
 
       if self.objgraph:
