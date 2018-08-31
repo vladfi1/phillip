@@ -132,6 +132,7 @@ neutral_stick = (0.5, 0.5)
 class SimpleController:
   button = attr.ib(default=SimpleButton.NONE)
   stick = attr.ib(default=neutral_stick)
+  duration = attr.ib(default=None)
   
   def realController(self):
     controller = RealControllerState()
@@ -164,11 +165,12 @@ class SimpleAction:
   def send(self, index, pad, char=None):
     simple = self.simple_controllers[index]
     if simple is None:
-      return
+      return None
     if simple.banned(char):
       pad.send_controller(RealControllerState.neutral)
     else:
       pad.send_controller(self.real_controllers[index])
+    return simple.duration
 
 old_sticks = [(0.5, 0.5), (0.5, 1), (0.5, 0), (0, 0.5), (1, 0.5)]
 old_controllers = [SimpleController(*args) for args in itertools.product(SimpleButton, old_sticks)]
@@ -187,11 +189,15 @@ custom_controllers = itertools.chain(
 custom_controllers = [SimpleController(*args) for args in custom_controllers]
 custom_controllers.append(None)
 
+# allows fox, sheik, samus, etc to short hop with act_every=3
+short_hop = SimpleController(button=SimpleButton.Y, duration=2)
+
 actionTypes = dict(
   old = SimpleAction(old_controllers),
   cardinal = SimpleAction(cardinal_controllers),
   diagonal = SimpleAction(diagonal_controllers),
   custom = SimpleAction(custom_controllers),
+  short_hop = SimpleAction(custom_controllers + [short_hop]),
 )
 
 @pretty_struct
