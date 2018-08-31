@@ -181,17 +181,14 @@ class Agent(Default):
     
     if self.reload:
       if self.dump:
-        self.recieve_params()
+        self.receive_params()
       elif self.action_counter % (self.reload * self.actor.config.fps) == 0:
         self.actor.restore()
         self.global_step = self.actor.get_global_step()
 
 
   # When called, ask the learner if there are new parameters. 
-  def recieve_params(self):
-    if self.dump_frame != 0:
-      return
-    
+  def receive_params(self):
     import nnpy
     num_blobs = 0
     latest = None
