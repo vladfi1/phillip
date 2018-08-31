@@ -33,6 +33,7 @@ class Agent(Default):
     Default.__init__(self, **kwargs)
     
     self.frame_counter = 0
+    self.frames_left = 0
     self.action_counter = 0
     self.action = 0
     self.actions = util.CircularQueue(self.actor.config.delay+1, 0)
@@ -129,8 +130,13 @@ class Agent(Default):
   # pad is a "game pad" object, for interfacing with the emulator
   def act(self, state, pad): 
     self.frame_counter += 1
-    if self.frame_counter % self.actor.config.act_every != 0:
+    
+    if self.frames_left > 0:
+      self.frames_left -= 1
       return
+    
+    #if self.frame_counter % self.actor.config.act_every != 0:
+    #  return
     
     verbose = self.verbose and (self.action_counter % (10 * self.actor.config.fps) == 0)
     #verbose = False
@@ -172,7 +178,8 @@ class Agent(Default):
     
     # send a more recent action if the environment itself is delayed (netplay)
     real_action = self.actions[self.real_delay]
-    self.actor.actionType.send(real_action, pad, self.char)
+    duration = self.actor.actionType.send(real_action, pad, self.char)
+    self.frames_left = (duration or self.actor.config.act_every) - 1
     
     self.action_counter += 1
     
