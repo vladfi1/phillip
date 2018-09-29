@@ -219,5 +219,3 @@ class Agent(Default):
     if latest is not None:
       print("Unblobbing", self.global_step)
       self.actor.unblob(latest)
-
-    print("num_blobs", num_blobs)
