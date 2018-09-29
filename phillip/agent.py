@@ -33,7 +33,7 @@ class Agent(Default):
     Default.__init__(self, **kwargs)
     
     self.frame_counter = 0
-    self.frames_left = 0
+    self.action_chain = None
     self.action_counter = 0
     self.action = 0
     self.actions = util.CircularQueue(self.actor.config.delay+1, 0)
@@ -128,15 +128,12 @@ class Agent(Default):
 
   # Given the current state, determine the action you'll take and send it to the Smash emulator. 
   # pad is a "game pad" object, for interfacing with the emulator
-  def act(self, state, pad): 
+  def act(self, state, pad):
     self.frame_counter += 1
     
-    if self.frames_left > 0:
-      self.frames_left -= 1
+    if self.action_chain is not None and not self.action_chain.done():
+      self.action_chain.act(pad, self.char)
       return
-    
-    #if self.frame_counter % self.actor.config.act_every != 0:
-    #  return
     
     verbose = self.verbose and (self.action_counter % (10 * self.actor.config.fps) == 0)
     #verbose = False
@@ -178,8 +175,8 @@ class Agent(Default):
     
     # send a more recent action if the environment itself is delayed (netplay)
     real_action = self.actions[self.real_delay]
-    duration = self.actor.actionType.send(real_action, pad, self.char)
-    self.frames_left = (duration or self.actor.config.act_every) - 1
+    self.action_chain = self.actor.actionType.choose(real_action, self.actor.config.act_every)
+    self.action_chain.act(pad, self.char)
     
     self.action_counter += 1
     
