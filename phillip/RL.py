@@ -106,7 +106,8 @@ class RL(Default):
     if path is None:
       path = self.snapshot_path
     print("Restoring from", path)
-    self.saver.restore(self.sess, path)
+    tfl.restore(self.sess, self.variables, path)
+    # self.saver.restore(self.sess, path)
 
   # initializes weights
   def init(self):
