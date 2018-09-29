@@ -24,7 +24,8 @@ class Learner(RL):
     Option('explore_scale', type=float, default=0., help='use prediction error as additional reward'),
     Option('evolve_explore_scale', action="store_true", help='evolve explore_scale with PBT'),
     Option('unshift_critic', action='store_true', help="don't shift critic forward in time"),
-    Option('adam_epsilon', type=float, default=1e-5, help="epsilon for adam optimizer")
+    Option('adam_epsilon', type=float, default=1e-5, help="epsilon for adam optimizer"),
+    Option('batch_size', type=int),
   ]
 
   def __init__(self, debug=False, **kwargs):
@@ -190,7 +191,7 @@ class Learner(RL):
         self.mutators.append(tf.assign(evo_variable, mutator(evo_variable)))
       
       self.summarize = tf.summary.merge_all()
-      misc_ops.append(tf.assign_add(self.global_step, 1))
+      misc_ops.append(tf.assign_add(self.global_step, self.batch_size * self.experience_length * self.act_every))
       self.misc = tf.group(*misc_ops)
       self.train_ops = tf.group(*train_ops)
 

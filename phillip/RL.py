@@ -70,7 +70,7 @@ class RL(Default):
     print("Using device " + self.device)
     with self.graph.as_default(), tf.device(self.device): 
       # total number of gradient descent steps the learner has taken thus far
-      self.global_step = tf.Variable(0, name='global_step', trainable=False)
+      self.global_step = tf.Variable(0, name='global_step', dtype=tf.int64, trainable=False)
       self.evo_variables = []
       
       self.embedGame = embed.GameEmbedding(**kwargs)
