@@ -1,4 +1,6 @@
+import numpy as np
 import tensorflow as tf
+from tensorflow.contrib.framework.python.framework import checkpoint_utils
 import itertools
 from phillip.default import *
 from phillip import util
@@ -479,4 +481,19 @@ def test_smoothed_returns():
     assert((r == correct).all())
 
   print("Passed test_smoothed_returns()")
+
+def restore(session, variables, ckpt_path):
+  """Does what a saver would do, but handles mismatched shapes."""
+  ckpt = checkpoint_utils.load_checkpoint(ckpt_path)
+  
+  for var in variables:
+    name = var.name
+    if name.endswith(":0"):
+      name = name[:-2]
+    value = ckpt.get_tensor(name)
+    pads = [(0, d1 - d2) for d1, d2 in zip(var.get_shape().as_list(), value.shape)]
+    needs_pad = any([p[1] for p in pads])
+    if needs_pad:
+      value = np.pad(value, pads, "constant")
+    var.load(value, session)
 
