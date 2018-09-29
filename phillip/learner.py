@@ -24,6 +24,7 @@ class Learner(RL):
     Option('explore_scale', type=float, default=0., help='use prediction error as additional reward'),
     Option('evolve_explore_scale', action="store_true", help='evolve explore_scale with PBT'),
     Option('unshift_critic', action='store_true', help="don't shift critic forward in time"),
+    Option('adam_epsilon', type=float, default=1e-5, help="epsilon for adam optimizer")
   ]
 
   def __init__(self, debug=False, **kwargs):
@@ -156,7 +157,7 @@ class Learner(RL):
 
       total_loss = tf.add_n(losses)
       with tf.variable_scope('train'):
-        optimizer = tf.train.AdamOptimizer(self.learning_rate)
+        optimizer = tf.train.AdamOptimizer(self.learning_rate, epsilon=self.adam_epsilon)
         gvs = optimizer.compute_gradients(total_loss)
         # gvs = [(tf.check_numerics(g, v.name), v) for g, v in gvs]
         gs, vs = zip(*gvs)

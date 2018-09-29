@@ -74,6 +74,7 @@ class CPU(Default):
                 swap=not self.agent.swap,
                 dump=self.enemy_dump,
                 pop_id=self.enemy_id,
+                gpu=self.agent.actor.gpu,
             )
             enemy = agent.Agent(**enemy_kwargs)
         
