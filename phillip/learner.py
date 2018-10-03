@@ -191,7 +191,7 @@ class Learner(RL):
         self.mutators.append(tf.assign(evo_variable, mutator(evo_variable)))
       
       self.summarize = tf.summary.merge_all()
-      misc_ops.append(tf.assign_add(self.global_step, self.batch_size * self.experience_length * self.act_every))
+      misc_ops.append(tf.assign_add(self.global_step, self.batch_size * self.config.experience_length * self.config.act_every))
       self.misc = tf.group(*misc_ops)
       self.train_ops = tf.group(*train_ops)
 
