@@ -494,6 +494,7 @@ def restore(session, variables, ckpt_path):
     pads = [(0, d1 - d2) for d1, d2 in zip(var.get_shape().as_list(), value.shape)]
     needs_pad = any([p[1] for p in pads])
     if needs_pad:
+      print("Variable %s of shape %s padded from %s" % (var.name, var.get_shape().as_list(), value.shape))
       value = np.pad(value, pads, "constant")
     var.load(value, session)
 
