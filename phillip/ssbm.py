@@ -153,6 +153,8 @@ class SimpleController(object):
       return self.button == SimpleButton.B and self.stick == neutral_stick
     if char in ['sheik', 'zelda']:
       return self.button == SimpleButton.B and self.stick[1] == 0
+    if char == 'fox':
+      return self.button == SimpleButton.B and self.stick == neutral_stick
     return False
   
   def send(self, pad, char):
