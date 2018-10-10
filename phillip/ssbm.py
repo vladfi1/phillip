@@ -29,6 +29,11 @@ class Stick(Structure):
   def reset(self):
     self.x = 0.5
     self.y = 0.5
+  
+  @classmethod
+  def polar(cls, theta, r=1.):
+    r /= 2.
+    return cls(x=0.5+r*np.cos(theta), y=0.5+r*np.sin(theta))
 
 @pretty_struct
 class RealControllerState(Structure):
@@ -234,7 +239,23 @@ custom_controllers.append(repeat_controller)
 short_hop = SimpleController.init(button=SimpleButton.Y, duration=2)
 short_hop_chain = [short_hop, SimpleController.neutral]
 
+# this is technically no longer needed because of sh2
 jc_chain = [SimpleController.init(button=SimpleButton.Y, duration=1), SimpleController.init(button=SimpleButton.Z)]
+
+# better sh that also allows jc grab and upsmash at act_every 3
+sh2_chain = [
+  SimpleController.init(duration=2),
+  SimpleController.init(button=SimpleButton.Y),
+]
+
+fox_wd_chain_left = [
+  SimpleController.init(button=SimpleButton.Y, duration=3),
+  SimpleController.init(button=SimpleButton.L, stick=Stick.polar(-7/8 * np.pi))
+]
+
+wd_left = SimpleController.init(button=SimpleButton.L, stick=Stick.polar(-7/8 * np.pi))
+wd_right = SimpleController.init(button=SimpleButton.L, stick=Stick.polar(-1/8 * np.pi))
+wd_both = [wd_left, wd_right]
 
 actionTypes = dict(
   old = ActionSet(old_controllers),
@@ -244,6 +265,8 @@ actionTypes = dict(
   short_hop_test = ActionSet([SimpleController.neutral] * 10 + [short_hop_chain]),
   # short_hop = ActionSet(custom_controllers + [short_hop]),
   custom_sh_jc = ActionSet(custom_controllers + [short_hop_chain, jc_chain]),
+  fox_wd_test = ActionSet([SimpleController.neutral] * 10 + [fox_wd_chain_left]),
+  custom_sh2_wd = ActionSet(custom_controllers + [sh2_chain] + wd_both),
 )
 
 @pretty_struct
