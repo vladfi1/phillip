@@ -5,8 +5,8 @@ import itertools
 
 class Core(Default):
   _options = [
-    Option('recurrent', type=int, default=0, help='Whether agent core is recurrent.'),
-    Option('core_layers', type=int, nargs='+', default=[]),
+    Option('trunk_layers', type=int, nargs='+', default=[], help="Non-recurrent layers."),
+    Option('core_layers', type=int, nargs='+', default=[], help="Recurrent layers."),
   ]
   
   _members = [
@@ -19,28 +19,34 @@ class Core(Default):
     
     with tf.variable_scope(scope):
       prev_size = input_size
-      if self.recurrent:
+      
+      with tf.variable_scope("trunk"):
+        self.trunk = tfl.Sequential()
+        for i, next_size in enumerate(self.trunk_layers):
+          with tf.variable_scope("layer_%d" % i):
+            self.trunk.append(tfl.FCLayer(prev_size, next_size, self.nl))
+          prev_size = next_size
+        self.variables = self.trunk.getVariables()
+  
+      if self.core_layers:
         cells = []
         for i, next_size in enumerate(self.core_layers):
           with tf.variable_scope('layer_%d' % i):
-            cells.append(tfl.GRUCell(prev_size, next_size))
+            cell = tfl.GRUCell(prev_size, next_size)
+            cells.append(cell)
+            self.variables += cell.getVariables()
           prev_size = next_size
         self.core = tf.nn.rnn_cell.MultiRNNCell(cells)
         self.hidden_size = self.core.state_size
-        self.variables = list(itertools.chain.from_iterable([c.getVariables() for c in cells]))
       else:
-        self.core = tfl.Sequential()
-        for i, next_size in enumerate(self.core_layers):
-          with tf.variable_scope("layer_%d" % i):
-            self.core.append(tfl.FCLayer(prev_size, next_size, self.nl))
-          prev_size = next_size
+        self.core = None
         self.hidden_size = []
-        self.variables = self.core.getVariables()
       self.output_size = prev_size
  
   def __call__(self, inputs, state):
-    if self.recurrent:
-      return self.core(inputs, state)
+    trunk_outputs = self.trunk(inputs)
+    if self.core:
+      return self.core(trunk_outputs, state)
     else:
-      return self.core(inputs), []
+      return trunk_outputs, []
 

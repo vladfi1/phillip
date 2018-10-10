@@ -71,10 +71,13 @@ class Learner(RL):
       length = self.config.experience_length - memory
       history = [combined[i:i+length] for i in range(memory+1)]
       inputs = tf.concat(axis=-1, values=history)
-      if self.core.recurrent:
+      
+      # this should be handled by the core itself
+      if self.core.core:
+        inputs = self.core.trunk(inputs)
         def f(prev, current_input):
           _, prev_state = prev
-          return self.core(current_input, prev_state)
+          return self.core.core(current_input, prev_state)
         batch_size = tf.shape(self.experience['reward'])[0]
         dummy_output = tf.zeros(tf.stack([batch_size, tf.constant(self.core.output_size)]))
         scan_fn = tf.scan if self.dynamic else tfl.scan
@@ -160,7 +163,7 @@ class Learner(RL):
       with tf.variable_scope('train'):
         optimizer = tf.train.AdamOptimizer(self.learning_rate, epsilon=self.adam_epsilon)
         gvs = optimizer.compute_gradients(total_loss)
-        # gvs = [(tf.check_numerics(g, v.name), v) for g, v in gvs]
+        gvs = [(tf.check_numerics(g, v.name), v) for g, v in gvs]
         gs, vs = zip(*gvs)
         
         norms = tf.stack([tf.norm(g) for g in gs])
