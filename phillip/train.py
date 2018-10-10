@@ -230,6 +230,7 @@ class Trainer(Default):
       if self.send:
         #self.params_socket.send_string("", zmq.SNDMORE)
         params = self.learner.blob()
+        global_step = params['global_step:0']
         blob = pickle.dumps(params)
         #print('After blob: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
         self.params_socket.send(blob)
@@ -244,12 +245,13 @@ class Trainer(Default):
         after = count_objects()
         print(diff_objects(after, before))
         before = after
-      
+
+      f3 = lambda f: '%.3f' % f
       time_avgs = [averages[name].avg for name in times]
       total_time = sum(time_avgs)
-      time_avgs = ['%.3f' % (t / total_time) for t in time_avgs]
-      print(sweeps, len(experiences), doa, total_time, *time_avgs)
-      print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+      time_avgs = [f3(t / total_time) for t in time_avgs]
+      print(sweeps, len(experiences), doa, f3(total_time), *time_avgs)
+      #print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
 
       if self.objgraph:
         import objgraph
