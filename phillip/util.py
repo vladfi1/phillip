@@ -148,13 +148,12 @@ def chunk(l, n):
   return [l[i:i+n] for i in range(0, len(l), n)]
 
 class MovingAverage:
-  def __init__(self, rate=0.99, initial=0):
+  def __init__(self, rate=1e-2, initial=0):
     self.rate = rate
     self.avg = initial
   
   def append(self, val):
-    self.avg *= self.rate
-    self.avg += (1.0 - self.rate) * val
+    self.avg += self.rate * (val - self.avg)
 
 class Timer:
   def reset(self):

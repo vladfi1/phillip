@@ -43,7 +43,7 @@ class Agent(Default):
     
     self.hidden = util.deepMap(np.zeros, self.actor.core.hidden_size)
     self.prev_state = ssbm.GameMemory() # for rewards
-    self.avg_reward = util.MovingAverage(.999)
+    self.avg_reward = util.MovingAverage(1./(self.actor.config.fps * 300))  # average over last 5 minutes
     
     self.actor.restore()
     self.global_step = self.actor.get_global_step()

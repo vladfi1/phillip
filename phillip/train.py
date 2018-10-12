@@ -136,7 +136,7 @@ class Trainer(Default):
     global_step = self.learner.get_global_step()
     
     times = ['min_collect', 'extra_collect', 'train', 'save']
-    averages = {name: util.MovingAverage(.9) for name in times}
+    averages = {name: util.MovingAverage(.1) for name in times}
     
     timer = util.Timer()
     def split(name):
