@@ -23,6 +23,7 @@ class Agent(Default):
     Option('swap', type=int, default=0, help="swap players 1 and 2"),
     Option('disk', type=int, default=0, help="dump experiences to disk"),
     Option('real_delay', type=int, default=0, help="amount of delay in environment (due to netplay)"),
+    Option('tb', action="store_true", help="log stats to tensorboard"),
   ]
   
   _members = [
@@ -96,6 +97,9 @@ class Agent(Default):
       print("Dumping to", self.dump_dir)
       util.makedirs(self.dump_dir)
       self.dump_tag = uuid.uuid4().hex
+    
+    if self.tb:
+      self.writer = tf.summary.FileWriterCache.get(self.actor.path)
 
   def dump_state(self, state_action):
     self.dump_state_actions[self.dump_frame] = state_action
@@ -129,21 +133,26 @@ class Agent(Default):
   # Given the current state, determine the action you'll take and send it to the Smash emulator. 
   # pad is a "game pad" object, for interfacing with the emulator
   def act(self, state, pad):
+    verbose = self.verbose and (self.frame_counter % 600 == 0)
     self.frame_counter += 1
+    #verbose = False
     
     if self.action_chain is not None and not self.action_chain.done():
       self.action_chain.act(pad, self.char)
       return
     
-    verbose = self.verbose and (self.action_counter % (10 * self.actor.config.fps) == 0)
-    #verbose = False
-    
-    r = reward.rewards_np(ct.vectorizeCTypes(ssbm.GameMemory, [self.prev_state, state]))[0]
+    r = reward.computeRewards([self.prev_state, state], damage_ratio=0)[0]
     self.avg_reward.append(r)
     ct.copy(state, self.prev_state)
-    
+
+    score_per_minute = self.avg_reward.avg * self.actor.config.fps * 60
+    if self.tb and self.frame_counter % 3600:  # once per minute
+      summary = tf.summary.Summary()
+      summary.value.add(tag='score_per_minute', simple_value=score_per_minute)
+      self.writer.add_summary(summary, self.actor.get_global_step())
+
     if verbose:
-      print("avg_reward: %f" % self.avg_reward.avg)
+      print("score_per_minute: %f" % score_per_minute)
     
     current = self.history.peek()
     current.state = state # copy
