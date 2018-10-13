@@ -24,8 +24,9 @@ class Learner(RL):
     Option('explore_scale', type=float, default=0., help='use prediction error as additional reward'),
     Option('evolve_explore_scale', action="store_true", help='evolve explore_scale with PBT'),
     Option('unshift_critic', action='store_true', help="don't shift critic forward in time"),
-    Option('adam_epsilon', type=float, default=1e-5, help="epsilon for adam optimizer"),
+    Option('adam_epsilon', type=float, default=1e-8, help="epsilon for adam optimizer"),
     Option('batch_size', type=int),
+    Option('neg_reward_scale', type=float, default=1., help="scale down negative rewards for more optimism"),
   ]
 
   def __init__(self, debug=False, **kwargs):
@@ -144,6 +145,8 @@ class Learner(RL):
       # build the critic (which you'll also need to train the policy)
       if self.train_policy or self.train_critic:
         shifted_core_outputs = core_outputs[:delay_length] if self.unshift_critic else core_outputs[delay:]
+        delayed_rewards = rewards[delay:]
+        delayed_rewards = tf.nn.relu(delayed_rewards) - self.neg_reward_scale * tf.nn.relu(-self.neg_reward_scale)
         critic_loss, targets, advantages = self.critic(shifted_core_outputs, rewards[delay:], prob_ratios[:-1])
       
       if self.train_critic:
