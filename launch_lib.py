@@ -19,6 +19,7 @@ def add_options(parser):
   parser.add_argument('--send', type=int, default=1, help='send params with zmq PUB/SUB')
   parser.add_argument('--pop_size', type=int, help='max pop size')
   parser.add_argument('--fast_cpu', action="store_true", help='run agents faster on haswell cpus')
+  parser.add_argument('-f', '--fixed_enemy', action="store_true", help="don't update enemy live")
 
 
 def launch(
