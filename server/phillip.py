@@ -15,7 +15,7 @@ def cull_times():
   current = time.time()
 
   # remove anything more than an hour old
-  start_times = [t for t in start_times if current - t < 3600]
+  start_times = [t for t in start_times if current - t < 900]
 
   return len(start_times)
 
@@ -29,7 +29,7 @@ def play(code):
   if cull_times() >= MAX_GAMES:
     return request_match_page() + template('Sorry, too many games running')
 
-  command = 'sbatch -t 0-1 -c 2 --mem 1G -x node[001-030] --qos tenenbaum netplay.sh %s' % code
+  command = 'sbatch -t 20:00 -c 2 --mem 1G -x node[001-030] --qos tenenbaum netplay.sh %s' % code
   print(command)
   try:
     subprocess.run(command.split())
