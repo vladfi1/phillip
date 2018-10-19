@@ -213,13 +213,19 @@ class DolphinRunner(Default):
     
     if self.netplay:
       import time
-      time.sleep(1) # let dolphin window spawn
+      time.sleep(2) # let dolphin window spawn
       
       import pyautogui
+      #import ipdb; ipdb.set_trace()
+      pyautogui.click(150, 150)
+      #pyautogui.click(50, 50)
+      time.sleep(0.5)
       pyautogui.hotkey('alt', 't') # tools
+
+      time.sleep(0.5)
       pyautogui.hotkey('n') # netplay
       
-      time.sleep(0.1) # allow netplay window time to spawn
+      time.sleep(1) # allow netplay window time to spawn
       
       #return process
       
@@ -236,6 +242,8 @@ class DolphinRunner(Default):
       # connect
       #pyautogui.hotkey('tab')
       pyautogui.hotkey('enter')
+
+      #import ipdb; ipdb.set_trace()
     
     return process
 
