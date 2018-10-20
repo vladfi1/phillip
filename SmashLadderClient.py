@@ -304,6 +304,15 @@ class SmashLadderClient:
         if accepted:
             self.current_match = challenge_id
     
+    def update_main(self, char_id):
+        data = {
+            "game_id": 2,
+            "character_id": int(char_id),
+            "add_main": True,
+        }
+        
+        self.post("player/edit_mains", data=data)
+    
 
 class TestSmashLadderClient(SmashLadderClient):
     def on_logged_in(self):
@@ -315,7 +324,7 @@ class TestSmashLadderClient(SmashLadderClient):
             "active": True,
         }
         
-        return self.post("matchmaking/update_active_build_preferences", data)
+        self.post("matchmaking/update_active_build_preferences", data)
 
     def leave_matches(self):
         response = self.get("match/current_match").json()
@@ -326,12 +335,13 @@ class TestSmashLadderClient(SmashLadderClient):
           print("no match to leave")
 
     def create_match(self):
-        self.create_search(3, "Bot Test")
+        self.create_search(3, "Falco Ditto MASTER")
 
     def on_connected(self):
         print("Connected.")
         #me = self.me()
         self.update_builds()
+        self.update_main(Characters.falco)
         self.leave_matches()
         self.create_match()
         return
@@ -346,7 +356,7 @@ class TestSmashLadderClient(SmashLadderClient):
     def on_challenged(self, challenge):
       self.post("matchmaking/accept", data={"match_id": challenge["id"]})
       # can't do more than one match at a time :(
-      # self.create_search(0, "Bot Test")
+      # self.create_match()
 
     def pick_stage(self, match, ban=True):
         stages = [
