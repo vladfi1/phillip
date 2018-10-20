@@ -4,7 +4,7 @@ stream_args = [
   'ffmpeg',
   '-video_size', '1920x1080',
   '-framerate', '30',
-  '-f', 'x11grab', '-i', ':0.0',
+  '-f', 'x11grab', '-i', ':1',
   '-f', 'pulse', '-ac', '2', '-i', 'default',
   '-c:v', 'libx264', '-preset', 'veryfast',
   '-maxrate', '3000k', '-bufsize', '6000k',
