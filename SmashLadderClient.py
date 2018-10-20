@@ -2,6 +2,7 @@ import asyncio
 import json
 import requests # pip install requests
 import websockets # pip install websockets
+import subprocess, os, signal
 from enum import IntEnum
 
 class Characters(IntEnum):
@@ -53,8 +54,6 @@ class Actions(IntEnum):
     player_2_pick_stage = 8
     game_over = 9
     dispute = 10
-    # I don't know what 11 and 12 are used for, but they're in the SmashLadder source code.
-    # Maybe they're for Smash 4 or something. I don't know if the ruleset is different.
     player_1_ban_stage = 11
     player_2_ban_stage = 12
     # Nice.
@@ -84,6 +83,7 @@ class SmashLadderClient:
         self.last_match = None
         self.current_match = None
         self.user_id = None
+        self.phillip_thread = None
 
     def post(self, url, data=None):
         response = requests.post(self.api_url + url, data=data, cookies=self.cookies)
@@ -335,7 +335,7 @@ class TestSmashLadderClient(SmashLadderClient):
           print("no match to leave")
 
     def create_match(self):
-        self.create_search(3, "Falco Ditto MASTER")
+        self.create_search(3, "FalcoBot")
 
     def on_connected(self):
         print("Connected.")
@@ -354,9 +354,10 @@ class TestSmashLadderClient(SmashLadderClient):
                 self.cancel_search(id)
     
     def on_challenged(self, challenge):
-      self.post("matchmaking/accept", data={"match_id": challenge["id"]})
-      # can't do more than one match at a time :(
-      # self.create_match()
+        print("Challenged by ", challenge["player2"]["username"])
+        self.post("matchmaking/accept", data={"match_id": challenge["id"]})
+        # can't do more than one match at a time :(
+        # self.create_match()
 
     def pick_stage(self, match, ban=True):
         stages = [
@@ -378,16 +379,18 @@ class TestSmashLadderClient(SmashLadderClient):
 
     def on_game_updated(self, match):
         code = match["host_code"]["code"]
-        if code:
-          print("Connect to %s" % code)
-        
+        if self.phillip_thread is None and code:
+            cmd = ["./netplay.sh", code, "6", "0"]
+            print(cmd)
+            self.phillip_thread = subprocess.Popen(cmd, start_new_session=True)
+
         # we are 1 when we host
         player_index = 1
         other_index = 3 - player_index
 
         game = match["game"]
         current_action = game["current_action"]
-        print(current_action)
+        #print(Actions(current_action))
 
         if (current_action == Actions.player_1_strike_stage) or (current_action == Actions.player_1_ban_stage):
             self.pick_stage(match, True)
@@ -400,13 +403,16 @@ class TestSmashLadderClient(SmashLadderClient):
 
         elif current_action == Actions.players_play_game: # Playing game.
             # Check for external condition here.
-            # An async await operation is not needed, as SmashLadder reminds the web socket to report the score approximately twice every second.
+            
+            # An async await operation is not needed, as SmashLadder reminds the web socket to report the score approximately twice every second.            
 
             # Make sure we haven't reported the match already (again, SmashLadder causes this to happen twice per second).
             our_report = game["teams"][str(player_index)]["match_report"]
             their_report = game["teams"][str(other_index)]["match_report"]
             if our_report is None and their_report is not None:
-                self.report_match(match["id"], 3 - their_report)
+                result = 3 - their_report
+                print("Game result: ", GameResult(result))
+                self.report_match(match["id"], result)
 
         elif (current_action == Actions.player_1_pick_stage) or (current_action == Actions.player_2_pick_stage):
             self.pick_stage(match, False)
@@ -415,12 +421,18 @@ class TestSmashLadderClient(SmashLadderClient):
         self.send_chat(match["id"], "Good games.")
         # broken
         # self.update_match_feedback(match["id"], "", Feedback.neutral, Feedback.neutral)
+        if self.phillip_thread:
+            # dolphin needs two sigterms?
+            os.killpg(os.getpgid(self.phillip_thread.pid), signal.SIGTERM)
+            os.killpg(os.getpgid(self.phillip_thread.pid), signal.SIGTERM)
+            self.phillip_thread = None
         print("Match %s completed." % match["id"])
     
     def post_match(self):
         self.create_match()
     
     def on_match_chat_recieved(self, message, match_id):
+        print(message)
         if message.upper() == "!PING":
             self.send_chat(match_id, "Pong!")
         elif message.upper().startswith("!ECHO"):
