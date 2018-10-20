@@ -146,7 +146,7 @@ class Learner(RL):
       if self.train_policy or self.train_critic:
         shifted_core_outputs = core_outputs[:delay_length] if self.unshift_critic else core_outputs[delay:]
         delayed_rewards = rewards[delay:]
-        delayed_rewards = tf.nn.relu(delayed_rewards) - self.neg_reward_scale * tf.nn.relu(-self.neg_reward_scale)
+        delayed_rewards = tf.nn.relu(delayed_rewards) - self.neg_reward_scale * tf.nn.relu(-delayed_rewards)
         critic_loss, targets, advantages = self.critic(shifted_core_outputs, rewards[delay:], prob_ratios[:-1])
       
       if self.train_critic:

@@ -70,7 +70,7 @@ class CPU(Default):
         if self.enemy:
             enemy_kwargs = util.load_params(self.enemy, 'agent')
             enemy_kwargs.update(
-                reload=self.enemy_reload * self.agent.reload,
+                reload=self.enemy_reload,
                 swap=not self.agent.swap,
                 dump=self.enemy_dump,
                 pop_id=self.enemy_id,

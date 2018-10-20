@@ -17,7 +17,8 @@ class Agent(Default):
     Option('char', type=str, choices=characters.keys(), help="character that this agent plays as"),
     Option('verbose', action="store_true", default=False, help="print stuff while running"),
     Option('reload', type=int, default=60, help="reload model every RELOAD seconds"),
-    Option('dump', type=int, help="dump experiences and receive parameters"),
+    Option('dump', type=int, help="dump experiences over network"),
+    Option('receive', action="store_true", help="receive parameters over network"),
     Option('trainer_id', type=str, help="trainer slurm job id"),
     Option('trainer_ip', type=str, help="trainer ip address"),
     Option('swap', type=int, default=0, help="swap players 1 and 2"),
@@ -35,7 +36,7 @@ class Agent(Default):
     
     self.frame_counter = 0
     self.action_chain = None
-    self.action_counter = 0
+    self.action_counter = np.random.randint(0, self.reload+1)  # to desynch actors
     self.action = 0
     self.actions = util.CircularQueue(self.actor.config.delay+1, 0)
     self.probs = util.CircularQueue(self.actor.config.delay+1, 1.)
@@ -43,14 +44,16 @@ class Agent(Default):
     
     self.hidden = util.deepMap(np.zeros, self.actor.core.hidden_size)
     self.prev_state = ssbm.GameMemory() # for rewards
-    self.avg_reward = util.MovingAverage(1./(self.actor.config.fps * 300))  # average over last 5 minutes
+    avg_minutes = 30
+    self.avg_reward = util.MovingAverage(1./(self.actor.config.fps * 60 * avg_minutes))
     
     self.actor.restore()
     self.global_step = self.actor.get_global_step()
 
     self.dump = self.dump or self.trainer_id or self.trainer_ip
+    self.receive = self.dump or self.receive
     
-    if self.dump:
+    if self.receive:
       try:
         import nnpy
       except ImportError as err:
@@ -70,11 +73,12 @@ class Agent(Default):
         else:
           import sys
           sys.exit("No trainer ip!")
-      
-      self.dump_socket = nnpy.Socket(nnpy.AF_SP, nnpy.PUSH)
-      sock_addr = "tcp://%s:%d" % (self.trainer_ip, util.port(self.actor.path + "/experience"))
-      print("Connecting experience socket to " + sock_addr)
-      self.dump_socket.connect(sock_addr)
+
+      if self.dump:
+        self.dump_socket = nnpy.Socket(nnpy.AF_SP, nnpy.PUSH)
+        sock_addr = "tcp://%s:%d" % (self.trainer_ip, util.port(self.actor.path + "/experience"))
+        print("Connecting experience socket to " + sock_addr)
+        self.dump_socket.connect(sock_addr)
 
       self.params_socket = nnpy.Socket(nnpy.AF_SP, nnpy.SUB)
       self.params_socket.setsockopt(nnpy.SUB, nnpy.SUB_SUBSCRIBE, b"")
@@ -193,7 +197,7 @@ class Agent(Default):
       self.dump_state(current)
     
     if self.reload:
-      if self.dump:
+      if self.receive:
         self.receive_params()
       elif self.action_counter % (self.reload * self.actor.config.fps) == 0:
         self.actor.restore()
