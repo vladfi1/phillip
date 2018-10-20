@@ -225,7 +225,7 @@ class CPU(Default):
             self.make_action()
             self.thinking_time += time.time() - start
 
-            if self.state.frame % (15 * 60) == 0:
+            if self.agent.verbose and self.state.frame % (15 * 60) == 0:
                 self.print_stats()
         
         self.mw.advance()

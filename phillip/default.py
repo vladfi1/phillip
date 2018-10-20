@@ -76,7 +76,8 @@ class Option:
     
     flag = "--" + self.name
     if flag in parser._option_string_actions:
-      print("warning: already have option %s. skipping"%self.name)
+      #print("warning: already have option %s. skipping"%self.name)
+      pass
     else:
       parser.add_argument(flag, **self.kwargs)
 
