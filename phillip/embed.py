@@ -78,6 +78,7 @@ class OneHotEmbedding(object):
   def __init__(self, name, size):
     self.name = name
     self.size = size
+    self.input_size = size
   
   def __call__(self, t, residual=False, **_):
     one_hot = tf.one_hot(t, self.size, 1., 0.)
@@ -99,6 +100,23 @@ class OneHotEmbedding(object):
     logprobs = tf.nn.log_softmax(embedded)
     target = self(target)
     return -tfl.batch_dot(logprobs, target)
+
+class LookupEmbedding(object):
+
+  def __init__(self, name, input_size, output_size):
+    self.name = name
+    with tf.variable_scope(name):
+      self.table = tfl.weight_variable([input_size, output_size], "table")
+  
+    self.size = output_size
+    self.input_size = input_size
+  
+  def __call__(self, indices, **kwargs):
+    return tf.nn.embedding_lookup(self.table, indices)
+  
+  def to_input(self, embedding):
+    logits = tfl.matmul(embedding, tf.transpose(self.table))
+    return tf.nn.softmax(logits)
 
 class StructEmbedding(object):
   def __init__(self, name, embedding):

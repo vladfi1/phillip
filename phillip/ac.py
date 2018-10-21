@@ -23,14 +23,12 @@ class ActorCritic(Default):
     ('nl', tfl.NL),
   ]
   
-  def __init__(self, input_size, action_size, rlConfig, **kwargs):
+  def __init__(self, input_size, embedAction, rlConfig, **kwargs):
     Default.__init__(self, **kwargs)
-    self.action_size = action_size
-    self.action_set = list(range(action_size))
+    self.embedAction = embedAction
+    self.action_set = list(range(embedAction.input_size))
     self.rlConfig = rlConfig
     self.evo_variables = []
-    
-    policy_nl = lambda logits: (1. - self.epsilon) * tf.nn.softmax(logits) + self.epsilon / action_size
     
     name = "actor"
     net = tfl.Sequential()
@@ -42,7 +40,7 @@ class ActorCritic(Default):
         prev_size = next_size
       
       if self.fix_scopes:
-        net.append(tfl.FCLayer(prev_size, action_size, policy_nl))
+        net.append(tfl.FCLayer(prev_size, embedAction.size))
       
       if self.evolve_entropy:
         self.entropy_scale = tf.Variable(self.entropy_scale, trainable=False, name='entropy_scale')
@@ -50,7 +48,10 @@ class ActorCritic(Default):
       
     if not self.fix_scopes:
       with tf.variable_scope('actor'):
-        net.append(tfl.FCLayer(prev_size, action_size, policy_nl))
+        net.append(tfl.FCLayer(prev_size, embedAction.size))
+    
+    net.append(embedAction.to_input)  # softmax or dot-product + softmax
+    net.append(lambda t: (1. - self.epsilon) * t + self.epsilon / embedAction.input_size)
     
     self.actor = net
   
@@ -81,7 +82,8 @@ class ActorCritic(Default):
     return self.actor.getVariables()
   
   def getPolicy(self, core_output, delayed_actions, **unused):
-    input_ = tf.concat(axis=0, values=[core_output] + tf.unstack(delayed_actions))
+    delayed_actions = tf.reshape(delayed_actions, [1, -1])  # TODO: generalize
+    input_ = tf.concat(axis=-1, values=[core_output, delayed_actions])
     return self.actor(input_)
 
   def act(self, policy, verbose=False):

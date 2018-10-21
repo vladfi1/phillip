@@ -106,7 +106,7 @@ def scaled_weight_variable(shape):
     scale = tf.Variable(tf.truncated_normal(shape[-1:], stddev=1.0), name='scale')
     
     return scale * w
-    
+
 def weight_init(shape):
     initial = tf.random_normal(shape, stddev=1.0)
     

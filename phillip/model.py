@@ -136,7 +136,7 @@ class Model(Default):
     last_state = self.embedGame(last_state, residual=True)
 
     def predict_step(i, prev_history, prev_core, prev_hidden, prev_state):
-      current_action = actions[i]
+      current_action = actions[:, i]
       inputs = tf.concat(axis=-1, values=[prev_core, current_action])
       
       predicted_state = self.apply(inputs, prev_state)
