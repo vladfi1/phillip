@@ -106,6 +106,11 @@ class Agent(Default):
       self.writer = tf.summary.FileWriterCache.get(self.actor.path)
 
   def dump_state(self, state_action):
+    #print(self.frame_counter)
+    # TODO: figure out what's wrong with early frames
+    if self.frame_counter < 300:
+      return
+    
     self.dump_state_actions[self.dump_frame] = state_action
     
     if self.dump_frame == 0:
@@ -116,9 +121,6 @@ class Agent(Default):
     if self.dump_frame == self.dump_size:
       self.dump_count += 1
       self.dump_frame = 0
-      
-      if self.dump_count == 1:
-        return # FIXME: figure out what is wrong with the first experience
       
       print("Dumping", self.dump_count)
       
