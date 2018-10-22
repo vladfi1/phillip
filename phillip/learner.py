@@ -18,13 +18,14 @@ class Learner(RL):
     Option('train_critic', type=int, default=1),
     Option('reward_decay', type=float, default=1e-3),
     Option('learning_rate', type=float, default=1e-4),
+    Option('adam_epsilon', type=float, default=1e-8, help="epsilon for adam optimizer"),
+    Option('adam_beta1', type=float, default=0, help="Adam momentum decay"),
     Option('clip_max_grad', type=float, default=1.),
     Option('evolve_learning_rate', action="store_true", help="false by default; if true, then" \
       "the learning rate is included in PBT among the things that get mutated. "),
     Option('explore_scale', type=float, default=0., help='use prediction error as additional reward'),
     Option('evolve_explore_scale', action="store_true", help='evolve explore_scale with PBT'),
     Option('unshift_critic', action='store_true', help="don't shift critic forward in time"),
-    Option('adam_epsilon', type=float, default=1e-8, help="epsilon for adam optimizer"),
     Option('batch_size', type=int),
     Option('neg_reward_scale', type=float, default=1., help="scale down negative rewards for more optimism"),
   ]
@@ -165,7 +166,7 @@ class Learner(RL):
 
       total_loss = tf.add_n(losses)
       with tf.variable_scope('train'):
-        optimizer = tf.train.AdamOptimizer(self.learning_rate, epsilon=self.adam_epsilon)
+        optimizer = tf.train.AdamOptimizer(self.learning_rate, epsilon=self.adam_epsilon, beta1=self.adam_beta1)
         gvs = optimizer.compute_gradients(total_loss)
         gvs = [(tf.check_numerics(g, v.name), v) for g, v in gvs]
         gs, vs = zip(*gvs)
