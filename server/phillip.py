@@ -30,9 +30,10 @@ def play(code, delay=6, real_delay=0):
     return request_match_page() + template('Sorry, too many games running')
 
 
-  command = 'sbatch -t 20:00 -c 2 --mem 1G -x node[001-030] ' # --qos tenenbaum '
-  command += ' --output slurm_logs/%s.out ' % code
-  command += 'netplay.sh %s %s %s' % (code, delay, real_delay)
+  command = 'sbatch -t 20:00 -c 2 --mem 1G -x node[001-030]' # --qos tenenbaum'
+  command += ' --output slurm_logs/server/%s.out' % code
+  command += ' --error slurm_logs/server/%s.err' % code
+  command += ' netplay.sh %s %s %s' % (code, delay, real_delay)
   print(command)
   try:
     subprocess.run(command.split())
