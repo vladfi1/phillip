@@ -117,9 +117,10 @@ class Learner(RL):
         # The valid state indices are [M+P, T+P-D)
         # Element i corresponds to the i'th queued up action: 0 is the action about to be taken, D-P was the action chosen on this frame.
         delayed_actions = []
-        for i in range(predict_steps, delay+1):
+        for i in range(predict_steps, delay):
           delayed_actions.append(actions[i:i+delay_length])
-        train_probs, train_log_probs, entropy = self.policy.train_probs(actor_inputs, delayed_actions)
+        taken_actions = experience['action'][memory+delay:]
+        train_probs, train_log_probs, entropy = self.policy.train_probs(actor_inputs, delayed_actions, taken_actions)
         
         behavior_probs = experience['prob'][memory+delay:] # these are the actions we can compute probabilities for
         prob_ratios = tf.minimum(train_probs / behavior_probs, 1.)

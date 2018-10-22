@@ -114,8 +114,8 @@ class LookupEmbedding(object):
   def __call__(self, indices, **kwargs):
     return tf.nn.embedding_lookup(self.table, indices)
   
-  def to_input(self, embedding):
-    logits = tfl.matmul(embedding, tf.transpose(self.table))
+  def to_input(self, input_):
+    logits = tfl.matmul(input_, tf.transpose(self.table))
     return tf.nn.softmax(logits)
 
 class StructEmbedding(object):

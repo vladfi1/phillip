@@ -50,17 +50,21 @@ class ActorCritic(Default):
       with tf.variable_scope('actor'):
         net.append(tfl.FCLayer(prev_size, embedAction.size))
     
-    net.append(embedAction.to_input)  # softmax or dot-product + softmax
-    net.append(lambda t: (1. - self.epsilon) * t + self.epsilon / embedAction.input_size)
-    
-    self.actor = net
+    self.net = net
   
-  def train_probs(self, inputs, actions):
-    delayed_actions = actions[:-1]
+  def epsilon_greedy(self, probs):
+    return (1. - self.epsilon) * probs + self.epsilon / self.embedAction.input_size
+  
+  def get_probs(self, net_output):
+    probs = self.embedAction.to_input(net_output)
+    return self.epsilon_greedy(probs)
+  
+  def train_probs(self, inputs, delayed_actions, taken_action):
     inputs = tf.concat(axis=2, values=[inputs] + delayed_actions)
-    actions = actions[-1]
     
-    actor_probs = self.actor(inputs)
+    net_outputs = self.net(inputs)
+    
+    actor_probs = self.get_probs(net_outputs)
     log_actor_probs = tf.log(actor_probs)
 
     entropy = - tfl.batch_dot(actor_probs, log_actor_probs)
@@ -69,8 +73,10 @@ class ActorCritic(Default):
     tf.summary.scalar('entropy_min', tf.reduce_min(entropy))
     #tf.summary.histogram('entropy', entropy)
 
-    taken_probs = tfl.batch_dot(actions, actor_probs)
-    taken_log_probs = tfl.batch_dot(actions, log_actor_probs)
+    # TODO: use sparse_softmax_cross_entropy_with_logits
+    actions_1hot = tf.one_hot(taken_action, len(self.action_set))
+    taken_probs = tfl.batch_dot(actions_1hot, actor_probs)
+    taken_log_probs = tfl.batch_dot(actions_1hot, log_actor_probs)
     
     return taken_probs, taken_log_probs, entropy
 
@@ -79,12 +85,13 @@ class ActorCritic(Default):
     return -tf.reduce_mean(actor_gain) * self.actor_weight
 
   def getVariables(self):
-    return self.actor.getVariables()
+    return self.net.getVariables()
   
   def getPolicy(self, core_output, delayed_actions, **unused):
-    delayed_actions = tf.reshape(delayed_actions, [1, -1])  # TODO: generalize
-    input_ = tf.concat(axis=-1, values=[core_output, delayed_actions])
-    return self.actor(input_)
+    delayed_actions = tf.reshape(delayed_actions, [1, -1])  # TODO: generalize batch_size
+    net_input = tf.concat(axis=-1, values=[core_output, delayed_actions])
+    net_output = self.net(net_input)
+    return self.get_probs(net_output)
 
   def act(self, policy, verbose=False):
     action = random.choice(self.action_set, p=policy)
