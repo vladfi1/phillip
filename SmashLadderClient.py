@@ -3,6 +3,7 @@ import json
 import requests # pip install requests
 import websockets # pip install websockets
 import subprocess, os, signal
+import time
 from enum import IntEnum
 
 class Characters(IntEnum):
@@ -254,6 +255,7 @@ class SmashLadderClient:
             "message": message,
         }
         self.post("chat/send", data=data)
+        print("send_chat:", message)
 
     def select_stage(self, match_id, stage):
         data = {
@@ -312,9 +314,26 @@ class SmashLadderClient:
         }
         
         self.post("player/edit_mains", data=data)
-    
+
+class MatchState:
+
+    def __init__(self):
+        self.chat_sent = False
+        self.host_code = None
+        self.prev_action = None
+
+    def update_action(self, action):
+        if action != self.prev_action:
+            print(action)
+            self.prev_action = action
 
 class TestSmashLadderClient(SmashLadderClient):
+
+    def __init__(self):
+        super(TestSmashLadderClient, self).__init__()
+
+        self.match_state = None
+
     def on_logged_in(self):
         print("Logged in.")
 
@@ -355,7 +374,8 @@ class TestSmashLadderClient(SmashLadderClient):
     
     def on_challenged(self, challenge):
         print("Challenged by ", challenge["player2"]["username"])
-        self.post("matchmaking/accept", data={"match_id": challenge["id"]})
+        if self.current_match is None:
+            self.post("matchmaking/accept", data={"match_id": challenge["id"]})
         # can't do more than one match at a time :(
         # self.create_match()
 
@@ -377,20 +397,42 @@ class TestSmashLadderClient(SmashLadderClient):
         print("No stage was available??")
         import ipdb; ipdb.set_trace()
 
+    def kill_dolphin(self):
+        if self.phillip_thread is None: return
+        # dolphin needs two sigterms?
+        os.killpg(os.getpgid(self.phillip_thread.pid), signal.SIGTERM)
+        os.killpg(os.getpgid(self.phillip_thread.pid), signal.SIGTERM)
+        self.phillip_thread = None
+
+    def join_host(self, code):
+        if code is None or code == self.match_state.host_code:
+            return
+        self.match_state.host_code = code
+
+        self.kill_dolphin()
+        
+        cmd = ["./netplay.sh", code, "6", "0"]
+        print(cmd)
+        self.phillip_thread = subprocess.Popen(cmd, start_new_session=True)
+
     def on_game_updated(self, match):
-        code = match["host_code"]["code"]
-        if self.phillip_thread is None and code:
-            cmd = ["./netplay.sh", code, "6", "0"]
-            print(cmd)
-            self.phillip_thread = subprocess.Popen(cmd, start_new_session=True)
+        if self.match_state is None:
+            self.match_state = MatchState()
+
+        if not self.match_state.chat_sent:
+            time.sleep(4)
+            self.send_chat(match["id"], "hi, you host")
+            self.match_state.chat_sent = True
+
+        self.join_host(match["host_code"]["code"])
 
         # we are 1 when we host
         player_index = 1
         other_index = 3 - player_index
 
         game = match["game"]
-        current_action = game["current_action"]
-        #print(Actions(current_action))
+        current_action = Actions(game["current_action"])
+        self.match_state.update_action(current_action)
 
         if (current_action == Actions.player_1_strike_stage) or (current_action == Actions.player_1_ban_stage):
             self.pick_stage(match, True)
@@ -418,14 +460,12 @@ class TestSmashLadderClient(SmashLadderClient):
             self.pick_stage(match, False)
 
     def on_game_ended(self, match):
-        self.send_chat(match["id"], "Good games.")
+        time.sleep(1)
+        self.send_chat(match["id"], "good games")
+        self.match_state = None
         # broken
         # self.update_match_feedback(match["id"], "", Feedback.neutral, Feedback.neutral)
-        if self.phillip_thread:
-            # dolphin needs two sigterms?
-            os.killpg(os.getpgid(self.phillip_thread.pid), signal.SIGTERM)
-            os.killpg(os.getpgid(self.phillip_thread.pid), signal.SIGTERM)
-            self.phillip_thread = None
+        self.kill_dolphin()
         print("Match %s completed." % match["id"])
     
     def post_match(self):
