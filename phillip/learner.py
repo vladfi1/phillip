@@ -28,6 +28,7 @@ class Learner(RL):
     Option('unshift_critic', action='store_true', help="don't shift critic forward in time"),
     Option('batch_size', type=int),
     Option('neg_reward_scale', type=float, default=1., help="scale down negative rewards for more optimism"),
+    Option('unpredict_weight', type=float, default=0., help="regress delayed actions (computed with prediction) to the undelayed ones (computed on true states)"),
   ]
 
   def __init__(self, debug=False, **kwargs):
@@ -159,6 +160,16 @@ class Learner(RL):
         policy_loss = self.policy.train(train_log_probs[:-1], advantages, entropy[:-1])
         losses.append(policy_loss)
         loss_vars.extend(self.policy.getVariables())
+        
+        if self.unpredict_weight:
+          true_states = core_outputs[predict_steps:]
+          true_probs = self.policy.get_probs(true_states, delayed_actions)
+          # some redundancy here with train_probs
+          predicted_probs = self.policy.get_probs(actor_inputs, delayed_actions)
+          unpredict_kl = tfl.batch_dot(tf.log(true_probs) - tf.log(predicted_probs), true_probs)
+          unpredict_kl = tf.reduce_mean(unpredict_kl)
+          tf.summary.scalar('unpredict_kl', unpredict_kl)
+          losses.append(self.unpredict_weight * unpredict_kl)
 
       if self.evolve_learning_rate:
         self.learning_rate = tf.Variable(self.learning_rate, trainable=False, name='learning_rate')
