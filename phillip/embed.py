@@ -115,6 +115,7 @@ class LookupEmbedding(object):
     return tf.nn.embedding_lookup(self.table, indices)
   
   def to_input(self, input_):
+    # FIXME: "to_input" is the wrong name. model.py uses it to go from logits ("residual" embedding, used for prediction) to probabilites ("input" embedding, used for passing through the network). Here we interpret it as going from embedding space (output_size) to probabilities (input_size), which changes the dimensionality and would break model.py.
     logits = tfl.matmul(input_, tf.transpose(self.table))
     return tf.nn.softmax(logits)
 
