@@ -164,6 +164,7 @@ class Learner(RL):
         if self.unpredict_weight:
           true_states = core_outputs[predict_steps:]
           true_probs = self.policy.get_probs(true_states, delayed_actions)
+          true_probs = tf.stop_gradient(true_probs)  # these are supervised targets
           # some redundancy here with train_probs
           predicted_probs = self.policy.get_probs(actor_inputs, delayed_actions)
           unpredict_kl = tfl.batch_dot(tf.log(true_probs) - tf.log(predicted_probs), true_probs)
