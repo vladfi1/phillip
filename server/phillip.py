@@ -50,7 +50,8 @@ def request_match_page():
       Code: <input name="code" type="text" /> Your netplay host code. <br/>
       Reaction Time (x50ms): <input name="delay" type="number" value="6"/> Higher => phillip plays worse. <br/>
       Netplay Lag (x50ms): <input name="real_delay" type="number" value="0" /> If unsure, leave at 0. <br/>
-      <input value="Request match" type="submit" />
+      <input value="Request match" type="submit" /> <br/>
+      Please report issues in the <a href="https://discord.gg/KQ8vhd6">Discord Support Channel</a> <br/>
     </form>
   '''
 
