@@ -99,7 +99,22 @@ class Learner(RL):
       loss_vars = []
 
       if self.train_model or self.predict:
-        model_loss, predicted_core_outputs = self.model.train(history, core_outputs, hidden_states, actions, experience['state'])
+        def compute_critic_loss(predicted_core, target_core):
+          predicted_v = self.critic(predicted_core)
+          target_v = tf.stop_gradient(self.critic(target_core))
+          return tf.squared_difference(predicted_v, target_v)
+        
+        # only works if delayed actions has length 0; that is, predict=delay
+        def compute_policy_loss(predicted_core, target_core):
+          predicted_pi = self.policy.get_probs(predicted_core, [])
+          target_pi = tf.stop_gradient(self.policy.get_probs(target_core, []))
+          return tfl.batch_dot(target_pi, tf.log(target_pi) - tf.log(predicted_pi))
+        
+        aux_losses = {
+          'critic': compute_critic_loss,
+          'policy': compute_policy_loss,
+        }
+        model_loss, predicted_core_outputs = self.model.train(history, core_outputs, hidden_states, actions, experience['state'], aux_losses=aux_losses)
       if self.train_model:
         #train_ops.append(train_model)
         losses.append(model_loss)
@@ -151,7 +166,7 @@ class Learner(RL):
         shifted_core_outputs = core_outputs[:delay_length] if self.unshift_critic else core_outputs[delay:]
         delayed_rewards = rewards[delay:]
         delayed_rewards = tf.nn.relu(delayed_rewards) - self.neg_reward_scale * tf.nn.relu(-delayed_rewards)
-        critic_loss, targets, advantages = self.critic(shifted_core_outputs, rewards[delay:], prob_ratios[:-1])
+        critic_loss, targets, advantages = self.critic.train(shifted_core_outputs, rewards[delay:], prob_ratios[:-1])
       
       if self.train_critic:
         losses.append(critic_loss)
