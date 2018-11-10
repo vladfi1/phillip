@@ -90,6 +90,12 @@ def windowed(t, n):
   """
   return tf.stack([t[i:i-n] for i in range(n)] + [t[n:]])
 
+def tile(t, n, axis):
+  t = tf.expand_dims(t, axis)
+  multiples = [1] * len(t.shape)
+  multiples[axis] = n
+  return tf.tile(t, multiples)
+
 def scaled_weight_variable(shape):
     '''
     Generates a TensorFlow Tensor. This Tensor gets initialized with values sampled from the truncated normal
