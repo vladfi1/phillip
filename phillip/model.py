@@ -1,8 +1,11 @@
+from collections import namedtuple
 import itertools
 import tensorflow as tf
 from .default import *
 from . import embed, ssbm, tf_lib as tfl, util
 from .rl_common import *
+
+ModelInput = namedtuple("ModelInput", "history core_output hidden_state residual")
 
 class Model(Default):
   _options = [
@@ -141,26 +144,25 @@ class Model(Default):
     total_distance = tf.reduce_mean(total_distances) * self.model_weight
     return total_distance, final_core_outputs
   
-  def predict(self, history, core_outputs, hidden_states, actions, raw_state):
-    last_state = util.deepMap(lambda t: t[-1], raw_state)
-    last_state = self.embedGame(last_state, residual=True)
+  def predict_step(self, prev_input, action):
+    prev_history, prev_core, prev_hidden, prev_state = prev_input
+    inputs = tf.concat(axis=-1, values=[prev_core, action])
+    
+    predicted_state = self.apply(inputs, prev_state)
+    
+    next_state = self.embedGame.to_input(predicted_state)
+    next_combined = tf.concat(axis=-1, values=[next_state, action])
+    next_history = prev_history[1:] + [next_combined]
+    next_input = tf.concat(axis=-1, values=next_history)
+    next_core, next_hidden = self.core(next_input, prev_hidden)
 
-    def predict_step(i, prev_history, prev_core, prev_hidden, prev_state):
-      current_action = actions[:, i]
-      inputs = tf.concat(axis=-1, values=[prev_core, current_action])
-      
-      predicted_state = self.apply(inputs, prev_state)
-      
-      next_state = self.embedGame.to_input(predicted_state)
-      next_combined = tf.concat(axis=-1, values=[next_state, current_action])
-      next_history = prev_history[1:] + [next_combined]
-      next_input = tf.concat(axis=-1, values=next_history)
-      next_core, next_hidden = self.core(next_input, prev_hidden)
+    return ModelInput(next_history, next_core, next_hidden, predicted_state)
 
-      return i+1, next_history, next_core, next_hidden, predicted_state
+  def predict(self, history, core_outputs, hidden_states, actions, residual_state):
+    def predict_step(i, prev_inputs):
+      return i+1, self.predict_step(prev_inputs, actions[:, i])
 
-    loop_vars = (0, history, core_outputs, hidden_states, last_state)
-    cond = lambda i, *_: i < self.predict_steps
-    _, _, predicted_core_outputs, _, _ = tf.while_loop(cond, predict_step, loop_vars)
-    return predicted_core_outputs
+    loop_vars = (0, ModelInput(history, core_outputs, hidden_states, residual_state))
+    cond = lambda i, _: i < self.predict_steps
+    return tf.while_loop(cond, predict_step, loop_vars)[1]
 

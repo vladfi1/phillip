@@ -1,11 +1,22 @@
-from phillip import RL
+from .RL import RL
 import tensorflow as tf
 from . import ssbm, util, embed
 from .fields import type_placeholders
+from .default import Option
 from .core import Core
 from .ac import ActorCritic
+from .critic import Critic
+from .search import SearchPolicy
 
-class Actor(RL.RL):
+class Actor(RL):
+  _options = RL._options + [
+    Option('plan_ratio', type=float, default=0.),
+  ]
+  
+  _members = RL._members + [
+    ('planner', SearchPolicy),
+  ]
+
   def __init__(self, **kwargs):
     super(Actor, self).__init__(**kwargs)
 
@@ -13,6 +24,10 @@ class Actor(RL.RL):
       if self.predict: self._init_model(**kwargs)
       self._init_policy(**kwargs)
       
+      if self.plan_ratio > 0:
+        self.critic = Critic(self.core.output_size, **kwargs)
+        self.planner = SearchPolicy(self.model, self.embedAction, self.critic, **kwargs)
+
       # build computation graph
       self.input = type_placeholders(ssbm.InputStateAction, [self.config.memory+1], "input")
       self.input['delayed_action'] = tf.placeholder(tf.int64, [self.config.delay], "delayed_action")
@@ -27,16 +42,21 @@ class Actor(RL.RL):
       inputs = tf.concat(axis=-1, values=history)
       core_output, hidden_state = self.core(inputs, batch_input['hidden'])
       actions = self.embedAction(batch_input['delayed_action'])
+      residual_state = util.deepMap(lambda t: t[-1], batch_input['state'])
+      residual_state = self.embedGame(residual_state, residual=True)
       
       if self.predict:
         predict_actions = actions[:, :self.model.predict_steps]
         delayed_actions = actions[:, self.model.predict_steps:]
-        core_output = self.model.predict(history, core_output, hidden_state, predict_actions, batch_input['state'])
+        history, core_output, hidden_state, residual_state = self.model.predict(history, core_output, hidden_state, predict_actions, residual_state)
       else:
         delayed_actions = actions
       
-      batch_policy = self.policy.getPolicy(core_output, delayed_actions), hidden_state
-      self.run_policy = util.deepMap(lambda t: tf.squeeze(t, [0]), batch_policy)
+      batch_policy = self.policy.getPolicy(core_output, delayed_actions)
+      if self.plan_ratio > 0:
+        plan_policy = self.planner.get_policy(history, core_output, hidden_state, residual_state)
+        batch_policy += self.plan_ratio * (plan_policy - batch_policy)
+      self.run_policy = util.deepMap(lambda t: tf.squeeze(t, [0]), (batch_policy, hidden_state))
       
       self._finalize_setup()
 
