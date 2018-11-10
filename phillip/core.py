@@ -43,10 +43,10 @@ class Core(Default):
         self.hidden_size = []
       self.output_size = prev_size
  
-  def __call__(self, inputs, state):
-    trunk_outputs = self.trunk(inputs)
+  def __call__(self, inputs, state, **kwargs):
+    trunk_outputs = self.trunk(inputs, **kwargs)
     if self.core:
-      return self.core(trunk_outputs, state)
+      return self.core(trunk_outputs, state, **kwargs)
     else:
       return trunk_outputs, []
 
