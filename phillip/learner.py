@@ -7,6 +7,7 @@ from .critic import Critic
 from phillip import tf_lib as tfl
 from .mutators import relative
 from .default import Option
+import os
 
 class Learner(RL):
   
@@ -19,7 +20,7 @@ class Learner(RL):
     Option('reward_decay', type=float, default=1e-3),
     Option('learning_rate', type=float, default=1e-4),
     Option('adam_epsilon', type=float, default=1e-8, help="epsilon for adam optimizer"),
-    Option('adam_beta1', type=float, default=0, help="Adam momentum decay"),
+    Option('adam_beta1', type=float, default=0.9, help="Adam momentum decay"),
     Option('clip_max_grad', type=float, default=1.),
     Option('evolve_learning_rate', action="store_true", help="false by default; if true, then" \
       "the learning rate is included in PBT among the things that get mutated. "),
