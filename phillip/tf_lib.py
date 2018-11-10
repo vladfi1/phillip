@@ -242,8 +242,10 @@ class FCLayer(Default):
       self.weight = tf.Variable(self.weight_init([input_size, output_size]), name="weight")
       self.bias = tf.Variable(self.bias_init([output_size]), name="bias")
   
-  def __call__(self, x):
-    return matmul2(x, self.weight, self.bias, self.nl)
+  def __call__(self, x, custom_getter=tf.identity):
+    w = custom_getter(self.weight)
+    b = custom_getter(self.bias)
+    return matmul2(x, w, b, self.nl)
     
   def clone(self):
     return FCLayer(clone=self)
@@ -264,9 +266,9 @@ class Sequential:
   def append(self, layer):
     self.layers.append(layer)
   
-  def __call__(self, x):
+  def __call__(self, x, **kwargs):
     for f in self.layers:
-      x = f(x)
+      x = f(x, **kwargs)
     return x
   
   def clone(self):
@@ -334,11 +336,12 @@ class GRUCell(tf.contrib.rnn.RNNCell):
   def output_size(self):
     return self._num_units  
   
-  def __call__(self, inputs, state):
-    ru = tf.sigmoid(matmul2(tf.concat(axis=-1, values=[inputs, state]), self.Wru) + self.bru)
+  def __call__(self, inputs, state, custom_getter=tf.identity):
+    Wru, bru, Wc, bc = map(custom_getter, [self.Wru, self.bru, self.Wc, self.bc])
+    ru = tf.sigmoid(matmul2(tf.concat(axis=-1, values=[inputs, state]), Wru) + bru)
     r, u = tf.split(axis=-1, num_or_size_splits=2, value=ru)
     
-    c = self.nl(matmul2(tf.concat(axis=-1, values=[inputs, r * state]), self.Wc) + self.bc)
+    c = self.nl(matmul2(tf.concat(axis=-1, values=[inputs, r * state]), Wc) + bc)
     new_h = u * state + (1 - u) * c
     
     return new_h, new_h
