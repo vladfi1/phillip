@@ -1,6 +1,7 @@
 from phillip import RL
 import tensorflow as tf
-from . import ssbm, util, ctype_util as ct, embed
+from . import ssbm, util, embed
+from .fields import type_placeholders
 from .core import Core
 from .ac import ActorCritic
 
@@ -13,7 +14,7 @@ class Actor(RL.RL):
       self._init_policy(**kwargs)
       
       # build computation graph
-      self.input = ct.inputCType(ssbm.SimpleStateAction, [self.config.memory+1], "input")
+      self.input = type_placeholders(ssbm.InputStateAction, [self.config.memory+1], "input")
       self.input['delayed_action'] = tf.placeholder(tf.int64, [self.config.delay], "delayed_action")
       self.input['hidden'] = util.deepMap(lambda size: tf.placeholder(tf.float32, [size], name="input/hidden"), self.core.hidden_size)
 

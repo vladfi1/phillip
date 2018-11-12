@@ -15,7 +15,6 @@ from .menu_manager import *
 import os
 from .pad import *
 import time
-from . import ctype_util as ct
 from numpy import random
 from .default import *
 import functools

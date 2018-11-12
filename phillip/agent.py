@@ -1,5 +1,5 @@
 import tensorflow as tf
-from . import ssbm, actor, util, tf_lib as tfl, ctype_util as ct
+from . import ssbm, actor, util, fields
 import numpy as np
 from numpy import random, exp
 from .default import *
@@ -9,6 +9,8 @@ import os
 import uuid
 import pickle
 from . import reward
+from copy import deepcopy
+import attr
 
 pp = pprint.PrettyPrinter(indent=2)
 
@@ -40,7 +42,7 @@ class Agent(Default):
     self.action = 0
     self.actions = util.CircularQueue(self.actor.config.delay+1, 0)
     self.probs = util.CircularQueue(self.actor.config.delay+1, 1.)
-    self.history = util.CircularQueue(array=((self.actor.config.memory+1) * ssbm.SimpleStateAction)())
+    self.history = util.CircularQueue(array=[ssbm.InputStateAction] * (self.actor.config.memory+1))
     
     self.hidden = util.deepMap(np.zeros, self.actor.core.hidden_size)
     self.prev_state = ssbm.GameMemory() # for rewards
@@ -91,7 +93,7 @@ class Agent(Default):
     # prepare experience buffer
     if self.dump or self.disk:
       self.dump_size = self.actor.config.experience_length
-      self.dump_state_actions = (self.dump_size * ssbm.SimpleStateAction)()
+      self.dump_state_actions = fields.make_buffer(ssbm.OutputStateAction, self.dump_size)
 
       self.dump_frame = 0
       self.dump_count = 0
@@ -111,7 +113,7 @@ class Agent(Default):
     if self.frame_counter < 300:
       return
     
-    self.dump_state_actions[self.dump_frame] = state_action
+    fields.set_buffer(self.dump_frame, self.dump_state_actions, state_action)
     
     if self.dump_frame == 0:
       self.initial = self.hidden
@@ -123,8 +125,9 @@ class Agent(Default):
       self.dump_frame = 0
       
       print("Dumping", self.dump_count)
-      
-      prepared = ssbm.prepareStateActions(self.dump_state_actions)
+
+      prepared = self.dump_state_actions.copy()
+      prepared['reward'] = reward.rewards_np(prepared['state'])
       prepared['initial'] = self.initial
       prepared['global_step'] = self.global_step
       
@@ -147,9 +150,10 @@ class Agent(Default):
       self.action_chain.act(pad, self.char)
       return
     
+    # r and self.prev_state are only used for printing
     r = reward.computeRewards([self.prev_state, state], damage_ratio=0)[0]
     self.avg_reward.append(r)
-    ct.copy(state, self.prev_state)
+    self.prev_state = state
 
     score_per_minute = self.avg_reward.avg * self.actor.config.fps * 60
     if self.tb and self.frame_counter % 3600:  # once per minute
@@ -160,33 +164,29 @@ class Agent(Default):
     if verbose:
       print("score_per_minute: %f" % score_per_minute)
     
-    current = self.history.peek()
-    current.state = state # copy
+    current = ssbm.InputStateAction(state=state, prev_action=self.action)
     
-    # extra copying, oh well
     if self.swap:
       current.state.players[0] = state.players[1]
       current.state.players[1] = state.players[0]
-    
-    current.prev_action = self.action
 
-    self.history.increment()
+    self.history.push(deepcopy(current))
     history = self.history.as_list()
-    input_dict = ct.vectorizeCTypes(ssbm.SimpleStateAction, history)
+    input_dict = fields.vectorize_type(ssbm.InputStateAction, history)
     input_dict['hidden'] = self.hidden
     input_dict['delayed_action'] = self.actions.as_list()[1:]
-    #print(input_dict['delayed_action'])
     
     (action, prob), self.hidden = self.actor.act(input_dict, verbose=verbose)
 
     #if verbose:
-    #  pp.pprint(ct.toDict(state.players[1]))
+    #  pp.pprint(state.players[1])
     #  print(action)
     
     # the delayed action
     self.action = self.actions.push(action)
-    current.action = self.action
-    current.prob = self.probs.push(prob)
+    current_prob = self.probs.push(prob)
+    
+    output = ssbm.OutputStateAction(action=self.action, prob=current_prob, **attr.asdict(current))
     
     # send a more recent action if the environment itself is delayed (netplay)
     real_action = self.actions[self.real_delay]

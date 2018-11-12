@@ -1,7 +1,7 @@
+import itertools, typing
 import numpy as np
 import tensorflow as tf
 from tensorflow.contrib.framework.python.framework import checkpoint_utils
-import itertools
 from phillip.default import *
 from phillip import util
 

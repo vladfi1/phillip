@@ -1,6 +1,6 @@
 from phillip.RL import RL
 import tensorflow as tf
-from . import ssbm, util, ctype_util as ct, embed
+from . import ssbm, util, embed, fields
 from .core import Core
 from .ac import ActorCritic
 from .critic import Critic
@@ -56,7 +56,7 @@ class Learner(RL):
         self.critic = Critic(self.core.output_size, **kwargs)
 
       # experience = trajectory. usually a list of SimpleStateAction's. 
-      self.experience = ct.inputCType(ssbm.SimpleStateAction, [None, self.config.experience_length], "experience")
+      self.experience = fields.type_placeholders(ssbm.SimpleStateAction, [None, self.config.experience_length], "experience")
       # instantaneous rewards for all but the last state
       self.experience['reward'] = tf.placeholder(tf.float32, [None, self.config.experience_length-1], name='experience/reward')
       # manipulating time along the first axis is much more efficient

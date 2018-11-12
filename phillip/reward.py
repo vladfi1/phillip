@@ -41,7 +41,7 @@ def rewards_np(states, enemies=[0], allies=[1], damage_ratio=0.01):
   """Computes rewards from a list of state transitions.
   
   Args:
-    states: A structure of numpy arrays of length T, as given by ctype_util.vectorizeCTypes.
+    states: A structure of numpy arrays of length T, as given by fields.make_buffer.
     enemies: The list of pids on the enemy team.
     allies: The list of pids on our team.
     damage_ratio: How much damage (percent) counts relative to stocks.
