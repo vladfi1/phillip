@@ -41,8 +41,8 @@ class RealControllerState:
   button_R: bool = False
   button_START: bool = False
 
-  trigger_L: float = 0
-  trigger_R: float = 0
+  trigger_L: float = 0.
+  trigger_R: float = 0.
 
   stick_MAIN: Stick = attr.Factory(Stick)
   stick_C: Stick = attr.Factory(Stick)
@@ -55,28 +55,28 @@ class PlayerMemory:
   stock: int = 0
   # 1.0 is right, -1.0 is left
   facing: float = 1
-  x: float = 0
-  y: float = 0
-  z: float = 0
+  x: float = 0.
+  y: float = 0.
+  z: float = 0.
   action_state: int = 0
   action_counter: int = 0
-  action_frame: float = 0
+  action_frame: float = 0.
   character: int = 0
-  invulnerable: bool = 0
-  hitlag_frames_left: float = 0
-  hitstun_frames_left: float = 0
+  invulnerable: bool = False
+  hitlag_frames_left: float = 0.
+  hitstun_frames_left: float = 0.
   jumps_used: int = 0
-  charging_smash: bool = 0
-  in_air: bool = 0
-  speed_air_x_self: float = 0
-  speed_ground_x_self: float = 0
-  speed_y_self: float = 0
-  speed_x_attack: float = 0
-  speed_y_attack: float = 0
-  shield_size: float = 0
+  charging_smash: bool = False
+  in_air: bool = False
+  speed_air_x_self: float = 0.
+  speed_ground_x_self: float = 0.
+  speed_y_self: float = 0.
+  speed_x_attack: float = 0.
+  speed_y_attack: float = 0.
+  shield_size: float = 0.
 
-  cursor_x: float = 0
-  cursor_y: float = 0
+  cursor_x: float = 0.
+  cursor_y: float = 0.
 
   # NOTE: the sticks here are [-1, 1],
   # not [0, 1] like in pad.py
@@ -90,8 +90,8 @@ class GameMemory:
   stage: int = 0
 
   # stage select screen
-  sss_cursor_x: float = 0
-  sss_cursor_y: float = 0
+  sss_cursor_x: float = 0.
+  sss_cursor_y: float = 0.
 
 
 class SimpleButton(IntEnum):

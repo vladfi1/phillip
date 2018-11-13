@@ -149,6 +149,9 @@ class Agent(Default):
     if self.action_chain is not None and not self.action_chain.done():
       self.action_chain.act(pad, self.char)
       return
+
+    if self.swap:
+      state = state._replace(players=tuple(reversed(state.players)))
     
     # r and self.prev_state are only used for printing
     r = reward.computeRewards([self.prev_state, state], damage_ratio=0)[0]
@@ -166,10 +169,6 @@ class Agent(Default):
     
     current = ssbm.InputStateAction(state=state, prev_action=self.action)
     
-    if self.swap:
-      current.state.players[0] = state.players[1]
-      current.state.players[1] = state.players[0]
-
     self.history.push(deepcopy(current))
     history = self.history.as_list()
     input_dict = fields.vectorize_type(ssbm.InputStateAction, history)

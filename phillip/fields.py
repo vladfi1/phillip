@@ -52,7 +52,7 @@ def toTuple(t, val):
     assert(isinstance(val, tuple))
     return tuple(toTuple(s, v) for s, v in zip(t.__args__, val))
   tupleType = makeTupleType(t)
-  return tupleType(*[toTuple(a.type, getattr(v, a.name)) for a in t.__attrs_attrs__])
+  return tupleType(*[toTuple(a.type, getattr(val, a.name)) for a in t.__attrs_attrs__])
 
 def type_placeholders(t, shape=None, name=""):
   if t in py2tf:

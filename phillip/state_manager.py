@@ -105,7 +105,7 @@ def playerAddresses(player_id, addresses=None):
         Y = 11,
         START = 12
     ).items()
-    addresses[button_address] = [playerHandler('controller/button_%s' % b, IntHandler(mask=1<<i)) for b, i in button_locs]
+    addresses[button_address] = [playerHandler('controller/button_%s' % b, IntHandler(mask=1<<i, wrapper=bool)) for b, i in button_locs]
 
     stick_address = 0x804C1FCC
     for stick in ['MAIN', 'C']:
@@ -170,18 +170,18 @@ def playerAddresses(player_id, addresses=None):
     add_data_address('20CC', 'action_counter', shortHandler)
     add_data_address('8F4', 'action_frame', floatHandler)
 
-    add_data_address('19EC', 'invulnerable', intHandler)
+    add_data_address('19EC', 'invulnerable', IntHandler(wrapper=bool))
 
     add_data_address('19BC', 'hitlag_frames_left', floatHandler)
     add_data_address('23A0', 'hitstun_frames_left', floatHandler)
     # TODO: make this an actal int
     # 2 = charging, 3 = attacking, 0 = otherwise
-    add_data_address('2174', 'charging_smash', IntHandler(mask=0x2))
+    add_data_address('2174', 'charging_smash', IntHandler(mask=0x2, wrapper=bool))
     
     add_data_address('19F8', 'shield_size', floatHandler)
 
     add_data_address('19C8', 'jumps_used', byteHandler)
-    add_data_address('140', 'in_air', intHandler)
+    add_data_address('140', 'in_air', IntHandler(wrapper=bool))
 
     add_data_address('E0', 'speed_air_x_self', floatHandler)
     add_data_address('E4', 'speed_y_self', floatHandler)

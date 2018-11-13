@@ -8,7 +8,7 @@ Should probably be renamed from CPU.py
 """
 
 
-from . import ssbm, state_manager, agent, util, movie
+from . import ssbm, state_manager, agent, util, movie, fields
 from . import memory_watcher as mw
 from .state import *
 from .menu_manager import *
@@ -258,7 +258,8 @@ class CPU(Default):
             for pid, pad in zip(self.pids, self.pads):
                 agent = self.agents[pid]
                 if agent:
-                    agent.act(self.state, pad)
+                    immutable_state = fields.toTuple(ssbm.GameMemory, self.state)
+                    agent.act(immutable_state, pad)
 
         elif self.state.menu in [menu.value for menu in [Menu.Characters, Menu.Stages]]:
             self.game_frame = 0
