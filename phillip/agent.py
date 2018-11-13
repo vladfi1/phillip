@@ -42,7 +42,7 @@ class Agent(Default):
     self.action = 0
     self.actions = util.CircularQueue(self.actor.config.delay+1, 0)
     self.probs = util.CircularQueue(self.actor.config.delay+1, 1.)
-    self.history = util.CircularQueue(array=[ssbm.InputStateAction] * (self.actor.config.memory+1))
+    self.history = util.CircularQueue(self.actor.config.memory+1, None)
     
     self.hidden = util.deepMap(np.zeros, self.actor.core.hidden_size)
     self.prev_state = ssbm.GameMemory() # for rewards
@@ -185,9 +185,7 @@ class Agent(Default):
     # the delayed action
     self.action = self.actions.push(action)
     current_prob = self.probs.push(prob)
-    
-    output = ssbm.OutputStateAction(action=self.action, prob=current_prob, **attr.asdict(current))
-    
+        
     # send a more recent action if the environment itself is delayed (netplay)
     real_action = self.actions[self.real_delay]
     self.action_chain = self.actor.actionType.choose(real_action, self.actor.config.act_every)
@@ -196,7 +194,8 @@ class Agent(Default):
     self.action_counter += 1
     
     if self.dump or self.disk:
-      self.dump_state(current)
+      output = ssbm.OutputStateAction(state=current.state, prev_action=current.prev_action, action=self.action, prob=current_prob)
+      self.dump_state(output)
     
     if self.reload:
       if self.receive:

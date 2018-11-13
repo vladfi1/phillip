@@ -1,5 +1,6 @@
 import typing
 import attr
+import functools
 import tensorflow as tf
 import numpy as np
 
@@ -33,6 +34,7 @@ def tupleFactory(*fs):
   return attr.Factory(lambda: tuple(f() for f in fs))
 
 # TODO: figure out how to propagate defaults
+@functools.lru_cache()
 def makeTupleType(t):
   return typing.NamedTuple(t.__name__, [(a.name, a.type) for a in t.__attrs_attrs__])
 
@@ -41,6 +43,16 @@ py2tf = {
   float : tf.float32,
   int : tf.int32,
 }
+
+def toTuple(t, val):
+  if t in py2tf:
+    assert(isinstance(val, t))
+    return val
+  if isinstance(t, typing.TupleMeta):
+    assert(isinstance(val, tuple))
+    return tuple(toTuple(s, v) for s, v in zip(t.__args__, val))
+  tupleType = makeTupleType(t)
+  return tupleType(*[toTuple(a.type, getattr(v, a.name)) for a in t.__attrs_attrs__])
 
 def type_placeholders(t, shape=None, name=""):
   if t in py2tf:
@@ -54,14 +66,13 @@ def type_placeholders(t, shape=None, name=""):
 def make_buffer(t, size, default=0):
   if t in py2tf:
     if default is attr.NOTHING: default = 0
-    return np.fill([size], default, dtype=t)
+    return np.full([size], default, dtype=t)
   elif isinstance(t, typing.TupleMeta):
     return tuple(make_buffer(s, size) for s in t.__args__)
   return {a.name: make_buffer(a.type, size, a.default) for a in t.__attrs_attrs__}
 
 def set_buffer(index, buf, val):
-  if isinstance(buf, np.array):
-    assert(isinstance(val, buf.dtype))
+  if isinstance(buf, np.ndarray):
     buf[index] = val
   elif isinstance(buf, tuple):
     assert(isinstance(val, tuple))

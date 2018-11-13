@@ -1,6 +1,6 @@
 import os, sys
 import time
-from phillip import learner, util, ssbm
+from phillip import learner, util, ssbm, fields
 from phillip.ac import ActorCritic
 from phillip.default import *
 import numpy as np
@@ -259,8 +259,8 @@ class Trainer(Default):
         objgraph.show_growth()
   
   def fake_train(self):
-    experience = (ssbm.SimpleStateAction * self.learner.config.experience_length)()
-    experience = ssbm.prepareStateActions(experience)
+    experience = fields.make_buffer(ssbm.OutputStateAction, self.learner.config.experience_length)
+    experience['reward'] = reward.rewards_np(experience['state'])
     experience['initial'] = util.deepMap(np.zeros, self.learner.core.hidden_size)
     
     experiences = [experience] * self.batch_size
