@@ -27,8 +27,8 @@ class SearchPolicy(Default):
     
     return self.model.predict_step(parent_inputs, all_actions)
   
-  def get_policy(self, history, core_outputs, hidden_states, residual_state):
-    children = self.children(1, (history, core_outputs, hidden_states, residual_state))
+  def get_policy(self, model_input):
+    children = self.children(1, model_input)
     child_values = self.critic(children.core_output)
     
     if self.search_temp:

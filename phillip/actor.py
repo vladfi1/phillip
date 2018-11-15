@@ -47,13 +47,14 @@ class Actor(RL):
       if self.predict:
         predict_actions = actions[:, :self.model.predict_steps]
         delayed_actions = actions[:, self.model.predict_steps:]
-        history, core_output, hidden_state, residual_state = self.model.predict(history, core_output, hidden_state, predict_actions, residual_state)
+        model_input = self.model.predict(history, core_output, hidden_state, predict_actions, residual_state)
       else:
         delayed_actions = actions
+        model_input = model.ModelInput(history, core_output, hidden_state, residual_state)
       
-      batch_policy = self.policy.getPolicy(core_output, delayed_actions)
+      batch_policy = self.policy.getPolicy(model_input.core_output, delayed_actions)
       if self.plan_ratio > 0:
-        plan_policy = self.planner.get_policy(history, core_output, hidden_state, residual_state)
+        plan_policy = self.planner.get_policy(model_input)
         batch_policy += self.plan_ratio * (plan_policy - batch_policy)
       self.run_policy = util.deepMap(lambda t: tf.squeeze(t, [0]), (batch_policy, hidden_state))
       
