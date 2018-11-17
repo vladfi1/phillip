@@ -79,6 +79,10 @@ def apply_grads(params, grads):
 def scale_gradient(t, scale):
   return (1.-scale) * tf.stop_gradient(t) + scale * t
 
+def transpose2(t):
+  """Transpose first two dimensions of t."""
+  return tf.transpose(t, [1, 0] + list(range(2, len(t.shape))))
+
 def windowed(t, n):
   """Gives a windowed view into a Tensor.
   

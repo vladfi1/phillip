@@ -56,11 +56,11 @@ class Learner(RL):
         self.critic = Critic(self.core.output_size, **kwargs)
 
       # experience = trajectory. usually a list of SimpleStateAction's. 
-      self.experience = fields.type_placeholders(ssbm.OutputStateAction, [None, self.config.experience_length], "experience")
+      self.experience = fields.type_placeholders(self.OutputStateAction, [None, self.config.experience_length], "experience")
       # instantaneous rewards for all but the last state
       self.experience['reward'] = tf.placeholder(tf.float32, [None, self.config.experience_length-1], name='experience/reward')
       # manipulating time along the first axis is much more efficient
-      experience = util.deepMap(tf.transpose, self.experience)       
+      experience = util.deepMap(tfl.transpose2, self.experience)
       # initial state for recurrent networks
       self.experience['initial'] = tuple(tf.placeholder(tf.float32, [None, size], name='experience/initial/%d' % i) for i, size in enumerate(self.core.hidden_size))
       experience['initial'] = self.experience['initial']
@@ -141,6 +141,8 @@ class Learner(RL):
         train_probs, train_log_probs, entropy = self.policy.train_probs(actor_inputs, delayed_actions, taken_actions)
         
         behavior_probs = experience['prob'][memory+delay:] # these are the actions we can compute probabilities for
+        behavior_probs = tfl.batch_dot(behavior_probs, actions[delay:])
+
         prob_ratios = tf.minimum(train_probs / behavior_probs, 1.)
         self.kls = -tf.reduce_mean(tf.log(prob_ratios), 0)
         self.kls = tf.check_numerics(self.kls, 'kl')

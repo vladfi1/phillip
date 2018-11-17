@@ -106,5 +106,5 @@ class ActorCritic(Default):
 
   def act(self, policy, verbose=False):
     action = random.choice(self.action_set, p=policy)
-    return action, policy[action]
+    return action, policy
 

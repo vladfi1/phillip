@@ -62,6 +62,7 @@ class RL(Default):
     # where trained agents get saved onto disk. 
     self.snapshot_path = os.path.join(self.path, 'snapshot')
     self.actionType = ssbm.actionTypes[self.action_type]
+    self.OutputStateAction = ssbm.output_state_action(self.actionType.size)
 
     self.graph = tf.Graph()
     self.device = '/gpu:0' if self.gpu else '/cpu:0'

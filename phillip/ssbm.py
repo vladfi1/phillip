@@ -12,7 +12,7 @@ from . import reward, fields
 import numpy as np
 import itertools
 import attr
-from typing import Tuple
+from typing import Tuple, List
 
 @attr.s(auto_attribs=True)
 class Stick:
@@ -246,11 +246,13 @@ class InputStateAction:
   state: GameMemory
   prev_action: int
 
-@attr.s(auto_attribs=True)
-class OutputStateAction:
-  state: GameMemory
-  prev_action: int
-  action: int
-  prob: float
 
+def output_state_action(action_size):
+  @attr.s(auto_attribs=True)
+  class OutputStateAction:
+    state: GameMemory
+    prev_action: int
+    action: int
+    prob: fields.Vector[float, action_size]  # list of probabilities over actions taken
+  return OutputStateAction
 

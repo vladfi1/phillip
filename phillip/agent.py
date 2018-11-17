@@ -41,7 +41,7 @@ class Agent(Default):
     self.action_counter = np.random.randint(0, self.reload+1)  # to desynch actors
     self.action = 0
     self.actions = util.CircularQueue(self.actor.config.delay+1, 0)
-    self.probs = util.CircularQueue(self.actor.config.delay+1, 1.)
+    self.probs = util.CircularQueue(self.actor.config.delay+1, [])
     self.history = util.CircularQueue(self.actor.config.memory+1, None)
     
     self.hidden = util.deepMap(np.zeros, self.actor.core.hidden_size)
@@ -93,7 +93,7 @@ class Agent(Default):
     # prepare experience buffer
     if self.dump or self.disk:
       self.dump_size = self.actor.config.experience_length
-      self.dump_state_actions = fields.make_buffer(ssbm.OutputStateAction, self.dump_size)
+      self.dump_state_actions = fields.make_buffer(self.actor.OutputStateAction, self.dump_size)
 
       self.dump_frame = 0
       self.dump_count = 0
@@ -193,7 +193,7 @@ class Agent(Default):
     self.action_counter += 1
     
     if self.dump or self.disk:
-      output = ssbm.OutputStateAction(state=current.state, prev_action=current.prev_action, action=self.action, prob=current_prob)
+      output = self.actor.OutputStateAction(state=current.state, prev_action=current.prev_action, action=self.action, prob=current_prob)
       self.dump_state(output)
     
     if self.reload:
