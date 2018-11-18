@@ -99,10 +99,18 @@ class Model(Default):
     
     model_inputs = ModelInput(history, core_outputs, hidden_states, residual_states)
     distances, predicted_outputs = self.distances(model_inputs, actions, raw_states, self.predict_steps, **kwargs)
-    
     distances = util.deepMap(lambda t: tf.reduce_mean(t, [1, 2]), distances)
+    
+    final_outputs = nest.map_structure(lambda t: t[-1], predicted_outputs)
+    
+    if self.extra_steps:
+      extra_states = nest.map_structure(lambda t: t[self.predict_steps:], raw_states)
+      extra_distances, _ = self.distances(final_outputs, actions[self.predict_steps:], extra_states, self.extra_steps, **kwargs)
+      extra_distances = util.deepMap(lambda t: tf.reduce_mean(t, [1, 2]), extra_distances)
+      distances = util.deepZipWith(lambda *ts: tf.concat(ts, 0), distances, extra_distances)
+    
     total_distances = tf.add_n(list(util.deepValues(distances)))
-    for step in range(self.predict_steps):
+    for step in range(self.predict_steps + self.extra_steps):
       # log all the individual distances
       for path, tensor in util.deepItems(distances):
         tag = "model/%d/" % step + "/".join(map(str, path))
@@ -111,7 +119,7 @@ class Model(Default):
       tf.summary.scalar("model/%d/total" % step, total_distances[step])
     
     total_distance = tf.reduce_mean(total_distances) * self.model_weight
-    return total_distance, predicted_outputs.core_output[-1]
+    return total_distance, final_outputs.core_output
   
   def predict_step(self, prev_input, action):
     prev_history, prev_core, prev_hidden, prev_state = prev_input
