@@ -90,8 +90,8 @@ class Model(Default):
     predicted_outputs = scan(self.predict_step, current_actions, model_inputs)
     
     distances = self.embedGame.distance(predicted_outputs.residual, target_states)
-    for k, f in aux_losses.items():
-      distances[k] = f(predicted_outputs.core_output, target_core_outputs)
+    for k, (f, w) in aux_losses.items():
+      distances[k] = tfl.scale_gradient(f(predicted_outputs.core_output, target_core_outputs), w)
     return distances, predicted_outputs
 
   def train(self, history, core_outputs, hidden_states, actions, raw_states, **kwargs):

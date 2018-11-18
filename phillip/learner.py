@@ -30,6 +30,8 @@ class Learner(RL):
     Option('batch_size', type=int),
     Option('neg_reward_scale', type=float, default=1., help="scale down negative rewards for more optimism"),
     Option('unpredict_weight', type=float, default=0., help="regress delayed actions (computed with prediction) to the undelayed ones (computed on true states)"),
+    Option('critic_aux_weight', type=float, default=0.),
+    Option('policy_aux_weight', type=float, default=0.),
   ]
 
   def __init__(self, debug=False, **kwargs):
@@ -111,8 +113,8 @@ class Learner(RL):
           return tfl.batch_dot(target_pi, tf.log(target_pi) - tf.log(predicted_pi))
         
         aux_losses = {
-          'critic': compute_critic_loss,
-          'policy': compute_policy_loss,
+          'critic': (compute_critic_loss, self.critic_aux_weight),
+          'policy': (compute_policy_loss, self.policy_aux_weight),
         }
         raw_states = util.deepMap(lambda t: t[memory:], experience['state'])
         model_loss, predicted_core_outputs = self.model.train(history, core_outputs, hidden_states, actions, raw_states, aux_losses=aux_losses)
