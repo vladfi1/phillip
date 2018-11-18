@@ -114,7 +114,8 @@ class Learner(RL):
           'critic': compute_critic_loss,
           'policy': compute_policy_loss,
         }
-        model_loss, predicted_core_outputs = self.model.train(history, core_outputs, hidden_states, actions, experience['state'], aux_losses=aux_losses)
+        raw_states = util.deepMap(lambda t: t[memory:], experience['state'])
+        model_loss, predicted_core_outputs = self.model.train(history, core_outputs, hidden_states, actions, raw_states, aux_losses=aux_losses)
       if self.train_model:
         #train_ops.append(train_model)
         losses.append(model_loss)

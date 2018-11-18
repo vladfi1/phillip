@@ -5,6 +5,8 @@ from .default import *
 from . import embed, ssbm, tf_lib as tfl, util
 from .rl_common import *
 
+nest = tf.contrib.framework.nest
+
 ModelInput = namedtuple("ModelInput", "history core_output hidden_state residual")
 
 class Model(Default):
@@ -13,6 +15,7 @@ class Model(Default):
 
     Option('model_weight', type=float, default=1.),
     Option('predict_steps', type=int, default=1, help="number of future frames to predict"),
+    Option('extra_steps', type=int, default=0, help="extra future frames to predict"),
     Option('dynamic', type=int, default=1, help='use dynamic loop unrolling'),
   ]
   
@@ -61,76 +64,42 @@ class Model(Default):
     
     return forget * (last + delta) + (1. - forget) * new
   
-  def distances(self, history, core_outputs, hidden_states, actions, raw_state,
-    predict_steps, aux_losses={}, **unused):
+  def distances(self, model_inputs, actions, raw_states, predict_steps, aux_losses={}):
     """Computes the model's loss on a given set of transitions.
     
     Args:
-      history: List of game states from past to present, of length M+1. Each element is a tensor of shape [T-M, B, F].
-        The states with valid histories are indexed [M, T).
-      core_outputs: Outputs from the agent Core, of shape [T-M, B, O).
-      hidden_states: Structure of state Tensors of shape [T-M, B, S).
-      actions: Integer tensor of actions taken, of shape [T-M, B], corresponding to times [M, T).
-      raw_state: Unembedded state structure of shape [T, B] tensors. Used for getting the first residual state.
+      model_inputs: ModelInput tuple with shapes [T, B, ...]
+      actions: Embedded actions taken, of shape [T, B, A].
+      raw_states: Unembedded state structure of shape [T, B] tensors.
       predict_steps: Number of steps to predict.
       aux_losses: Each auxiliary loss is a function that takes predicted core output and target core output, returning a scalar distance between them.
     
     Returns:
       A GameMemory-shaped structure of distances - tensors of shape [P, T-M-P, B] 
     """
-    memory = self.rlConfig.memory
-    length = self.rlConfig.experience_length - memory - predict_steps
+    target_fn = lambda t: tfl.windowed(t, predict_steps)[1:]
+    target_states = util.deepMap(target_fn, raw_states)
+    target_core_outputs = target_fn(model_inputs.core_output)
 
-    target_core_outputs = tfl.windowed(core_outputs, predict_steps)[1:]
+    # prepare for prediction loop (scan)
     cut = (lambda t: t[:-predict_steps]) if predict_steps > 0 else (lambda t: t)
-    history = [cut(h) for h in history]
-    core_outputs = cut(core_outputs)
-    hidden_states = util.deepMap(cut, hidden_states)
-    current_actions = tfl.windowed(actions, predict_steps)
+    model_inputs = nest.map_structure(cut, model_inputs)
+    current_actions = tfl.windowed(actions, predict_steps)[:-1]
     
-    states = util.deepMap(lambda t: tfl.windowed(t[memory:], predict_steps), raw_state)
-    begin_states = util.deepMap(lambda t: t[0], states)
-    target_states = util.deepMap(lambda t: t[1:], states)
+    scan = tf.scan if self.dynamic else tfl.scan
+    predicted_outputs = scan(self.predict_step, current_actions, model_inputs)
     
-    last_states = self.embedGame(begin_states, residual=True)
-    ta_fn = tf.TensorArray if self.dynamic else tfl.TensorArray
-    make_ta = lambda t: ta_fn(t.dtype, size=predict_steps, element_shape=t.get_shape())
-    predicted_ta = make_ta(last_states)
-    core_ta = make_ta(core_outputs)
-    
-    def predict_step(i, prev_history, prev_core, prev_hidden, prev_state, predicted_ta, core_ta):
-      current_action = current_actions[i]
-      inputs = tf.concat(axis=-1, values=[prev_core] + [current_action])
-      
-      predicted_state = self.apply(inputs, prev_state)
-      
-      next_state = self.embedGame.to_input(predicted_state)
-      next_combined = tf.concat(axis=-1, values=[next_state, current_action])
-      next_history = prev_history[1:] + [next_combined]
-      next_input = tf.concat(axis=-1, values=next_history)
-      next_core, next_hidden = self.core(next_input, prev_hidden)
-    
-      predicted_ta = predicted_ta.write(i, predicted_state)
-      core_ta = core_ta.write(i, next_core)
-      return i+1, next_history, next_core, next_hidden, predicted_state, predicted_ta, core_ta
-    
-    loop_vars = (0, history, core_outputs, hidden_states, last_states, predicted_ta, core_ta)
-    cond = lambda i, *_: i < predict_steps
-    while_loop = tf.while_loop if self.dynamic else tfl.while_loop
-    _, _, final_core_outputs, _, _, predicted_ta, core_ta = while_loop(cond, predict_step, loop_vars)
-
-    predicted_states = predicted_ta.stack()
-    predicted_states.set_shape([predict_steps, length, None, self.embedGame.size])
-    predicted_core_outputs = core_ta.stack()
-    predicted_core_outputs.set_shape([predict_steps, None, None, None])
-    
-    distances = self.embedGame.distance(predicted_states, target_states)
+    distances = self.embedGame.distance(predicted_outputs.residual, target_states)
     for k, f in aux_losses.items():
-      distances[k] = f(predicted_core_outputs, target_core_outputs)
-    return distances, final_core_outputs
+      distances[k] = f(predicted_outputs.core_output, target_core_outputs)
+    return distances, predicted_outputs
 
-  def train(self, history, core_outputs, hidden_states, actions, raw_state, **kwargs):
-    distances, final_core_outputs = self.distances(history, core_outputs, hidden_states, actions, raw_state, self.predict_steps, **kwargs)
+  def train(self, history, core_outputs, hidden_states, actions, raw_states, **kwargs):
+    residual_states = self.embedGame(raw_states, residual=True)
+    
+    model_inputs = ModelInput(history, core_outputs, hidden_states, residual_states)
+    distances, predicted_outputs = self.distances(model_inputs, actions, raw_states, self.predict_steps, **kwargs)
+    
     distances = util.deepMap(lambda t: tf.reduce_mean(t, [1, 2]), distances)
     total_distances = tf.add_n(list(util.deepValues(distances)))
     for step in range(self.predict_steps):
@@ -142,7 +111,7 @@ class Model(Default):
       tf.summary.scalar("model/%d/total" % step, total_distances[step])
     
     total_distance = tf.reduce_mean(total_distances) * self.model_weight
-    return total_distance, final_core_outputs
+    return total_distance, predicted_outputs.core_output[-1]
   
   def predict_step(self, prev_input, action):
     prev_history, prev_core, prev_hidden, prev_state = prev_input
