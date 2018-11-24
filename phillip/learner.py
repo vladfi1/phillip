@@ -12,6 +12,7 @@ import os
 class Learner(RL):
   
   _options = RL._options + [
+    Option('tb_flush_secs', type=int, default=600),
     Option('train_model', type=int, default=0),
     Option('train_policy', type=int, default=1),
     # in theory train_critic should always equal train_policy; keeping them
@@ -32,6 +33,8 @@ class Learner(RL):
     Option('unpredict_weight', type=float, default=0., help="regress delayed actions (computed with prediction) to the undelayed ones (computed on true states)"),
     Option('critic_aux_weight', type=float, default=0.),
     Option('policy_aux_weight', type=float, default=0.),
+    Option('gr1', type=str, default='policy'),
+    Option('gr2', type=str),
   ]
 
   def __init__(self, debug=False, **kwargs):
@@ -97,7 +100,7 @@ class Learner(RL):
       print("Creating train ops")
 
       train_ops = []
-      losses = []
+      losses = {}
       loss_vars = []
 
       if self.train_model or self.predict:
@@ -120,7 +123,7 @@ class Learner(RL):
         model_loss, predicted_core_outputs = self.model.train(history, core_outputs, hidden_states, actions, raw_states, aux_losses=aux_losses)
       if self.train_model:
         #train_ops.append(train_model)
-        losses.append(model_loss)
+        losses['model'] = model_loss
         loss_vars.extend(self.model.getVariables())
       
       if self.train_policy:
@@ -171,15 +174,15 @@ class Learner(RL):
         shifted_core_outputs = core_outputs[:delay_length] if self.unshift_critic else core_outputs[delay:]
         delayed_rewards = rewards[delay:]
         delayed_rewards = tf.nn.relu(delayed_rewards) - self.neg_reward_scale * tf.nn.relu(-delayed_rewards)
-        critic_loss, targets, advantages = self.critic.train(shifted_core_outputs, delayed_rewards, prob_ratios[:-1])
+        critic_loss, _, advantages = self.critic.train(shifted_core_outputs, delayed_rewards, prob_ratios[:-1])
       
       if self.train_critic:
-        losses.append(critic_loss)
+        losses['critic'] = critic_loss
         loss_vars.extend(self.critic.variables)
       
       if self.train_policy:
         policy_loss = self.policy.train(train_log_probs[:-1], advantages, entropy[:-1])
-        losses.append(policy_loss)
+        losses['policy'] = policy_loss
         loss_vars.extend(self.policy.getVariables())
         
         if self.unpredict_weight:
@@ -191,13 +194,13 @@ class Learner(RL):
           unpredict_kl = tfl.batch_dot(tf.log(true_probs) - tf.log(predicted_probs), true_probs)
           unpredict_kl = tf.reduce_mean(unpredict_kl)
           tf.summary.scalar('unpredict_kl', unpredict_kl)
-          losses.append(self.unpredict_weight * unpredict_kl)
+          losses['unpredict'] = tfl.scale_gradient(unpredict_kl, self.unpredict_weight)
 
       if self.evolve_learning_rate:
         self.learning_rate = tf.Variable(self.learning_rate, trainable=False, name='learning_rate')
         self.evo_variables.append(('learning_rate', self.learning_rate, relative(1.5)))
 
-      total_loss = tf.add_n(losses)
+      total_loss = tf.add_n(list(losses.values()))
       with tf.variable_scope('train'):
         optimizer = tf.train.AdamOptimizer(self.learning_rate, epsilon=self.adam_epsilon, beta1=self.adam_beta1)
         gvs = optimizer.compute_gradients(total_loss)
@@ -210,6 +213,22 @@ class Learner(RL):
         capped_gs = [tf.clip_by_norm(g, self.clip_max_grad) for g in gs]
         train_op = optimizer.apply_gradients(zip(capped_gs, vs))
         train_ops.append(train_op)
+      
+      if self.gr1 and self.gr2:
+        all_vs = tf.trainable_variables()
+        grads = {k: tf.gradients(l, all_vs) for k, l in losses.items()}
+        
+        grad_ratios = []
+        for g1, g2, v in zip(grads['policy'], grads['critic'], all_vs):
+          if g1 is None or g2 is None:
+            continue
+          grad_ratio = tf.norm(g1) / tf.norm(g2)
+          tf.summary.scalar('grad_ratio/%s' % v.name, grad_ratio)
+          grad_ratios.append(grad_ratio)
+        
+        grad_ratios = tf.stack(grad_ratios)
+        tf.summary.scalar('grad_ratio/max', tf.reduce_max(grad_ratios))
+        tf.summary.scalar('grad_ratio/min', tf.reduce_min(grad_ratios))
       
       print("Created train op(s)")
       
@@ -238,7 +257,7 @@ class Learner(RL):
 
       print("Creating summary writer at logs/%s." % self.name)
       #self.writer = tf.summary.FileWriter('logs/' + self.name)#, self.graph)
-      self.writer = tf.summary.FileWriter(self.path)
+      self.writer = tf.summary.FileWriter(self.path, flush_secs=self.tb_flush_secs)
 
       self._finalize_setup()
 
