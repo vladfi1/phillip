@@ -64,13 +64,14 @@ class Model(Default):
     
     return forget * (last + delta) + (1. - forget) * new
   
-  def distances(self, model_inputs, actions, raw_states, predict_steps, aux_losses={}):
+  def distances(self, model_inputs, actions, raw_states, target_core_outputs, predict_steps, aux_losses={}):
     """Computes the model's loss on a given set of transitions.
     
     Args:
       model_inputs: ModelInput tuple with shapes [T, B, ...]
       actions: Embedded actions taken, of shape [T, B, A].
       raw_states: Unembedded state structure of shape [T, B] tensors.
+      target_core_outputs: Core outputs with shape [T, B, F]
       predict_steps: Number of steps to predict.
       aux_losses: Each auxiliary loss is a function that takes predicted core output and target core output, returning a scalar distance between them.
     
@@ -79,7 +80,7 @@ class Model(Default):
     """
     target_fn = lambda t: tfl.windowed(t, predict_steps)[1:]
     target_states = util.deepMap(target_fn, raw_states)
-    target_core_outputs = target_fn(model_inputs.core_output)
+    target_core_outputs = target_fn(target_core_outputs)
 
     # prepare for prediction loop (scan)
     cut = (lambda t: t[:-predict_steps]) if predict_steps > 0 else (lambda t: t)
@@ -98,14 +99,16 @@ class Model(Default):
     residual_states = self.embedGame(raw_states, residual=True)
     
     model_inputs = ModelInput(history, core_outputs, hidden_states, residual_states)
-    distances, predicted_outputs = self.distances(model_inputs, actions, raw_states, self.predict_steps, **kwargs)
+    distances, predicted_outputs = self.distances(model_inputs, actions, raw_states, model_inputs.core_output, self.predict_steps, **kwargs)
     distances = util.deepMap(lambda t: tf.reduce_mean(t, [1, 2]), distances)
     
     final_outputs = nest.map_structure(lambda t: t[-1], predicted_outputs)
     
     if self.extra_steps:
-      extra_states = nest.map_structure(lambda t: t[self.predict_steps:], raw_states)
-      extra_distances, _ = self.distances(final_outputs, actions[self.predict_steps:], extra_states, self.extra_steps, **kwargs)
+      extra_fn = lambda t: t[self.predict_steps:]
+      extra_states = nest.map_structure(extra_fn, raw_states)
+      extra_core_outputs = extra_fn(model_inputs.core_output)
+      extra_distances, _ = self.distances(final_outputs, extra_fn(actions), extra_states, extra_core_outputs, self.extra_steps, **kwargs)
       extra_distances = util.deepMap(lambda t: tf.reduce_mean(t, [1, 2]), extra_distances)
       distances = util.deepZipWith(lambda *ts: tf.concat(ts, 0), distances, extra_distances)
     
