@@ -10,7 +10,7 @@ from .default import Option
 import os
 
 class Learner(RL):
-  
+
   _options = RL._options + [
     Option('tb_flush_secs', type=int, default=600),
     Option('train_model', type=int, default=0),
@@ -29,10 +29,14 @@ class Learner(RL):
     Option('evolve_explore_scale', action="store_true", help='evolve explore_scale with PBT'),
     Option('unshift_critic', action='store_true', help="don't shift critic forward in time"),
     Option('batch_size', type=int),
+
     Option('neg_reward_scale', type=float, default=1., help="scale down negative rewards for more optimism"),
     Option('unpredict_weight', type=float, default=0., help="regress delayed actions (computed with prediction) to the undelayed ones (computed on true states)"),
     Option('critic_aux_weight', type=float, default=0.),
     Option('policy_aux_weight', type=float, default=0.),
+    Option('distil_weight', type=float, default=0.,
+        help="minimize kl between actor (who uses search) and learner"),
+
     Option('gr1', type=str, default='policy'),
     Option('gr2', type=str),
   ]
@@ -40,27 +44,27 @@ class Learner(RL):
   def __init__(self, debug=False, **kwargs):
     super(Learner, self).__init__(**kwargs)
 
-    with self.graph.as_default(), tf.device(self.device): 
-      # initialize predictive model, if either: 
+    with self.graph.as_default(), tf.device(self.device):
+      # initialize predictive model, if either:
       #  * you want to use the predictive model to "undo delay"
       #  * you want a predictive model to help you explore
-      # note: self.predict is perhaps a misnomer. 
+      # note: self.predict is perhaps a misnomer.
       if self.predict or (self.train_model or self.explore_scale):
         self._init_model(**kwargs)
 
-      if self.train_policy: 
+      if self.train_policy:
         self._init_policy(**kwargs)
-      
+
       # build computation graph
 
-      # to train the the policy, you have to train the critic. (self.train_policy and 
+      # to train the the policy, you have to train the critic. (self.train_policy and
       # self.train_critic might both be false, if we're only training the predictive
       # model)
       if self.train_policy or self.train_critic:
         print("Creating critic.")
         self.critic = Critic(self.core.output_size, **kwargs)
 
-      # experience = trajectory. usually a list of SimpleStateAction's. 
+      # experience = trajectory. usually a list of SimpleStateAction's.
       self.experience = fields.type_placeholders(self.OutputStateAction, [None, self.config.experience_length], "experience")
       # instantaneous rewards for all but the last state
       self.experience['reward'] = tf.placeholder(tf.float32, [None, self.config.experience_length-1], name='experience/reward')
@@ -80,7 +84,7 @@ class Learner(RL):
       length = self.config.experience_length - memory
       history = [combined[i:i+length] for i in range(memory+1)]
       inputs = tf.concat(axis=-1, values=history)
-      
+
       # this should be handled by the core itself
       if self.core.core:
         inputs = self.core.trunk(inputs)
@@ -96,7 +100,7 @@ class Learner(RL):
 
       actions = actions[memory:]
       rewards = experience['reward'][memory:]
-      
+
       print("Creating train ops")
 
       train_ops = []
@@ -108,13 +112,13 @@ class Learner(RL):
           predicted_v = self.critic(predicted_core)
           target_v = tf.stop_gradient(self.critic(target_core))
           return tf.squared_difference(predicted_v, target_v)
-        
+
         # only works if delayed actions has length 0; that is, predict=delay
         def compute_policy_loss(predicted_core, target_core):
           predicted_pi = self.policy.get_probs(predicted_core, [])
           target_pi = tf.stop_gradient(self.policy.get_probs(target_core, []))
           return tfl.batch_dot(target_pi, tf.log(target_pi) - tf.log(predicted_pi))
-        
+
         aux_losses = {
           'critic': (compute_critic_loss, self.critic_aux_weight),
           'policy': (compute_policy_loss, self.policy_aux_weight),
@@ -125,7 +129,7 @@ class Learner(RL):
         #train_ops.append(train_model)
         losses['model'] = model_loss
         loss_vars.extend(self.model.getVariables())
-      
+
       if self.train_policy:
         if self.predict:
           predict_steps = self.model.predict_steps
@@ -133,7 +137,7 @@ class Learner(RL):
         else:
           predict_steps = 0
           actor_inputs = core_outputs
-        
+
         delay_length = length - delay
         actor_inputs = actor_inputs[:delay_length]
 
@@ -144,16 +148,21 @@ class Learner(RL):
         for i in range(predict_steps, delay):
           delayed_actions.append(actions[i:i+delay_length])
         taken_actions = experience['action'][memory+delay:]
-        train_probs, train_log_probs, entropy = self.policy.train_probs(actor_inputs, delayed_actions, taken_actions)
-        
-        behavior_probs = experience['prob'][memory+delay:] # these are the actions we can compute probabilities for
-        behavior_probs = tfl.batch_dot(behavior_probs, actions[delay:])
+        train_probs, train_log_probs, entropy, log_pi = self.policy.train_probs(actor_inputs, delayed_actions, taken_actions)
 
-        prob_ratios = tf.minimum(train_probs / behavior_probs, 1.)
+        behavior_probs = experience['prob'][memory+delay:] # these are the actions we can compute probabilities for
+        taken_probs = tfl.batch_dot(behavior_probs, actions[delay:])
+
+        prob_ratios = tf.minimum(train_probs / taken_probs, 1.)
         self.kls = -tf.reduce_mean(tf.log(prob_ratios), 0)
         self.kls = tf.check_numerics(self.kls, 'kl')
         kl = tf.reduce_mean(self.kls)
         tf.summary.scalar('kl', kl)
+
+        if self.distil_weight > 0:
+          true_kls = tfl.batch_dot(tf.log(behavior_probs) - log_pi, behavior_probs)
+          true_kl = tf.reduce_mean(true_kls)
+          losses['distil'] = tfl.scale_gradient(true_kl, self.distil_weight)
       else:
         prob_ratios = tf.ones_like() # todo
 
@@ -161,7 +170,7 @@ class Learner(RL):
         if self.evolve_explore_scale:
           self.explore_scale = tf.Variable(self.explore_scale, trainable=False, name='explore_scale')
           self.evo_variables.append(('explore_scale', self.explore_scale, relative(1.5)))
-        
+
         distances, _ = self.model.distances(history, core_outputs, hidden_states, actions, experience['state'], predict_steps=1)
         distances = tf.add_n(list(util.deepValues(distances))) # sum over different state components
         explore_rewards = self.explore_scale * distances[0]
@@ -174,17 +183,18 @@ class Learner(RL):
         shifted_core_outputs = core_outputs[:delay_length] if self.unshift_critic else core_outputs[delay:]
         delayed_rewards = rewards[delay:]
         delayed_rewards = tf.nn.relu(delayed_rewards) - self.neg_reward_scale * tf.nn.relu(-delayed_rewards)
-        critic_loss, _, advantages = self.critic.train(shifted_core_outputs, delayed_rewards, prob_ratios[:-1])
-      
+        importance_weights = prob_ratios[:-1]
+        critic_loss, _, advantages = self.critic.train(shifted_core_outputs, delayed_rewards, importance_weights)
+
       if self.train_critic:
         losses['critic'] = critic_loss
         loss_vars.extend(self.critic.variables)
-      
+
       if self.train_policy:
         policy_loss = self.policy.train(train_log_probs[:-1], advantages, entropy[:-1])
         losses['policy'] = policy_loss
         loss_vars.extend(self.policy.getVariables())
-        
+
         if self.unpredict_weight:
           true_states = core_outputs[predict_steps:]
           true_probs = self.policy.get_probs(true_states, delayed_actions)
@@ -206,18 +216,18 @@ class Learner(RL):
         gvs = optimizer.compute_gradients(total_loss)
         gvs = [(tf.check_numerics(g, v.name), v) for g, v in gvs]
         gs, vs = zip(*gvs)
-        
+
         norms = tf.stack([tf.norm(g) for g in gs])
         max_norm = tf.reduce_max(norms)
         tf.summary.scalar('max_grad_norm', max_norm)
         capped_gs = [tf.clip_by_norm(g, self.clip_max_grad) for g in gs]
         train_op = optimizer.apply_gradients(zip(capped_gs, vs))
         train_ops.append(train_op)
-      
+
       if self.gr1 and self.gr2:
         all_vs = tf.trainable_variables()
         grads = {k: tf.gradients(l, all_vs) for k, l in losses.items()}
-        
+
         grad_ratios = []
         for g1, g2, v in zip(grads['policy'], grads['critic'], all_vs):
           if g1 is None or g2 is None:
@@ -225,31 +235,31 @@ class Learner(RL):
           grad_ratio = tf.norm(g1) / tf.norm(g2)
           tf.summary.scalar('grad_ratio/%s' % v.name, grad_ratio)
           grad_ratios.append(grad_ratio)
-        
+
         grad_ratios = tf.stack(grad_ratios)
         tf.summary.scalar('grad_ratio/max', tf.reduce_max(grad_ratios))
         tf.summary.scalar('grad_ratio/min', tf.reduce_min(grad_ratios))
-      
+
       print("Created train op(s)")
-      
+
       avg_reward, _ = tfl.stats(experience['reward'], 'reward')
-      
+
       misc_ops = []
-      
+
       if not self.dynamic:
         misc_ops.append(tf.add_check_numerics_ops())
-      
+
       if self.pop_id >= 0:
         self.reward = tf.Variable(0., trainable=False, name='avg_reward')
         tf.summary.scalar('avg_reward', self.reward)
         new_reward = (1. - self.reward_decay) * self.reward + self.reward_decay * avg_reward
         misc_ops.append(tf.assign(self.reward, new_reward))
-      
+
       self.mutators = []
       for name, evo_variable, mutator in self.evo_variables:
         tf.summary.scalar(name, evo_variable, family='evolution')
         self.mutators.append(tf.assign(evo_variable, mutator(evo_variable)))
-      
+
       self.summarize = tf.summary.merge_all()
       misc_ops.append(tf.assign_add(self.global_step, self.batch_size * self.config.experience_length * self.config.act_every))
       self.misc = tf.group(*misc_ops)
@@ -266,31 +276,31 @@ class Learner(RL):
             train=True,
             log=True,
             zipped=False,
-            retrieve_kls=False, 
+            retrieve_kls=False,
             **kwargs):
     if not zipped:
       experiences = util.deepZip(*experiences)
-    
+
     input_dict = dict(util.deepValues(util.deepZip(self.experience, experiences)))
-    
+
     """
     saved_data = self.sess.run(self.saved_data, input_dict)
     handles = [t.handle for t in saved_data]
-    
+
     saved_dict = dict(zip(self.placeholders, handles))
     """
-    
+
     run_dict = dict(
       global_step = self.global_step,
       misc = self.misc
     )
-    
+
     if train:
       run_dict.update(train=self.train_ops)
-    
+
     if retrieve_kls:
       run_dict.update(kls=self.kls)
-    
+
     if self.profile:
       run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
       run_metadata = tf.RunMetadata()
@@ -302,9 +312,9 @@ class Learner(RL):
 
     if log:
       run_dict.update(summary=self.summarize)
-    
+
     outputs = []
-    
+
     for _ in range(batch_steps):
       try:
         results = self.sess.run(run_dict, input_dict,
@@ -315,7 +325,7 @@ class Learner(RL):
           pickle.dump(experiences, f)
         raise e
       #print('After run: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
-      
+
       outputs.append(results)
       global_step = results['global_step']
       if log:
@@ -331,5 +341,5 @@ class Learner(RL):
         with open('%s/%d.json' % (path, global_step), 'w') as f:
           f.write(ctf)
         #self.writer.add_run_metadata(run_metadata, 'step %d' % global_step, global_step)
-    
+
     return outputs
