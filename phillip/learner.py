@@ -36,6 +36,7 @@ class Learner(RL):
     Option('policy_aux_weight', type=float, default=0.),
     Option('distil_weight', type=float, default=0.,
         help="minimize kl between actor (who uses search) and learner"),
+    Option('critic_vtrace', type=int, default=1, help="use vtrace for training critic"),
 
     Option('gr1', type=str, default='policy'),
     Option('gr2', type=str),
@@ -184,7 +185,11 @@ class Learner(RL):
         delayed_rewards = rewards[delay:]
         delayed_rewards = tf.nn.relu(delayed_rewards) - self.neg_reward_scale * tf.nn.relu(-delayed_rewards)
         importance_weights = prob_ratios[:-1]
-        critic_loss, _, advantages = self.critic.train(shifted_core_outputs, delayed_rewards, importance_weights)
+        if self.critic_vtrace:
+          critic_loss, _, advantages = self.critic.train(shifted_core_outputs, delayed_rewards, importance_weights)
+        else:  # use vtrace only for policy gradient
+          critic_loss, _, _ = self.critic.train(shifted_core_outputs, delayed_rewards, tf.ones_like(importance_weights))
+          _, _, advantages = self.critic.train(shifted_core_outputs, delayed_rewards, importance_weights, log=False)
 
       if self.train_critic:
         losses['critic'] = critic_loss

@@ -12,15 +12,15 @@ class Critic(Default):
     Option('fix_scopes', type=bool, default=False),
     Option('dynamic', type=int, default=1, help='use dynamic loop unrolling'),
   ]
-  
+
   _members = [
     ('rlConfig', RLConfig),
     ('nl', tfl.NL),
   ]
-  
+
   def __init__(self, input_size, scope='critic', **kwargs):
     Default.__init__(self, **kwargs)
-    
+
     self.net = tfl.Sequential()
     with tf.variable_scope(scope):
       prev_size = input_size
@@ -28,36 +28,35 @@ class Critic(Default):
         with tf.variable_scope("layer_%d" % i):
           self.net.append(tfl.FCLayer(prev_size, next_size, self.nl))
         prev_size = next_size
-      
+
       if self.fix_scopes:
         self.net.append(tfl.FCLayer(prev_size, 1))
-    
+
     if not self.fix_scopes:
       with tf.variable_scope(scope):
         self.net.append(tfl.FCLayer(prev_size, 1))
-    
+
     self.variables = self.net.getVariables()
-  
+
   def __call__(self, inputs):
     return tf.squeeze(self.net(inputs), [-1])
-  
-  def train(self, inputs, rewards, prob_ratios, **unused):
+
+  def train(self, inputs, rewards, prob_ratios, log=True, **unused):
     values = self(inputs)
     trainVs = values[:-1]
     lastV = values[-1]
-    
+
     lambda_ = tf.minimum(1., prob_ratios) * self.gae_lambda
     targets = tfl.smoothed_returns(trainVs, rewards, self.rlConfig.discount, lambda_, lastV, dynamic=self.dynamic)
     targets = tf.stop_gradient(targets)
     advantages = targets - trainVs
-    
-    advantage_avg = tf.reduce_mean(advantages)
-    tf.summary.scalar('advantage_avg', advantage_avg)
-    tf.summary.scalar('advantage_std', tf.sqrt(tfl.sample_variance(advantages)))
-    
-    vLoss = tf.reduce_mean(tf.square(advantages))
-    tf.summary.scalar('v_loss', vLoss)
-    tf.summary.scalar("v_uev", vLoss / tfl.sample_variance(targets))
-    
-    return vLoss * self.critic_weight, targets, advantages
 
+    advantage_avg = tf.reduce_mean(advantages)
+    # tf.summary.scalar('advantage_avg', advantage_avg)
+    # tf.summary.scalar('advantage_std', tf.sqrt(tfl.sample_variance(advantages)))
+
+    vLoss = tf.reduce_mean(tf.square(advantages))
+    if log:
+      tf.summary.scalar("v_uev", vLoss / tfl.sample_variance(targets))
+
+    return tfl.scale_gradient(vLoss, self.critic_weight), targets, advantages
