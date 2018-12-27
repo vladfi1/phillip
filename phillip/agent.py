@@ -6,6 +6,7 @@ from .default import *
 from .menu_manager import characters
 import pprint
 import os
+import time
 import uuid
 import pickle
 from . import reward
@@ -56,39 +57,9 @@ class Agent(Default):
     self.receive = self.dump or self.receive
     
     if self.receive:
-      try:
-        import nnpy
-      except ImportError as err:
-        print("ImportError: {0}".format(err))
-        sys.exit("Install nnpy to dump experiences")
-
       if not self.trainer_ip:
-        ip_path = os.path.join(self.actor.path, 'ip')
-        if os.path.exists(ip_path):
-          with open(ip_path, 'r') as f:
-            self.trainer_ip = f.read()
-          print("Read ip from disk", self.trainer_ip)
-        elif self.trainer_id:
-          from . import om
-          self.trainer_ip = om.get_job_ip(self.trainer_id)
-          print("Got ip from trainer jobid", self.trainer_ip)
-        else:
-          import sys
-          sys.exit("No trainer ip!")
-
-      if self.dump:
-        self.dump_socket = nnpy.Socket(nnpy.AF_SP, nnpy.PUSH)
-        sock_addr = "tcp://%s:%d" % (self.trainer_ip, util.port(self.actor.path + "/experience"))
-        print("Connecting experience socket to " + sock_addr)
-        self.dump_socket.connect(sock_addr)
-
-      self.params_socket = nnpy.Socket(nnpy.AF_SP, nnpy.SUB)
-      self.params_socket.setsockopt(nnpy.SUB, nnpy.SUB_SUBSCRIBE, b"")
-      self.params_socket.setsockopt(nnpy.SOL_SOCKET, nnpy.RCVMAXSIZE, -1)
-      
-      address = "tcp://%s:%d" % (self.trainer_ip, util.port(self.actor.path + "/params"))
-      print("Connecting params socket to", address)
-      self.params_socket.connect(address)
+        self.update_ip()
+      self.make_sockets()
 
     # prepare experience buffer
     if self.dump or self.disk:
@@ -106,6 +77,50 @@ class Agent(Default):
     
     if self.tb:
       self.writer = tf.summary.FileWriterCache.get(self.actor.path)
+
+  def update_ip(self):
+    ip_path = os.path.join(self.actor.path, 'ip')
+    if os.path.exists(ip_path):
+      with open(ip_path, 'r') as f:
+        trainer_ip = f.read()
+      print("Read ip from disk", self.trainer_ip)
+    elif self.trainer_id:
+      from . import om
+      trainer_ip = om.get_job_ip(self.trainer_id)
+      print("Got ip from trainer jobid", self.trainer_ip)
+    elif not self.trainer_ip:
+      import sys
+      sys.exit("No trainer ip!")
+    else:
+      trainer_ip = self.trainer_ip
+
+    self.ip_check_time = time.time()
+    if trainer_ip != self.trainer_ip:
+      self.trainer_ip = trainer_ip
+      return True
+    return False
+
+  def make_sockets(self):
+    """Updates trainer_ip from disk. Returns True if it has changed."""
+    try:
+      import nnpy
+    except ImportError as err:
+      print("ImportError: {0}".format(err))
+      sys.exit("Install nnpy to dump experiences")
+
+    if self.dump:
+      self.dump_socket = nnpy.Socket(nnpy.AF_SP, nnpy.PUSH)
+      sock_addr = "tcp://%s:%d" % (self.trainer_ip, util.port(self.actor.path + "/experience"))
+      print("Connecting experience socket to " + sock_addr)
+      self.dump_socket.connect(sock_addr)
+
+    self.params_socket = nnpy.Socket(nnpy.AF_SP, nnpy.SUB)
+    self.params_socket.setsockopt(nnpy.SUB, nnpy.SUB_SUBSCRIBE, b"")
+    self.params_socket.setsockopt(nnpy.SOL_SOCKET, nnpy.RCVMAXSIZE, -1)
+    
+    address = "tcp://%s:%d" % (self.trainer_ip, util.port(self.actor.path + "/params"))
+    print("Connecting params socket to", address)
+    self.params_socket.connect(address)
 
   def dump_state(self, state_action):
     #print(self.frame_counter)
@@ -203,6 +218,10 @@ class Agent(Default):
         self.actor.restore()
         self.global_step = self.actor.get_global_step()
 
+    # check if trainer ip has changed each hour
+    if self.receive and time.time() - self.ip_check_time > 60 * 60:
+      if self.update_ip():
+        self.make_sockets()
 
   # When called, ask the learner if there are new parameters. 
   def receive_params(self):
