@@ -77,7 +77,8 @@ class Learner(RL):
       rewards = reward.compute_rewards(experience['state'], damage_ratio=self.damage_ratio, lib=tf)
       avg_reward, _ = tfl.stats(rewards, 'reward')
 
-      distance_rewards = reward.pseudo_rewards(experience['state'], reward.distance, self.config.discount, lib=tf)
+      distances, distance_rewards = reward.pseudo_rewards(experience['state'], reward.distance, 1., lib=tf)
+      tfl.stats(distances, 'distances')
       tfl.stats(distance_rewards, 'distance_rewards')
       rewards += self.distance_scale * distance_rewards
 
@@ -241,7 +242,8 @@ class Learner(RL):
         self.mutators.append(tf.assign(evo_variable, mutator(evo_variable)))
       
       self.summarize = tf.summary.merge_all()
-      misc_ops.append(tf.assign_add(self.global_step, self.batch_size * self.config.experience_length * self.config.act_every))
+      self.num_steps_per_batch = self.batch_size * self.config.experience_length * self.config.act_every
+      misc_ops.append(tf.assign_add(self.global_step, self.num_steps_per_batch))
       self.misc = tf.group(*misc_ops)
       self.train_ops = tf.group(*train_ops)
 
