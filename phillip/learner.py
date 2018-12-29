@@ -30,6 +30,9 @@ class Learner(RL):
     Option('batch_size', type=int),
     Option('neg_reward_scale', type=float, default=1., help="scale down negative rewards for more optimism"),
     Option('unpredict_weight', type=float, default=0., help="regress delayed actions (computed with prediction) to the undelayed ones (computed on true states)"),
+
+    Option('damage_ratio', type=float, default=0.01, help="damage scale vs stocks"),
+    Option('distance_scale', type=float, default=0., help="distance pseudo-reward"),
   ]
 
   def __init__(self, debug=False, **kwargs):
@@ -65,6 +68,18 @@ class Learner(RL):
       self.experience['initial'] = tuple(tf.placeholder(tf.float32, [None, size], name='experience/initial/%d' % i) for i, size in enumerate(self.core.hidden_size))
       experience['initial'] = self.experience['initial']
 
+      # rewards = experience['reward']
+      # TODO: move these into reward.py?
+      kill_death = reward.rewards(experience['state'], damage_ratio=0., lib=tf)
+      tfl.stats(kill_death * self.config.fps * 60, 'kill_death')
+      
+      rewards = reward.rewards(experience['state'], damage_ratio=self.damage_ratio, lib=tf)
+      avg_reward, _ = tfl.stats(rewards, 'reward')
+
+      distance_rewards = reward.psuedo_rewards(experience['state'], reward.distance, self.config.discount, lib=tf)
+      tfl.stats(distance_rewards, 'distance_rewards')
+      rewards += self.distance_scale * distance_rewards
+
       states = self.embedGame(experience['state'])
       prev_actions = self.embedAction(experience['prev_action'])
       combined = tf.concat(axis=2, values=[states, prev_actions])
@@ -90,7 +105,7 @@ class Learner(RL):
         core_outputs, hidden_states = self.core(inputs, experience['initial'])
 
       actions = actions[memory:]
-      rewards = experience['reward'][memory:]
+      rewards = rewards[memory:]
       
       print("Creating train ops")
 
@@ -207,8 +222,6 @@ class Learner(RL):
         train_ops.append(train_op)
       
       print("Created train op(s)")
-      
-      avg_reward, _ = tfl.stats(experience['reward'], 'reward')
       
       misc_ops = []
       
