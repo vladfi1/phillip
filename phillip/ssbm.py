@@ -289,7 +289,7 @@ def prepareStateActions(state_actions):
   """
 
   vectorized = vectorizeCTypes(SimpleStateAction, state_actions)
-  rewards_ = reward.rewards_np(vectorized['state'])
+  rewards_ = reward.compute_rewards(vectorized['state'])
   rewards = reward.computeRewardsSA(state_actions)
   assert(np.max(np.abs(rewards_ - rewards)) < 1e-5)
   

@@ -1,5 +1,5 @@
-from phillip.RL import RL
 import tensorflow as tf
+from phillip.RL import RL
 from . import ssbm, util, ctype_util as ct, embed
 from .core import Core
 from .ac import ActorCritic
@@ -7,6 +7,7 @@ from .critic import Critic
 from phillip import tf_lib as tfl
 from .mutators import relative
 from .default import Option
+from phillip import reward
 import os
 
 class Learner(RL):
@@ -70,13 +71,13 @@ class Learner(RL):
 
       # rewards = experience['reward']
       # TODO: move these into reward.py?
-      kill_death = reward.rewards(experience['state'], damage_ratio=0., lib=tf)
+      kill_death = reward.compute_rewards(experience['state'], damage_ratio=0., lib=tf)
       tfl.stats(kill_death * self.config.fps * 60, 'kill_death')
       
-      rewards = reward.rewards(experience['state'], damage_ratio=self.damage_ratio, lib=tf)
+      rewards = reward.compute_rewards(experience['state'], damage_ratio=self.damage_ratio, lib=tf)
       avg_reward, _ = tfl.stats(rewards, 'reward')
 
-      distance_rewards = reward.psuedo_rewards(experience['state'], reward.distance, self.config.discount, lib=tf)
+      distance_rewards = reward.pseudo_rewards(experience['state'], reward.distance, self.config.discount, lib=tf)
       tfl.stats(distance_rewards, 'distance_rewards')
       rewards += self.distance_scale * distance_rewards
 
