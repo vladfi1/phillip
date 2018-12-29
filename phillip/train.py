@@ -213,7 +213,7 @@ class Trainer(Default):
         experiences = new_experiences
 
       ages = np.array([global_step - exp['global_step'] for exp in experiences])
-      print("Mean age:", ages.mean())
+      print("Mean age:", ages.mean() / self.learner.num_steps_per_batch)
 
       #print('After collect: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
       split('extra_collect')

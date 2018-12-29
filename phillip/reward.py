@@ -81,4 +81,4 @@ def distance(state, lib=np):
 
 def pseudo_rewards(states, potential_fn, gamma, lib=np):
   potentials = potential_fn(states, lib=lib)
-  return gamma * potentials[1:] - potentials[:-1]
+  return potentials, gamma * potentials[1:] - potentials[:-1]
