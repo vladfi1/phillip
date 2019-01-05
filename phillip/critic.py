@@ -38,8 +38,11 @@ class Critic(Default):
     
     self.variables = self.net.getVariables()
   
-  def __call__(self, inputs, rewards, prob_ratios, **unused):
-    values = tf.squeeze(self.net(inputs), [-1])
+  def __call__(self, inputs):
+    return tf.squeeze(self.net(inputs), [-1])
+  
+  def train(self, inputs, rewards, prob_ratios, **unused):
+    values = self(inputs)
     trainVs = values[:-1]
     lastV = values[-1]
     

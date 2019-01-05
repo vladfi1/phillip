@@ -23,14 +23,12 @@ class ActorCritic(Default):
     ('nl', tfl.NL),
   ]
   
-  def __init__(self, input_size, action_size, rlConfig, **kwargs):
+  def __init__(self, input_size, embedAction, rlConfig, **kwargs):
     Default.__init__(self, **kwargs)
-    self.action_size = action_size
-    self.action_set = list(range(action_size))
+    self.embedAction = embedAction
+    self.action_set = list(range(embedAction.input_size))
     self.rlConfig = rlConfig
     self.evo_variables = []
-    
-    policy_nl = lambda logits: (1. - self.epsilon) * tf.nn.softmax(logits) + self.epsilon / action_size
     
     name = "actor"
     net = tfl.Sequential()
@@ -42,7 +40,7 @@ class ActorCritic(Default):
         prev_size = next_size
       
       if self.fix_scopes:
-        net.append(tfl.FCLayer(prev_size, action_size, policy_nl))
+        net.append(tfl.FCLayer(prev_size, embedAction.size))
       
       if self.evolve_entropy:
         self.entropy_scale = tf.Variable(self.entropy_scale, trainable=False, name='entropy_scale')
@@ -50,16 +48,37 @@ class ActorCritic(Default):
       
     if not self.fix_scopes:
       with tf.variable_scope('actor'):
-        net.append(tfl.FCLayer(prev_size, action_size, policy_nl))
+        net.append(tfl.FCLayer(prev_size, embedAction.size))
     
-    self.actor = net
+    self.net = net
   
-  def train_probs(self, inputs, actions):
-    delayed_actions = actions[:-1]
-    inputs = tf.concat(axis=2, values=[inputs] + delayed_actions)
-    actions = actions[-1]
+  def epsilon_greedy(self, probs):
+    return (1. - self.epsilon) * probs + self.epsilon / self.embedAction.input_size
+  
+  def get_probs(self, inputs, delayed_actions):
+    """Computes probabilites for the actor.
     
-    actor_probs = self.actor(inputs)
+    B is Batch dim/shape, can have rank > 1
+    C is Core output dim
+    E is action Embed dim
+    D is number of Delay steps
+    A is number of Actions
+    
+    Args:
+      inputs: Tensor of shape [B, C]
+      delayed_actions: list of D tensors with shapes [B, E].
+    Returns:
+      Tensor of shape [B, A] with action probabilities.
+    """
+    
+    inputs = tf.concat(axis=-1, values=[inputs] + delayed_actions)
+    net_outputs = self.net(inputs)
+    # FIXME: to_input is the wrong method. Should be embed_to_probs
+    probs = self.embedAction.to_input(net_outputs)
+    return self.epsilon_greedy(probs)
+  
+  def train_probs(self, inputs, delayed_actions, taken_action):
+    actor_probs = self.get_probs(inputs, delayed_actions)
     log_actor_probs = tf.log(actor_probs)
 
     entropy = - tfl.batch_dot(actor_probs, log_actor_probs)
@@ -68,8 +87,9 @@ class ActorCritic(Default):
     tf.summary.scalar('entropy_min', tf.reduce_min(entropy))
     #tf.summary.histogram('entropy', entropy)
 
-    taken_probs = tfl.batch_dot(actions, actor_probs)
-    taken_log_probs = tfl.batch_dot(actions, log_actor_probs)
+    actions_1hot = tf.one_hot(taken_action, len(self.action_set))
+    taken_probs = tfl.batch_dot(actions_1hot, actor_probs)
+    taken_log_probs = tfl.batch_dot(actions_1hot, log_actor_probs)
     
     return taken_probs, taken_log_probs, entropy
 
@@ -78,11 +98,11 @@ class ActorCritic(Default):
     return -tf.reduce_mean(actor_gain) * self.actor_weight
 
   def getVariables(self):
-    return self.actor.getVariables()
+    return self.net.getVariables()
   
   def getPolicy(self, core_output, delayed_actions, **unused):
-    input_ = tf.concat(axis=0, values=[core_output] + tf.unstack(delayed_actions))
-    return self.actor(input_)
+    delayed_actions = tf.unstack(delayed_actions, axis=1)
+    return self.get_probs(core_output, delayed_actions)
 
   def act(self, policy, verbose=False):
     action = random.choice(self.action_set, p=policy)

@@ -17,22 +17,25 @@ class Actor(RL.RL):
       self.input['delayed_action'] = tf.placeholder(tf.int64, [self.config.delay], "delayed_action")
       self.input['hidden'] = util.deepMap(lambda size: tf.placeholder(tf.float32, [size], name="input/hidden"), self.core.hidden_size)
 
-      states = self.embedGame(self.input['state'])
-      prev_actions = self.embedAction(self.input['prev_action'])
+      batch_input = util.deepMap(lambda t: tf.expand_dims(t, 0), self.input)
+
+      states = self.embedGame(batch_input['state'])
+      prev_actions = self.embedAction(batch_input['prev_action'])
       combined = tf.concat(axis=-1, values=[states, prev_actions])
       history = tf.unstack(combined)
       inputs = tf.concat(axis=-1, values=history)
-      core_output, hidden_state = self.core(inputs, self.input['hidden'])
-      actions = self.embedAction(self.input['delayed_action'])
+      core_output, hidden_state = self.core(inputs, batch_input['hidden'])
+      actions = self.embedAction(batch_input['delayed_action'])
       
       if self.predict:
-        predict_actions = actions[:self.model.predict_steps]
-        delayed_actions = actions[self.model.predict_steps:]
-        core_output = self.model.predict(history, core_output, hidden_state, predict_actions, self.input['state'])
+        predict_actions = actions[:, :self.model.predict_steps]
+        delayed_actions = actions[:, self.model.predict_steps:]
+        core_output = self.model.predict(history, core_output, hidden_state, predict_actions, batch_input['state'])
       else:
         delayed_actions = actions
       
-      self.run_policy = self.policy.getPolicy(core_output, delayed_actions), hidden_state
+      batch_policy = self.policy.getPolicy(core_output, delayed_actions), hidden_state
+      self.run_policy = util.deepMap(lambda t: tf.squeeze(t, [0]), batch_policy)
       
       self._finalize_setup()
 

@@ -2,6 +2,8 @@ import asyncio
 import json
 import requests # pip install requests
 import websockets # pip install websockets
+import subprocess, os, signal
+import time
 from enum import IntEnum
 
 class Characters(IntEnum):
@@ -53,8 +55,6 @@ class Actions(IntEnum):
     player_2_pick_stage = 8
     game_over = 9
     dispute = 10
-    # I don't know what 11 and 12 are used for, but they're in the SmashLadder source code.
-    # Maybe they're for Smash 4 or something. I don't know if the ruleset is different.
     player_1_ban_stage = 11
     player_2_ban_stage = 12
     # Nice.
@@ -72,8 +72,10 @@ class Feedback(IntEnum):
     neutral = 0
     negative = -1
 
-class SmashLadderClient():
+
+class SmashLadderClient:
     base_url = "https://www.smashladder.com/"
+    api_url = "https://www.smashladder.com/api/v1/"
     socket_url = "wss://www.smashladder.com/?type=3&version=9.11.4&userlist_visible=false"
 
     def __init__(self):
@@ -82,6 +84,22 @@ class SmashLadderClient():
         self.last_match = None
         self.current_match = None
         self.user_id = None
+        self.phillip_thread = None
+
+    def post(self, url, data=None):
+        response = requests.post(self.api_url + url, data=data, cookies=self.cookies)
+        if not isinstance(response, dict):
+            response = response.json()
+        if "error" in response:
+            print(response["error"])
+            # import ipdb; ipdb.set_trace()
+        return response
+
+    def get(self, url, data=None):
+        return requests.get(self.api_url + url, data=data, cookies=self.cookies)
+
+    def me(self):
+        return self.get("player/me").json()
 
     def on_logged_in(self):
         return
@@ -106,6 +124,9 @@ class SmashLadderClient():
 
     def on_socket_updated(self):
         return
+    
+    def post_match(self):
+        pass
 
     def process_message(self, input):
         if "searches" in input:
@@ -150,10 +171,12 @@ class SmashLadderClient():
                             if id != self.last_match:
                                 self.on_game_ended(input["current_matches"][id])
 
-                                self.finish_match(id)
+                                self.exit_match(id)
 
-                                self.last_match = self.current_match
+                                self.last_match = id
                                 self.current_match = None
+                                
+                                self.post_match()
         
         self.on_socket_updated()
 
@@ -164,7 +187,7 @@ class SmashLadderClient():
             "remember": "0",
             "json": "1"
         }
-        response = self.post("log-in", data=data)
+        response = requests.post(self.base_url + "log-in", data=data, cookies=self.cookies)
         if not response.json()["success"]:
             raise ValueError(response.json()["error"])
 
@@ -181,10 +204,11 @@ class SmashLadderClient():
         async with websockets.connect(SmashLadderClient.socket_url, extra_headers=header) as client:
             self.on_connected()
 
+            # TODO: figure out what's up with this
             # Process current match and finish any pre-existing match.
-            data = {"is_in_ladder": "1", "match_only_mode": "1"}
-            response = self.post("matchmaking/get_user_going", data=data).json()
-            self.process_message(response)
+            # data = {"is_in_ladder": "1", "match_only_mode": "1"}
+            # response = self.post("matchmaking/get_user_going", data=data)
+            # self.process_message(response)
 
             while True:
                 message = await client.recv()
@@ -205,7 +229,7 @@ class SmashLadderClient():
         }
         self.post("matchmaking/challenge_search", data=data)
 
-    def create_search(self, game_count, title):
+    def create_search(self, game_count, title=None):
         data = {
             "team_size": 1,
             "game_id": 2, # Game ID 2 is Melee.
@@ -213,10 +237,11 @@ class SmashLadderClient():
             "title": title,
             "ranked": 0
         }
-        response = self.post("matchmaking/begin_matchmaking", data=data).json()
+        response = self.post("matchmaking/start", data=data)
         if "searches" in response:
-            searches = response["searches"]
-            self.current_search = list(searches.values())[0]["id"]
+            self.current_search = list(response["searches"].keys())[0]
+            return True
+        return False
 
     def cancel_search(self, search_id):
         data = {
@@ -226,33 +251,33 @@ class SmashLadderClient():
 
     def send_chat(self, match_id, message):
         data = {
-            "chat_room_id": "",
             "match_id": match_id,
             "message": message,
         }
-        self.post("matchmaking/send_chat", data=data)
+        self.post("chat/send", data=data)
+        print("send_chat:", message)
 
     def select_stage(self, match_id, stage):
         data = {
             "match_id": match_id,
-            "stage_id": stage
+            "stage_id": int(stage)
         }
-        self.post("matchmaking/select_stage", data=data)
+        self.post("match/select_stage", data=data)
 
     def select_character(self, match_id, character):
         data = {
             "match_id": match_id,
-            "character_id": character
+            "character_id": int(character)
         }
-        self.post("matchmaking/select_character", data=data)
+        self.post("match/select_character", data=data)
 
     def report_match(self, match_id, result):
         # Confusingly, reporting who won is not absolute (in contrast to every other match player reference).
         data = {
             "match_id": match_id,
-            "won": result
+            "won": int(result)
         }
-        self.post("matchmaking/report_match", data=data)
+        self.post("match/report", data=data)
 
     def update_match_feedback(self, match_id, feedback_text, attitude, connection):
         data = {
@@ -264,11 +289,11 @@ class SmashLadderClient():
         }
         self.post("matchmaking/update_feedback", data=data)
 
-    def finish_match(self, match_id):
+    def exit_match(self, match_id):
         data = {
             "match_id": match_id
         }
-        self.post("matchmaking/finished_chatting_with_match", data=data)
+        self.post("match/exit", data=data)
 
     def reply_to_challenge(self, challenge_id, accepted):
         data = {
@@ -276,109 +301,204 @@ class SmashLadderClient():
             "accept": ("1" if accepted else "0"),
             "host_code": ""
         }
+        # TODO: replace this with accept/reject
         self.post("matchmaking/reply_to_match", data=data)
         if accepted:
             self.current_match = challenge_id
     
-    def post(self, url, data=None):
-        return requests.post(SmashLadderClient.base_url + url, data=data, cookies=self.cookies)
+    def update_main(self, char_id):
+        data = {
+            "game_id": 2,
+            "character_id": int(char_id),
+            "add_main": True,
+        }
+        
+        self.post("player/edit_mains", data=data)
+
+class MatchState:
+
+    def __init__(self):
+        self.chat_sent = False
+        self.host_code = None
+        self.prev_action = None
+
+    def update_action(self, action):
+        if action != self.prev_action:
+            print(action)
+            self.prev_action = action
 
 class TestSmashLadderClient(SmashLadderClient):
+
+    def __init__(self):
+        super(TestSmashLadderClient, self).__init__()
+
+        self.match_state = None
+
     def on_logged_in(self):
         print("Logged in.")
 
+    def update_builds(self):
+        data = {
+            "build_preference_id": 13, # FM 5.9
+            "active": True,
+        }
+        
+        self.post("matchmaking/update_active_build_preferences", data)
+
+    def leave_matches(self):
+        response = self.get("match/current_match").json()
+        if 'match' in response:
+          self.exit_match(response['match']['id'])
+          print("Left match")
+        else:
+          print("no match to leave")
+
+    def create_match(self):
+        self.create_search(3, "FalcoBot")
+
     def on_connected(self):
+        print("Connected.")
+        #me = self.me()
+        self.update_builds()
+        self.update_main(Characters.falco)
+        self.leave_matches()
+        self.create_match()
+        return
+        # TODO: delete rest?
         # Cancel any already-existing searches.
         response = self.post("matchmaking/retrieve_match_searches").json()
         # Every response dictionary contains an "all_entries" key. We need to filter that out.
         for id in [key for key in response["searches"] if key != "all_entries"]:
             if str(response["searches"][id]["player1"]["id"]) == self.user_id:
                 self.cancel_search(id)
+    
+    def on_challenged(self, challenge):
+        print("Challenged by ", challenge["player2"]["username"])
+        if self.current_match is None:
+            self.post("matchmaking/accept", data={"match_id": challenge["id"]})
+        # can't do more than one match at a time :(
+        # self.create_match()
+
+    def pick_stage(self, match, ban=True):
+        stages = [
+            Stages.battlefield,
+            Stages.dream_land,
+            Stages.final_destination,
+            Stages.fountain_of_dreams,
+            Stages.pokemon_stadium,
+            Stages.yoshis_story,
+        ]
         
-        print("Connected.")
+        for stage in (reversed(stages) if ban else stages):
+          if str(int(stage)) in match["game"]["visible_stages"]:
+            self.select_stage(match["id"], stage)
+            return
+        
+        print("No stage was available??")
+        import ipdb; ipdb.set_trace()
+
+    def kill_dolphin(self):
+        if self.phillip_thread is None: return
+        # dolphin needs two sigterms?
+        os.killpg(os.getpgid(self.phillip_thread.pid), signal.SIGTERM)
+        os.killpg(os.getpgid(self.phillip_thread.pid), signal.SIGTERM)
+        self.phillip_thread = None
+
+    def join_host(self, code):
+        if code is None or code == self.match_state.host_code:
+            return
+        self.match_state.host_code = code
+
+        self.kill_dolphin()
+        
+        cmd = ["./netplay.sh", code, "6", "0"]
+        print(cmd)
+        self.phillip_thread = subprocess.Popen(cmd, start_new_session=True)
 
     def on_game_updated(self, match):
-        # The "game" property stores actual game info.
+        if self.match_state is None:
+            self.match_state = MatchState()
+
+        if not self.match_state.chat_sent:
+            time.sleep(4)
+            self.send_chat(match["id"], "hi, you host")
+            self.match_state.chat_sent = True
+
+        self.join_host(match["host_code"]["code"])
+
+        # we are 1 when we host
+        player_index = 1
+        other_index = 3 - player_index
+
         game = match["game"]
+        current_action = Actions(game["current_action"])
+        self.match_state.update_action(current_action)
 
-        # The following spaghetti finds the first player whose ID is not our own.
-        other_character = game["players"][[key for key in game["players"] if key != self.user_id][0]]["character"]
-        # 1 if host, 2 if challenger.
-        player_index = str(list(game["players"].keys()).index(str(self.user_id)) + 1)
+        if (current_action == Actions.player_1_strike_stage) or (current_action == Actions.player_1_ban_stage):
+            self.pick_stage(match, True)
 
-        if (game["current_action"] == Actions.player_1_strike_stage) or (game["current_action"] == Actions.player_2_strike_stage):
-            # These are ordered from least-liked to most-liked.
-            # Confusion may arise with select_stage; it is used for both striking and selecting.
-            if str(Stages.battlefield) in game["visible_stages"]:
-                self.select_stage(match["id"], Stages.battlefield)
-            elif str(Stages.dream_land) in game["visible_stages"]:
-                self.select_stage(match["id"], Stages.dream_land)
-            elif str(Stages.final_destination) in game["visible_stages"]:
-                self.select_stage(match["id"], Stages.final_destination)
-            elif str(Stages.fountain_of_dreams) in game["visible_stages"]:
-                self.select_stage(match["id"], Stages.fountain_of_dreams)
-            elif str(Stages.pokemon_stadium) in game["visible_stages"]:
-                self.select_stage(match["id"], Stages.pokemon_stadium)
-            elif str(Stages.yoshis_story) in game["visible_stages"]:
-                self.select_stage(match["id"], Stages.yoshis_story)
+        elif (current_action == Actions.player_1_pick_character) or (current_action == Actions.player_2_pick_character):
+            self.select_character(match["id"], Characters.falco)
 
-        elif (game["current_action"] == Actions.player_1_pick_character) or (game["current_action"] == Actions.player_2_pick_character):
-            self.select_character(match["id"], Characters.captain_falcon)
+        elif current_action == Actions.players_blind_pick_characters:
+            self.select_character(match["id"], Characters.falco)
 
-        elif game["current_action"] == Actions.players_blind_pick_characters:
-            self.select_character(match["id"], Characters.captain_falcon)
-
-        elif game["current_action"] == Actions.players_play_game: # Playing game.
+        elif current_action == Actions.players_play_game: # Playing game.
             # Check for external condition here.
-            # An async await operation is not needed, as SmashLadder reminds the web socket to report the score approximately twice every second.
+            
+            # An async await operation is not needed, as SmashLadder reminds the web socket to report the score approximately twice every second.            
 
             # Make sure we haven't reported the match already (again, SmashLadder causes this to happen twice per second).
-            if game["teams"][player_index]["match_report"] == None:
-                self.report_match(match["id"], GameResult.lose)
+            our_report = game["teams"][str(player_index)]["match_report"]
+            their_report = game["teams"][str(other_index)]["match_report"]
+            if our_report is None and their_report is not None:
+                result = 3 - their_report
+                print("Game result: ", GameResult(result))
+                self.report_match(match["id"], result)
 
-        elif (game["current_action"] == Actions.player_1_pick_stage) or (game["current_action"] == Actions.player_2_pick_stage):
-            # These are ordered from most-liked to least-liked.
-            if str(Stages.battlefield) in game["visible_stages"]:
-                self.select_stage(match["id"], Stages.battlefield)
-            elif str(Stages.dream_land) in game["visible_stages"]:
-                self.select_stage(match["id"], Stages.dream_land)
-            elif str(Stages.final_destination) in game["visible_stages"]:
-                self.select_stage(match["id"], Stages.final_destination)
-            elif str(Stages.fountain_of_dreams) in game["visible_stages"]:
-                self.select_stage(match["id"], Stages.fountain_of_dreams)
-            elif str(Stages.pokemon_stadium) in game["visible_stages"]:
-                self.select_stage(match["id"], Stages.pokemon_stadium)
-            elif str(Stages.yoshis_story) in game["visible_stages"]:
-                self.select_stage(match["id"], Stages.yoshis_story)
+        elif (current_action == Actions.player_1_pick_stage) or (current_action == Actions.player_2_pick_stage):
+            self.pick_stage(match, False)
 
     def on_game_ended(self, match):
-        self.send_chat(match["id"], "Good games, probably.")
-        self.update_match_feedback(match["id"], "", Feedback.neutral, Feedback.neutral)
-        print("Match completed.")
+        time.sleep(1)
+        self.send_chat(match["id"], "good games")
+        self.match_state = None
+        # broken
+        # self.update_match_feedback(match["id"], "", Feedback.neutral, Feedback.neutral)
+        self.kill_dolphin()
+        print("Match %s completed." % match["id"])
+    
+    def post_match(self):
+        self.create_match()
     
     def on_match_chat_recieved(self, message, match_id):
+        print(message)
         if message.upper() == "!PING":
             self.send_chat(match_id, "Pong!")
         elif message.upper().startswith("!ECHO"):
             self.send_chat(match_id, message[6:])
 
     def on_search_created(self, search):
-        if self.current_match == None:
-            # Plays Melee?
-            if "2" in search["player1"]["preferred_builds"]:
-                # TODO: Check location.
-                correct_player = search["player1"]["id"] == 149091 # TODO Remove.
-                is_melee = search["ladder_id"] == 2
-                is_not_infinite = search["match_count"] != 0
-                is_not_ranked = not search["is_ranked"]
-                can_use_faster_melee = search["player1"]["preferred_builds"]["2"][0]["active"] == 1
+        if self.current_match:
+          return
 
-                if correct_player and is_melee and is_not_infinite and is_not_ranked and can_use_faster_melee:
-                    self.challenge_search(search)
-                    print("Challenged search created by {0} ({1}).".format(search["player1"]["username"], search["player1"]["id"]))
+        is_melee = search["ladder_game"]["id"] == 2
+        if not is_melee:
+          return
+
+        # TODO: Check location.
+        correct_player = search["player1"]["username"] == "XPilot"
+        is_not_infinite = search["match_count"] != 0
+        is_not_ranked = not search["is_ranked"]
+        #can_use_faster_melee = search["player1"]["preferred_builds"]["2"][0]["active"] == 1
+
+        if correct_player:
+          self.challenge_search(search)
+          print("Challenged search created by {0} ({1}).".format(search["player1"]["username"], search["player1"]["id"]))
 
 
 # I made a file globals.py on my PYTHONPATH for things like this
 from globals import smashladder, dolphin_iso_path
 
 TestSmashLadderClient().log_in(smashladder['username'], smashladder['password'])
+

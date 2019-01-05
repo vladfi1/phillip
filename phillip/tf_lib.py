@@ -1,4 +1,6 @@
+import numpy as np
 import tensorflow as tf
+from tensorflow.contrib.framework.python.framework import checkpoint_utils
 import itertools
 from phillip.default import *
 from phillip import util
@@ -104,7 +106,7 @@ def scaled_weight_variable(shape):
     scale = tf.Variable(tf.truncated_normal(shape[-1:], stddev=1.0), name='scale')
     
     return scale * w
-    
+
 def weight_init(shape):
     initial = tf.random_normal(shape, stddev=1.0)
     
@@ -479,4 +481,20 @@ def test_smoothed_returns():
     assert((r == correct).all())
 
   print("Passed test_smoothed_returns()")
+
+def restore(session, variables, ckpt_path):
+  """Does what a saver would do, but handles mismatched shapes."""
+  ckpt = checkpoint_utils.load_checkpoint(ckpt_path)
+  
+  for var in variables:
+    name = var.name
+    if name.endswith(":0"):
+      name = name[:-2]
+    value = ckpt.get_tensor(name)
+    pads = [(0, d1 - d2) for d1, d2 in zip(var.get_shape().as_list(), value.shape)]
+    needs_pad = any([p[1] for p in pads])
+    if needs_pad:
+      print("Variable %s of shape %s padded from %s" % (var.name, var.get_shape().as_list(), value.shape))
+      value = np.pad(value, pads, "constant")
+    var.load(value, session)
 

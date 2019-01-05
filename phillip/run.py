@@ -18,7 +18,7 @@ def run(**kwargs):
     params = {}
   
   util.update(params, **kwargs)
-  pp.pprint(params)
+  #pp.pprint(params)
 
   if params.get('gui'):
     params['dolphin'] = True

@@ -1,0 +1,51 @@
+{
+  "policy": "ActorCritic",
+  "epsilon": 0.005,
+  "batch_size": 128,
+  "batch_steps": 1,
+  "evolve": false,
+  "reward_cutoff": 0.0005,
+  "evo_period": 5000,
+  "learning_rate": 2e-5,
+  "reward_decay": 1e-3,
+  "predict": true,
+  "predict_steps": 6,
+  "model_weight": 0.5,
+  "model_layers": [
+    256
+  ],
+  "train_model": true,
+  "core_layers": [
+    512
+  ],
+  "actor_layers": [
+    128
+  ],
+  "critic_layers": [
+    128
+  ],
+  "entropy_scale": 5e-4,
+  "unpredict_weight": 0,
+  "recurrent": true,
+  "initial": "train",
+  "gae_lambda": 1.0,
+  "xy_scale": 0.05,
+  "action_space": 0,
+  "player_space": 0,
+  "nl": "elu",
+  "action_type": "custom",
+  "fix_scopes": true,
+  "reward_halflife": 5,
+  "experience_length": 80,
+  "reload": 1,
+  "act_every": 3,
+  "delay": 6,
+  "stage": "battlefield",
+  "char": "falco",
+  "enemies": [
+    "self"
+  ],
+  "enemy_reload": 86400,
+  "agents": 100,
+  "name": "FalcoBF-18"
+}

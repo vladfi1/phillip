@@ -29,6 +29,11 @@ class Stick(Structure):
   def reset(self):
     self.x = 0.5
     self.y = 0.5
+  
+  @classmethod
+  def polar(cls, theta, r=1.):
+    r /= 2.
+    return cls(x=0.5+r*np.cos(theta), y=0.5+r*np.sin(theta))
 
 @pretty_struct
 class RealControllerState(Structure):
@@ -129,9 +134,16 @@ class SimpleButton(IntEnum):
 neutral_stick = (0.5, 0.5)
 
 @attr.s
-class SimpleController:
+class SimpleController(object):
   button = attr.ib(default=SimpleButton.NONE)
   stick = attr.ib(default=neutral_stick)
+  duration = attr.ib(default=None)
+  
+  @classmethod
+  def init(cls, *args, **kwargs):
+    self = cls(*args, **kwargs)
+    self.real_controller = self.realController()
+    return self
   
   def realController(self):
     controller = RealControllerState()
@@ -146,35 +158,71 @@ class SimpleController:
       return self.button == SimpleButton.B and self.stick == neutral_stick
     if char in ['sheik', 'zelda']:
       return self.button == SimpleButton.B and self.stick[1] == 0
+    if char == 'fox':
+      return self.button == SimpleButton.B and self.stick == neutral_stick
     return False
+  
+  def send(self, pad, char):
+    if self.banned(char):
+      pad.send_controller(RealControllerState.neutral)
+    else:
+      pad.send_controller(self.real_controller)
 
-SimpleController.neutral = SimpleController()
+SimpleController.neutral = SimpleController.init()
+
+
+class RepeatController(object):
+  duration = None
+
+  def send(self, pad, char):
+    pass
+
+repeat_controller = RepeatController()
 
 axis_granularity = 3
 axis_positions = np.linspace(0, 1, axis_granularity)
 diagonal_sticks = list(itertools.product(axis_positions, repeat=2))
-diagonal_controllers = [SimpleController(*args) for args in itertools.product(SimpleButton, diagonal_sticks)]
+diagonal_controllers = [SimpleController.init(*args) for args in itertools.product(SimpleButton, diagonal_sticks)]
 
-class SimpleAction:
-  def __init__(self, simple_controllers):
-    self.simple_controllers = simple_controllers
-    self.size = len(simple_controllers)
-    self.real_controllers = [None if c is None else c.realController() for c in simple_controllers]
+
+class ActionChain(object):
+  """
+  A list of actions, each with a duration, and the last duration must be None.
   
-  def send(self, index, pad, char=None):
-    simple = self.simple_controllers[index]
-    if simple is None:
-      return
-    if simple.banned(char):
-      pad.send_controller(RealControllerState.neutral)
-    else:
-      pad.send_controller(self.real_controllers[index])
+  TODO: Come up with a better system?
+  """
+
+  def __init__(self, action_list, act_every):
+    self.actions = []
+    for action in action_list:
+      if action.duration:
+        self.actions += [action] * action.duration
+      else:
+        self.actions += [action] * (act_every - len(self.actions))
+    assert len(self.actions) == act_every
+    self.index = 0
+
+  def act(self, pad, char):
+    self.actions[self.index].send(pad, char)
+    self.index += 1
+  
+  def done(self):
+    return self.index == len(self.actions)
+
+
+class ActionSet(object):
+  def __init__(self, actions):
+    self.actions = list(map(lambda obj: obj if isinstance(obj, list) else [obj], actions))
+    self.size = len(actions)
+  
+  def choose(self, index, act_every):
+    return ActionChain(self.actions[index], act_every)
 
 old_sticks = [(0.5, 0.5), (0.5, 1), (0.5, 0), (0, 0.5), (1, 0.5)]
-old_controllers = [SimpleController(*args) for args in itertools.product(SimpleButton, old_sticks)]
+old_controllers = [SimpleController.init(*args) for args in itertools.product(SimpleButton, old_sticks)]
 
 cardinal_sticks = [(0, 0.5), (1, 0.5), (0.5, 0), (0.5, 1), (0.5, 0.5)]
-cardinal_controllers = [SimpleController(*args) for args in itertools.product(SimpleButton, cardinal_sticks)]
+cardinal_controllers = [SimpleController.init(*args) for args in itertools.product(SimpleButton, cardinal_sticks)]
 
 tilt_sticks = [(0.4, 0.5), (0.6, 0.5), (0.5, 0.4), (0.5, 0.6)]
 
@@ -184,14 +232,41 @@ custom_controllers = itertools.chain(
   itertools.product([SimpleButton.NONE, SimpleButton.L], diagonal_sticks),
   itertools.product([SimpleButton.Z, SimpleButton.Y], [neutral_stick]),
 )
-custom_controllers = [SimpleController(*args) for args in custom_controllers]
-custom_controllers.append(None)
+custom_controllers = [SimpleController.init(*args) for args in custom_controllers]
+custom_controllers.append(repeat_controller)
+
+# allows fox, sheik, samus, etc to short hop with act_every=3
+short_hop = SimpleController.init(button=SimpleButton.Y, duration=2)
+short_hop_chain = [short_hop, SimpleController.neutral]
+
+# this is technically no longer needed because of sh2
+jc_chain = [SimpleController.init(button=SimpleButton.Y, duration=1), SimpleController.init(button=SimpleButton.Z)]
+
+# better sh that also allows jc grab and upsmash at act_every 3
+sh2_chain = [
+  SimpleController.init(duration=2),
+  SimpleController.init(button=SimpleButton.Y),
+]
+
+fox_wd_chain_left = [
+  SimpleController.init(button=SimpleButton.Y, duration=3),
+  SimpleController.init(button=SimpleButton.L, stick=Stick.polar(-7/8 * np.pi))
+]
+
+wd_left = SimpleController.init(button=SimpleButton.L, stick=Stick.polar(-7/8 * np.pi))
+wd_right = SimpleController.init(button=SimpleButton.L, stick=Stick.polar(-1/8 * np.pi))
+wd_both = [wd_left, wd_right]
 
 actionTypes = dict(
-  old = SimpleAction(old_controllers),
-  cardinal = SimpleAction(cardinal_controllers),
-  diagonal = SimpleAction(diagonal_controllers),
-  custom = SimpleAction(custom_controllers),
+  old = ActionSet(old_controllers),
+  cardinal = ActionSet(cardinal_controllers),
+  diagonal = ActionSet(diagonal_controllers),
+  custom = ActionSet(custom_controllers),
+  short_hop_test = ActionSet([SimpleController.neutral] * 10 + [short_hop_chain]),
+  # short_hop = ActionSet(custom_controllers + [short_hop]),
+  custom_sh_jc = ActionSet(custom_controllers + [short_hop_chain, jc_chain]),
+  fox_wd_test = ActionSet([SimpleController.neutral] * 10 + [fox_wd_chain_left]),
+  custom_sh2_wd = ActionSet(custom_controllers + [sh2_chain] + wd_both),
 )
 
 @pretty_struct
@@ -215,7 +290,7 @@ def prepareStateActions(state_actions):
 
   vectorized = vectorizeCTypes(SimpleStateAction, state_actions)
   rewards_ = reward.rewards_np(vectorized['state'])
-  rewards = reward.computeRewards(state_actions)
+  rewards = reward.computeRewardsSA(state_actions)
   assert(np.max(np.abs(rewards_ - rewards)) < 1e-5)
   
   vectorized['reward'] = rewards

@@ -29,12 +29,12 @@ import os, signal, subprocess
 # I made a file globals.py on my PYTHONPATH for things like this
 from globals import twitch_key, dolphin_iso_path
 
-# should point to FM 5.8.7
+# should point to FM 5.9
 # linux install guide: https://github.com/Ptomerty/FasterMelee-installer
 dolphin_path = '/home/vlad/launch-fm'
 
 agent_path = '/home/vlad/Repos/phillip/agents/'
-agent = 'delay12/FalcoBF'
+agent = 'delay18/FalcoBF'
 
 current_thread = None
 stream_thread = None
@@ -66,8 +66,8 @@ def dolphin(bot, trigger):
     bot.say("Faster Melee 4.8.7")
 
 instructions = """
-1. Install Faster Melee 5.8.7
-2. Use the smashladder configuration (no memory card, cheats on, netplay community settings Gecko code)
+1. Install Faster Melee 5.9
+2. Use the smashladder configuration (NTSC 1.02, no memory card, cheats on, netplay community settings Gecko code)
 3. host a netplay lobby (traversal server)
 4. Go to twitch.tv/x_pilot
 
@@ -78,29 +78,36 @@ commands:
 !agents - list available agents to play against
 !agent <agent> - set the agent
 
-Bot is in norcal.
+Bot is in London.
 """
 
 @module.commands('instructions', 'rules')
 def instructions(bot, trigger):
-    bot.say(instructions)
+  bot.say(instructions)
 
 @module.commands('agent')
 def set_agent(bot, trigger):
-    global agent_path, agent
-    
-    new_agent = trigger.group(2)
-    path = agent_path + new_agent
-    
-    if not os.path.exists(path):
-      bot.say('Invalid agent!')
-      return
-    
-    agent = new_agent
+  global agent_path, agent
+  
+  new_agent = trigger.group(2)
+  path = agent_path + new_agent
+  
+  if not os.path.exists(path):
+    bot.say('Invalid agent!')
+    return
+  
+  agent = new_agent
+  bot.say('Set agent to %s' % agent)
 
 @module.commands('agents')
 def agents(bot, trigger):
-    bot.say(' '.join(os.listdir(agent_path)))
+  dirs = []
+  for dirName, subdirList, fileList in os.walk(agent_path):
+    agent_name = dirName[len(agent_path):]
+    if 'params' in fileList:
+      dirs.append(agent_name)
+  #bot.say('Found %d agents.' % len(dirs))
+  bot.say(' '.join(dirs))
 
 @module.thread(False)
 @module.commands('play')
@@ -122,11 +129,12 @@ def play(bot, trigger):
     iso_path=dolphin_iso_path,
     netplay=code,
     start=0,
-    fullscreen=True,
+    epsilon=0,
+    # fullscreen=True,
     # delay=0,
     # act_every=1,
-    real_delay=1,
-    reload=600,
+    # real_delay=1,
+    reload=0,
   )
     
   #current_thread = Process(target=run.run, kwargs=args)

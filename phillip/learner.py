@@ -7,6 +7,7 @@ from .critic import Critic
 from phillip import tf_lib as tfl
 from .mutators import relative
 from .default import Option
+import os
 
 class Learner(RL):
   
@@ -18,12 +19,17 @@ class Learner(RL):
     Option('train_critic', type=int, default=1),
     Option('reward_decay', type=float, default=1e-3),
     Option('learning_rate', type=float, default=1e-4),
+    Option('adam_epsilon', type=float, default=1e-8, help="epsilon for adam optimizer"),
+    Option('adam_beta1', type=float, default=0.9, help="Adam momentum decay"),
     Option('clip_max_grad', type=float, default=1.),
     Option('evolve_learning_rate', action="store_true", help="false by default; if true, then" \
       "the learning rate is included in PBT among the things that get mutated. "),
     Option('explore_scale', type=float, default=0., help='use prediction error as additional reward'),
     Option('evolve_explore_scale', action="store_true", help='evolve explore_scale with PBT'),
     Option('unshift_critic', action='store_true', help="don't shift critic forward in time"),
+    Option('batch_size', type=int),
+    Option('neg_reward_scale', type=float, default=1., help="scale down negative rewards for more optimism"),
+    Option('unpredict_weight', type=float, default=0., help="regress delayed actions (computed with prediction) to the undelayed ones (computed on true states)"),
   ]
 
   def __init__(self, debug=False, **kwargs):
@@ -69,10 +75,13 @@ class Learner(RL):
       length = self.config.experience_length - memory
       history = [combined[i:i+length] for i in range(memory+1)]
       inputs = tf.concat(axis=-1, values=history)
-      if self.core.recurrent:
+      
+      # this should be handled by the core itself
+      if self.core.core:
+        inputs = self.core.trunk(inputs)
         def f(prev, current_input):
           _, prev_state = prev
-          return self.core(current_input, prev_state)
+          return self.core.core(current_input, prev_state)
         batch_size = tf.shape(self.experience['reward'])[0]
         dummy_output = tf.zeros(tf.stack([batch_size, tf.constant(self.core.output_size)]))
         scan_fn = tf.scan if self.dynamic else tfl.scan
@@ -90,7 +99,22 @@ class Learner(RL):
       loss_vars = []
 
       if self.train_model or self.predict:
-        model_loss, predicted_core_outputs = self.model.train(history, core_outputs, hidden_states, actions, experience['state'])
+        def compute_critic_loss(predicted_core, target_core):
+          predicted_v = self.critic(predicted_core)
+          target_v = tf.stop_gradient(self.critic(target_core))
+          return tf.squared_difference(predicted_v, target_v)
+        
+        # only works if delayed actions has length 0; that is, predict=delay
+        def compute_policy_loss(predicted_core, target_core):
+          predicted_pi = self.policy.get_probs(predicted_core, [])
+          target_pi = tf.stop_gradient(self.policy.get_probs(target_core, []))
+          return tfl.batch_dot(target_pi, tf.log(target_pi) - tf.log(predicted_pi))
+        
+        aux_losses = {
+          'critic': compute_critic_loss,
+          'policy': compute_policy_loss,
+        }
+        model_loss, predicted_core_outputs = self.model.train(history, core_outputs, hidden_states, actions, experience['state'], aux_losses=aux_losses)
       if self.train_model:
         #train_ops.append(train_model)
         losses.append(model_loss)
@@ -111,9 +135,10 @@ class Learner(RL):
         # The valid state indices are [M+P, T+P-D)
         # Element i corresponds to the i'th queued up action: 0 is the action about to be taken, D-P was the action chosen on this frame.
         delayed_actions = []
-        for i in range(predict_steps, delay+1):
+        for i in range(predict_steps, delay):
           delayed_actions.append(actions[i:i+delay_length])
-        train_probs, train_log_probs, entropy = self.policy.train_probs(actor_inputs, delayed_actions)
+        taken_actions = experience['action'][memory+delay:]
+        train_probs, train_log_probs, entropy = self.policy.train_probs(actor_inputs, delayed_actions, taken_actions)
         
         behavior_probs = experience['prob'][memory+delay:] # these are the actions we can compute probabilities for
         prob_ratios = tf.minimum(train_probs / behavior_probs, 1.)
@@ -139,7 +164,9 @@ class Learner(RL):
       # build the critic (which you'll also need to train the policy)
       if self.train_policy or self.train_critic:
         shifted_core_outputs = core_outputs[:delay_length] if self.unshift_critic else core_outputs[delay:]
-        critic_loss, targets, advantages = self.critic(shifted_core_outputs, rewards[delay:], prob_ratios[:-1])
+        delayed_rewards = rewards[delay:]
+        delayed_rewards = tf.nn.relu(delayed_rewards) - self.neg_reward_scale * tf.nn.relu(-delayed_rewards)
+        critic_loss, targets, advantages = self.critic.train(shifted_core_outputs, rewards[delay:], prob_ratios[:-1])
       
       if self.train_critic:
         losses.append(critic_loss)
@@ -149,6 +176,17 @@ class Learner(RL):
         policy_loss = self.policy.train(train_log_probs[:-1], advantages, entropy[:-1])
         losses.append(policy_loss)
         loss_vars.extend(self.policy.getVariables())
+        
+        if self.unpredict_weight:
+          true_states = core_outputs[predict_steps:]
+          true_probs = self.policy.get_probs(true_states, delayed_actions)
+          true_probs = tf.stop_gradient(true_probs)  # these are supervised targets
+          # some redundancy here with train_probs
+          predicted_probs = self.policy.get_probs(actor_inputs, delayed_actions)
+          unpredict_kl = tfl.batch_dot(tf.log(true_probs) - tf.log(predicted_probs), true_probs)
+          unpredict_kl = tf.reduce_mean(unpredict_kl)
+          tf.summary.scalar('unpredict_kl', unpredict_kl)
+          losses.append(self.unpredict_weight * unpredict_kl)
 
       if self.evolve_learning_rate:
         self.learning_rate = tf.Variable(self.learning_rate, trainable=False, name='learning_rate')
@@ -156,9 +194,9 @@ class Learner(RL):
 
       total_loss = tf.add_n(losses)
       with tf.variable_scope('train'):
-        optimizer = tf.train.AdamOptimizer(self.learning_rate)
+        optimizer = tf.train.AdamOptimizer(self.learning_rate, epsilon=self.adam_epsilon, beta1=self.adam_beta1)
         gvs = optimizer.compute_gradients(total_loss)
-        # gvs = [(tf.check_numerics(g, v.name), v) for g, v in gvs]
+        gvs = [(tf.check_numerics(g, v.name), v) for g, v in gvs]
         gs, vs = zip(*gvs)
         
         norms = tf.stack([tf.norm(g) for g in gs])
@@ -189,7 +227,7 @@ class Learner(RL):
         self.mutators.append(tf.assign(evo_variable, mutator(evo_variable)))
       
       self.summarize = tf.summary.merge_all()
-      misc_ops.append(tf.assign_add(self.global_step, 1))
+      misc_ops.append(tf.assign_add(self.global_step, self.batch_size * self.config.experience_length * self.config.act_every))
       self.misc = tf.group(*misc_ops)
       self.train_ops = tf.group(*train_ops)
 

@@ -46,7 +46,7 @@ class CPU(Default):
     def __init__(self, **kwargs):
         Default.__init__(self, **kwargs)
 
-        self.toggle = False
+        self.toggle = 0
 
         self.user = os.path.expanduser(self.user)               
 
@@ -70,10 +70,11 @@ class CPU(Default):
         if self.enemy:
             enemy_kwargs = util.load_params(self.enemy, 'agent')
             enemy_kwargs.update(
-                reload=self.enemy_reload * self.agent.reload,
+                reload=self.enemy_reload,
                 swap=not self.agent.swap,
                 dump=self.enemy_dump,
                 pop_id=self.enemy_id,
+                gpu=self.agent.actor.gpu,
             )
             enemy = agent.Agent(**enemy_kwargs)
         
@@ -208,6 +209,7 @@ class CPU(Default):
             f.write('\n'.join(self.sm.locations()))
 
     def advance_frame(self):
+        # print("advance_frame")
         last_frame = self.state.frame
         
         self.update_state()
@@ -223,7 +225,7 @@ class CPU(Default):
             self.make_action()
             self.thinking_time += time.time() - start
 
-            if self.state.frame % (15 * 60) == 0:
+            if self.agent.verbose and self.state.frame % (15 * 60) == 0:
                 self.print_stats()
         
         self.mw.advance()
@@ -233,17 +235,16 @@ class CPU(Default):
         for message in messages:
           self.sm.handle(self.state, *message)
     
-    def spam(self, button):
-        if self.toggle:
+    def spam(self, button, period=120):
+        self.toggle = (self.toggle + 1) % period
+        if self.toggle == 0:
             self.pads[0].press_button(button)
-            self.toggle = False
-        else:
+        elif self.toggle == 1:
             self.pads[0].release_button(button)
-            self.toggle = True
     
     def make_action(self):
-        # menu = Menu(self.state.menu)
-        # print(menu)
+        #menu = Menu(self.state.menu)
+        #print(menu)
         if self.state.menu == Menu.Game.value:
             self.game_frame += 1
             

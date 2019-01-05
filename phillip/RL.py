@@ -33,6 +33,7 @@ class RL(Default):
       "population-based training, and pop_id tracks the worker's id. Else we're not" \
       "doing PBT and the id is -1."), 
     Option('dynamic', type=int, default=1, help='use dynamic loop unrolling'),
+    Option('action_space_embed', type=int, default=0, help='embed actions'),
   ]
   
   _members = [
@@ -61,16 +62,19 @@ class RL(Default):
     # where trained agents get saved onto disk. 
     self.snapshot_path = os.path.join(self.path, 'snapshot')
     self.actionType = ssbm.actionTypes[self.action_type]
-    
-    # takes in action, and returns a one-hot vector corresponding to that action. 
-    self.embedAction = embed.OneHotEmbedding("action", self.actionType.size)
 
     self.graph = tf.Graph()
     self.device = '/gpu:0' if self.gpu else '/cpu:0'
     print("Using device " + self.device)
-    with self.graph.as_default(), tf.device(self.device): 
+    with self.graph.as_default(), tf.device(self.device):
+      if self.action_space_embed:
+        self.embedAction = embed.LookupEmbedding('action', self.actionType.size, self.action_space_embed)
+      else:
+        # takes in action, and returns a one-hot vector corresponding to that action.
+        self.embedAction = embed.OneHotEmbedding("action", self.actionType.size)
+
       # total number of gradient descent steps the learner has taken thus far
-      self.global_step = tf.Variable(0, name='global_step', trainable=False)
+      self.global_step = tf.Variable(0, name='global_step', dtype=tf.int64, trainable=False)
       self.evo_variables = []
       
       self.embedGame = embed.GameEmbedding(**kwargs)
@@ -106,7 +110,8 @@ class RL(Default):
     if path is None:
       path = self.snapshot_path
     print("Restoring from", path)
-    self.saver.restore(self.sess, path)
+    tfl.restore(self.sess, self.variables, path)
+    # self.saver.restore(self.sess, path)
 
   # initializes weights
   def init(self):
@@ -134,7 +139,7 @@ class RL(Default):
       effective_delay -= self.model.predict_steps
     input_size = self.core.output_size + effective_delay * self.embedAction.size
     
-    self.policy = ActorCritic(input_size, self.embedAction.size, self.config, **kwargs)
+    self.policy = ActorCritic(input_size, self.embedAction, self.config, **kwargs)
     self.evo_variables.extend(self.policy.evo_variables)
 
   def _finalize_setup(self):
