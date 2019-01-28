@@ -1,6 +1,7 @@
 import struct
 import attr
 from . import ssbm, fields
+import numpy as np
 
 def generic_wrapper(value, wrapper, default):
     if wrapper is not None:
@@ -40,6 +41,7 @@ class FloatHandler(object):
 
     def __call__(self, value):
         as_float = floatStruct.unpack(value)[0]
+        assert(np.isfinite(as_float))
         return generic_wrapper(as_float, self.wrapper, self.default)
 
 floatHandler = FloatHandler()

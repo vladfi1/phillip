@@ -95,14 +95,14 @@ class Learner(RL):
       print("Creating train ops")
 
       train_ops = []
-      losses = []
+      losses = {}
       loss_vars = []
 
       if self.train_model or self.predict:
         model_loss, predicted_core_outputs = self.model.train(history, core_outputs, hidden_states, actions, experience['state'])
       if self.train_model:
         #train_ops.append(train_model)
-        losses.append(model_loss)
+        losses['model'] = model_loss
         loss_vars.extend(self.model.getVariables())
       
       if self.train_policy:
@@ -128,7 +128,6 @@ class Learner(RL):
         behavior_probs = experience['prob'][memory+delay:] # these are the actions we can compute probabilities for
         prob_ratios = tf.minimum(train_probs / behavior_probs, 1.)
         self.kls = -tf.reduce_mean(tf.log(prob_ratios), 0)
-        self.kls = tf.check_numerics(self.kls, 'kl')
         kl = tf.reduce_mean(self.kls)
         tf.summary.scalar('kl', kl)
       else:
@@ -154,12 +153,12 @@ class Learner(RL):
         critic_loss, targets, advantages = self.critic(shifted_core_outputs, rewards[delay:], prob_ratios[:-1])
       
       if self.train_critic:
-        losses.append(critic_loss)
+        losses['critic'] = critic_loss
         loss_vars.extend(self.critic.variables)
       
       if self.train_policy:
         policy_loss = self.policy.train(train_log_probs[:-1], advantages, entropy[:-1])
-        losses.append(policy_loss)
+        losses['policy'] = policy_loss
         loss_vars.extend(self.policy.getVariables())
         
         if self.unpredict_weight:
@@ -171,13 +170,14 @@ class Learner(RL):
           unpredict_kl = tfl.batch_dot(tf.log(true_probs) - tf.log(predicted_probs), true_probs)
           unpredict_kl = tf.reduce_mean(unpredict_kl)
           tf.summary.scalar('unpredict_kl', unpredict_kl)
-          losses.append(self.unpredict_weight * unpredict_kl)
+          losses['unpredict'] = self.unpredict_weight * unpredict_kl
 
       if self.evolve_learning_rate:
         self.learning_rate = tf.Variable(self.learning_rate, trainable=False, name='learning_rate')
         self.evo_variables.append(('learning_rate', self.learning_rate, relative(1.5)))
 
-      total_loss = tf.add_n(losses)
+      # losses = {k: tf.check_numerics(v, k, "check_"+k) for k, v in losses.items()}
+      total_loss = tf.add_n(list(losses.values()))
       with tf.variable_scope('train'):
         optimizer = tf.train.AdamOptimizer(self.learning_rate, epsilon=self.adam_epsilon, beta1=self.adam_beta1)
         gvs = optimizer.compute_gradients(total_loss)

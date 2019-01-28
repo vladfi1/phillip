@@ -36,10 +36,12 @@ class Actor(RL.RL):
       
       batch_policy = self.policy.getPolicy(core_output, delayed_actions), hidden_state
       self.run_policy = util.deepMap(lambda t: tf.squeeze(t, [0]), batch_policy)
+
+      self.check_op = tf.no_op() if self.dynamic else tf.add_check_numerics_ops()
       
       self._finalize_setup()
 
   def act(self, input_dict, verbose=False):
     feed_dict = dict(util.deepValues(util.deepZip(self.input, input_dict)))
-    policy, hidden = self.sess.run(self.run_policy, feed_dict)
+    policy, hidden = self.sess.run([self.run_policy, self.check_op], feed_dict)[0]
     return self.policy.act(policy, verbose), hidden
