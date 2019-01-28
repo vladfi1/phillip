@@ -25,7 +25,8 @@ class Model(Default):
     self.core = core
     
     self.input_size = core.output_size + action_size
-    
+    self.while_loop = tf.while_loop if self.dynamic else tfl.while_loop
+        
     with tf.variable_scope(scope):
       net = tfl.Sequential()
       
@@ -113,8 +114,7 @@ class Model(Default):
     
     loop_vars = (0, history, core_outputs, hidden_states, last_states, predicted_ta, core_ta)
     cond = lambda i, *_: i < predict_steps
-    while_loop = tf.while_loop if self.dynamic else tfl.while_loop
-    _, _, final_core_outputs, _, _, predicted_ta, core_ta = while_loop(cond, predict_step, loop_vars)
+    _, _, final_core_outputs, _, _, predicted_ta, core_ta = self.while_loop(cond, predict_step, loop_vars)
 
     predicted_states = predicted_ta.stack()
     predicted_states.set_shape([predict_steps, length, None, self.embedGame.size])
@@ -161,6 +161,6 @@ class Model(Default):
 
     loop_vars = (0, history, core_outputs, hidden_states, last_state)
     cond = lambda i, *_: i < self.predict_steps
-    _, _, predicted_core_outputs, _, _ = tf.while_loop(cond, predict_step, loop_vars)
+    _, _, predicted_core_outputs, _, _ = self.while_loop(cond, predict_step, loop_vars)
     return predicted_core_outputs
 
