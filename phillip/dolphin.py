@@ -58,6 +58,7 @@ DumpPath = {dump_path}
 gale01_ini = """
 [Gecko_Enabled]
 $Netplay Community Settings
+$Test Inject
 """
 
 lcancel_ini = """
