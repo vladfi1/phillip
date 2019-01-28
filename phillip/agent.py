@@ -55,8 +55,7 @@ class Agent(Default):
     self.receive = self.dump or self.receive
     
     if self.receive:
-      if not self.trainer_ip:
-        self.update_ip()
+      self.update_ip()
       self.make_sockets()
 
     # prepare experience buffer
