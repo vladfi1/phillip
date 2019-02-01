@@ -145,8 +145,7 @@ class Learner(RL):
         behavior_probs = experience['prob'][memory+delay:] # these are the actions we can compute probabilities for
         prob_ratios = tf.minimum(train_probs / behavior_probs, 1.)
         self.kls = -tf.reduce_mean(tf.log(prob_ratios), 0)
-        kl = tf.reduce_mean(self.kls)
-        tf.summary.scalar('kl', kl)
+        tfl.stats(self.kls, 'kl')
       else:
         prob_ratios = tf.ones_like() # todo
 
