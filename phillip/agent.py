@@ -34,7 +34,8 @@ class Agent(Default):
   
   def __init__(self, **kwargs):
     Default.__init__(self, **kwargs)
-    
+
+    self.pid = 0 if self.swap else 1
     self.frame_counter = 0
     self.action_chain = None
     self.action_counter = np.random.randint(0, self.reload+1)  # to desynch actors
@@ -158,7 +159,7 @@ class Agent(Default):
     #verbose = False
     
     if self.action_chain is not None and not self.action_chain.done():
-      self.action_chain.act(pad, self.char)
+      self.action_chain.act(pad, state.players[self.pid], self.char)
       return
     
     r = reward.computeRewards([self.prev_state, state], damage_ratio=0)[0]
@@ -205,7 +206,7 @@ class Agent(Default):
     # send a more recent action if the environment itself is delayed (netplay)
     real_action = self.actions[self.real_delay]
     self.action_chain = self.actor.actionType.choose(real_action, self.actor.config.act_every)
-    self.action_chain.act(pad, self.char)
+    self.action_chain.act(pad, state.players[self.pid], self.char)
     
     self.action_counter += 1
     
