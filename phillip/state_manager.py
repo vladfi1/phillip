@@ -67,7 +67,8 @@ def add_address(x, y):
 
 global_addresses = {}
 
-global_addresses['80479D60'] = Handler(['frame'], intHandler)
+global_addresses['804d6cf4'] = Handler(['frame'], intHandler)  # slippi frame
+#global_addresses['80479D60'] = Handler(['frame'], intHandler)
 global_addresses['80479D30'] = Handler(['menu'], IntHandler(mask=byte_mask))#, Menu, Menu.Characters)
 global_addresses['804D6CAD'] = Handler(['stage'], shortHandler)#, Stage, Stage.Unselected)
 
@@ -176,7 +177,7 @@ def playerAddresses(player_id, addresses=None):
 
     add_data_address('19BC', 'hitlag_frames_left', floatHandler)
     add_data_address('23A0', 'hitstun_frames_left', floatHandler)
-    # TODO: make this an actal int
+    # TODO: make this an actual int
     # 2 = charging, 3 = attacking, 0 = otherwise
     add_data_address('2174', 'charging_smash', IntHandler(mask=0x2))
     

@@ -17,22 +17,25 @@ right = tiltStick(Stick.MAIN, 1, 0.5)
 
 endless_netplay = [
   # time
-  (0, left),
+  (15, left),
+  #(50, neutral),
   
   # infinite time
-  (26, down),
-  (19, left),
-  (25, neutral),
+  (50, down),
+  (10, left),
+  (10, neutral),
+  (10, left),
+  (10, neutral),
   
   # exit settings
   (1, pushButton(Button.START)),
   (1, releaseButton(Button.START)),
   
   # enter stage select
-  (28, pushButton(Button.START)),
+  (100, pushButton(Button.START)),
   (1, releaseButton(Button.START)),
   
-  (10, neutral)
+  (100, neutral)
 ]
 
 stages = dict(

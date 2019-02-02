@@ -55,10 +55,12 @@ class MoveTo:
     
     dx = self.target[0] - x
     dy = self.target[1] - y
+    #print(dx, dy)
     mag = math.sqrt(dx * dx + dy * dy)
     if mag < 0.5:
       self.pad.tilt_stick(Stick.MAIN, 0.5, 0.5)
       self.reached = True
+      print('finished moving to', self.target)
     else:
       self.pad.tilt_stick(Stick.MAIN, 0.4 * (dx / (mag+2)) + 0.5, 0.4 * (dy / (mag+2)) + 0.5)
       self.reached = False
@@ -75,12 +77,16 @@ class Wait:
   
   def move(self, state):
     self.frames -= 1
+    
+    if self.done():
+      print('finished Wait')
 
 class Action:
-  def __init__(self, action, pad):
+  def __init__(self, action, pad, name=None):
     self.action = action
     self.pad = pad
     self.acted = False
+    self.name = name
   
   def done(self):
     return self.acted
@@ -88,11 +94,13 @@ class Action:
   def move(self, state):
     self.action(self.pad)
     self.acted = True
+    print('finished Action', self.name)
 
 class Sequential:
-  def __init__(self, *actions):
+  def __init__(self, *actions, name=None):
     self.actions = actions
     self.index = 0
+    self.name = name
   
   def move(self, state):
     if not self.done():
@@ -101,14 +109,18 @@ class Sequential:
         self.index += 1
       else:
         action.move(state)
+    
+    if self.done():
+      print('finished Sequential', self.name)
 
   def done(self):
     return self.index == len(self.actions)
 
 class Parallel:
-  def __init__(self, *actions):
+  def __init__(self, *actions, name=None):
     self.actions = actions
     self.complete = False
+    self.name = name
   
   def move(self, state):
     self.complete = True
@@ -116,6 +128,8 @@ class Parallel:
       if not action.done():
         action.move(state)
         self.complete = False
+    if self.done():
+      print('finished Parallel', self.name)
   
   def done(self):
     return self.complete

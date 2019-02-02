@@ -59,6 +59,7 @@ gale01_ini = """
 [Gecko_Enabled]
 $Netplay Community Settings
 $DMA Read Before Poll
+$Speed Hack
 """
 
 lcancel_ini = """

@@ -124,8 +124,8 @@ class CPU(Default):
         pick_chars = []
         
         tapA = [
-            (0, movie.pushButton(Button.A)),
-            (0, movie.releaseButton(Button.A)),
+            (5, movie.pushButton(Button.A)),
+            (5, movie.releaseButton(Button.A)),
         ]
         
         for pid, pad in zip(self.pids, self.pads):
@@ -157,16 +157,23 @@ class CPU(Default):
         )
         
         # sets the game mode and picks the stage
-        start_game = movie.Movie(movie.endless_netplay + movie.stages[self.stage], self.pads[0])
+        #start_game = movie.Movie(movie.endless_netplay + movie.stages[self.stage], self.pads[0])
+        start_game = movie.Movie([
+            (200, movie.pushButton(Button.START)),
+            (200, movie.releaseButton(Button.START)),
+            (200, movie.pushButton(Button.START)),
+            (200, movie.releaseButton(Button.START)),
+        ], self.pads[0])
         
         actions = [pick_chars]
         
         if self.start:
-            actions += [enter_settings, start_game]
+            #actions += [enter_settings, start_game]
+            actions += [start_game]
         
         #actions.append(Wait(600))
         
-        self.navigate_menus = Sequential(*actions)
+        self.navigate_menus = Sequential(*actions, name='navigate_menus')
         
         print('Starting run loop.')
         self.start_time = time.time()
@@ -213,7 +220,16 @@ class CPU(Default):
         last_frame = self.state.frame
         
         self.update_state()
-        if self.state.frame > last_frame:
+        self.menu = Menu(self.state.menu)
+        #print(self.menu)
+        #print(self.state.frame > last_frame)
+        if self.menu == Menu.Game:
+          if self.game_frame < 10:
+            # let the slippi frame counter initialize
+            self.game_frame += 1
+            if self.game_frame == 10:
+              self.start_time = time.time()
+          elif self.state.frame > last_frame:
             skipped_frames = self.state.frame - last_frame - 1
             if skipped_frames > 0:
                 self.skip_frames += skipped_frames
@@ -227,7 +243,14 @@ class CPU(Default):
 
             if self.agent.verbose and self.state.frame % (15 * 60) == 0:
                 self.print_stats()
-        
+            #print("new frame")
+          else:
+            #print("no new frame")
+            pass
+        else:
+          self.make_action()
+
+        #time.sleep(0.05)
         self.mw.advance()
 
     def update_state(self):
@@ -243,9 +266,11 @@ class CPU(Default):
             self.pads[0].release_button(button)
     
     def make_action(self):
-        #menu = Menu(self.state.menu)
+        #time.sleep(0.001)
         #print(menu)
-        if self.state.menu == Menu.Game.value:
+        player = self.state.players[1]
+        #print(player.cursor_x, player.cursor_y)
+        if self.menu == Menu.Game:
             self.game_frame += 1
             
             if self.debug and self.game_frame % 60 == 0:
@@ -258,12 +283,10 @@ class CPU(Default):
             
             for pid, pad in zip(self.pids, self.pads):
                 agent = self.agents[pid]
-                if agent:
-                    agent.act(self.state, pad)
+                if agent: agent.act(self.state, pad)
 
-        elif self.state.menu in [menu.value for menu in [Menu.Characters, Menu.Stages]]:
+        elif self.menu in [Menu.Characters, Menu.Stages]:
             self.game_frame = 0
-            self.navigate_menus.move(self.state)
             
             if self.navigate_menus.done():
                 for pid, pad in zip(self.pids, self.pads):
@@ -272,8 +295,10 @@ class CPU(Default):
                             pad.press_button(Button.A)
                     else:
                         pad.send_controller(ssbm.RealControllerState.neutral)
-        
-        elif self.state.menu == Menu.PostGame.value:
+            else:
+              self.navigate_menus.move(self.state)
+
+        elif self.menu == Menu.PostGame:
             self.spam(Button.START)
         else:
             print("Weird menu state", self.state.menu)
