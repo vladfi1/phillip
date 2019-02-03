@@ -44,6 +44,8 @@ class SSBMEnv(Default):
     Option('start', type=int, default=1, help="start game in endless time mode"),
     Option('debug', type=int, default=0),
   ] + [
+    Option('p%d' % i, type=int, choices=Player.values(), default=Player.
+  ] + [
     Option('char%d' % i, type=str, choices=characters.keys(), default="falcon",
         help="character for player %d" % i) for i in [1, 2]
   ] + [
