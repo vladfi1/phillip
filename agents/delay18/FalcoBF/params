@@ -2,6 +2,8 @@
   "policy": "ActorCritic",
   "epsilon": 0.005,
   "batch_size": 128,
+  "max_buffer": 128,
+  "buffer_ratio": 1,
   "batch_steps": 1,
   "evolve": false,
   "reward_cutoff": 0.0005,
@@ -10,6 +12,7 @@
   "reward_decay": 1e-3,
   "predict": true,
   "predict_steps": 6,
+  "delay": 6,
   "model_weight": 0.5,
   "model_layers": [
     256
@@ -39,7 +42,6 @@
   "experience_length": 80,
   "reload": 1,
   "act_every": 3,
-  "delay": 6,
   "stage": "battlefield",
   "char": "falco",
   "enemies": [
