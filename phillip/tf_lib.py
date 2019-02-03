@@ -63,14 +63,17 @@ def kl(logp, logq):
 def sample_variance(xs):
   return tf.reduce_mean(tf.squared_difference(xs, tf.reduce_mean(xs)))
 
-def stats(xs, name=None):
+def stats(xs, name=None, minmax=False):
   mean = tf.reduce_mean(xs)
   std = tf.sqrt(tf.reduce_mean(tf.squared_difference(xs, mean)))
   
   if name:
     tf.summary.scalar(name + '/mean', mean)
     tf.summary.scalar(name + '/std', std)
-  
+    if minmax:
+      tf.summary.scalar(name + '/min', tf.reduce_min(xs))
+      tf.summary.scalar(name + '/max', tf.reduce_max(xs))
+
   return mean, std
 
 def apply_grads(params, grads):

@@ -69,6 +69,9 @@ class Learner(RL):
       self.experience['initial'] = tuple(tf.placeholder(tf.float32, [None, size], name='experience/initial/%d' % i) for i, size in enumerate(self.core.hidden_size))
       experience['initial'] = self.experience['initial']
 
+      #tfl.stats(experience['state']['players'][1]['x'], 'x', True)
+      #tfl.stats(experience['state']['players'][1]['y'], 'y', True)
+
       # rewards = experience['reward']
       # TODO: move these into reward.py?
       kill_death = reward.compute_rewards(experience['state'], damage_ratio=0., lib=tf)
