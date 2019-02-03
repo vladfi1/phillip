@@ -208,9 +208,12 @@ class Trainer(Default):
 
       if use_replay:
         old_experiences = random.sample(replay_buffer.array, num_old)
-        experiences = new_experiences + old_experiences
+        experiences = old_experiences + new_experiences
       else:
         experiences = new_experiences
+
+      # prevent OOM if too many come in
+      experiences = experiences[-self.batch_size:]
 
       ages = np.array([global_step - exp['global_step'] for exp in experiences])
       print("Mean age:", ages.mean() / self.learner.num_steps_per_batch)
