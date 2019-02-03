@@ -41,7 +41,8 @@ class FloatHandler(object):
 
     def __call__(self, value):
         as_float = floatStruct.unpack(value)[0]
-        assert(np.isfinite(as_float))
+        if not np.isfinite(as_float):
+            raise ValueError('non-finite value')
         return generic_wrapper(as_float, self.wrapper, self.default)
 
 floatHandler = FloatHandler()
@@ -52,7 +53,10 @@ class Handler(object):
     handler = attr.ib()
 
     def __call__(self, obj, value):
-        fields.setPath(obj, self.path, self.handler(value))
+        try:
+            fields.setPath(obj, self.path, self.handler(value))
+        except ValueError as e:
+            print(self.path, e.args)
 
 # TODO: use numbers instead of strings to hash addresses?
 def add_address(x, y):
