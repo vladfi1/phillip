@@ -1,3 +1,13 @@
+import os
+import enum
+import subprocess
+
+import phillip
+from phillip import util
+from phillip.default import *
+
+datapath = phillip.path + '/data'
+
 pipeConfig = """
 Buttons/A = `Button A`
 Buttons/B = `Button B`
@@ -37,17 +47,11 @@ def generateGCPadNew(pids=[1], pipe_count=True):
     count += 1
   return config
 
-import phillip
-datapath = phillip.path + '/data'
-
 with open(datapath + '/Dolphin.ini', 'r') as f:
   dolphin_ini = f.read()
 
 gfx_ini = """
 [Settings]
-DumpFramesAsImages = {dump_ppm}
-DumpFramesToPPM = {dump_ppm}
-DumpFramesCounter = False
 Crop = True
 DumpFormat = {dump_format}
 DumpCodec = {dump_codec}
@@ -65,7 +69,6 @@ $Flash White on Successful L-Cancel
 """
 #$Flash Red on Unsuccessful L-Cancel
 
-
 gale01_ini_fm = """
 [Core]
 CPUThread = True
@@ -77,25 +80,32 @@ $Lag Reduction
 $Game Music ON
 """
 
-import os
-from phillip import util
-from phillip.default import *
 
-class SetupUser(Default):
+
+class DolphinRunner(Default):
   _options = [
+    Option('exe', type=str, default='dolphin-emu-headless', help="dolphin executable"),
+    Option('user', type=str, help="path to dolphin user directory"),
+    Option('iso', type=str, default="SSBM.iso", help="path to SSBM iso"),
+    Option('movie', type=str, help="path to dolphin movie file to play at startup"),
+    Option('setup', type=int, default=1, help="setup custom dolphin directory"),
+    Option('gui', action="store_true", default=False, help="run with graphics and sound at normal speed"),
+    Option('mute', action="store_true", default=False, help="mute game audio"),
+    Option('windows', action='store_true', help="set defaults for windows"),
+    Option('netplay', type=str, help="join traversal server"),
+
+    Option('port1', type=int, 'device in port 1'),
+    Option('port2', type=int, 'device in port 2'),
+
     Option('gfx', type=str, default="Null", help="graphics backend"),
     Option('dual_core', type=int, default=1, help="Use separate gpu and cpu threads."),
-    Option('cpus', type=int, nargs='+', default=[1], help="Which players are cpu-controlled."),
     Option('audio', type=str, default="No audio backend", help="audio backend"),
     Option('speed', type=int, default=0, help='framerate - 1=normal, 0=unlimited'),
     Option('dump_frames', action="store_true", default=False, help="dump frames from dolphin to disk"),
-    Option('dump_ppm', action="store_true", help="dump frames as ppm images"),
     Option('pipe_count', type=int, default=0, help="Count pipes alphabetically. Turn on for older dolphins."),
-    Option('netplay', type=str),
     Option('direct', action="store_true", default=False, help="netplay direct connect"),
     Option('fullscreen', action="store_true", default=False, help="run dolphin with fullscreen"),
     Option('iso_path', type=str, default="", help="directory where you keep your isos"),
-    Option('human', action="store_true", help="set p1 to human"),
     Option('fm', action="store_true", help="set up config for Faster Melee"),
     Option('dump_format', type=str, default='mp4'),
     Option('dump_codec', type=str, default='h264'),
@@ -104,15 +114,24 @@ class SetupUser(Default):
     Option('lcancel_flash', action="store_true", help="flash on lcancel"),
   ]
   
-  def __call__(self, user):
-    configDir = user + '/Config'
+  _members = [
+    ('setupUser', SetupUser)
+  ]
+
+  def setup_user(self):
+    configDir = self.user + '/Config'
     util.makedirs(configDir)
     
     if self.dump_ppm:
       self.dump_frames = True
 
+    ai_pids = []
+    for i in range(2):
+      if getattr(self, 'port{}'.format(i+1)) == Player.AI:
+        ai_pids.append(i)
+
     with open(configDir + '/GCPadNew.ini', 'w') as f:
-      f.write(generateGCPadNew([0] if self.netplay else self.cpus, self.pipe_count))
+      f.write(generateGCPadNew([0] if self.netplay else ai_pids, self.pipe_count))
 
     with open(configDir + '/Dolphin.ini', 'w') as f:
       config_args = dict(
@@ -126,19 +145,19 @@ class SetupUser(Default):
         traversal='direct' if self.direct else 'traversal',
         fullscreen=self.fullscreen,
         iso_path=self.iso_path,
-        port1 = 12 if self.human else 6,
+        port1=self.port1,
+        port2=self.port2,
       )
       f.write(dolphin_ini.format(**config_args))
     
     with open(configDir + '/GFX.ini', 'w') as f:
       f.write(gfx_ini.format(
-        dump_ppm=self.dump_ppm,
         dump_path=self.dump_path,
         dump_codec=self.dump_codec,
         dump_encoder=self.dump_encoder,
         dump_format=self.dump_format))
 
-    gameSettings = user + '/GameSettings'
+    gameSettings = self.user + '/GameSettings'
     util.makedirs(gameSettings)
     with open(gameSettings + '/GALE01.ini', 'w') as f:
       ini = gale01_ini_fm if self.fm else gale01_ini
@@ -147,38 +166,15 @@ class SetupUser(Default):
       f.write(ini)
 
     util.makedirs(user + '/Dump/Frames')
-
-import subprocess
-
-class DolphinRunner(Default):
-  _options = [
-    Option('exe', type=str, default='dolphin-emu-headless', help="dolphin executable"),
-    Option('user', type=str, help="path to dolphin user directory"),
-    Option('iso', type=str, default="SSBM.iso", help="path to SSBM iso"),
-    Option('movie', type=str, help="path to dolphin movie file to play at startup"),
-    Option('setup', type=int, default=1, help="setup custom dolphin directory"),
-    Option('gui', action="store_true", default=False, help="run with graphics and sound at normal speed"),
-    Option('mute', action="store_true", default=False, help="mute game audio"),
-    Option('windows', action='store_true', help="set defaults for windows"),
-    Option('netplay', type=str, help="join traversal server"),
-  ]
-  
-  _members = [
-    ('setupUser', SetupUser)
-  ]
   
   def __init__(self, **kwargs):
-    Default.__init__(self, init_members=False, **kwargs)
+    Default.__init__(self, **kwargs)
     
     if self.user is None:
       import tempfile
       self.user = tempfile.mkdtemp() + '/'
     
     print("Dolphin user dir", self.user)
-    
-    #if self.netplay: # need gui version to netplay
-    #  index = self.exe.rfind('dolphin-emu') + len('dolphin-emu')
-    #  self.exe = self.exe[:index]
     
     if self.gui or self.windows:
       # switch from headless to gui
@@ -196,12 +192,11 @@ class DolphinRunner(Default):
         kwargs.update(audio = 'No audio backend')
       else:
         kwargs.update(audio = 'XAudio2' if self.windows else 'Pulse')
-      
-    if self.setup:
-      self._init_members(**kwargs)
-      self.setupUser(self.user)
   
   def __call__(self):
+    if self.setup:
+      self.setup_user()
+
     args = [self.exe, "--user", self.user]
     if not self.netplay:
       args += ["--exec", self.iso]
