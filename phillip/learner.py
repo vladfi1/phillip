@@ -34,6 +34,7 @@ class Learner(RL):
 
     Option('damage_ratio', type=float, default=0.01, help="damage scale vs stocks"),
     Option('distance_scale', type=float, default=0., help="distance pseudo-reward"),
+    Option('action_state_entropy_scale', type=float, default=0, help="reward unusual action states"),
   ]
 
   def __init__(self, debug=False, **kwargs):
@@ -51,6 +52,7 @@ class Learner(RL):
         self._init_policy(**kwargs)
       
       # build computation graph
+      losses = {}
 
       # to train the the policy, you have to train the critic. (self.train_policy and 
       # self.train_critic might both be false, if we're only training the predictive
@@ -69,9 +71,8 @@ class Learner(RL):
       self.experience['initial'] = tuple(tf.placeholder(tf.float32, [None, size], name='experience/initial/%d' % i) for i, size in enumerate(self.core.hidden_size))
       experience['initial'] = self.experience['initial']
 
-      #tfl.stats(experience['state']['players'][1]['x'], 'x', True)
-      #tfl.stats(experience['state']['players'][1]['y'], 'y', True)
-
+      # auxiliary reward computation
+      
       # rewards = experience['reward']
       # TODO: move these into reward.py?
       kill_death = reward.compute_rewards(experience['state'], damage_ratio=0., lib=tf)
@@ -80,10 +81,36 @@ class Learner(RL):
       rewards = reward.compute_rewards(experience['state'], damage_ratio=self.damage_ratio, lib=tf)
       avg_reward, _ = tfl.stats(rewards, 'reward')
 
+      # distance rewards encourage agents to interact more
       distances, distance_rewards = reward.pseudo_rewards(experience['state'], reward.distance, 1., lib=tf)
       tfl.stats(distances, 'distances')
       tfl.stats(distance_rewards, 'distance_rewards')
       rewards += self.distance_scale * distance_rewards
+
+      # action_state_entropy encourages agent to explore new action states
+      own_action_states = experience['state']['players'][1]['action_state']
+      
+      action_state_logits = tf.Variable(tf.zeros([embed.numActions]), name="action_state_logits")
+      broadcast_zeros = tf.expand_dims(tf.zeros_like(own_action_states, dtype=tf.float32), -1)  # [T, B, 1]
+      expanded_action_state_logits = action_state_logits + broadcast_zeros  # [T, B, A]
+
+      action_state_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
+        logits=expanded_action_state_logits, labels=own_action_states)
+
+      # don't need to scale because it is independent of the other losses
+      losses['global_action_state'] = tf.reduce_mean(action_state_loss)
+      tf.summary.scalar('action_state_loss', losses['global_action_state'])
+
+      action_state_rewards = action_state_loss[1:] - action_state_loss[:-1]
+      rewards += self.action_state_entropy_scale * action_state_rewards
+      tfl.stats(action_state_rewards, 'action_state_rewards')
+
+      action_state_entropy = -tf.reduce_sum(
+        tf.nn.softmax(action_state_logits) *
+        tf.nn.log_softmax(action_state_logits))
+      tf.summary.scalar('action_state_entropy', action_state_entropy)
+
+      # main RL training here
 
       states = self.embedGame(experience['state'])
       prev_actions = self.embedAction(experience['prev_action'])
@@ -115,7 +142,6 @@ class Learner(RL):
       print("Creating train ops")
 
       train_ops = []
-      losses = {}
       loss_vars = []
 
       if self.train_model or self.predict:
