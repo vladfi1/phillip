@@ -78,3 +78,12 @@ class Movie:
   
   def done(self):
     return self.index == len(self.actions)
+
+tap_a = [
+  (0, pushButton(Button.A)),
+  (0, releaseButton(Button.A)),
+]
+
+def mk_tap_a(pad):
+  return Movie(tap_a, pad)
+

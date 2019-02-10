@@ -1,6 +1,6 @@
 import struct
 import attr
-from . import ssbm, fields
+from phillip import fields
 import numpy as np
 
 def generic_wrapper(value, wrapper, default):

@@ -59,6 +59,11 @@ class Default:
     kwargs.update(**override)
     return cls(**kwargs)
   
+  @classmethod
+  def update_parser(self, parser):
+    for option in self.full_opts():
+      option.update_parser(parser)
+  
 class Option:
   def __init__(self, name, _skip=False, **kwargs):
     self.name = name
@@ -76,7 +81,7 @@ class Option:
     
     flag = "--" + self.name
     if flag in parser._option_string_actions:
-      #print("warning: already have option %s. skipping"%self.name)
+      print("warning: already have option %s. skipping"%self.name)
       pass
     else:
       parser.add_argument(flag, **self.kwargs)

@@ -1,5 +1,5 @@
 import math
-
+from . import movie
 from .pad import *
 
 characters = dict(
@@ -20,12 +20,6 @@ characters = dict(
   bowser = (-9, 19),
   yoshi = (5, 18),
   dk = (11, 18),
-)
-
-settings = (0, 24)
-
-staged = dict(
-  final_destination = (0, 0),
 )
 
 def locateCSSCursor(pid):
@@ -119,4 +113,33 @@ class Parallel:
   
   def done(self):
     return self.complete
+
+
+def pick_char(pid, pad, char, cpu=None):
+  actions = []
+
+  locator = locateCSSCursor(pid)
+  
+  if cpu:
+    actions.append(MoveTo([0, 20], locator, pad, True))
+    actions.append(movie.mk_tap_a(pad))
+    actions.append(movie.mk_tap_a(pad))
+    actions.append(MoveTo([0, -14], locator, pad, True))
+    actions.append(movie.mk_tap_a(pad))
+    actions.append(MoveTo([cpu * 1.1, 0], locator, pad, True))
+    actions.append(movie.mk_tap_a(pad))
+    #actions.append(Wait(10000))
+  
+  actions.append(MoveTo(characters[char], locator, pad))
+  actions.append(movie.mk_tap_a(pad))
+  
+  return Sequential(*actions)
+
+settings = (0, 24)
+
+def enter_settings(pid, pad):
+  return Sequential(
+    MoveTo(settings, locateCSSCursor(pid), pad),
+    movie.mk_tap_a(pad)
+  )
 

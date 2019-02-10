@@ -1,8 +1,8 @@
-import binascii
-from . import util
 import os
 import sys
 import socket
+import binascii
+from phillip import util
 
 def parseMessage(message):
   lines = message.splitlines()

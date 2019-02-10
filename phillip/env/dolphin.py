@@ -84,7 +84,7 @@ $Game Music ON
 
 class DolphinRunner(Default):
   _options = [
-    Option('exe', type=str, default='dolphin-emu-headless', help="dolphin executable"),
+    Option('exe', type=str, default='dolphin-emu-nogui', help="dolphin executable"),
     Option('user', type=str, help="path to dolphin user directory"),
     Option('iso', type=str, default="SSBM.iso", help="path to SSBM iso"),
     Option('movie', type=str, help="path to dolphin movie file to play at startup"),
@@ -94,8 +94,8 @@ class DolphinRunner(Default):
     Option('windows', action='store_true', help="set defaults for windows"),
     Option('netplay', type=str, help="join traversal server"),
 
-    Option('port1', type=int, 'device in port 1'),
-    Option('port2', type=int, 'device in port 2'),
+    Option('port1', type=int, help='device in port 1'),
+    Option('port2', type=int, help='device in port 2'),
 
     Option('gfx', type=str, default="Null", help="graphics backend"),
     Option('dual_core', type=int, default=1, help="Use separate gpu and cpu threads."),
@@ -113,29 +113,28 @@ class DolphinRunner(Default):
     Option('dump_path', type=str, default=''),
     Option('lcancel_flash', action="store_true", help="flash on lcancel"),
   ]
-  
-  _members = [
-    ('setupUser', SetupUser)
-  ]
 
-  def setup_user(self):
-    configDir = self.user + '/Config'
+  def setup_user(self, players):
+    configDir = os.path.join(self.user, 'Config')
     util.makedirs(configDir)
-    
-    if self.dump_ppm:
-      self.dump_frames = True
 
     ai_pids = []
-    for i in range(2):
-      if getattr(self, 'port{}'.format(i+1)) == Player.AI:
-        ai_pids.append(i)
+    for pid, player in players.items():
+      port_attr = 'port%d' % (pid+1)
+      si_device = 0
+      if player.needs_pad():
+        ai_pids.append(pid)
+        si_device = 6
+      elif player.is_human():
+        si_device = 12
+      setattr(self, port_attr, si_device)
 
     with open(configDir + '/GCPadNew.ini', 'w') as f:
       f.write(generateGCPadNew([0] if self.netplay else ai_pids, self.pipe_count))
 
     with open(configDir + '/Dolphin.ini', 'w') as f:
       config_args = dict(
-        user=user,
+        user=self.user,
         gfx=self.gfx,
         cpu_thread=bool(self.dual_core),
         dump_frames=self.dump_frames,
@@ -165,7 +164,7 @@ class DolphinRunner(Default):
         ini += lcancel_ini
       f.write(ini)
 
-    util.makedirs(user + '/Dump/Frames')
+    util.makedirs(self.user + '/Dump/Frames')
   
   def __init__(self, **kwargs):
     Default.__init__(self, **kwargs)
@@ -183,19 +182,17 @@ class DolphinRunner(Default):
         self.exe = self.exe[:-9] + "-nogui"
       
       # Note: newer dolphins use 'DX11', but win-mw is an old fork.
-      kwargs.update(
-        speed = 1,
-        gfx = 'D3D' if self.windows else 'OGL',
-      )
+      self.gfx = 'D3D' if self.windows else 'OGL'
+      self.speed = 1
       
       if self.mute:
-        kwargs.update(audio = 'No audio backend')
+        self.audio = 'No audio backend'
       else:
-        kwargs.update(audio = 'XAudio2' if self.windows else 'Pulse')
+        self.audio = 'XAudio2' if self.windows else 'Pulse'
   
-  def __call__(self):
+  def run(self, players):
     if self.setup:
-      self.setup_user()
+      self.setup_user(players)
 
     args = [self.exe, "--user", self.user]
     if not self.netplay:
