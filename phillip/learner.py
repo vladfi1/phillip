@@ -1,3 +1,4 @@
+import math
 import tensorflow as tf
 from phillip.RL import RL
 from . import ssbm, util, ctype_util as ct, embed
@@ -101,7 +102,8 @@ class Learner(RL):
       losses['global_action_state'] = tf.reduce_mean(action_state_loss)
       tf.summary.scalar('action_state_loss', losses['global_action_state'])
 
-      action_state_rewards = action_state_loss[1:] - action_state_loss[:-1]
+      action_state_value = tf.minimum(action_state_loss, math.log(embed.numActions) + 2)
+      action_state_rewards = action_state_value[1:] - action_state_value[:-1]
       rewards += self.action_state_entropy_scale * action_state_rewards
       tfl.stats(action_state_rewards, 'action_state_rewards')
 
