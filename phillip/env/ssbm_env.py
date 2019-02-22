@@ -193,7 +193,9 @@ class SSBMEnv(Default):
     # get rid of weird initial conditions
     for _ in range(10):
       self.mw.advance()
-      self.update_state()    
+      self.update_state()
+    
+    self.last_frame = self.state.frame
 
   def update_state(self):
     messages = self.mw.get_messages()
@@ -216,8 +218,15 @@ class SSBMEnv(Default):
       assert(self.players[pid] == Player.AI)
       pad.send_controller(controllers[pid])
     
-    self.mw.advance()
-    self.update_state()
-    
+    while self.state.frame == self.last_frame:
+      self.mw.advance()
+      self.update_state()
+
+    skipped_frames = self.last_frame - self.state.frame - 1
+    if skipped_frames > 1:
+      print("skipped %d frames") % skipped_frames
+      self.skip_frames += skipped_frames
+
+    self.last_frame = self.state.frame
     return self.state
 
