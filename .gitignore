@@ -4,13 +4,13 @@
 *.pyc
 experience/
 logs/
-models/
 saves/
 slurm_logs/
 slurm_scripts/
 SSBM.iso
 parallel/
 dolphin/
+venv
 
 events.out.*
 error_frame
