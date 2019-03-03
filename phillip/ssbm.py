@@ -137,15 +137,14 @@ neutral_stick = (0.5, 0.5)
 class SimpleController(object):
   button = attr.ib(default=SimpleButton.NONE)
   stick = attr.ib(default=neutral_stick)
-  duration = attr.ib(default=None)
   
   @classmethod
   def init(cls, *args, **kwargs):
     self = cls(*args, **kwargs)
-    self.real_controller = self.realController()
+    self.real_controller = self.make_real_controller()
     return self
   
-  def realController(self):
+  def make_real_controller(self):
     controller = RealControllerState()
     if self.button is not SimpleButton.NONE:
       setattr(controller, "button_%s" % self.button.name, True)
@@ -161,18 +160,20 @@ class SimpleController(object):
     if char == 'fox':
       return self.button == SimpleButton.B and self.stick == neutral_stick
     return False
+
+  def get_real_controller(self, char):
+    return RealControllerState.neutral if self.banned(char) else self.real_controller
   
   def send(self, pad, char):
-    if self.banned(char):
-      pad.send_controller(RealControllerState.neutral)
-    else:
-      pad.send_controller(self.real_controller)
+    pad.send_controller(self.get_real_controller(char))
 
 SimpleController.neutral = SimpleController.init()
 
 
 class RepeatController(object):
-  duration = None
+
+  def get_real_controller(self, char):
+    return None
 
   def send(self, pad, char):
     pass
@@ -185,35 +186,20 @@ diagonal_sticks = list(itertools.product(axis_positions, repeat=2))
 diagonal_controllers = [SimpleController.init(*args) for args in itertools.product(SimpleButton, diagonal_sticks)]
 
 
-class ActionChain(object):
-  """
-  A list of actions, each with a duration, and the last duration must be None.
-  
-  TODO: Come up with a better system?
-  """
-
-  def __init__(self, action_list, act_every):
-    self.actions = []
-    for action in action_list:
-      if action.duration:
-        self.actions += [action] * action.duration
-      else:
-        self.actions += [action] * (act_every - len(self.actions))
-    assert len(self.actions) == act_every
-    self.index = 0
-
-  def act(self, pad, char):
-    self.actions[self.index].send(pad, char)
-    self.index += 1
-  
-  def done(self):
-    return self.index == len(self.actions)
-
+def make_action_chain(action_list, act_every):
+  extra_no_ops = act_every - len(action_list)
+  assert(extra_no_ops >= 0)  # maybe this is ok?
+  if extra_no_ops > 0:
+    return action_list + [repeat_controller] * extra_no_ops
+  return action_list
 
 class ActionSet(object):
   def __init__(self, actions):
-    self.actions = list(map(lambda obj: obj if isinstance(obj, list) else [obj], actions))
+    self.actions = [obj if isinstance(obj, list) else [obj] for obj in actions]
     self.size = len(actions)
+  
+  def get_action_chains(self, act_every):
+    return [make_action_chain(chain, act_every) for chain in self.actions]
   
   def choose(self, index, act_every):
     return ActionChain(self.actions[index], act_every)
@@ -236,20 +222,23 @@ custom_controllers = [SimpleController.init(*args) for args in custom_controller
 custom_controllers.append(repeat_controller)
 
 # allows fox, sheik, samus, etc to short hop with act_every=3
-short_hop = SimpleController.init(button=SimpleButton.Y, duration=2)
-short_hop_chain = [short_hop, SimpleController.neutral]
+short_hop = SimpleController.init(button=SimpleButton.Y)
+short_hop_chain = [short_hop, repeat_controller, SimpleController.neutral]
 
 # this is technically no longer needed because of sh2
-jc_chain = [SimpleController.init(button=SimpleButton.Y, duration=1), SimpleController.init(button=SimpleButton.Z)]
+jc_chain = [SimpleController.init(button=SimpleButton.Y), SimpleController.init(button=SimpleButton.Z)]
 
 # better sh that also allows jc grab and upsmash at act_every 3
 sh2_chain = [
-  SimpleController.init(duration=2),
+  SimpleController.neutral,
+  repeat_controller,
   SimpleController.init(button=SimpleButton.Y),
 ]
 
 fox_wd_chain_left = [
-  SimpleController.init(button=SimpleButton.Y, duration=3),
+  SimpleController.init(button=SimpleButton.Y),
+  repeat_controller,
+  repeat_controller,
   SimpleController.init(button=SimpleButton.L, stick=Stick.polar(-7/8 * np.pi))
 ]
 

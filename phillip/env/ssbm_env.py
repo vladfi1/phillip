@@ -64,6 +64,7 @@ class SSBMEnv(Default):
     
     # set up players
     self.pids = []
+    self.ai_pids = []
     self.players = {}
     self.levels = {}
     self.characters = {}
@@ -81,6 +82,11 @@ class SSBMEnv(Default):
       if player.needs_pad():
         self.pids.append(i)
         self.characters[i] = getattr(self, 'char%d' % j)
+
+      if player == Player.AI:
+        self.ai_pids.append(i)
+    
+    print(self.players)
 
     self.state = ssbm.GameMemory()
     # track players 1 and 2 (pids 0 and 1)
@@ -216,7 +222,8 @@ class SSBMEnv(Default):
       if pid not in controllers:
         assert(self.players[pid] != Player.AI)
       assert(self.players[pid] == Player.AI)
-      pad.send_controller(controllers[pid])
+      if controllers[pid] is not None:
+        pad.send_controller(controllers[pid])
     
     while self.state.frame == self.last_frame:
       self.mw.advance()
@@ -224,9 +231,12 @@ class SSBMEnv(Default):
 
     skipped_frames = self.last_frame - self.state.frame - 1
     if skipped_frames > 1:
-      print("skipped %d frames") % skipped_frames
+      print("skipped %d frames" % skipped_frames)
       self.skip_frames += skipped_frames
 
     self.last_frame = self.state.frame
+    return self.state
+
+  def get_state(self):
     return self.state
 
