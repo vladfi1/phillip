@@ -1,5 +1,6 @@
 import argparse
 import ray
+from ray import tune
 from ray.rllib.agents import impala
 
 from phillip.env.ssbm_env import SSBMEnv
@@ -11,13 +12,21 @@ args = parser.parse_args()
 
 
 ray.init()
-trainer = impala.ImpalaAgent(env=MultiSSBMEnv, config={
-    "env_config": args.__dict__,  # config to pass to env class
-    "num_workers": 1,
-    "num_envs_per_worker": 1,
-    #"remote_worker_envs": True,
-})
 
-while True:
-  print(trainer.train())
+tune.run_experiments({
+  "impala": {
+    "env": MultiSSBMEnv,
+    "run": impala.ImpalaAgent,
+    "config": {
+      "env_config": args.__dict__,  # config to pass to env class
+      "num_workers": 1,
+      # "num_envs_per_worker": 2,
+      # "remote_worker_envs": True,
+      "model": {
+        "use_lstm": True,
+        "lstm_use_prev_action_reward": True,
+      }
+    }
+  }
+})
 
