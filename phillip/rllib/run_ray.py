@@ -4,7 +4,7 @@ from ray import tune
 from ray.rllib.agents import impala
 
 from phillip.env.ssbm_env import SSBMEnv
-from phillip.rllib.ray_env import MultiSSBMEnv
+from phillip.rllib import ray_env
 
 parser = argparse.ArgumentParser()
 SSBMEnv.update_parser(parser)
@@ -15,10 +15,15 @@ ray.init()
 
 tune.run_experiments({
   "impala": {
-    "env": MultiSSBMEnv,
+    "env": ray_env.AsyncSSBMEnv,
     "run": impala.ImpalaAgent,
     "config": {
-      "env_config": args.__dict__,  # config to pass to env class
+      "env_config": {
+        "ssbm_config": args.__dict__,  # config to pass to env class
+        "episode_length": 60,
+        "num_envs": 1,
+        "delay": 1,
+      },
       "num_workers": 1,
       # "num_envs_per_worker": 2,
       # "remote_worker_envs": True,
