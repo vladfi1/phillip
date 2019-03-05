@@ -11,7 +11,7 @@ from phillip.rllib import ssbm_spaces
 class MultiSSBMEnv(ray.rllib.env.MultiAgentEnv):
 
   def __init__(self, config):
-    print(config.keys())
+    print("MultiSSBMEnv", config.keys())
     self._ssbm_config = config["ssbm_config"]
     self._episode_length = config["episode_length"]
     self._steps_this_episode = 0
@@ -61,7 +61,19 @@ class MultiSSBMEnv(ray.rllib.env.MultiAgentEnv):
     dones = {"__all__": done}
     return obs, rewards, dones, {}
 
-RemoteSSBMEnv = ray.remote(MultiSSBMEnv)
+#RemoteSSBMEnv = ray.remote(MultiSSBMEnv)
+
+@ray.remote
+class RemoteSSBMEnv:
+  def __init__(self, config):
+    print("RemoteSSBMEnv", config.keys())
+    self._env = MultiSSBMEnv(config)
+  
+  def reset(self):
+    return self._env.reset()
+  
+  def step(self, action_dict):
+    return self._env.step(action_dict)
 
 
 def seq_to_dict(seq):
@@ -76,20 +88,24 @@ NONE_DONE = {"__all__": False}
 class AsyncSSBMEnv(ray.rllib.env.BaseEnv):
   
   def __init__(self, config):
+    print("AsyncSSBMEnv", config.keys())
+    self._config = config
     self._dummy_env = MultiSSBMEnv(config)
     self.action_space = self._dummy_env.action_space
     self.observation_space = self._dummy_env.observation_space
-  
-    self._num_envs = config["num_envs"]
-    self._envs = [
-      RemoteSSBMEnv.remote(config)
-      for _ in range(self._num_envs)]
-    self._queue = deque()
     self._first_poll = True
-    self._delay = config["delay"]
 
+    self._num_envs = config["num_envs"]
+    self._delay = config["delay"]
+    self._queue = deque()
+  
   def first_poll(self):
     print("first poll")
+    print("AsyncSSBMEnv", self._config.keys())
+    self._envs = [
+      RemoteSSBMEnv.remote(self._config)
+      for _ in range(self._num_envs)]
+
     obs = ray.get([env.reset.remote() for env in self._envs])
     rewards = [map_dict(lambda _: 0., ob) for ob in obs]
     dones = [NONE_DONE for ob in obs]
