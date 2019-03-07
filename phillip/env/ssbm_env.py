@@ -220,6 +220,7 @@ class SSBMEnv(Default):
     
     for pid, pad in zip(self.pids, self.pads):
       if pid not in controllers:
+        import ipdb; ipdb.set_trace()
         assert(self.players[pid] != Player.AI)
       assert(self.players[pid] == Player.AI)
       if controllers[pid] is not None:

@@ -2,13 +2,14 @@ from collections import deque
 
 import gym
 import ray
+from ray import rllib
 
 from phillip import ssbm
 from phillip.env.ssbm_env import SSBMEnv
 from phillip.rllib import ssbm_spaces
 
 
-class MultiSSBMEnv(ray.rllib.env.MultiAgentEnv):
+class MultiSSBMEnv(rllib.env.MultiAgentEnv):
 
   def __init__(self, config):
     print("MultiSSBMEnv", config.keys())
@@ -54,8 +55,6 @@ class MultiSSBMEnv(ray.rllib.env.MultiAgentEnv):
     if done:
       print("episode terminated")
       self._steps_this_episode = 0
-    else:
-      print("episode step %d", self._steps_this_episode)
     #dones = {i: done for i in self._env.ai_pids}
     #dones.update(__all__=done)
     dones = {"__all__": done}
@@ -85,11 +84,11 @@ def map_dict(f, d):
 NONE_DONE = {"__all__": False}
 
 
-class AsyncSSBMEnv(ray.rllib.env.BaseEnv):
+class AsyncSSBMEnv(rllib.env.BaseEnv):
   
   def __init__(self, config):
     print("AsyncSSBMEnv", config.keys())
-    self._config = config
+    self._config = config.copy()
     self._dummy_env = MultiSSBMEnv(config)
     self.action_space = self._dummy_env.action_space
     self.observation_space = self._dummy_env.observation_space
@@ -125,8 +124,13 @@ class AsyncSSBMEnv(ray.rllib.env.BaseEnv):
     return tuple(map(seq_to_dict, zip(*fetched))) + ({},)
 
   def send_actions(self, action_dict):
+    if len(action_dict) == 0:
+      import ipdb; ipdb.set_trace()
     self._queue.append([
         env.step.remote(action_dict[i])
         for i, env in enumerate(self._envs)
     ])
+
+  def try_reset(self, env_id):
+    return ray.get(self._envs[env_id].reset.remote())
 
