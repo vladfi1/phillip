@@ -12,9 +12,9 @@ import functools
 import enum
 import time
 
-from phillip import util, ssbm
+from phillip import util, ssbm, ctype_util
 from phillip.default import *
-from . import state_manager, movie, dolphin
+from . import state_manager, movie, dolphin, reward
 from . import memory_watcher as mw
 from .state import *
 from . import menu_manager as mm
@@ -89,6 +89,7 @@ class SSBMEnv(Default):
     print(self.players)
 
     self.state = ssbm.GameMemory()
+    self.prev_state = ssbm.GameMemory()
     # track players 1 and 2 (pids 0 and 1)
     self.sm = state_manager.StateManager([0, 1])
     self.write_locations()
@@ -220,12 +221,13 @@ class SSBMEnv(Default):
     
     for pid, pad in zip(self.pids, self.pads):
       if pid not in controllers:
-        import ipdb; ipdb.set_trace()
-        assert(self.players[pid] != Player.AI)
+        assert(self.players[pid] == Player.CPU)
+        continue
       assert(self.players[pid] == Player.AI)
       if controllers[pid] is not None:
         pad.send_controller(controllers[pid])
     
+    ctype_util.copy(self.state, self.prev_state)
     while self.state.frame == self.last_frame:
       self.mw.advance()
       self.update_state()
@@ -234,9 +236,17 @@ class SSBMEnv(Default):
     if skipped_frames > 1:
       print("skipped %d frames" % skipped_frames)
       self.skip_frames += skipped_frames
-
     self.last_frame = self.state.frame
-    return self.state
+    
+    rewards = {}
+    for pid in self.ai_pids:
+      enemy_pid = 1 - pid
+      rewards[pid] = reward.computeRewards(
+          [self.prev_state, self.state],
+          enemies=[enemy_pid],
+          allies=[pid])[0]
+    
+    return self.state, rewards
 
   def get_state(self):
     return self.state

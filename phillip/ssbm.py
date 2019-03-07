@@ -8,9 +8,7 @@ from enum import IntEnum
 import struct
 import tempfile
 import os
-#import h5py
 import pickle
-from . import reward
 import numpy as np
 import itertools
 import attr
@@ -258,48 +256,3 @@ actionTypes = dict(
   custom_sh2_wd = ActionSet(custom_controllers + [sh2_chain] + wd_both),
 )
 
-@pretty_struct
-class SimpleStateAction(Structure):
-  _fields = [
-    ('state', GameMemory),
-    ('prev_action', c_uint),
-    ('action', c_uint),
-    ('prob', c_float),
-  ]
-
-
-def prepareStateActions(state_actions):
-  """Prepares an experience for pickling.
-  
-  Args:
-    state_actions: A value of type (SimpleStateAction * T), or [SimpleStateAction].
-  Returns:
-    A structure of numpy arrays of length T.
-  """
-
-  vectorized = vectorizeCTypes(SimpleStateAction, state_actions)
-  rewards_ = reward.rewards_np(vectorized['state'])
-  rewards = reward.computeRewardsSA(state_actions)
-  assert(np.max(np.abs(rewards_ - rewards)) < 1e-5)
-  
-  vectorized['reward'] = rewards
-  return vectorized
-
-# TODO: replace pickle with hdf5
-def writeStateActions_HDF5(filename, state_actions):
-  with tempfile.NamedTemporaryFile(dir=os.path.dirname(filename), delete=False) as tf:
-    tf.write(intStruct.pack(len(state_actions)))
-    tf.write(state_actions)
-    tempname = tf.name
-  os.rename(tempname, filename)
-
-def readStateActions_HDF5(filename):
-  with open(filename, 'rb') as f:
-    size = readInt(f)
-    state_actions = (size * SimpleStateAction)()
-    f.readinto(state_actions)
-
-    if len(f.read()) > 0:
-      raise Exception(filename + " too long!")
-
-    return state_actions

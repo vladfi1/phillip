@@ -42,14 +42,16 @@ class MultiSSBMEnv(rllib.env.MultiAgentEnv):
     self._steps_this_episode += 1
     chains = {pid: self._action_chains[action] for pid, action in actions.items()}
     
+    rewards = {i: 0 for i in self._env.ai_pids}
     for i in range(self._act_every):
-      self._env.step({
+      _, step_rewards = self._env.step({
           pid: chain[i].get_real_controller(self._env.characters[pid])
           for pid, chain in chains.items()
-       })
+      })
+      for pid, r in step_rewards.items():
+        rewards[pid] += r
     
     obs = self._get_obs()
-    rewards = {i: 0 for i in self._env.ai_pids}
 
     done = self._steps_this_episode == self._episode_length
     if done:
