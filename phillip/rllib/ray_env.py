@@ -62,19 +62,7 @@ class MultiSSBMEnv(rllib.env.MultiAgentEnv):
     dones = {"__all__": done}
     return obs, rewards, dones, {}
 
-#RemoteSSBMEnv = ray.remote(MultiSSBMEnv)
-
-@ray.remote
-class RemoteSSBMEnv:
-  def __init__(self, config):
-    print("RemoteSSBMEnv", config.keys())
-    self._env = MultiSSBMEnv(config)
-  
-  def reset(self):
-    return self._env.reset()
-  
-  def step(self, action_dict):
-    return self._env.step(action_dict)
+RemoteSSBMEnv = ray.remote(MultiSSBMEnv)
 
 
 def seq_to_dict(seq):
