@@ -153,15 +153,18 @@ hitstun_frames_left_conv = partial(SumConv, [
     ('high_falcon', partial(ExceptionConv, [219, 220])),
 ])
 
+action_frame_conv = partial(SumConv, [
+    ('default', frame_conv),
+    ('exception', partial(ExceptionConv, [-1])),
+])
+
 player_spec = [
   ('percent', partial(positive_conv, 250)),
   ('facing', partial(symmetric_conv, 1)),
   ('x', xy_conv),
   ('y', xy_conv),
   ('action_state', partial(DiscreteConv, num_action_states)),
-  ('action_frame', partial(SumConv, [
-      ('default', frame_conv)])),
-      ('exception', partial(ExceptionConv, [-1])),
+  ('action_frame', action_frame_conv),
   ('character', partial(DiscreteConv, max_char_id)),
   ('invulnerable', BoolConv),
   ('hitlag_frames_left', frame_conv),
