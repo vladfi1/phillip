@@ -1,8 +1,9 @@
-import gym
-from gym import spaces
-import numpy as np
+import copy
 import math
+from functools import partial
 from logging import warning
+import numpy as np
+from gym import spaces
 
 buttons = ['A', 'B', 'Y', 'L', 'Z']
 
@@ -27,95 +28,156 @@ def realController(control):
   
   return controller
 
-class BoolConv:
-  def __init__(self):
-    self.space = spaces.Discrete(2)
-  def __call__(self, cbool, name=None):
-    return int(cbool)
+class Conv:
+  def contains(self, x):
+    return True
 
-bool_conv = BoolConv()
+class BoolConv(Conv):
+  def __init__(self, name="BoolConv"):
+    self.space = spaces.Discrete(2)
+    self.name = name
+    self.default_value = 0
+
+  def __call__(self, cbool):
+    return int(cbool)
 
 def clip(x, min_x, max_x):
   return min(max(x, min_x), max_x)
 
-class RealConv:
-  def __init__(self, low, high, verbose=True):
-    self.low = low
-    self.high = high
-    self.space = spaces.Box(low, high, ())
+class RealConv(Conv):
+  def __init__(self, source, target, verbose=True, default_value=0., name="RealConv"):
+    self.source = source
+    self.target = target
+    m = (target[1] - target[0]) / (source[1] - source[0])
+    b = target[0] - source[0] * m
+    self.transform = lambda x: m * x + b
+    self.space = spaces.Box(min(target), max(target), (), dtype=np.float32)
     self.verbose = verbose
+    self.default_value = np.array(default_value)
+    self.name = name
   
-  def __call__(self, x, name=None):
+  def __call__(self, x):
     if math.isnan(x):
-      warning("NaN value in %s" % name)
-      x = (self.low + self.high) / 2
-    if self.low > x or x > self.high:
+      warning("NaN value in %s" % self.name)
+      return self.default_value
+    if not self.contains(x):
       if self.verbose:
-        warning("%f out of bounds in real space \"%s\"" % (x, name))
-      x = clip(x, self.low, self.high)
-    return np.array(x)
+        warning("%f out of bounds in real space \"%s\"" % (x, self.name))
+      x = clip(x, self.space.low, self.space.high)
+    return np.array(self.transform(x))
+    
+  def contains(self, x):
+    return self.source[0] <= x and x <= self.source[1]
 
-class DiscreteConv:
-  def __init__(self, size, verbose=True):
-    self.size = size
-    self.space = spaces.Discrete(size)
+def positive_conv(size, *args, **kwargs):
+  return RealConv((0, size), (0, 1), *args, **kwargs)
+
+def symmetric_conv(size, *args, **kwargs):
+  return RealConv((-size, size), (-1, 1), *args, **kwargs)
+
+class ExceptionConv(Conv):
+  def __init__(self, exceptions, name="ExceptionConv"):
+    self.exception_dict = {x: i for i, x in enumerate(exceptions)}
+    self.space = spaces.Discrete(len(exceptions)+1)
+    self.default_value = len(exceptions)
+    self.name = name
   
-  def __call__(self, x, name=None):
+  def __call__(self, x):
+    if x in self.exception_dict:
+      return self.exception_dict[x]
+    warning("%s out of bounds in exception space '%s'" % (x, self.name))
+    return self.default_value
+
+  def contains(self, x):
+    return x in self.exception_dict
+
+class SumConv(Conv):
+  def __init__(self, spec, name="SumConv"):
+    self.name = name
+    self.convs = [f(name=name + '/' + key) for key, f in spec]
+    self.space = spaces.Tuple([conv.space for conv in self.convs])
+    self.default_value = tuple(conv.default_value for conv in self.convs)
+
+  def __call__(self, x):
+    return_value = list(self.default_value)
+    for i, conv in enumerate(self.convs):
+      if conv.contains(x):
+        return_value[i] = conv(x)
+        return return_value
+    
+    warning("%s out of bounds in sum space '%s'" % (x, self.name))
+    return self.default_value
+
+class DiscreteConv(Conv):
+  default_value = 0
+
+  def __init__(self, size, name="DiscreteConv"):
+    self.size = size
+    self.space = spaces.Discrete(size+1)
+    self.name = name
+  
+  def __call__(self, x):
     if 0 > x or x >= self.space.n:
-      warning("%d out of bounds in discrete space \"%s\"" % (x, name))
-      x = 0
+      warning("%d out of bounds in discrete space \"%s\"" % (x, self.name))
+      x = self.size
     return x
 
-class StructConv:
-  def __init__(self, spec):
-    self.spec = spec
-    
-    self.space = spaces.Tuple([conv.space for _, conv in spec])
+class StructConv(Conv):
+  def __init__(self, spec, name="StructConv"):
+    self.spec = [(key, f(name=name + '/' + key)) for key, f in spec]
+    self.space = spaces.Tuple([conv.space for _, conv in self.spec])
   
-  def __call__(self, struct, **kwargs):
-    return [conv(getattr(struct, name), name=name) for name, conv in self.spec]
+  def __call__(self, struct):
+    return [conv(getattr(struct, name)) for name, conv in self.spec]
 
 class ArrayConv:
-  def __init__(self, conv, permutation):
-    self.conv = conv
-    self.permutation = permutation
-    
-    self.space = spaces.Tuple([conv.space for _ in permutation])
+  def __init__(self, mk_conv, permutation, name="ArrayConv"):
+    self.permutation = [(i, mk_conv(name=name + '/' + str(i))) for i in permutation]
+    self.space = spaces.Tuple([conv.space for _, conv in self.permutation])
   
-  def __call__(self, array, **kwargs):
-    return [self.conv(array[i]) for i in self.permutation]
+  def __call__(self, array):
+    return [conv(array[i]) for i, conv in self.permutation]
 
 max_char_id = 32 # should be large enough?
 
 max_action_state = 0x017E
 num_action_states = 1 + max_action_state
 
-frame_conv = RealConv(0, 100, 'frame')
-speed_conv = RealConv(-10, 10, 'speed') # generally less than 1 in magnitude
+xy_conv = partial(symmetric_conv, 250)
+frame_conv = partial(positive_conv, 100)
+speed_conv = partial(symmetric_conv, 10) # generally less than 1 in magnitude
+
+hitstun_frames_left_conv = partial(SumConv, [
+    ('default', frame_conv),
+    ('negative', partial(RealConv, (-5, 0), (-1, 0))),
+    ('high_falcon', partial(ExceptionConv, [219, 220])),
+])
 
 player_spec = [
-  ('percent', RealConv(0, 999)),
-  ('facing', RealConv(-1, 1)),
-  ('x', RealConv(-250, 250)),
-  ('y', RealConv(-250, 250)),
-  ('action_state', DiscreteConv(num_action_states)),
-  ('action_frame', RealConv(-1, 100, 'action_frame')),
-  ('character', DiscreteConv(max_char_id)),
-  ('invulnerable', bool_conv),
+  ('percent', partial(positive_conv, 250)),
+  ('facing', partial(symmetric_conv, 1)),
+  ('x', xy_conv),
+  ('y', xy_conv),
+  ('action_state', partial(DiscreteConv, num_action_states)),
+  ('action_frame', partial(SumConv, [
+      ('default', frame_conv)])),
+      ('exception', partial(ExceptionConv, [-1])),
+  ('character', partial(DiscreteConv, max_char_id)),
+  ('invulnerable', BoolConv),
   ('hitlag_frames_left', frame_conv),
-  ('hitstun_frames_left', RealConv(-6, 100, 'hitstun_frames_left')),
-  ('jumps_used', DiscreteConv(8)),
-  ('charging_smash', bool_conv),
-  ('in_air', bool_conv),
+  ('hitstun_frames_left', hitstun_frames_left_conv),
+  ('jumps_used', partial(DiscreteConv, 8)),
+  ('charging_smash', BoolConv),
+  ('in_air', BoolConv),
   ('speed_air_x_self', speed_conv),
   ('speed_ground_x_self', speed_conv),
   ('speed_y_self', speed_conv),
   ('speed_x_attack', speed_conv),
   ('speed_y_attack', speed_conv),
-  ('shield_size', RealConv(0, 100)),
+  ('shield_size', partial(positive_conv, 100)),
 ]
 
-player_conv = StructConv(player_spec)
+player_conv = partial(StructConv, player_spec)
 
 def make_game_spec(self=0, enemy=1, swap=False):
   players = [self, enemy]
@@ -123,13 +185,13 @@ def make_game_spec(self=0, enemy=1, swap=False):
     players.reverse()
   
   return [
-    ('players', ArrayConv(player_conv, players)),
-    ('stage', DiscreteConv(32)),
+    ('players', partial(ArrayConv, player_conv, players)),
+    ('stage', partial(DiscreteConv, 32)),
   ]
 
 # maps pid to Conv
 game_conv_list = [
-  StructConv(make_game_spec(swap=False)),
-  StructConv(make_game_spec(swap=True)),
+  StructConv(make_game_spec(swap=False), name='game-0'),
+  StructConv(make_game_spec(swap=True), name='game-1'),
 ]
 
