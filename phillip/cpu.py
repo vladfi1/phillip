@@ -209,11 +209,17 @@ class CPU(Default):
             f.write('\n'.join(self.sm.locations()))
 
     def advance_frame(self):
-        # print("advance_frame")
         last_frame = self.state.frame
         
         self.update_state()
-        if self.state.frame > last_frame:
+        self.menu = Menu(self.state.menu)
+        if self.menu == Menu.Game:
+          if self.game_frame < 10:
+            # let the slippi frame counter initialize
+            self.game_frame += 1
+            if self.game_frame == 10:
+              self.start_time = time.time()
+          elif self.state.frame > last_frame:
             skipped_frames = self.state.frame - last_frame - 1
             if skipped_frames > 0:
                 self.skip_frames += skipped_frames
@@ -227,7 +233,10 @@ class CPU(Default):
 
             if self.agent.verbose and self.state.frame % (15 * 60) == 0:
                 self.print_stats()
-        
+        else:
+          self.make_action()
+
+        #time.sleep(0.05)
         self.mw.advance()
 
     def update_state(self):
@@ -243,9 +252,11 @@ class CPU(Default):
             self.pads[0].release_button(button)
     
     def make_action(self):
-        #menu = Menu(self.state.menu)
+        #time.sleep(0.001)
         #print(menu)
-        if self.state.menu == Menu.Game.value:
+        player = self.state.players[1]
+        #print(player.cursor_x, player.cursor_y)
+        if self.menu == Menu.Game:
             self.game_frame += 1
             
             if self.debug and self.game_frame % 60 == 0:
@@ -258,12 +269,10 @@ class CPU(Default):
             
             for pid, pad in zip(self.pids, self.pads):
                 agent = self.agents[pid]
-                if agent:
-                    agent.act(self.state, pad)
+                if agent: agent.act(self.state, pad)
 
-        elif self.state.menu in [menu.value for menu in [Menu.Characters, Menu.Stages]]:
+        elif self.menu in [Menu.Characters, Menu.Stages]:
             self.game_frame = 0
-            self.navigate_menus.move(self.state)
             
             if self.navigate_menus.done():
                 for pid, pad in zip(self.pids, self.pads):
@@ -272,8 +281,10 @@ class CPU(Default):
                             pad.press_button(Button.A)
                     else:
                         pad.send_controller(ssbm.RealControllerState.neutral)
-        
-        elif self.state.menu == Menu.PostGame.value:
+            else:
+              self.navigate_menus.move(self.state)
+
+        elif self.menu == Menu.PostGame:
             self.spam(Button.START)
         else:
             print("Weird menu state", self.state.menu)
