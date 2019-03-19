@@ -57,8 +57,11 @@ DumpPath = {dump_path}
 
 gale01_ini = """
 [Gecko_Enabled]
-$Netplay Community Settings
 $DMA Read Before Poll
+$Speed Hack Render
+$Fox vs Fox-9
+$Boot To Match
+$Skip Memcard Prompt
 """
 
 lcancel_ini = """
