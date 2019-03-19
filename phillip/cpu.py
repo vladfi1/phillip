@@ -209,11 +209,12 @@ class CPU(Default):
             f.write('\n'.join(self.sm.locations()))
 
     def advance_frame(self):
+        # print("advance_frame")
         last_frame = self.state.frame
         
         self.update_state()
-        self.menu = Menu(self.state.menu)
-        if self.menu == Menu.Game:
+        # if self.menu == Menu.Game:
+        if True:
           if self.game_frame < 10:
             # let the slippi frame counter initialize
             self.game_frame += 1
@@ -256,7 +257,8 @@ class CPU(Default):
         #print(menu)
         player = self.state.players[1]
         #print(player.cursor_x, player.cursor_y)
-        if self.menu == Menu.Game:
+        if True:
+        #if self.menu == Menu.Game:
             self.game_frame += 1
             
             if self.debug and self.game_frame % 60 == 0:
