@@ -62,8 +62,7 @@ class MultiSSBMEnv(rllib.env.MultiAgentEnv):
     dones = {"__all__": done}
     return obs, rewards, dones, {}
 
-RemoteSSBMEnv = ray.remote(MultiSSBMEnv)
-
+RemoteSSBMEnv = ray.remote(num_cpus=1)(MultiSSBMEnv)
 
 def seq_to_dict(seq):
   return {i: x for i, x in enumerate(seq)}
