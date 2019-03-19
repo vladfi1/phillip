@@ -80,7 +80,12 @@ $Lag Reduction
 $Game Music ON
 """
 
-
+boot_to_match_ini = """
+[Gecko_Enabled]
+$Set Match Info
+$Boot To Match
+$Skip Memcard Prompt
+"""
 
 class DolphinRunner(Default):
   _options = [
@@ -112,6 +117,7 @@ class DolphinRunner(Default):
     Option('dump_encoder', type=str, default=''),
     Option('dump_path', type=str, default=''),
     Option('lcancel_flash', action="store_true", help="flash on lcancel"),
+    Option('boot_to_match', action="store_true", help="boot to match with gecko codes"),
   ]
 
   def setup_user(self, players):
@@ -160,8 +166,11 @@ class DolphinRunner(Default):
     util.makedirs(gameSettings)
     with open(gameSettings + '/GALE01.ini', 'w') as f:
       ini = gale01_ini_fm if self.fm else gale01_ini
+      if self.boot_to_match:
+        ini = boot_to_match_ini
       if self.lcancel_flash:
         ini += lcancel_ini
+      print(ini)
       f.write(ini)
 
     util.makedirs(self.user + '/Dump/Frames')
@@ -243,14 +252,11 @@ def main():
   import argparse
   
   parser = argparse.ArgumentParser()
-  
-  for opt in DolphinRunner.full_opts():
-    opt.update_parser(parser)
-  
+  DolphinRunner.update_parser(parser)
   args = parser.parse_args()
   
   runner = DolphinRunner(**args.__dict__)
-  runner()
+  runner.run({})
 
 
 if __name__ == "__main__":
