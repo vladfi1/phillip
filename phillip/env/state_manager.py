@@ -67,7 +67,8 @@ def add_address(x, y):
 
 global_addresses = {}
 
-global_addresses['80479D60'] = Handler(['frame'], intHandler)
+global_addresses['804d6cf4'] = Handler(['frame'], intHandler)  # slippi frame
+#global_addresses['80479D60'] = Handler(['frame'], intHandler)
 global_addresses['80479D30'] = Handler(['menu'], IntHandler(mask=byte_mask))#, Menu, Menu.Characters)
 global_addresses['804D6CAD'] = Handler(['stage'], shortHandler)#, Stage, Stage.Unselected)
 

@@ -125,8 +125,15 @@ class SSBMEnv(Default):
     
     print("Pipes initialized.")
 
-    self.navigate_menus()
+    # self.navigate_menus()
     
+    # get rid of weird initial conditions
+    self.update_state()
+    for _ in range(10):
+      self.mw.advance()
+      self.update_state()
+    
+    self.last_frame = self.state.frame
     self.start_time = time.time()
 
   def close(self):
@@ -193,13 +200,6 @@ class SSBMEnv(Default):
     
     print("setup finished")
     assert(self.state.menu == Menu.Game.value)
-    
-    # get rid of weird initial conditions
-    for _ in range(10):
-      self.mw.advance()
-      self.update_state()
-    
-    self.last_frame = self.state.frame
 
   def update_state(self):
     messages = self.mw.get_messages()
