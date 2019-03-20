@@ -27,7 +27,7 @@ tune.run_experiments({
         "delay": 1,
       },
       "horizon": 1200,  # one minute
-      "num_workers": 1,
+      "num_workers": 0,
       # "num_envs_per_worker": 2,
       # "remote_worker_envs": True,
       "model": {
