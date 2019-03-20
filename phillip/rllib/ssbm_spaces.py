@@ -144,8 +144,11 @@ max_action_state = 0x017E
 num_action_states = 1 + max_action_state
 
 xy_conv = partial(symmetric_conv, 250)
-frame_conv = partial(positive_conv, 100)
-speed_conv = partial(symmetric_conv, 10) # generally less than 1 in magnitude
+frame_conv = partial(positive_conv, 120)
+
+# generally less than 1 in magnitude
+# side-B reaches 18
+speed_conv = partial(symmetric_conv, 20)
 
 hitstun_frames_left_conv = partial(SumConv, [
     ('default', frame_conv),
