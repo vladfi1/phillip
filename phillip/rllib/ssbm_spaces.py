@@ -31,8 +31,15 @@ def realController(control):
 class Conv:
   def contains(self, x):
     return True
+  
+  def make_flat(self, obs):
+    array = np.zeros((self.flat_size,))
+    self.write(obs, array, 0)
+    return array
 
 class BoolConv(Conv):
+  flat_size = 2
+
   def __init__(self, name="BoolConv"):
     self.space = spaces.Discrete(2)
     self.name = name
@@ -40,11 +47,16 @@ class BoolConv(Conv):
 
   def __call__(self, cbool):
     return int(cbool)
+  
+  def write(self, b, array, offset):
+    array[offset + int(b)] = 1
 
 def clip(x, min_x, max_x):
   return min(max(x, min_x), max_x)
 
 class RealConv(Conv):
+  flat_size = 1
+
   def __init__(self, source, target, verbose=True, default_value=0., name="RealConv"):
     self.source = source
     self.target = target
@@ -55,8 +67,11 @@ class RealConv(Conv):
     self.verbose = verbose
     self.default_value = np.array(default_value)
     self.name = name
-  
-  def __call__(self, x):
+    
+  def contains(self, x):
+    return self.source[0] <= x and x <= self.source[1]
+
+  def _process(self, x):
     if math.isnan(x):
       warning("NaN value in %s" % self.name)
       return self.default_value
@@ -64,10 +79,13 @@ class RealConv(Conv):
       if self.verbose:
         warning("%f out of bounds in real space \"%s\"" % (x, self.name))
       x = clip(x, self.space.low, self.space.high)
-    return np.array(self.transform(x))
-    
-  def contains(self, x):
-    return self.source[0] <= x and x <= self.source[1]
+    return self.transform(x)
+
+  def __call__(self, x):
+    return np.array(self._process(x))
+
+  def write(self, x, array, offset):
+    array[offset] = self._process(x)
 
 def positive_conv(size, *args, **kwargs):
   return RealConv((0, size), (0, 1), *args, **kwargs)
@@ -81,6 +99,7 @@ class ExceptionConv(Conv):
     self.space = spaces.Discrete(len(exceptions)+1)
     self.default_value = len(exceptions)
     self.name = name
+    self.flat_size = len(exceptions) + 1
   
   def __call__(self, x):
     if x in self.exception_dict:
@@ -90,6 +109,9 @@ class ExceptionConv(Conv):
 
   def contains(self, x):
     return x in self.exception_dict
+    
+  def write(self, x, array, offset):
+    array[offset + self(x)] = 1
 
 class SumConv(Conv):
   def __init__(self, spec, name="SumConv"):
@@ -97,6 +119,7 @@ class SumConv(Conv):
     self.convs = [f(name=name + '/' + key) for key, f in spec]
     self.space = spaces.Tuple([conv.space for conv in self.convs])
     self.default_value = tuple(conv.default_value for conv in self.convs)
+    self.flat_size = sum(conv.flat_size for conv in self.convs)
 
   def __call__(self, x):
     return_value = list(self.default_value)
@@ -107,6 +130,14 @@ class SumConv(Conv):
     
     warning("%s out of bounds in sum space '%s'" % (x, self.name))
     return self.default_value
+  
+  # this doesn't quite do the same thing as the TupleFlattenProcessor
+  def write(self, x, array, offset):
+    for conv in self.convs:
+      if conv.contains(x):
+        conv.write(x, array, offset)
+        break
+      offset += conv.flat_size
 
 class DiscreteConv(Conv):
   default_value = 0
@@ -115,28 +146,44 @@ class DiscreteConv(Conv):
     self.size = size
     self.space = spaces.Discrete(size+1)
     self.name = name
+    self.flat_size = size + 1
   
   def __call__(self, x):
     if 0 > x or x >= self.space.n:
       warning("%d out of bounds in discrete space \"%s\"" % (x, self.name))
       x = self.size
     return x
+    
+  def write(self, x, array, offset):
+    array[offset + self(x)] = 1
 
 class StructConv(Conv):
   def __init__(self, spec, name="StructConv"):
     self.spec = [(key, f(name=name + '/' + key)) for key, f in spec]
     self.space = spaces.Tuple([conv.space for _, conv in self.spec])
+    self.flat_size = sum(conv.flat_size for _, conv in self.spec)
   
   def __call__(self, struct):
     return [conv(getattr(struct, name)) for name, conv in self.spec]
+    
+  def write(self, struct, array, offset):
+    for name, conv in self.spec:
+      conv.write(getattr(struct, name), array, offset)
+      offset += conv.flat_size
 
 class ArrayConv:
   def __init__(self, mk_conv, permutation, name="ArrayConv"):
     self.permutation = [(i, mk_conv(name=name + '/' + str(i))) for i in permutation]
     self.space = spaces.Tuple([conv.space for _, conv in self.permutation])
+    self.flat_size = sum(conv.flat_size for _, conv in self.permutation)
   
   def __call__(self, array):
     return [conv(array[i]) for i, conv in self.permutation]
+
+  def write(self, raw_array, array, offset):
+    for i, conv in self.permutation:
+      conv.write(raw_array[i], array, offset)
+      offset += conv.flat_size
 
 max_char_id = 32 # should be large enough?
 

@@ -1,5 +1,6 @@
 from collections import deque
 
+import numpy as np
 import gym
 import ray
 from ray import rllib
@@ -14,6 +15,7 @@ class MultiSSBMEnv(rllib.env.MultiAgentEnv):
   def __init__(self, config):
     print("MultiSSBMEnv", config.keys())
     self._ssbm_config = config["ssbm_config"]
+    self._flat_obs = config.get("flat_obs", False)
     self._episode_length = config["episode_length"]
     self._steps_this_episode = 0
     self._env = None
@@ -24,18 +26,33 @@ class MultiSSBMEnv(rllib.env.MultiAgentEnv):
     #self.action_space = None
     self.action_space = gym.spaces.Discrete(action_set.size)
     #self.observation_space = None
-    self.observation_space = ssbm_spaces.game_conv_list[0].space
+    if self._flat_obs:
+      self.observation_space = gym.spaces.Box(
+        low=-10, high=10,
+        shape=(ssbm_spaces.game_conv_list[0].flat_size,),
+        dtype=np.float32)
+    else:
+      self.observation_space = ssbm_spaces.game_conv_list[0].space
+    print(self.observation_space)
 
   def _get_obs(self):
     game_state = self._env.get_state()
     return {
-      pid: ssbm_spaces.game_conv_list[pid](game_state)
-      for pid in self._env.ai_pids
+        pid: self._convs[pid](game_state)
+        for pid in self._env.ai_pids
     }
 
   def reset(self):
     if self._env is None:
       self._env = SSBMEnv(**self._ssbm_config)
+
+      self._convs = {
+          pid: ssbm_spaces.game_conv_list[pid]
+          for pid in self._env.ai_pids
+      }
+      if self._flat_obs:
+        self._convs = {pid: conv.make_flat for pid, conv in self._convs.items()}
+
     return self._get_obs()
   
   def step(self, actions):
