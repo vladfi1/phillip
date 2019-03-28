@@ -4,6 +4,7 @@ Responsible for interfacing with Dolphin to interface with SSBM, and handles thi
 * stage selection
 """
 
+import atexit
 import os
 import functools
 import enum
@@ -114,6 +115,7 @@ class SSBMEnv(Default):
     
     print('Running dolphin.')
     self.dolphin_process = self.dolphin.run(self.players)
+    atexit.register(self.dolphin_process.kill)
 
     try:
       #time.sleep(2) # wait for dolphin to start up
