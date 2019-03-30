@@ -59,6 +59,10 @@ class SSBMEnv(Default):
 
     #self.user = os.path.expanduser(self.user)
     self.user = self.dolphin.user
+
+    # boot to match code is currently hardcoded    
+    if self.dolphin.boot_to_match:
+      self.cpu2 = 9
     
     # set up players
     self.pids = []

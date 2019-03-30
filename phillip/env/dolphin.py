@@ -61,11 +61,18 @@ DumpPath = {dump_path}
 
 gale01_ini = """
 [Gecko_Enabled]
+"""
+
+default_ini = """
+$Netplay Community Settings
+"""
+
+exi_ini = """
 $DMA Read Before Poll
+"""
+
+speedhack_ini = """
 $Speed Hack
-$Fox vs Fox-9
-$Boot To Match
-$Skip Memcard Prompt
 """
 
 lcancel_ini = """
@@ -85,7 +92,6 @@ $Game Music ON
 """
 
 boot_to_match_ini = """
-[Gecko_Enabled]
 $Fox vs Fox-9
 $Boot To Match
 $Skip Memcard Prompt
@@ -122,6 +128,8 @@ class DolphinRunner(Default):
     Option('dump_path', type=str, default=''),
     Option('lcancel_flash', action="store_true", help="flash on lcancel"),
     Option('boot_to_match', action="store_true", help="boot to match with gecko codes"),
+    Option('exi', type=int, default=1, help="use if memory watcher is inside EXI device"),
+    Option('speedhack', type=int, default=0, help="run game at unlimited speed"),
   ]
 
   def setup_user(self, players):
@@ -169,11 +177,20 @@ class DolphinRunner(Default):
     gameSettings = self.user + '/GameSettings'
     util.makedirs(gameSettings)
     with open(gameSettings + '/GALE01.ini', 'w') as f:
-      ini = gale01_ini_fm if self.fm else gale01_ini
-      if self.boot_to_match:
-        ini = boot_to_match_ini
-      if self.lcancel_flash:
-        ini += lcancel_ini
+      if self.fm:
+        ini = gale01_ini_fm
+      else:
+        ini = gale01_ini
+        if self.exi:
+          ini += exi_ini
+        if self.speedhack:
+          ini += speedhack_ini
+        if self.boot_to_match:
+          ini += boot_to_match_ini
+        else:
+          ini += default_ini
+        if self.lcancel_flash:
+          ini += lcancel_ini
       print(ini)
       f.write(ini)
 
@@ -181,14 +198,18 @@ class DolphinRunner(Default):
   
   def __init__(self, **kwargs):
     Default.__init__(self, **kwargs)
-    
+        
     if self.user is None:
       import tempfile
       self.user = tempfile.mkdtemp() + '/'
     
     print("Dolphin user dir", self.user)
+
+    if self.speedhack:
+      self.boot_to_match = True
     
     if self.gui or self.windows:
+      self.speedhack = 0
       # switch from headless to gui
       if self.exe.endswith("-headless"):
         #self.exe = self.exe[:-9]

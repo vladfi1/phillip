@@ -140,10 +140,10 @@ class SumConv(Conv):
       offset += conv.flat_size
 
 class DiscreteConv(Conv):
-  default_value = 0
 
   def __init__(self, size, name="DiscreteConv"):
     self.size = size
+    self.default_value = size
     self.space = spaces.Discrete(size+1)
     self.name = name
     self.flat_size = size + 1
@@ -190,7 +190,7 @@ max_char_id = 32 # should be large enough?
 max_action_state = 0x017E
 num_action_states = 1 + max_action_state
 
-xy_conv = partial(symmetric_conv, 256)
+xy_conv = partial(symmetric_conv, 260)
 frame_conv = partial(positive_conv, 180)
 
 # generally less than 1 in magnitude
