@@ -1,4 +1,8 @@
 from collections import deque
+import os
+import psutil
+import cProfile
+import time
 
 import numpy as np
 import gym
@@ -18,6 +22,8 @@ class MultiSSBMEnv(rllib.env.MultiAgentEnv):
     self._flat_obs = config.get("flat_obs", False)
     self._episode_length = config["episode_length"]
     self._steps_this_episode = 0
+    self._cpu = config.get('cpu')
+    self._profile = config.get('profile', False)
     self._env = None
     self._act_every = config.get("act_every", 3)
     action_set = ssbm.actionTypes["custom_sh2_wd"]
@@ -45,6 +51,15 @@ class MultiSSBMEnv(rllib.env.MultiAgentEnv):
   def reset(self):
     if self._env is None:
       self._env = SSBMEnv(**self._ssbm_config)
+      if self._cpu is not None:
+        psutil.Process().cpu_affinity([self._cpu])
+        # set cpu affinity on dolphin process and all threads
+        os.system('taskset -a -c -p %d %d' % (self._cpu, self._env.dolphin_process.pid))
+
+      if self._profile:
+        self._profile_counter = 0
+        self._profiler = cProfile.Profile()
+        #self._profiler.enable()
 
       self._convs = {
           pid: ssbm_spaces.game_conv_list[pid]
@@ -54,8 +69,16 @@ class MultiSSBMEnv(rllib.env.MultiAgentEnv):
         self._convs = {pid: conv.make_flat for pid, conv in self._convs.items()}
 
     return self._get_obs()
-  
+
   def step(self, actions):
+    if self._profile:
+      self._profile_counter += 1
+      if self._profile_counter % 10000 == 0:
+        self._profiler.dump_stats('/tmp/ssbm_stats')
+      return self._profiler.runcall(self._step, actions)
+    return self._step(actions)
+
+  def _step(self, actions):
     self._steps_this_episode += 1
     chains = {pid: self._action_chains[action] for pid, action in actions.items()}
     
@@ -79,7 +102,24 @@ class MultiSSBMEnv(rllib.env.MultiAgentEnv):
     dones = {"__all__": done}
     return obs, rewards, dones, {}
 
-RemoteSSBMEnv = ray.remote(MultiSSBMEnv)
+
+class TestEnv(rllib.env.MultiAgentEnv):
+  def __init__(self, config):
+    self._step_time_s = config.get('step_time_ms', 10) / 1000
+    self._obs_size = config.get('obs_size', 900)
+    self.observation_space = gym.spaces.Box(-1, 1, [self._obs_size], float)
+    self._obs = np.zeros([self._obs_size])
+    self.action_space = gym.spaces.Discrete(50)
+
+  def _get_obs(self):
+    return {0: self._obs}
+
+  def reset(self):
+    return self._get_obs()
+
+  def step(self, actions):
+    time.sleep(self._step_time_s)
+    return self._get_obs(), {0:0}, NONE_DONE, {}
 
 
 def seq_to_dict(seq):
@@ -91,12 +131,14 @@ def map_dict(f, d):
 NONE_DONE = {"__all__": False}
 
 
-class AsyncSSBMEnv(rllib.env.BaseEnv):
+class AsyncEnv(rllib.env.BaseEnv):
   
   def __init__(self, config):
-    print("AsyncSSBMEnv", config.keys())
-    self._config = config.copy()
-    self._dummy_env = MultiSSBMEnv(config)
+    print("AsyncEnv", config.keys())
+    self._config = config.copy()  # copy necessary for sending config to remotes
+    self._base_env_type = config.get("base_env", MultiSSBMEnv)
+    self._remote_env_type = ray.remote(self._base_env_type)
+    self._dummy_env = self._base_env_type(config)
     self.action_space = self._dummy_env.action_space
     self.observation_space = self._dummy_env.observation_space
     self._first_poll = True
@@ -106,11 +148,14 @@ class AsyncSSBMEnv(rllib.env.BaseEnv):
     self._queue = deque()
   
   def first_poll(self):
-    print("first poll")
-    print("AsyncSSBMEnv", self._config.keys())
-    self._envs = [
-      RemoteSSBMEnv.remote(self._config)
-      for _ in range(self._num_envs)]
+    self._envs = []
+
+    for i in range(self._num_envs):
+      config = self._config.copy()
+      if self._config.get("cpu_affinity"):
+        psutil.Process().cpu_affinity([6])
+        config["cpu"] = i
+      self._envs.append(self._remote_env_type.remote(config))
 
     obs = ray.get([env.reset.remote() for env in self._envs])
     rewards = [map_dict(lambda _: 0., ob) for ob in obs]
