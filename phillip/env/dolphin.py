@@ -129,7 +129,7 @@ class DolphinRunner(Default):
     Option('lcancel_flash', action="store_true", help="flash on lcancel"),
     Option('boot_to_match', action="store_true", help="boot to match with gecko codes"),
     Option('exi', type=int, default=1, help="use if memory watcher is inside EXI device"),
-    Option('speedhack', type=int, default=0, help="run game at unlimited speed"),
+    Option('speedhack', action="store_true", help="run game at unlimited speed"),
   ]
 
   def setup_user(self, players):

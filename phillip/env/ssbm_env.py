@@ -33,7 +33,7 @@ str_to_player = {p.name.lower(): p for p in Player}
 
 class SSBMEnv(Default):
   _options = [
-    Option('zmq', type=int, default=0, help="use zmq for memory watcher"),
+    Option('zmq', type=int, default=1, help="use zmq for memory watcher"),
     Option('tcp', type=int, default=0, help="use zmq over tcp for memory watcher and pipe input"),
     Option('stage', type=str, default="final_destination", choices=movie.stages.keys(), help="which stage to play on"),
     Option('start', type=int, default=1, help="start game in endless time mode"),
