@@ -18,24 +18,30 @@ ray.init(
 
 unroll_length = 60
 train_batch_size = 128
-num_envs = 5
+num_envs = 6
 async_env = True
 batch_inference = True
+vec_env = False  # batch using a single vectorized env
 fc_depth = 2
-use_test_env = False
+use_test_env = True
 
 #if not use_test_env:
 #  args.
 
 batch_inference = async_env and batch_inference
+vec_env = vec_env and batch_inference
 base_env = test_env.TestEnv if use_test_env else ray_env.MultiSSBMEnv
 exp_name = "test" if test_env else "ssbm"
 #import psutil
 #psutil.Process().cpu_affinity([7])
 
+top_env = base_env
+if async_env:
+  top_env = test_env.BaseMPEnv if vec_env else test_env.MPEnv
+
 tune.run_experiments({
   exp_name: {
-    "env": test_env.MPEnv if async_env else base_env,
+    "env": top_env,
     "run": agents.impala.ImpalaAgent,
     #"run": agents.a3c.A3CAgent,
     #"run": agents.a3c.A2CAgent,
@@ -46,7 +52,7 @@ tune.run_experiments({
         
         "ssbm_config": args.__dict__,  # config to pass to env class
         "episode_length": None,
-        "num_envs": num_envs if batch_inference else 1,
+        "num_envs": num_envs if vec_env else 1,
         "delay": 2,
         "flat_obs": True,
         #"cpu_affinity": True,
@@ -59,7 +65,7 @@ tune.run_experiments({
       "optimizer": {
           "train_batch_size": unroll_length * train_batch_size,
           "replay_buffer_num_slots": 4 * train_batch_size + 1,
-          "replay_proportion": 0,
+          "replay_proportion": 3,
           "learner_queue_size": 4,
       },
       #"sample_async": True,
@@ -68,8 +74,8 @@ tune.run_experiments({
       #"soft_horizon": True,
       "num_workers": 1 if batch_inference else num_envs,
       "num_gpus_per_worker": 0.5 if batch_inference else 0,
-      #"num_cpus_per_worker": 2 if async_env else 1,
-      "num_envs_per_worker": num_envs if batch_inference else 1,
+      "num_cpus_per_worker": (1+num_envs) if batch_inference else 1,
+      "num_envs_per_worker": 1 if vec_env else num_envs,
       # "remote_worker_envs": True,
       "model": {
         #"max_seq_len": unroll_length,
