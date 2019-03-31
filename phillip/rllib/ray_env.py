@@ -146,7 +146,9 @@ class AsyncEnv(rllib.env.BaseEnv):
     self._num_envs = config["num_envs"]
     self._delay = config["delay"]
     self._queue = deque()
-  
+    #self._queues = [deque() for _ in range(self._num_envs)]
+    #self._timeout = config.get("timeout")
+
   def first_poll(self):
     self._envs = []
 
@@ -182,6 +184,7 @@ class AsyncEnv(rllib.env.BaseEnv):
         env.step.remote(action_dict[i])
         for i, env in enumerate(self._envs)
     ])
+    assert(len(self._queue) == self._delay)
 
   def try_reset(self, env_id):
     return ray.get(self._envs[env_id].reset.remote())
