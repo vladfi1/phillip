@@ -205,7 +205,9 @@ class DolphinRunner(Default):
     
     print("Dolphin user dir", self.user)
 
-    if self.speedhack:
+    # with exi, the frame counter is changed and doesn't work in menus
+    # so we have to boot straight into the match
+    if self.speedhack or self.exi:
       self.boot_to_match = True
     
     if self.gui or self.windows:
