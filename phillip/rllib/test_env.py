@@ -123,7 +123,9 @@ class MPEnv(rllib.env.MultiAgentEnv):
 
   def step(self, actions):
     self._conn.send(('step', actions))
-    return self._conn.recv()
+    data = self._conn.recv()
+    self._last_obs = data[0]
+    return data
 
   def close(self):
     self._conn.send(('close', None))
