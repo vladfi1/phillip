@@ -8,18 +8,26 @@ from phillip.rllib import ray_env, test_env
 
 parser = argparse.ArgumentParser()
 SSBMEnv.update_parser(parser)
+parser.add_argument('--num_workers', type=int)
+parser.add_argument('--num_envs_per_worker', type=int)
+parser.add_argument('--cluster', action='store_true')
 args = parser.parse_args()
 
 
-ray.init(
-  redis_max_memory=int(4e9),
-  object_store_memory=int(4e9),
-)
+if args.cluster:
+  ray.init(
+    redis_address="10.0.1.45:6379"
+  )
+else:
+  ray.init(
+    redis_max_memory=int(4e9),
+    object_store_memory=int(4e9),
+  )
 
 unroll_length = 60
 train_batch_size = 128
-num_workers = 1
-num_envs = 2
+num_workers = args.num_workers or 2
+num_envs = args.num_envs_per_worker or 2
 async_env = True
 batch_inference = True
 vec_env = False  # batch using a single vectorized env
@@ -33,7 +41,7 @@ use_test_env = False
 batch_inference = async_env and batch_inference
 vec_env = vec_env and batch_inference
 base_env = test_env.TestEnv if use_test_env else ray_env.MultiSSBMEnv
-exp_name = "test" if test_env else "ssbm"
+exp_name = "test" if use_test_env else "ssbm"
 #import psutil
 #psutil.Process().cpu_affinity([7])
 
@@ -75,7 +83,7 @@ tune.run_experiments({
       "horizon": 1200,  # one minute
       #"soft_horizon": True,
       "num_workers": num_workers if batch_inference else num_envs,
-      "num_gpus_per_worker": 0 if batch_inference else 0,
+      "num_gpus_per_worker": 0.1 if batch_inference else 0,
       "num_cpus_per_worker": (1+num_envs) if batch_inference else 1,
       "num_envs_per_worker": 1 if vec_env else num_envs,
       # "remote_worker_envs": True,
