@@ -78,7 +78,6 @@ class CloudpickleWrapper(object):
         return self.x(*args, **kwargs)
 
 import multiprocessing as mp
-ctx = mp.get_context('spawn')  # apparently this is better
 
 
 class MPEnv(rllib.env.MultiAgentEnv):
@@ -100,6 +99,7 @@ class MPEnv(rllib.env.MultiAgentEnv):
 
   def reset(self):
     if self._first_reset:
+      ctx = mp.get_context(self._config.get("mp_context", "spawn"))
       self._conn, child_conn = ctx.Pipe()
       env_fn = CloudpickleWrapper(self._base_env_type)
       self._env_process = ctx.Process(target=run_env, args=(child_conn, env_fn, self._config))
@@ -158,13 +158,17 @@ class BaseMPEnv(rllib.env.BaseEnv):
       conn.send((cmd, args))
   
   def first_poll(self):
+    ctx = mp.get_context(self._config.get("mp_context", "spawn"))
     self._conns, child_conns = zip(*[
         ctx.Pipe() for _ in range(self._num_envs)])
     self._env_procs = []
-    for conn in child_conns:
+    for i, conn in enumerate(child_conns):
+      config = self._config.copy()
+      if self._config.get("cpu_affinity"):
+        config["cpu"] = i
       proc = ctx.Process(
           target=run_env,
-          args=(conn, self._env_fn, self._config))
+          args=(conn, self._env_fn, config))
       proc.daemon = True
       proc.start()
       self._env_procs.append(proc)
