@@ -5,6 +5,9 @@ from ray.rllib import agents
 
 from phillip.env.ssbm_env import SSBMEnv
 from phillip.rllib import ssbm_env, rllib_env
+from phillip.rllib import model
+
+model.register()
 
 parser = argparse.ArgumentParser()
 SSBMEnv.update_parser(parser)
@@ -33,6 +36,7 @@ batch_inference = True
 vec_env = False  # batch using a single vectorized env
 fc_depth = 2
 fc_width = 256
+delay = 2
 use_test_env = False
 
 #if not use_test_env:
@@ -63,7 +67,7 @@ tune.run_experiments({
         "ssbm_config": args.__dict__,  # config to pass to env class
         "episode_length": None,
         "num_envs": num_envs if vec_env else 1,
-        "delay": 2,
+        "delay": delay,
         "flat_obs": True,
         #"cpu_affinity": True,
         #"profile": True,
@@ -88,6 +92,10 @@ tune.run_experiments({
       "num_envs_per_worker": 1 if vec_env else num_envs,
       # "remote_worker_envs": True,
       "model": {
+        #"custom_model": "delayed_action",
+        "custom_options": {
+          "delay": delay,
+        },
         #"max_seq_len": unroll_length,
         "use_lstm": True,
         "lstm_use_prev_action_reward": True,
