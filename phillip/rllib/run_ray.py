@@ -4,7 +4,7 @@ from ray import tune
 from ray.rllib import agents
 
 from phillip.env.ssbm_env import SSBMEnv
-from phillip.rllib import ray_env, test_env
+from phillip.rllib import ssbm_env, rllib_env
 
 parser = argparse.ArgumentParser()
 SSBMEnv.update_parser(parser)
@@ -40,14 +40,14 @@ use_test_env = False
 
 batch_inference = async_env and batch_inference
 vec_env = vec_env and batch_inference
-base_env = test_env.TestEnv if use_test_env else ray_env.MultiSSBMEnv
+base_env = rllib_env.TestEnv if use_test_env else ssbm_env.MultiSSBMEnv
 exp_name = "test" if use_test_env else "ssbm"
 #import psutil
 #psutil.Process().cpu_affinity([7])
 
 top_env = base_env
 if async_env:
-  top_env = test_env.BaseMPEnv if vec_env else test_env.MPEnv
+  top_env = rllib_env.BaseMPEnv if vec_env else rllib_env.MPEnv
 
 tune.run_experiments({
   exp_name: {

@@ -1,3 +1,5 @@
+"""Contains plain rllib code (no ssbm)."""
+
 import time
 import numpy as np
 import gym
