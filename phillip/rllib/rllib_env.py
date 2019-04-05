@@ -132,6 +132,9 @@ class MPEnv(rllib.env.MultiAgentEnv):
   def close(self):
     self._conn.send(('close', None))
     #self._env_process.terminate
+    
+  def render(self):
+    pass
 
 
 class BaseMPEnv(rllib.env.BaseEnv):
