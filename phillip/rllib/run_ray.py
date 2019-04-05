@@ -14,6 +14,8 @@ SSBMEnv.update_parser(parser)
 parser.add_argument('--num_workers', type=int)
 parser.add_argument('--num_envs_per_worker', type=int)
 parser.add_argument('--cluster', action='store_true')
+parser.add_argument('--vec_env', action='store_true', help="batch using a single vectorized env")
+parser.add_argument('--cpu_affinity', action='store_true')
 args = parser.parse_args()
 
 
@@ -29,21 +31,20 @@ else:
 
 unroll_length = 60
 train_batch_size = 128
-num_workers = args.num_workers or 2
-num_envs = args.num_envs_per_worker or 2
+num_workers = args.num_workers or 1
+num_envs = args.num_envs_per_worker or 1
 async_env = True
-batch_inference = True
-vec_env = False  # batch using a single vectorized env
+batch_inference = True  # multiple envs per worker
 fc_depth = 2
 fc_width = 256
-delay = 2
+delay = 1
 use_test_env = False
 
 #if not use_test_env:
 #  args.
 
 batch_inference = async_env and batch_inference
-vec_env = vec_env and batch_inference
+vec_env = args.vec_env and batch_inference
 base_env = rllib_env.TestEnv if use_test_env else ssbm_env.MultiSSBMEnv
 exp_name = "test" if use_test_env else "ssbm"
 #import psutil
@@ -69,7 +70,7 @@ tune.run_experiments({
         "num_envs": num_envs if vec_env else 1,
         "delay": delay,
         "flat_obs": True,
-        #"cpu_affinity": True,
+        "cpu_affinity": args.cpu_affinity,
         #"profile": True,
 
         "step_time_ms": 1,
@@ -92,7 +93,7 @@ tune.run_experiments({
       "num_envs_per_worker": 1 if vec_env else num_envs,
       # "remote_worker_envs": True,
       "model": {
-        #"custom_model": "delayed_action",
+        "custom_model": "delayed_action",
         "custom_options": {
           "delay": delay,
         },
