@@ -22,7 +22,7 @@ class Actor(RL.RL):
       states = self.embedGame(batch_input['state'])
       prev_actions = self.embedAction(batch_input['prev_action'])
       combined = tf.concat(axis=-1, values=[states, prev_actions])
-      history = tf.unstack(combined)
+      history = tf.unstack(combined, axis=1)
       inputs = tf.concat(axis=-1, values=history)
       core_output, hidden_state = self.core(inputs, batch_input['hidden'])
       actions = self.embedAction(batch_input['delayed_action'])
