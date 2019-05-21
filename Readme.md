@@ -18,13 +18,15 @@ pip3 install -e . # "." is the path to the current directory - don't omit!
 
 Installing in editable mode (`-e`) allows you to make local changes without reinstalling, which is useful if you are using a cloned repo and want to update by pulling (`git pull`).
 
-If cloning, you may wish to use `--depth 1` to avoid downloading large files from phillip's history (most of which are now gone and should be purged from git). These are the saved agents, which are in the process of being moved to [git large file storage](https://git-lfs.github.com/). Currently only `agents/delay12/FalcoBF` lives there. To get it:
+If cloning, you may wish to use `--depth 1` to avoid downloading large files from phillip's history (most of which are now gone and should be purged from git). These are the saved agents, which are in the process of being moved to [git large file storage](https://git-lfs.github.com/). Currently the best agents such as `agents/delay18/FalcoBF` live there. To get it:
 
 ```bash
 sudo apt-get install git-lfs # on ubuntu; for other systems see the website
 git-lfs install
 git-lfs pull
 ```
+
+As an alternative, you can download a [zip](https://drive.google.com/open?id=1uHghos9e3aXoT19Tn9v6rDYBBclCWt-U) with all the agents.
 
 ## Play
 
