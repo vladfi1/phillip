@@ -39,7 +39,8 @@ class Trainer(Default):
     Option("max_age", type=int, help="how old an experience can be before we discard it"),
     Option("max_kl", type=float, help="how off-policy an experience can be before we discard it"),
     Option("max_buffer", type=int, help="maximum size of experience buffer"),
-    
+    Option('buffer_ratio', type=float, default=0., help="fraction of batch taken from buffer"),
+
     Option("log_interval", type=int, default=100),
     Option("dump", type=str, default="lo", help="interface to listen on for experience dumps"),
     Option('send', type=int, default=1, help="send the network parameters on an nnpy PUB socket"),
@@ -141,6 +142,22 @@ class Trainer(Default):
     timer = util.Timer()
     def split(name):
       averages[name].append(timer.split())
+
+    num_fresh = max(self.min_collect, int((1 - self.buffer_ratio) * self.batch_size))
+    num_old = self.batch_size - num_fresh
+    print("num_old", num_old, "num_fresh", num_fresh)
+      
+    def pull_experience(block=True):
+      exp = self.experience_socket.recv(flags=0 if block else nnpy.DONTWAIT)
+      return pickle.loads(exp)
+
+    use_replay = self.max_buffer and self.buffer_ratio
+
+    # fill the buffer
+    if use_replay:
+      print("Filling replay buffer")
+      replay_buffer = util.CircularQueue(array=[pull_experience() for _ in range(self.max_buffer)])
+      print("Filled replay buffer")
     
     while sweeps != self.sweep_limit:
       sweeps += 1
@@ -148,7 +165,6 @@ class Trainer(Default):
       
       #print('Start: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
 
-      experiences = []
       if self.max_age is not None:
         age_limit = global_step - self.max_age
         is_valid = lambda exp: exp['global_step'] >= age_limit
@@ -156,13 +172,9 @@ class Trainer(Default):
       else:
         is_valid = lambda _: True
       # dropped = old_len - len(experiences)
-      
-      def pull_experience(block=True):
-        exp = self.experience_socket.recv(flags=0 if block else nnpy.DONTWAIT)
-        return pickle.loads(exp)
 
       # to_collect = max(self.sweep_size - len(experiences), self.min_collect)
-      to_collect = self.batch_size
+      to_collect = num_fresh
       new_experiences = []
 
       # print("Collecting experiences", len(experiences))
@@ -194,12 +206,18 @@ class Trainer(Default):
           # a real error
           raise e
 
-      # experiences += new_experiences
-      experiences = new_experiences[-self.batch_size:]
-      
+      if use_replay:
+        old_experiences = random.sample(replay_buffer.array, num_old)
+        experiences = old_experiences + new_experiences
+      else:
+        experiences = new_experiences
+
+      # prevent OOM if too many come in
+      experiences = experiences[-self.batch_size:]
+
       ages = np.array([global_step - exp['global_step'] for exp in experiences])
-      print("Mean age:", ages.mean())
-            
+      print("Mean age:", ages.mean() / self.learner.num_steps_per_batch)
+
       #print('After collect: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
       split('extra_collect')
       
@@ -213,11 +231,14 @@ class Trainer(Default):
         step += 1
       except tf.errors.InvalidArgumentError as e:
         # always a NaN in histogram summary for entropy - what's up with that?
-        experiences = []
+        new_experiences = []
         print(e)
         continue
-      
-      # print("Mean KL", np.mean(kls))
+
+      # add new experiences to the replay buffer
+      if use_replay:
+        for exp in new_experiences:
+          replay_buffer.push(exp)
       
       #print('After train: %s' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
       split('train')
@@ -250,7 +271,7 @@ class Trainer(Default):
       time_avgs = [averages[name].avg for name in times]
       total_time = sum(time_avgs)
       time_avgs = [f3(t / total_time) for t in time_avgs]
-      print(sweeps, len(experiences), doa, f3(total_time), *time_avgs)
+      print(sweeps, len(new_experiences), doa, f3(total_time), *time_avgs)
       #print('Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
 
       if self.objgraph:

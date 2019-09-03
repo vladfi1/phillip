@@ -52,8 +52,7 @@ class Critic(Default):
     advantages = targets - trainVs
     
     advantage_avg = tf.reduce_mean(advantages)
-    tf.summary.scalar('advantage_avg', advantage_avg)
-    tf.summary.scalar('advantage_std', tf.sqrt(tfl.sample_variance(advantages)))
+    tfl.stats(advantages, 'advantage')
     
     vLoss = tf.reduce_mean(tf.square(advantages))
     tf.summary.scalar('v_loss', vLoss)

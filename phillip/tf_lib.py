@@ -63,14 +63,17 @@ def kl(logp, logq):
 def sample_variance(xs):
   return tf.reduce_mean(tf.squared_difference(xs, tf.reduce_mean(xs)))
 
-def stats(xs, name=None):
+def stats(xs, name=None, minmax=False):
   mean = tf.reduce_mean(xs)
   std = tf.sqrt(tf.reduce_mean(tf.squared_difference(xs, mean)))
   
   if name:
     tf.summary.scalar(name + '/mean', mean)
     tf.summary.scalar(name + '/std', std)
-  
+    if minmax:
+      tf.summary.scalar(name + '/min', tf.reduce_min(xs))
+      tf.summary.scalar(name + '/max', tf.reduce_max(xs))
+
   return mean, std
 
 def apply_grads(params, grads):
@@ -485,11 +488,15 @@ def test_smoothed_returns():
 def restore(session, variables, ckpt_path):
   """Does what a saver would do, but handles mismatched shapes."""
   ckpt = checkpoint_utils.load_checkpoint(ckpt_path)
-  
+
   for var in variables:
     name = var.name
     if name.endswith(":0"):
       name = name[:-2]
+    if not ckpt.has_tensor(name):
+      print("%s not in checkpoint, initializing" % name)
+      var.load(session.run(var.initial_value), session)
+      continue
     value = ckpt.get_tensor(name)
     pads = [(0, d1 - d2) for d1, d2 in zip(var.get_shape().as_list(), value.shape)]
     needs_pad = any([p[1] for p in pads])
@@ -497,4 +504,3 @@ def restore(session, variables, ckpt_path):
       print("Variable %s of shape %s padded from %s" % (var.name, var.get_shape().as_list(), value.shape))
       value = np.pad(value, pads, "constant")
     var.load(value, session)
-

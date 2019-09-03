@@ -25,7 +25,8 @@ class Model(Default):
     self.core = core
     
     self.input_size = core.output_size + action_size
-    
+    self.while_loop = tf.while_loop if self.dynamic else tfl.while_loop
+        
     with tf.variable_scope(scope):
       net = tfl.Sequential()
       
@@ -161,6 +162,6 @@ class Model(Default):
 
     loop_vars = (0, history, core_outputs, hidden_states, last_state)
     cond = lambda i, *_: i < self.predict_steps
-    _, _, predicted_core_outputs, _, _ = tf.while_loop(cond, predict_step, loop_vars)
+    _, _, predicted_core_outputs, _, _ = self.while_loop(cond, predict_step, loop_vars)
     return predicted_core_outputs
 

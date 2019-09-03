@@ -1,5 +1,6 @@
-from phillip.RL import RL
+import math
 import tensorflow as tf
+from phillip.RL import RL
 from . import ssbm, util, ctype_util as ct, embed
 from .core import Core
 from .ac import ActorCritic
@@ -7,6 +8,7 @@ from .critic import Critic
 from phillip import tf_lib as tfl
 from .mutators import relative
 from .default import Option
+from phillip import reward
 import os
 
 class Learner(RL):
@@ -30,6 +32,10 @@ class Learner(RL):
     Option('batch_size', type=int),
     Option('neg_reward_scale', type=float, default=1., help="scale down negative rewards for more optimism"),
     Option('unpredict_weight', type=float, default=0., help="regress delayed actions (computed with prediction) to the undelayed ones (computed on true states)"),
+
+    Option('damage_ratio', type=float, default=0.01, help="damage scale vs stocks"),
+    Option('distance_scale', type=float, default=0., help="distance pseudo-reward"),
+    Option('action_state_entropy_scale', type=float, default=0, help="reward unusual action states"),
   ]
 
   def __init__(self, debug=False, **kwargs):
@@ -47,6 +53,7 @@ class Learner(RL):
         self._init_policy(**kwargs)
       
       # build computation graph
+      losses = {}
 
       # to train the the policy, you have to train the critic. (self.train_policy and 
       # self.train_critic might both be false, if we're only training the predictive
@@ -64,6 +71,48 @@ class Learner(RL):
       # initial state for recurrent networks
       self.experience['initial'] = tuple(tf.placeholder(tf.float32, [None, size], name='experience/initial/%d' % i) for i, size in enumerate(self.core.hidden_size))
       experience['initial'] = self.experience['initial']
+
+      # auxiliary reward computation
+      
+      # rewards = experience['reward']
+      # TODO: move these into reward.py?
+      kill_death = reward.compute_rewards(experience['state'], damage_ratio=0., lib=tf)
+      tfl.stats(kill_death * self.config.fps * 60, 'kill_death')
+      
+      rewards = reward.compute_rewards(experience['state'], damage_ratio=self.damage_ratio, lib=tf)
+      avg_reward, _ = tfl.stats(rewards, 'reward')
+
+      # distance rewards encourage agents to interact more
+      distances, distance_rewards = reward.pseudo_rewards(experience['state'], reward.distance, 1., lib=tf)
+      tfl.stats(distances, 'distances')
+      tfl.stats(distance_rewards, 'distance_rewards')
+      rewards += self.distance_scale * distance_rewards
+
+      # action_state_entropy encourages agent to explore new action states
+      own_action_states = experience['state']['players'][1]['action_state']
+      
+      action_state_logits = tf.Variable(tf.zeros([embed.numActions]), name="action_state_logits")
+      broadcast_zeros = tf.expand_dims(tf.zeros_like(own_action_states, dtype=tf.float32), -1)  # [T, B, 1]
+      expanded_action_state_logits = action_state_logits + broadcast_zeros  # [T, B, A]
+
+      action_state_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
+        logits=expanded_action_state_logits, labels=own_action_states)
+
+      # don't need to scale because it is independent of the other losses
+      losses['global_action_state'] = tf.reduce_mean(action_state_loss)
+      tf.summary.scalar('action_state_loss', losses['global_action_state'])
+
+      action_state_value = tf.minimum(action_state_loss, math.log(embed.numActions) + 2)
+      action_state_rewards = action_state_value[1:] - action_state_value[:-1]
+      rewards += self.action_state_entropy_scale * action_state_rewards
+      tfl.stats(action_state_rewards, 'action_state_rewards')
+
+      action_state_entropy = -tf.reduce_sum(
+        tf.nn.softmax(action_state_logits) *
+        tf.nn.log_softmax(action_state_logits))
+      tf.summary.scalar('action_state_entropy', action_state_entropy)
+
+      # main RL training here
 
       states = self.embedGame(experience['state'])
       prev_actions = self.embedAction(experience['prev_action'])
@@ -90,12 +139,11 @@ class Learner(RL):
         core_outputs, hidden_states = self.core(inputs, experience['initial'])
 
       actions = actions[memory:]
-      rewards = experience['reward'][memory:]
+      rewards = rewards[memory:]
       
       print("Creating train ops")
 
       train_ops = []
-      losses = []
       loss_vars = []
 
       if self.train_model or self.predict:
@@ -117,7 +165,7 @@ class Learner(RL):
         model_loss, predicted_core_outputs = self.model.train(history, core_outputs, hidden_states, actions, experience['state'], aux_losses=aux_losses)
       if self.train_model:
         #train_ops.append(train_model)
-        losses.append(model_loss)
+        losses['model'] = model_loss
         loss_vars.extend(self.model.getVariables())
       
       if self.train_policy:
@@ -143,9 +191,7 @@ class Learner(RL):
         behavior_probs = experience['prob'][memory+delay:] # these are the actions we can compute probabilities for
         prob_ratios = tf.minimum(train_probs / behavior_probs, 1.)
         self.kls = -tf.reduce_mean(tf.log(prob_ratios), 0)
-        self.kls = tf.check_numerics(self.kls, 'kl')
-        kl = tf.reduce_mean(self.kls)
-        tf.summary.scalar('kl', kl)
+        tfl.stats(self.kls, 'kl')
       else:
         prob_ratios = tf.ones_like() # todo
 
@@ -169,12 +215,12 @@ class Learner(RL):
         critic_loss, targets, advantages = self.critic.train(shifted_core_outputs, rewards[delay:], prob_ratios[:-1])
       
       if self.train_critic:
-        losses.append(critic_loss)
+        losses['critic'] = critic_loss
         loss_vars.extend(self.critic.variables)
       
       if self.train_policy:
         policy_loss = self.policy.train(train_log_probs[:-1], advantages, entropy[:-1])
-        losses.append(policy_loss)
+        losses['policy'] = policy_loss
         loss_vars.extend(self.policy.getVariables())
         
         if self.unpredict_weight:
@@ -186,13 +232,14 @@ class Learner(RL):
           unpredict_kl = tfl.batch_dot(tf.log(true_probs) - tf.log(predicted_probs), true_probs)
           unpredict_kl = tf.reduce_mean(unpredict_kl)
           tf.summary.scalar('unpredict_kl', unpredict_kl)
-          losses.append(self.unpredict_weight * unpredict_kl)
+          losses['unpredict'] = self.unpredict_weight * unpredict_kl
 
       if self.evolve_learning_rate:
         self.learning_rate = tf.Variable(self.learning_rate, trainable=False, name='learning_rate')
         self.evo_variables.append(('learning_rate', self.learning_rate, relative(1.5)))
 
-      total_loss = tf.add_n(losses)
+      # losses = {k: tf.check_numerics(v, k, "check_"+k) for k, v in losses.items()}
+      total_loss = tf.add_n(list(losses.values()))
       with tf.variable_scope('train'):
         optimizer = tf.train.AdamOptimizer(self.learning_rate, epsilon=self.adam_epsilon, beta1=self.adam_beta1)
         gvs = optimizer.compute_gradients(total_loss)
@@ -207,8 +254,6 @@ class Learner(RL):
         train_ops.append(train_op)
       
       print("Created train op(s)")
-      
-      avg_reward, _ = tfl.stats(experience['reward'], 'reward')
       
       misc_ops = []
       
@@ -227,7 +272,8 @@ class Learner(RL):
         self.mutators.append(tf.assign(evo_variable, mutator(evo_variable)))
       
       self.summarize = tf.summary.merge_all()
-      misc_ops.append(tf.assign_add(self.global_step, self.batch_size * self.config.experience_length * self.config.act_every))
+      self.num_steps_per_batch = self.batch_size * self.config.experience_length * self.config.act_every
+      misc_ops.append(tf.assign_add(self.global_step, self.num_steps_per_batch))
       self.misc = tf.group(*misc_ops)
       self.train_ops = tf.group(*train_ops)
 

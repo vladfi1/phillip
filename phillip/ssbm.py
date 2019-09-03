@@ -14,6 +14,7 @@ from . import reward
 import numpy as np
 import itertools
 import attr
+from .state import Character
 
 @pretty_struct
 class Stick(Structure):
@@ -153,17 +154,35 @@ class SimpleController(object):
     controller.stick_MAIN = self.stick
     return controller
   
-  def banned(self, char):
-    if char == 'peach':
-      return self.button == SimpleButton.B and self.stick == neutral_stick
-    if char in ['sheik', 'zelda']:
-      return self.button == SimpleButton.B and self.stick[1] == 0
-    if char == 'fox':
-      return self.button == SimpleButton.B and self.stick == neutral_stick
+  def banned(self, player, char):
+    # toad does weird things. needs investigation
+    if char == 'peach' and self.button == SimpleButton.B and self.stick == neutral_stick:
+      return True
+    # transforming screws up the memory watcher
+    if char in ['sheik', 'zelda'] and  self.button == SimpleButton.B and self.stick[1] < 0.5:
+      return True
+    # fox dittos can end up in infinite lasers
+    #if char == 'fox' and self.button == SimpleButton.B and self.stick == neutral_stick:
+    #  return True
+    # fox and falco suck at recovering because they learn to just shine-stall
+    # they also learn to never side-b because it sometimes leads to instant death
+    if char in ['fox', 'falco'] and self.button == SimpleButton.B:
+      if self.stick[0] > 0.5 and player.x > 0: return True  # don't side-B off the right
+      if self.stick[0] < 0.5 and player.x < 0: return True  # don't side-B off the left
+      if self.stick[1] < 0.5:  # shine stall 
+        if abs(player.x) > 100 or player.y < -5: return True
+
+    if char == 'puff':
+      # side-B spam to avoid dying is lame
+      if (player.jumps_used >= 6 and
+          self.button == SimpleButton.B and self.stick[0] != 0.5 and
+          player.y < -5):
+        return True
+
     return False
   
-  def send(self, pad, char):
-    if self.banned(char):
+  def send(self, pad, player, char):
+    if self.banned(player, char):
       pad.send_controller(RealControllerState.neutral)
     else:
       pad.send_controller(self.real_controller)
@@ -174,7 +193,7 @@ SimpleController.neutral = SimpleController.init()
 class RepeatController(object):
   duration = None
 
-  def send(self, pad, char):
+  def send(self, pad, *args):
     pass
 
 repeat_controller = RepeatController()
@@ -202,8 +221,8 @@ class ActionChain(object):
     assert len(self.actions) == act_every
     self.index = 0
 
-  def act(self, pad, char):
-    self.actions[self.index].send(pad, char)
+  def act(self, pad, *args):
+    self.actions[self.index].send(pad, *args)
     self.index += 1
   
   def done(self):
@@ -289,7 +308,7 @@ def prepareStateActions(state_actions):
   """
 
   vectorized = vectorizeCTypes(SimpleStateAction, state_actions)
-  rewards_ = reward.rewards_np(vectorized['state'])
+  rewards_ = reward.compute_rewards(vectorized['state'])
   rewards = reward.computeRewardsSA(state_actions)
   assert(np.max(np.abs(rewards_ - rewards)) < 1e-5)
   
