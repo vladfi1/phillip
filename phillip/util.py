@@ -201,6 +201,7 @@ def hashString(s):
   return hashlib.md5(s).hexdigest()
 
 def port(s):
+  s = os.path.abspath(s)
   print("PORT", s)
   return 5536 + int(hashString(s), 16) % 60000
 
