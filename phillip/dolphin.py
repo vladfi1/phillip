@@ -85,7 +85,9 @@ import os
 from phillip import util
 from phillip.default import *
 
-class SetupUser(Default):
+import subprocess
+
+class DolphinRunner(Default):
   _options = [
     Option('gfx', type=str, default="Null", help="graphics backend"),
     Option('dual_core', type=int, default=1, help="Use separate gpu and cpu threads."),
@@ -106,9 +108,51 @@ class SetupUser(Default):
     Option('dump_encoder', type=str, default=''),
     Option('dump_path', type=str, default=''),
     Option('lcancel_flash', action="store_true", help="flash on lcancel"),
+
+    Option('exe', type=str, default='dolphin-emu-headless', help="dolphin executable"),
+    Option('user', type=str, help="path to dolphin user directory"),
+    Option('iso', type=str, default="SSBM.iso", help="path to SSBM iso"),
+    Option('movie', type=str, help="path to dolphin movie file to play at startup"),
+    Option('setup', type=int, default=1, help="setup custom dolphin directory"),
+    Option('gui', action="store_true", default=False, help="run with graphics and sound at normal speed"),
+    Option('mute', action="store_true", default=False, help="mute game audio"),
+    Option('windows', action='store_true', help="set defaults for windows"),
+    Option('netplay', type=str, help="join traversal server"),
   ]
-  
-  def __call__(self, user):
+
+  def __init__(self, **kwargs):
+    Default.__init__(self, **kwargs)
+    
+    if self.user is None:
+      import tempfile
+      self.user = tempfile.mkdtemp() + '/'
+    
+    print("Dolphin user dir", self.user)
+    
+    #if self.netplay: # need gui version to netplay
+    #  index = self.exe.rfind('dolphin-emu') + len('dolphin-emu')
+    #  self.exe = self.exe[:index]
+    
+    if self.gui or self.windows:
+      # switch from headless to gui
+      if self.exe.endswith("-headless"):
+        #self.exe = self.exe[:-9]
+        self.exe = self.exe[:-9] + "-nogui"
+      
+      # Note: newer dolphins use 'DX11', but win-mw is an old fork.
+      self.speed = 1
+      self.gfx = 'D3D' if self.windows else 'OGL'
+      
+      if self.mute:
+        self.audio = 'No audio backend'
+      else:
+        self.audio = 'XAudio2' if self.windows else 'Pulse'
+      
+    if self.setup:
+      self.setup_user_dir()
+
+  def setup_user_dir(self):
+    user = self.user
     configDir = user + '/Config'
     util.makedirs(configDir)
     
@@ -152,59 +196,6 @@ class SetupUser(Default):
 
     util.makedirs(user + '/Dump/Frames')
 
-import subprocess
-
-class DolphinRunner(Default):
-  _options = [
-    Option('exe', type=str, default='dolphin-emu-headless', help="dolphin executable"),
-    Option('user', type=str, help="path to dolphin user directory"),
-    Option('iso', type=str, default="SSBM.iso", help="path to SSBM iso"),
-    Option('movie', type=str, help="path to dolphin movie file to play at startup"),
-    Option('setup', type=int, default=1, help="setup custom dolphin directory"),
-    Option('gui', action="store_true", default=False, help="run with graphics and sound at normal speed"),
-    Option('mute', action="store_true", default=False, help="mute game audio"),
-    Option('windows', action='store_true', help="set defaults for windows"),
-    Option('netplay', type=str, help="join traversal server"),
-  ]
-  
-  _members = [
-    ('setupUser', SetupUser)
-  ]
-  
-  def __init__(self, **kwargs):
-    Default.__init__(self, init_members=False, **kwargs)
-    
-    if self.user is None:
-      import tempfile
-      self.user = tempfile.mkdtemp() + '/'
-    
-    print("Dolphin user dir", self.user)
-    
-    #if self.netplay: # need gui version to netplay
-    #  index = self.exe.rfind('dolphin-emu') + len('dolphin-emu')
-    #  self.exe = self.exe[:index]
-    
-    if self.gui or self.windows:
-      # switch from headless to gui
-      if self.exe.endswith("-headless"):
-        #self.exe = self.exe[:-9]
-        self.exe = self.exe[:-9] + "-nogui"
-      
-      # Note: newer dolphins use 'DX11', but win-mw is an old fork.
-      kwargs.update(
-        speed = 1,
-        gfx = 'D3D' if self.windows else 'OGL',
-      )
-      
-      if self.mute:
-        kwargs.update(audio = 'No audio backend')
-      else:
-        kwargs.update(audio = 'XAudio2' if self.windows else 'Pulse')
-      
-    if self.setup:
-      self._init_members(**kwargs)
-      self.setupUser(self.user)
-  
   def __call__(self):
     args = [self.exe, "--user", self.user]
     if not self.netplay:
