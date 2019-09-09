@@ -62,7 +62,7 @@ $Match Setup
 
 [Gecko_Enabled]
 $DMA Read Before Poll
-$Speed Hack Render
+{speed_hack}
 $Skip Memcard Prompt
 $Boot To Match
 #$Fox vs Fox-9
@@ -231,8 +231,12 @@ class DolphinRunner(Default):
 
       print(kwargs)
       match_setup_code = gen_code.setup_match_code(**kwargs)
-        
-      ini = gale01_ini.format(match_setup=match_setup_code)
+      
+      speed_hack = '$Speed Hack'
+      if self.gfx != 'Null':
+        speed_hack += ' Render'
+      print(speed_hack)
+      ini = gale01_ini.format(match_setup=match_setup_code, speed_hack=speed_hack)
       if self.lcancel_flash:
         ini += lcancel_ini
       f.write(ini)
