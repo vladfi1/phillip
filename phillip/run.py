@@ -37,7 +37,20 @@ def run(**kwargs):
   print("Creating cpu.")
   cpu = CPU(**params)
 
-  params['cpus'] = cpu.pids
+  # params['cpus'] = cpu.pids
+  for pid in [0, 1]:
+    port = pid + 1
+
+    if cpu.agents[pid] is not None:
+      player = 'ai'
+    elif cpu.cpus[pid] is not None:
+      player = 'cpu'
+      params['cpu%d' % port] = cpu.cpus[pid]
+    else:
+      player = 'human'
+    params['player%d' % port] = player
+    
+    params['char%d' % port] = cpu.characters[pid]
 
   if params.get('dolphin'):
     dolphinRunner = DolphinRunner(**params)

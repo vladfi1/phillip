@@ -56,12 +56,17 @@ DumpPath = {dump_path}
 """
 
 gale01_ini = """
+[Gecko]
+$Match Setup
+{match_setup}
+
 [Gecko_Enabled]
 $DMA Read Before Poll
 $Speed Hack Render
-$Fox vs Fox-9
-$Boot To Match
 $Skip Memcard Prompt
+$Boot To Match
+#$Fox vs Fox-9
+$Match Setup
 """
 
 lcancel_ini = """
@@ -81,11 +86,25 @@ $Lag Reduction
 $Game Music ON
 """
 
+import enum
 import os
 from phillip import util
+from phillip import gen_code
 from phillip.default import *
 
 import subprocess
+
+class Player(enum.Enum):
+  HUMAN = 0
+  CPU = 1
+  AI = 2
+  
+  def player_status(self):
+    if self is Player.CPU:
+      return gen_code.PlayerStatus.CPU
+    return gen_code.PlayerStatus.HUMAN
+
+str_to_player = {p.name.lower(): p for p in Player}
 
 class DolphinRunner(Default):
   _options = [
@@ -118,6 +137,18 @@ class DolphinRunner(Default):
     Option('mute', action="store_true", default=False, help="mute game audio"),
     Option('windows', action='store_true', help="set defaults for windows"),
     Option('netplay', type=str, help="join traversal server"),
+    
+    Option('stage', type=str, choices=gen_code.stage_ids.keys(),
+           default='final_destination', help='stage'),
+  ] + [
+    Option('player%d' % i, type=str, choices=str_to_player.keys(), default='ai',
+           help='player type for port %d' % i) for i in [1, 2]
+  ] + [
+    Option('char%d' % i, type=str, choices=gen_code.char_ids.keys(), default='falcon',
+           help='character for port %d' % i) for i in [1, 2]
+  ] + [
+    Option('cpu%d' % i, type=int, choices=range(1, 10), default=9,
+           help='cpu level for port %d' % i) for i in [1, 2]
   ]
 
   def __init__(self, **kwargs):
@@ -189,7 +220,19 @@ class DolphinRunner(Default):
     gameSettings = user + '/GameSettings'
     util.makedirs(gameSettings)
     with open(gameSettings + '/GALE01.ini', 'w') as f:
-      ini = gale01_ini_fm if self.fm else gale01_ini
+      assert not self.fm  # only custom exi build is supported
+      
+      keys = ['stage', 'char1', 'char2', 'cpu1', 'cpu2']
+      kwargs = {k: getattr(self, k) for k in keys}
+      
+      for i in [1, 2]:
+        k = 'player%d' % i
+        kwargs[k] = str_to_player[getattr(self, k)].player_status()
+
+      print(kwargs)
+      match_setup_code = gen_code.setup_match_code(**kwargs)
+        
+      ini = gale01_ini.format(match_setup=match_setup_code)
       if self.lcancel_flash:
         ini += lcancel_ini
       f.write(ini)
