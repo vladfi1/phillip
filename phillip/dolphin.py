@@ -62,8 +62,8 @@ $Match Setup
 
 [Gecko_Enabled]
 $DMA Read Before Poll
-{speed_hack}
 $Skip Memcard Prompt
+{speed_hack}
 $Boot To Match
 #$Fox vs Fox-9
 $Match Setup
@@ -127,6 +127,7 @@ class DolphinRunner(Default):
     Option('dump_encoder', type=str, default=''),
     Option('dump_path', type=str, default=''),
     Option('lcancel_flash', action="store_true", help="flash on lcancel"),
+    Option('speedhack', action="store_true", help="enable speed hack"),
 
     Option('exe', type=str, default='dolphin-emu-headless', help="dolphin executable"),
     Option('user', type=str, help="path to dolphin user directory"),
@@ -232,10 +233,12 @@ class DolphinRunner(Default):
       print(kwargs)
       match_setup_code = gen_code.setup_match_code(**kwargs)
       
-      speed_hack = '$Speed Hack'
-      if self.gfx != 'Null':
-        speed_hack += ' Render'
-      print(speed_hack)
+      speed_hack = ''
+      if self.speedhack:
+        speed_hack = '$Speed Hack'
+        if self.gfx != 'Null':
+          speed_hack += ' Render'
+        print(speed_hack)
       ini = gale01_ini.format(match_setup=match_setup_code, speed_hack=speed_hack)
       if self.lcancel_flash:
         ini += lcancel_ini
