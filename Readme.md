@@ -8,7 +8,7 @@ Tested on: Ubuntu >=14.04, OSX, Windows 7/8/10.
 1. The dolphin emulator. You will probably need to compile from source on Linux. On Windows you'll need to install a [custom dolphin version](https://github.com/vladfi1/dolphin/releases/download/v5.2-alpha/win-mw-push.zip) - just unpack the zip somewhere.
 2. The SSBM iso image. Tested with NTSC 1.02, but other versions will probably work too.
 3. Python 3. On Windows, you can use [Anaconda](https://repo.continuum.io/archive/Anaconda3-4.4.0-Windows-x86_64.exe) which sets up the necessary paths. You can also use the linux subsytem on Windows 10.
-4. `pip3 install tensorflow`, or `tensorflow-gpu` if you plan on training with an nvidia gpu. Phillip doesn't depend on tensorflow so that you can choose which one you want to use.
+4. `pip3 install tensorflow==1.14`, or `tensorflow-gpu==1.14` if you plan on training with an nvidia gpu. Phillip doesn't depend on tensorflow so that you can choose which one you want to use.
 5. Install [phillip](https://github.com/vladfi1/phillip/archive/master.zip).
 
 ```bash
