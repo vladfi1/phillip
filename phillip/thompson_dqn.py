@@ -1,4 +1,4 @@
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import tf_lib as tfl
 import util
 from numpy import random, exp, argmax

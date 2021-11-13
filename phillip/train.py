@@ -8,7 +8,7 @@ from collections import defaultdict
 import nnpy
 import resource
 import gc
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 #from memory_profiler import profile
 import netifaces
 import random

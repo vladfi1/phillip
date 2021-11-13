@@ -1,5 +1,5 @@
 import itertools
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from .default import *
 from . import embed, ssbm, tf_lib as tfl, util
 from .rl_common import *

@@ -1,4 +1,4 @@
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from . import tf_lib as tfl, util, opt
 from numpy import random
 from .default import *

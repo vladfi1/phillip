@@ -1,5 +1,5 @@
 import math
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from phillip.RL import RL
 from . import ssbm, util, ctype_util as ct, embed
 from .core import Core

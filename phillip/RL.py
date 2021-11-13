@@ -3,7 +3,7 @@ Parent RL class for Actor and Learner.
 """
 
 import os
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import numpy as np
 from enum import Enum
 from . import ssbm, tf_lib as tfl, util, embed

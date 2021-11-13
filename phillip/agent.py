@@ -1,4 +1,4 @@
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from . import ssbm, actor, util, tf_lib as tfl, ctype_util as ct
 import numpy as np
 from numpy import random, exp

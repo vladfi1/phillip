@@ -3,7 +3,7 @@ from enum import IntEnum
 from itertools import product
 import numpy as np
 from numpy import random
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 def copy(src, dst):
     """Copies the contents of src to dst"""

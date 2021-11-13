@@ -1,7 +1,7 @@
 import numpy as np
-import tensorflow as tf
-from tensorflow.contrib.framework.python.framework import checkpoint_utils
+import tensorflow.compat.v1 as tf
 import itertools
+
 from phillip.default import *
 from phillip import util
 
@@ -317,7 +317,7 @@ def one_hot(size):
 def rank(t):
   return tf.shape(tf.shape(t))[0]
 
-class GRUCell(tf.contrib.rnn.RNNCell):
+class GRUCell(tf.nn.rnn_cell.RNNCell):
   def __init__(self, input_size, hidden_size, nl=tf.tanh, name=None):
     with tf.variable_scope(name or type(self).__name__):
       with tf.variable_scope("Gates"):
@@ -487,7 +487,7 @@ def test_smoothed_returns():
 
 def restore(session, variables, ckpt_path):
   """Does what a saver would do, but handles mismatched shapes."""
-  ckpt = checkpoint_utils.load_checkpoint(ckpt_path)
+  ckpt = tf.train.load_checkpoint(ckpt_path)
 
   for var in variables:
     name = var.name

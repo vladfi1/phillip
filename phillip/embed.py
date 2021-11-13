@@ -2,7 +2,7 @@
 Converts SSBM types to Tensorflow types. 
 """
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from . import tf_lib as tfl, util, ssbm
 from .default import *
 import math

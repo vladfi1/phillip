@@ -1,5 +1,5 @@
 from phillip import RL
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from . import ssbm, util, ctype_util as ct, embed
 from .core import Core
 from .ac import ActorCritic

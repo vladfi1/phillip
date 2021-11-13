@@ -2,7 +2,7 @@ import numpy as np
 from . import util
 from .default import *
 import enum
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 def isDying(player):
   # see https://docs.google.com/spreadsheets/d/1JX2w-r2fuvWuNgGb6D3Cs4wHQKLFegZe2jhbBuIhCG8/edit#gid=13

@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 import time, os
 import pprint
+
+import tensorflow.compat.v1 as tf
+tf.disable_eager_execution()
+
 from phillip.dolphin import DolphinRunner
 from argparse import ArgumentParser
 from multiprocessing import Process
