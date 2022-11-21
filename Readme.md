@@ -6,11 +6,10 @@ An SSBM player based on Deep Reinforcement Learning.
 Tested on: Ubuntu >=14.04, OSX, Windows 7/8/10.
 
 1. The dolphin emulator. You will probably need to compile from source on Linux. On Windows you'll need to install a [custom dolphin version](https://github.com/vladfi1/dolphin/releases/download/v5.2-alpha/win-mw-push.zip) - just unpack the zip somewhere.
-2. The SSBM iso image. Tested with NTSC 1.02, but other versions will probably work too.
+2. The SSBM iso image. You will need NTSC 1.02.
 3. Python 3. On Windows, you can use [Anaconda](https://repo.continuum.io/archive/Anaconda3-4.4.0-Windows-x86_64.exe) which sets up the necessary paths. You can also use the linux subsytem on Windows 10.
-4. `pip install tensorflow`. Phillip doesn't depend on tensorflow so that you can choose which one you want to use.
-5. Download and extract [phillip](https://github.com/vladfi1/phillip/archive/master.zip).
-6. Some agents are under `phillip/agents`. The full set of agents is available [here](https://drive.google.com/open?id=1uHghos9e3aXoT19Tn9v6rDYBBclCWt-U).
+4. Install phillip. You can download and extract [a zip file](https://github.com/vladfi1/phillip/archive/master.zip) or clone this repository. Then, from the phillip root, run `pip install -e .`.
+5. Some trained agents are included in the `agents` directory. The full set of trained agents is available [here](https://drive.google.com/open?id=1uHghos9e3aXoT19Tn9v6rDYBBclCWt-U).
 
 ## Play
 
