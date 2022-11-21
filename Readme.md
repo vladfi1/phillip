@@ -8,33 +8,17 @@ Tested on: Ubuntu >=14.04, OSX, Windows 7/8/10.
 1. The dolphin emulator. You will probably need to compile from source on Linux. On Windows you'll need to install a [custom dolphin version](https://github.com/vladfi1/dolphin/releases/download/v5.2-alpha/win-mw-push.zip) - just unpack the zip somewhere.
 2. The SSBM iso image. Tested with NTSC 1.02, but other versions will probably work too.
 3. Python 3. On Windows, you can use [Anaconda](https://repo.continuum.io/archive/Anaconda3-4.4.0-Windows-x86_64.exe) which sets up the necessary paths. You can also use the linux subsytem on Windows 10.
-4. `pip3 install tensorflow==1.14`, or `tensorflow-gpu==1.14` if you plan on training with an nvidia gpu. Phillip doesn't depend on tensorflow so that you can choose which one you want to use.
-5. Install [phillip](https://github.com/vladfi1/phillip/archive/master.zip).
-
-```bash
-cd path/to/phillip # future commands should be run from here
-pip3 install -e . # "." is the path to the current directory - don't omit!
-```
-
-Installing in editable mode (`-e`) allows you to make local changes without reinstalling, which is useful if you are using a cloned repo and want to update by pulling (`git pull`).
-
-If cloning, you may wish to use `--depth 1` to avoid downloading large files from phillip's history (most of which are now gone and should be purged from git). These are the saved agents, which are in the process of being moved to [git large file storage](https://git-lfs.github.com/). Currently the best agents such as `agents/delay18/FalcoBF` live there. To get it:
-
-```bash
-sudo apt-get install git-lfs # on ubuntu; for other systems see the website
-git-lfs install
-git-lfs pull
-```
-
-As an alternative, you can download a [zip](https://drive.google.com/open?id=1uHghos9e3aXoT19Tn9v6rDYBBclCWt-U) with all the agents.
+4. `pip install tensorflow`. Phillip doesn't depend on tensorflow so that you can choose which one you want to use.
+5. Download and extract [phillip](https://github.com/vladfi1/phillip/archive/master.zip).
+6. Some agents are under `phillip/agents`. The full set of agents is available [here](https://drive.google.com/open?id=1uHghos9e3aXoT19Tn9v6rDYBBclCWt-U).
 
 ## Play
 
-You will need to know where dolphin is located. On Mac the dolphin path will be `~/../../Applications/Dolphin.app/Contents/MacOS/Dolphin`. If `dolphin-emu` is already on your `PATH` then you can omit this.
+You will need to know where dolphin is located. On Mac the dolphin path will be `/Applications/Dolphin.app/Contents/MacOS/Dolphin`. If `dolphin-emu` is already on your `PATH` then you can omit this.
 
     python3 phillip/run.py --gui --human --start 0 --reload 0 --epsilon 0 --load agents/FalconFalconBF --iso /path/to/SSBM.iso --exe /path/to/dolphin [--windows]
 
-Trained agents are stored in the `agents` directory. Aside from `FalconFalconBF`, the agents in `agents/delay0/` are also fairly strong. Run with `--help` to see all options.
+Trained agents are stored in the `agents` directory. Aside from `FalconFalconBF`, the agents in `agents/delay0/` are also fairly strong. Run with `--help` to see all options. The best human-like agent is `delay18/FalcoBF`, available in the Google Drive zip.
 
 ### Windows Notes
 
