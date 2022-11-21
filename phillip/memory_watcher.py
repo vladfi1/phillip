@@ -12,7 +12,8 @@ def parseMessage(message):
   diffs = util.chunk(lines, 2)
   
   for diff in diffs:
-    diff[1] = binascii.unhexlify(diff[1].zfill(8))
+    value = diff[1].replace(',', '').zfill(8)
+    diff[1] = binascii.unhexlify(value)
   
   return diffs
 
