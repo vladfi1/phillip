@@ -1,6 +1,8 @@
 # The Phillip AI
 An SSBM player based on Deep Reinforcement Learning.
 
+NOTE: This project is no longer active and is subject to bit-rot. There is a successor project based on imitation learning from slippi replays at https://github.com/vladfi1/slippi-ai.
+
 ## Requirements
 
 Tested on: Ubuntu >=14.04, OSX, Windows 7/8/10.
@@ -61,4 +63,3 @@ I've been streaming practice play over at http://twitch.tv/x_pilot. There are al
 ## Credits
 
 Big thanks to [altf4](https://github.com/altf4/SmashBot) for getting me started, and to [spxtr](https://github.com/spxtr/p3) for a python memory watcher. Some code for dolphin interaction has been borrowed from both projects (mostly the latter now that I've switched to pure python).
-
