@@ -81,7 +81,7 @@ setup(
     install_requires=[
         'attrs',
         'pyzmq',
-        'tensorflow==2.14',  # newer tensorflows don't work due to keras
+        'tensorflow==2.13',
     ],
 
     python_requires='<3.12',  # 3.12 drops support for tensorflow<2.16
